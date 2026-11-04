@@ -129,7 +129,7 @@ function profile(){return `<h2>Профиль</h2><div class="card row"><div cla
 function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const af=$("#addFriend");if(af)af.onclick=()=>{const n=$("#friendName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Проверь имя игрока");return}if(n.toLowerCase()===state.profile.username.toLowerCase()){toast("Нельзя добавить самого себя");return}if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Добавлено в демо-список")};const bot=$("#addTestBot");if(bot)bot.onclick=()=>{const n="QQcrossBot";if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Тестовый бот добавлен в друзья")};document.querySelectorAll(".inviteFriend").forEach(b=>b.onclick=()=>{if(b.dataset.name.toLowerCase()==="qqcrossbot"){state.invite={from:"QQcrossBot 🤖",size:2,bot:true};state.screen="";state.tab="Главная";render();toast("Бот получил приглашение (демо)")}else openInvite(b.dataset.name)});document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}}}
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><p class="small muted">Ты — первый игрок. Остальные места займут приглашённые друзья.</p><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><b>Как работает приглашение</b><p class="small muted">Игрок увидит плашку с выбором: согласиться или отказаться. Сейчас это демонстрация интерфейса; доставка между разными устройствами заработает после подключения сервера.</p><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
-function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
+function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -148,6 +148,7 @@ function pictureUrl(emoji){
 function renderGame(root){
   clearInterval(state.interval);
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
+  if(state.rackNeedsRefill&&state.rackNeedsRefill[state.turn]){refillRack(state.turn);state.rackNeedsRefill[state.turn]=false;}
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
@@ -155,9 +156,16 @@ function renderGame(root){
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
   const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
-  const clueList=puzzle.words.slice().sort((a,b)=>a.number-b.number).map(w=>'<button type="button" class="clue-row '+(state.selectedWord===w.id?'is-selected':'')+'" data-clue-word="'+w.id+'"><b>'+w.number+'.</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></button>').join("");
+  const selectedQuestion=puzzle.words.find(w=>w.id===state.selectedWord)||puzzle.words[0];
+  let questionSlot=null;const slots=[];
+  for(let r=1;r<=boardSize-2;r++)for(let col=1;col<=boardSize-2;col++){
+    let free=true;for(let dy=0;dy<3;dy++)for(let dx=0;dx<3;dx++){const key=(r+dy-offsetY)+","+(col+dx-offsetX);if(expected[key]!==undefined||clueTiles[key])free=false;}
+    if(free)slots.push({row:r,col,dist:Math.abs(r+1-boardSize/2)+Math.abs(col+1-boardSize/2)});
+  }
+  slots.sort((a,b)=>a.dist-b.dist);questionSlot=slots[0]||null;
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
+    if(questionSlot&&gy>=questionSlot.row&&gy<questionSlot.row+3&&gx>=questionSlot.col&&gx<questionSlot.col+3){if(gy===questionSlot.row&&gx===questionSlot.col)cells.push('<div class="question-core" style="grid-row:'+gy+' / span 3;grid-column:'+gx+' / span 3"><div class="question-title">ВОПРОС '+selectedQuestion.number+'</div><div class="question-art">'+esc(selectedQuestion.art||"❔")+'</div><div class="question-text">'+esc(selectedQuestion.clue)+'</div><div class="question-nav"><button type="button" data-question-prev aria-label="Предыдущий вопрос">‹</button><span>'+(puzzle.words.findIndex(w=>w.id===selectedQuestion.id)+1)+' / '+puzzle.words.length+'</span><button type="button" data-question-next aria-label="Следующий вопрос">›</button></div></div>');continue;}
     const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[],words=starts[k]||[];
     if(clues.length){
       cells.push('<div class="cell clue-tile"><span>'+clues.map(w=>w.number).join("/")+'</span></div>');
@@ -166,18 +174,21 @@ function renderGame(root){
     const mark=words.length?'<span class="cell-mark">'+words.map(w=>w.number).join("/")+'</span>':"";
     const selectedWord=puzzle.words.find(w=>w.id===state.selectedWord);
     const selectedCell=selectedWord&&selectedWord.cells.some(pos=>pos.join(",")===k);
-    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'">'+mark+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'"'+(words.length?' data-word-start="'+words.map(w=>w.id).join(",")+'"':"")+' style="grid-row:'+gy+';grid-column:'+gx+'">'+mark+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
-    '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
+    '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+boardSize+';grid-template-columns:repeat('+boardSize+',minmax(0,1fr));grid-template-rows:repeat('+boardSize+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
-    '<section class="clue-panel"><h3>Вопросы</h3><div class="clue-list-readable">'+clueList+'</div></section>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  root.querySelectorAll("[data-clue-word]").forEach(row=>row.addEventListener("click",()=>{state.selectedWord=row.dataset.clueWord;renderGame(root)}));
+  const chooseQuestion=id=>{state.selectedWord=id;renderGame(root)};
+  root.querySelectorAll("[data-word-start]").forEach(cell=>cell.addEventListener("click",()=>chooseQuestion(cell.dataset.wordStart.split(",")[0])));
+  const qIndex=puzzle.words.findIndex(w=>w.id===selectedQuestion.id);
+  root.querySelector("[data-question-prev]")?.addEventListener("click",()=>chooseQuestion(puzzle.words[(qIndex-1+puzzle.words.length)%puzzle.words.length].id));
+  root.querySelector("[data-question-next]")?.addEventListener("click",()=>chooseQuestion(puzzle.words[(qIndex+1)%puzzle.words.length].id));
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   root.querySelectorAll(".clue-cell").forEach(btn=>{const open=()=>{const words=btn.dataset.clues.split(",").map(id=>puzzle.words.find(w=>w.id===id)).filter(Boolean);btn.innerHTML=words.map(w=>"<b>"+w.number+".</b> "+esc(w.clue)+" <small>("+w.answer.length+")</small>").join("<hr>")};btn.addEventListener("click",e=>{e.stopPropagation();open()});btn.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})});
   document.addEventListener("click",e=>{if(!e.target.closest(".clue-popover,.clue-trigger"))root.querySelectorAll(".clue-popover").forEach(x=>x.remove())},{once:true});
@@ -265,7 +276,10 @@ function finishTurn(root,timeout=false){
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;if(correct)checkWords();
   if(state.screen!=="game"){render();return}
-  refillRack(state.turn);if(state.partySize>1)state.turn=(state.turn+1)%state.partySize;
+  if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
+  state.rackNeedsRefill[state.turn]=true;
+  if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
+  else state.round=(state.round||1)+1;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
   toast(timeout?"Время вышло. Правильные буквы отмечены зелёным, ошибки — красным.":"Зелёным отмечены правильные буквы, красным — неправильные. Ход передан.");
 }
