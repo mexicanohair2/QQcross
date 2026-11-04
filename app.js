@@ -175,7 +175,7 @@ function renderGame(root){
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
   const availableBoardHeight=Math.max(100,viewportHeight-410);
   const availableBoardWidth=Math.max(120,viewportWidth-24);
-  const fitCellSize=Math.max(5,Math.min(40,Math.floor(Math.min((availableBoardWidth-(boardW-1))/boardW,(availableBoardHeight-(boardH-1))/boardH))));
+  const fitCellSize=Math.max(5,Math.min(40,Math.floor(Math.min((availableBoardWidth-(boardW-1))/boardW,(availableBoardHeight-(boardH-1))/boardH))-1);
   const cellSize=fitCellSize;
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
