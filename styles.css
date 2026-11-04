@@ -203,3 +203,24 @@
 .game-screen .letter.dragging{opacity:.55;z-index:20;position:relative;transform:scale(1.08);box-shadow:0 0 0 3px var(--accent,#a78bfa)}
 .game-screen .game-tools{flex:0 0 auto;min-height:72px}
 @media(max-height:650px){.game-screen .clue-list{flex-basis:14dvh;max-height:14dvh}.game-screen .board-wrap{max-height:48dvh}}
+
+
+/* QQCross refresh: larger board, readable clue tiles and visible letter pickup animation */
+.game-screen .board-wrap{flex:1 1 58%;min-height:150px;max-height:59dvh;overflow:auto}
+.game-screen .board{width:min(100%,64dvh);max-width:100%;gap:2px}
+.game-screen .cell{border-radius:5px;font-size:clamp(11px,3vw,18px);transition:background .15s,outline .15s,transform .15s}
+.game-screen .cell.drop-hover{outline:3px solid #b69cff;outline-offset:-3px;background:#514078;transform:scale(.96)}
+.game-screen .clue-list{flex:0 1 23dvh;min-height:95px;max-height:23dvh;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:4px 2px}
+.game-screen .clue-card{display:grid;grid-template-columns:25px minmax(0,1fr);grid-template-rows:auto auto;align-items:start;gap:3px 6px;min-height:54px;padding:8px 9px;border-radius:10px;font-size:clamp(11px,3vw,13px);line-height:1.25;background:#222a38;border:1px solid #3b4657}
+.game-screen .clue-card b{grid-column:1;grid-row:1 / span 2;font-size:12px}
+.game-screen .clue-card span{grid-column:2;overflow-wrap:anywhere}
+.game-screen .clue-card small{grid-column:2;color:var(--muted);font-size:9px}
+.game-screen .letter.dragging{opacity:.28;transform:scale(.9)}
+.drag-ghost{display:grid!important;place-items:center;background:#fff!important;color:#27314b!important;border:2px solid #b69cff!important;border-radius:11px!important;box-shadow:0 12px 28px #0008,0 0 0 3px #7c5cff55!important;font-size:24px!important;font-weight:900!important;will-change:transform;pointer-events:none}
+.game-screen .game-tools{flex:0 0 auto;min-height:70px}
+@media(max-height:700px){
+ .game-screen .board-wrap{max-height:53dvh;min-height:125px}
+ .game-screen .clue-list{flex-basis:20dvh;max-height:20dvh;min-height:82px}
+ .game-screen .clue-card{min-height:48px;padding:6px 7px}
+}
+@media(max-width:370px){.game-screen .clue-list{grid-template-columns:1fr}.game-screen .clue-card{min-height:42px}}
