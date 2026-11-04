@@ -281,3 +281,8 @@ body{
 #app>.splash .logo{margin:0 auto 12px}
 #app>.splash h1{margin:8px 0}
 #app>.splash p{margin:0}
+
+/* Стартовый экран: строго по центру без двойной высоты */
+#app:has(> .splash){display:block!important;min-height:100dvh!important;padding:0!important}
+#app:has(> .splash) > .splash{box-sizing:border-box;min-height:100dvh!important;width:100%!important;max-width:100%!important;margin:0!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px!important}
+#app:has(> .splash) > .splash .logo{margin:0 auto 12px!important}
