@@ -6,7 +6,7 @@ const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
 const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 let authMode="signup";
-const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,completed:new Set(),partySize:2,inviteName:"",invite:null,levelId:1};
+const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null,levelId:1};
 let puzzle=null;
 const expected={};
 let letterBag=[];
@@ -123,7 +123,7 @@ function profile(){return `<h2>Профиль</h2><div class="card row"><div cla
 function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const af=$("#addFriend");if(af)af.onclick=()=>{const n=$("#friendName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Проверь имя игрока");return}if(n.toLowerCase()===state.profile.username.toLowerCase()){toast("Нельзя добавить самого себя");return}if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Добавлено в демо-список")};const bot=$("#addTestBot");if(bot)bot.onclick=()=>{const n="QQcrossBot";if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Тестовый бот добавлен в друзья")};document.querySelectorAll(".inviteFriend").forEach(b=>b.onclick=()=>{if(b.dataset.name.toLowerCase()==="qqcrossbot"){state.invite={from:"QQcrossBot 🤖",size:2,bot:true};state.screen="";state.tab="Главная";render();toast("Бот получил приглашение (демо)")}else openInvite(b.dataset.name)});document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}}}
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><p class="small muted">Ты — первый игрок. Остальные места займут приглашённые друзья.</p><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><b>Как работает приглашение</b><p class="small muted">Игрок увидит плашку с выбором: согласиться или отказаться. Сейчас это демонстрация интерфейса; доставка между разными устройствами заработает после подключения сервера.</p><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
-function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
+function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -150,11 +150,11 @@ function renderGame(root){
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
-    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
+    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
     const clues=starts[k]||[];
     const marker=clues.length?'<button class="cell-mark clue-trigger" type="button" data-clues="'+clues.map(w=>w.id).join(",")+'">'+clues.map(w=>w.number).join("/")+'</button>':'';
     const clueTitle=clues.length?clues.map(w=>w.clue).join(" / "):"";
-    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'" '+(clueTitle?'title="'+esc(clueTitle)+'"':'')+'>'+marker+'<span class="cell-letter">'+esc(letter)+'</span></div>');
+    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+(state.feedback[k]==='correct'?'feedback-correct ':'')+(state.feedback[k]==='wrong'?'feedback-wrong ':'')+(hint&&!letter?'has-phantom ':'')+'" data-cell="'+k+'" '+(clueTitle?'title="'+esc(clueTitle)+'"':'')+'>'+marker+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':'')+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -164,6 +164,7 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
+  root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   root.querySelectorAll(".clue-trigger").forEach(btn=>btn.addEventListener("click",e=>{
     e.stopPropagation();
     const cell=btn.closest(".cell"),old=cell.querySelector(".clue-popover");
@@ -247,27 +248,29 @@ function renderGame(root){
   });
   $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
+  $("#magnifier").onclick=()=>{if(state.profile.items.magnifier<=0){toast("Лупы закончились — загляни в магазин");return}state.loupeActive=true;toast("Лупа активна: нажми на пустую клетку");};
   $("#clock").onclick=()=>{if(!useItem("clock"))return;state.seconds+=20;renderGame(root)};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
   $("#magnifier").onclick=()=>{if(!useItem("magnifier"))return;const w=puzzle.words[0],next=w.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));if(!next){toast("В этом слове больше нет пустых клеток");return}const k=next.join(","),needed=expected[k],ix=state.letters.indexOf(needed);if(ix>=0){state.letters.splice(ix,1);state.pendingMoves.push({k,l:needed});state.playerRacks[state.turn]=state.letters}renderGame(root);toast("Подсказка добавлена")};
   state.interval=setInterval(()=>{state.seconds--;const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
 }
 function placeAtCell(k,letterIndex,root){
+  if(state.loupeActive){if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
+  state.pendingMoves.push({k,l:letter});delete state.hints[k];delete state.feedback[k];state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;
   moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
-    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.playerScores[state.turn]++;state.scores++;correct++}
-    else{state.letters.push(m.l);incorrect++}
+    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++}
+    else{state.feedback[m.k]="wrong";state.letters.push(m.l);incorrect++}
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;if(correct)checkWords();
   if(state.screen!=="game"){render();return}
   refillRack(state.turn);if(state.partySize>1)state.turn=(state.turn+1)%state.partySize;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
-  toast(timeout?"Время вышло. Верных букв: "+correct:"Проверка: верно — "+correct+", неверно — "+incorrect+". Ход передан.");
+  toast(timeout?"Время вышло. Правильные буквы отмечены зелёным, ошибки — красным.":"Зелёным отмечены правильные буквы, красным — неправильные. Ход передан.");
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);while(rack.length<7&&letterBag.length)rack.push(...drawLetters(Math.min(7-rack.length,letterBag.length)));}
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
@@ -300,7 +303,7 @@ function checkWords(){
     setTimeout(()=>{render();toast("Партия завершена!")},500);
   }
 }
-async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:defaultItems(),friends:[]};localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));}
+async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();}
 async function initAuth(){try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){await loadCloudProfile(data.session.user.id)}}catch(e){console.error("QQcross auth:",e);toast("Не удалось загрузить аккаунт. Попробуй обновить страницу.")}render()}
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 initAuth();
