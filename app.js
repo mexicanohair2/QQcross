@@ -163,7 +163,8 @@ function renderGame(root){
     }
     const selectedWord=puzzle.words.find(w=>w.id===state.selectedWord);
     const selectedCell=selectedWord&&selectedWord.cells.some(pos=>pos.join(",")===k);
-    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'"'+' style="grid-row:'+gy+';grid-column:'+gx+'"'><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+     const cellClass="cell "+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
+     cells.push('<div class="'+cellClass+'" data-cell="'+k+'" style="grid-row:'+gy+';grid-column:'+gx+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
