@@ -256,7 +256,7 @@ function renderGame(root){
       if(dragIndex!==-1)return;
       const move=state.pendingMoves.find(m=>m.k===cell.dataset.cell);
       if(!move)return;
-      dragIndex=0;dragPointer=e.pointerId;dragFromCell=cell.dataset.cell;
+      dragIndex=0;dragPointer=e.pointerId;dragButton=cell;dragFromCell=cell.dataset.cell;
       const r=cell.getBoundingClientRect();
       dragGhost=document.createElement("div");dragGhost.className="letter drag-ghost";dragGhost.textContent=move.l;
       Object.assign(dragGhost.style,{position:"fixed",left:"0",top:"0",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"99999",pointerEvents:"none",transition:"none",opacity:"1",transform:"translate3d("+r.left+"px,"+r.top+"px,0) scale(1.05)"});
