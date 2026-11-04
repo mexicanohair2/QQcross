@@ -64,7 +64,7 @@ function makeRandomPuzzle(){
   let used={};
   try{used=JSON.parse(localStorage.getItem("qqcross_used_words_v1")||"{}")||{}}catch(e){used={}}
   for(const [len,count] of Object.entries(counts)){
-    const pool=WORD_POOL.filter(x=>Array.from(x[0]).length===+len);
+    const pool=WORD_POOL.filter(x=>Array.isArray(x)&&typeof x[0]==="string"&&x[0].length>0&&Array.from(x[0]).length===+len);
     if(pool.length<count)throw new Error("Недостаточно слов длины "+len);
     let fresh=pool.filter(x=>!used[x[0]]);
     if(fresh.length<count){pool.forEach(x=>delete used[x[0]]);fresh=pool.slice()}
