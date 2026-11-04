@@ -78,8 +78,9 @@ function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
   ordered.forEach((w,i)=>{
     const row=i+1, chars=Array.from(w.answer);
-    const cells=chars.map((_,j)=>[row,j+5]);
-    puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,1],dir:"h"});
+    const clueSide=i%2===0?"left":"right";
+    const cells=chars.map((_,j)=>[row,clueSide==="left"?j+5:maxLen+1-j]);
+    puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,clueSide==="left"?1:maxLen+1],clueSide,dir:"h"});
     cells.forEach((cell,j)=>expected[cell.join(",")]=chars[j]);
   });
   chosen.forEach(w=>used[w.answer]=1);
@@ -160,19 +161,21 @@ function renderGame(root){
   for(let y=1;y<=boardH;y++){
     const word=puzzle.words.find(w=>w.cells[0][0]===y);
     if(!word)continue;
-    const clue='<div class="cell clue-tile scan-clue" style="grid-column:span 4"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
-    const letters=word.cells.map(pos=>{
+    const clue='<div class="cell clue-tile scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
+    const visualCells=word.cells.slice().sort((a,b)=>a[1]-b[1]);
+    const letters=visualCells.map(pos=>{
       const k=pos.join(","),letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
       const selectedCell=state.selectedWord===word.id;
       const cls="cell "+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
       return '<div class="'+cls+'" data-cell="'+k+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>';
     }).join("");
-    rows.push('<div class="scanword-row" style="--scan-cell:'+cellSize+'px">'+clue+letters+'</div>');
+    const rowContent=word.clueSide==="right"?letters+clue:clue+letters;
+    rows.push('<div class="scanword-row" style="--scan-cell:'+cellSize+'px">'+rowContent+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
-    '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
+    '<div class="game-head"><div><b>QQСканворд</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+rows.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
