@@ -863,3 +863,12 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
   min-width:var(--qq-cell-size)!important;
   min-height:var(--qq-cell-size)!important;
 }
+
+
+/* Larger crossword: use 95% of screen width while keeping the full square board visible */
+.game-screen>.board-wrap{
+  width:min(95vw,calc(100dvh - 260px))!important;
+  height:min(95vw,calc(100dvh - 260px))!important;
+  max-width:95vw!important;
+  max-height:calc(100dvh - 260px)!important;
+}
