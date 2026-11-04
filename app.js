@@ -165,7 +165,8 @@ function renderGame(root){
   const questions=puzzle.words.map(w=>{
     const done=w.cells.every(c=>state.filled[c.join(",")]!==undefined);
     const active=state.selectedWord===w.id;
-    return '<button class="question '+(active?'question-active ':'')+(done?'question-done':'')+'" data-word="'+w.id+'"><img class="question-picture" src="'+pictureUrl(w.art||'🔤')+'" alt="" loading="lazy"><span><b>'+w.number+'.</b> '+w.clue+'</span><small>'+w.answer.length+' букв'+(done?' · готово':'')+'</small></button>';
+    const showPicture=w.number%3===0;
+    return '<button class="question '+(active?'question-active ':'')+(done?'question-done ':'')+(showPicture?'has-picture':'no-picture')+'" data-word="'+w.id+'">'+(showPicture?'<img class="question-picture" src="'+pictureUrl(w.art||'🔤')+'" alt="" loading="lazy">':'')+'<span><b>'+w.number+'.</b> '+w.clue+'</span><small>'+w.answer.length+' букв'+(done?' · готово':'')+'</small></button>';
   }).join('');
   root.innerHTML=
     '<div class="screen game-screen">'+
