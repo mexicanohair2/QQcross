@@ -803,3 +803,30 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
   background:linear-gradient(145deg,#69414d,#472b35)!important;
   border:1px solid #ad7c89!important;
 }
+
+
+/* Larger crossword cells: preserve cell proportions and scroll the board, not stretch it */
+.game-screen>.board-wrap{
+  flex:1 1 0!important;
+  min-height:0!important;
+  min-width:0!important;
+  overflow:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  -webkit-overflow-scrolling:touch!important;
+  touch-action:pan-x pan-y!important;
+}
+.game-screen>.board-wrap>.board{
+  width:max-content!important;
+  max-width:none!important;
+  min-width:max-content!important;
+  flex:0 0 auto!important;
+  margin:auto!important;
+}
+.game-screen>.board-wrap>.board>.cell{
+  width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;
+  min-width:var(--qq-cell-size)!important;
+  min-height:var(--qq-cell-size)!important;
+}
