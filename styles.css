@@ -886,3 +886,36 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
   overscroll-behavior-y:contain!important;
   touch-action:pan-x!important;
 }
+
+
+/* Вертикальная прокрутка заблокирована только во время игры; горизонтальное перемещение поля сохранено */
+html:has(.game-screen),
+body:has(.game-screen),
+body:has(.game-screen) #app{
+  height:100dvh!important;
+  min-height:0!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+}
+.game-screen{
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  overscroll-behavior:none!important;
+  touch-action:pan-x!important;
+}
+.game-screen>.board-wrap{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:100%!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-x:contain!important;
+  overscroll-behavior-y:none!important;
+  touch-action:pan-x!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.game-screen>.board-wrap>.board{
+  touch-action:pan-x!important;
+}
