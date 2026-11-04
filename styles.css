@@ -642,3 +642,18 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
 .game-screen .clue-popup-close{display:block;margin:12px auto 0;padding:8px 18px;border-radius:8px;background:#315563;color:white}
 .game-screen .clue-popup-item{display:none!important}
 .game-screen .cell-mark{display:inline-flex!important;align-items:center;justify-content:center;gap:1px}
+
+
+/* QQcross: hide all legacy clue lists; reveal one clue by dragging a letter onto its number. */
+.game-screen .questions,
+.game-screen .clue-panel,
+.game-screen .clue-list-readable,
+.game-screen .clue-heading,
+.game-screen .clue-title{display:none!important}
+.game-screen [data-show-clue].drop-clue-hover{
+  background:#35a9c0!important;
+  color:#071a20!important;
+  box-shadow:0 0 0 3px #8ceafa,0 0 14px #54d9ef!important;
+  transform:scale(1.2)!important;
+}
+.game-screen .clue-popup{margin:8px auto 0!important}
