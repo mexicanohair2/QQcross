@@ -74,11 +74,11 @@ function makeRandomPuzzle(){
 
   const ordered=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
   const maxLen=Math.max(...ordered.map(w=>Array.from(w.answer).length));
-  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:maxLen+3,h:ordered.length,words:[]};
+  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:maxLen+4,h:ordered.length,words:[]};
   Object.keys(expected).forEach(k=>delete expected[k]);
   ordered.forEach((w,i)=>{
     const row=i+1, chars=Array.from(w.answer);
-    const cells=chars.map((_,j)=>[row,j+4]);
+    const cells=chars.map((_,j)=>[row,j+5]);
     puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,1],dir:"h"});
     cells.forEach((cell,j)=>expected[cell.join(",")]=chars[j]);
   });
@@ -160,7 +160,7 @@ function renderGame(root){
   for(let y=1;y<=boardH;y++){
     const word=puzzle.words.find(w=>w.cells[0][0]===y);
     if(!word)continue;
-    const clue='<div class="cell clue-tile scan-clue" style="grid-column:span 3"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
+    const clue='<div class="cell clue-tile scan-clue" style="grid-column:span 4"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
     const letters=word.cells.map(pos=>{
       const k=pos.join(","),letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
       const selectedCell=state.selectedWord===word.id;
