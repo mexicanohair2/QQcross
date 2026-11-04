@@ -336,7 +336,7 @@ function finishTurn(root,timeout=false){
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
-  toast(timeout?"Время вышло. Правильные буквы отмечены зелёным, ошибки — красным.":"Зелёным отмечены правильные буквы, красным — неправильные. Ход передан.");
+
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);while(rack.length<7&&letterBag.length)rack.push(...drawLetters(Math.min(7-rack.length,letterBag.length)));}
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
@@ -354,7 +354,7 @@ function place(k,root){
     state.playerScores[state.turn]++;state.scores++;state.playerRacks[state.turn]=state.letters;
     checkWords();renderGame(root);
   }else{
-    state.wrong=k;renderGame(root);toast("Эта буква не подходит к клетке");
+    state.wrong=k;renderGame(root);
     setTimeout(()=>{state.wrong=null;const el=document.querySelector('[data-cell="'+k+'"]');if(el)el.classList.remove("wrong")},500);
   }
 }
