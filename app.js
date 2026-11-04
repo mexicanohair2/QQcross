@@ -244,7 +244,7 @@ function renderGame(root){
     }
     const y=originalY,x=originalX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[];
     if(clues.length){
-       cells.push('<div class="cell clue-tile" style="grid-row:'+gy+';grid-column:'+gx+'">'+clues.map(w=>'<button type="button" class="clue-number" data-show-clue="'+w.id+'">'+w.number+'</button>').join("")+'</div>');
+       cells.push('<div class="cell clue-tile scan-clue" style="grid-row:'+gy+';grid-column:'+gx+'">'+clues.map(w=>'<span class="scan-arrow">'+(w.dir==="h"?"➜":"⬇")+'</span><span class="scan-clue-text">'+esc(w.clue)+'</span>').join("")+'</div>');
       continue;
     }
     const selectedWord=puzzle.words.find(w=>w.id===state.selectedWord);
@@ -262,17 +262,7 @@ function renderGame(root){
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
   // Старые панели со списком вопросов больше не используются.
   root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
-  const showClue=id=>{
-    const w=puzzle.words.find(item=>item.id===id);if(!w)return;
-    root.querySelector(".clue-popup-backdrop")?.remove();
-    const backdrop=document.createElement("div");backdrop.className="clue-popup-backdrop";
-    backdrop.innerHTML='<div class="clue-popup" role="dialog" aria-modal="true"><div class="clue-popup-number">ВОПРОС '+w.number+'</div><div class="clue-popup-text">'+esc(w.clue)+'</div><div class="clue-popup-length">'+w.answer.length+' букв</div><button type="button" class="clue-popup-close">Понятно</button></div>';
-    root.querySelector(".board-wrap").appendChild(backdrop);
-    const close=()=>backdrop.remove();
-    backdrop.addEventListener("click",e=>{if(e.target===backdrop)close()});
-    backdrop.querySelector(".clue-popup-close").onclick=close;
-  };
-  root.querySelectorAll("[data-show-clue]").forEach(btn=>btn.addEventListener("click",e=>{e.stopPropagation();showClue(btn.dataset.showClue)}));
+  // Подсказки сканворда отображаются прямо в клетках; отдельные всплывающие вопросы не нужны.
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null;
   const clearDrag=()=>{
