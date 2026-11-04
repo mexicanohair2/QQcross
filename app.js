@@ -23,7 +23,7 @@ const WORD_POOL = [
 ];
 
 function makeRandomPuzzle(){
-  const counts={11:1,8:2,7:5,4:4,3:3,2:2};
+  const counts={11:1,8:2,7:5,5:3,4:4,3:3,2:2};
   const chosen=[];
   for(const [len,count] of Object.entries(counts)){
     const pool=WORD_POOL.filter(x=>Array.from(x[0]).length===+len);
