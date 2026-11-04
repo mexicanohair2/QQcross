@@ -872,3 +872,40 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
   padding:0!important;
 }
 .game-screen .board-zoom-controls #zoomReset{height:28px!important;font-size:9px!important;}
+
+
+/* Final zoom layout: independently scrollable board + fixed side controls */
+.game-screen .board-wrap{
+  display:flex!important;flex-direction:row!important;align-items:stretch!important;
+  justify-content:stretch!important;gap:6px!important;width:100%!important;
+  max-width:100%!important;min-width:0!important;min-height:0!important;
+  box-sizing:border-box!important;padding:0!important;overflow:hidden!important;
+  position:relative!important;
+}
+.game-screen .board-viewport{
+  flex:1 1 0!important;min-width:0!important;min-height:0!important;
+  max-width:calc(100% - 42px)!important;overflow:auto!important;
+  display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
+  touch-action:pan-x pan-y!important;scrollbar-width:thin!important;
+}
+.game-screen .board-viewport>.board{
+  flex:0 0 auto!important;width:max-content!important;min-width:max-content!important;
+  max-width:none!important;margin:auto!important;
+}
+.game-screen .board-viewport>.board>.cell{
+  flex:0 0 var(--qq-cell-size)!important;width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;min-width:var(--qq-cell-size)!important;
+  min-height:var(--qq-cell-size)!important;
+}
+.game-screen .board-zoom-controls{
+  position:relative!important;inset:auto!important;transform:none!important;
+  flex:0 0 36px!important;width:36px!important;display:flex!important;
+  flex-direction:column!important;justify-content:center!important;align-items:center!important;
+  gap:7px!important;z-index:20!important;pointer-events:auto!important;
+}
+.game-screen .board-zoom-controls button{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:34px!important;min-width:34px!important;height:34px!important;flex:0 0 34px!important;
+}
+.game-screen .board-zoom-controls #zoomReset{height:28px!important;flex-basis:28px!important;}
