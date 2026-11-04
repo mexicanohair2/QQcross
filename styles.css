@@ -138,3 +138,5 @@
   .game-screen{padding-left:18px;padding-right:18px}
   .game-screen .questions{grid-template-columns:repeat(3,minmax(0,1fr));max-height:23dvh}
 }
+
+.question-art{display:inline-grid;place-items:center;width:23px;height:23px;margin-right:4px;border-radius:7px;background:#34304b;font-style:normal;font-size:16px;vertical-align:middle;flex:0 0 auto}.game-screen .question span{display:block;min-width:0}.game-screen .question-art{width:18px;height:18px;margin-right:3px;font-size:13px;border-radius:5px}
