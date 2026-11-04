@@ -238,3 +238,13 @@
 .game-screen .letter-area{min-height:40px}
 .game-screen .letter{flex:0 0 34px;width:34px;height:36px;min-height:36px}
 @media(max-height:700px){.game-screen .board{width:min(88vw,64dvh);height:min(88vw,64dvh)}.game-screen .game-tools{min-height:62px;max-height:18dvh}}
+
+
+/* Clue cards open directly beside their numbered crossword entry cells */
+.game-screen .cell-mark.clue-trigger{position:absolute;top:1px;left:2px;z-index:5;border:0;background:transparent;padding:0;color:#c7baff;font-size:clamp(6px,1.2vw,9px);line-height:1;font-weight:900;min-width:12px;min-height:12px;cursor:pointer}
+.clue-popover{position:fixed;z-index:100000;width:min(190px,48vw);max-height:38dvh;overflow:auto;padding:7px;background:#29243b;border:1px solid #9b83e6;border-radius:9px;box-shadow:0 8px 24px #0009;color:#fff;pointer-events:auto}
+.clue-entry{display:grid;grid-template-columns:1fr auto;gap:4px 7px;padding:5px 2px;font-size:12px;line-height:1.25}
+.clue-entry+.clue-entry{border-top:1px solid #ffffff25}
+.clue-entry b{color:#c7baff;font-size:11px}
+.clue-entry span{grid-column:1/-1;overflow-wrap:anywhere}
+.clue-entry small{grid-column:1/-1;color:#c6bfd7;font-size:10px}
