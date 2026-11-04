@@ -1012,3 +1012,9 @@ html,body,body #app{
   overscroll-behavior:none!important;
   touch-action:none!important;
 }
+
+/* Zoom the whole crossword out while keeping the cell geometry unchanged */
+.game-screen>.board-wrap>.board{
+  transform:scale(.85)!important;
+  transform-origin:center center!important;
+}
