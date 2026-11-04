@@ -668,3 +668,31 @@ html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,html[data-qq-theme] 
   .game-screen .letter-area{padding:3px!important}
   .game-screen .items{padding:3px!important}
 }
+
+
+/* Darker, quieter empty cells and deeper burgundy palette */
+html[data-qq-theme="burgundy"]{
+  --qq-theme-page:linear-gradient(155deg,#211319 0%,#170e13 55%,#0d090c 100%);
+  --qq-theme-card:linear-gradient(145deg,#2c1a21,#1c1116);
+  --qq-theme-panel:linear-gradient(145deg,#26161c,#190f13);
+  --qq-theme-panel-strong:linear-gradient(135deg,#704651,#4b2d36);
+  --qq-theme-border:#422a32;
+  --qq-theme-accent:#a97885;
+  --qq-theme-text:#f0e7e9;
+  --qq-theme-muted:#b49ca2;
+  --qq-theme-cell:linear-gradient(145deg,#302027,#21151b);
+  --qq-theme-block:linear-gradient(145deg,#130c10,#0d080b);
+  --qq-theme-filled:linear-gradient(145deg,#68414d,#482b35);
+  --qq-theme-pending:linear-gradient(145deg,#573642,#3b252d);
+  --qq-theme-clue:linear-gradient(145deg,#5a3944,#3b252d);
+  --qq-theme-chip:#29191f;
+  --qq-theme-field:#170e12;
+}
+html[data-qq-theme] .board .cell:not(.block):not(.filled):not(.pending-cell){
+  border-color:color-mix(in srgb,var(--qq-theme-border) 78%,#080609)!important;
+  box-shadow:inset 0 1px 2px #0008!important;
+}
+html[data-qq-theme] .board .cell.selected-word-cell:not(.filled){
+  border-color:var(--qq-theme-accent)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--qq-theme-accent) 55%,transparent)!important;
+}
