@@ -865,10 +865,10 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
 }
 
 
-/* Larger crossword: use 95% of screen width while keeping the full square board visible */
+/* Slightly larger crossword while keeping the board centered */
 .game-screen>.board-wrap{
-  width:min(95vw,calc(100dvh - 260px))!important;
-  height:min(95vw,calc(100dvh - 260px))!important;
-  max-width:95vw!important;
-  max-height:calc(100dvh - 260px)!important;
+  width:min(98vw,calc(100dvh - 235px))!important;
+  height:min(98vw,calc(100dvh - 235px))!important;
+  max-width:98vw!important;
+  max-height:calc(100dvh - 235px)!important;
 }
