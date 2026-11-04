@@ -164,3 +164,28 @@
 /* Only selected clue cards show an illustration */
 .game-screen .question.no-picture{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto}
 .game-screen .question.no-picture span,.game-screen .question.no-picture small{grid-column:1}
+
+/* Main board + compact bottom rack */
+#app:has(.game-screen){padding:0;height:100dvh;overflow:hidden}
+.game-screen{height:100dvh;max-height:100dvh;min-height:0;overflow:hidden;padding:5px 7px calc(5px + env(safe-area-inset-bottom));gap:4px}
+.game-screen .top,.game-screen .game-head,.game-screen .score-strip{flex:0 0 auto}
+.game-screen .top{margin:0;min-height:27px}
+.game-screen .board-wrap{flex:1 1 85%;min-height:0;overflow:auto;margin:0;padding:3px;display:flex;align-items:center;justify-content:center}
+.game-screen .board{width:min(100%,calc(100dvh - 145px));max-width:100%;height:auto;max-height:100%;grid-auto-rows:1fr;gap:1px}
+.game-screen .cell{position:relative;min-width:0;width:100%;height:auto;aspect-ratio:1;overflow:visible;border-radius:3px;font-size:clamp(9px,2.5vw,15px);touch-action:none}
+.game-screen .cell-clues{position:absolute;z-index:4;left:0;top:0;transform:translateY(-100%);width:max-content;max-width:min(34vw,145px);display:flex;flex-direction:column;gap:1px;pointer-events:none}
+.game-screen .clue-chip{background:#342b52;border:1px solid #8067c8;color:#fff;border-radius:3px;padding:2px 3px;font-size:clamp(6px,1.4vw,9px);line-height:1.05;white-space:normal;overflow-wrap:anywhere;max-height:30px;overflow:hidden}
+.game-screen .game-tools{flex:0 0 15%;min-height:76px;max-height:18dvh;display:flex;flex-direction:column;justify-content:flex-end;gap:3px}
+.game-screen .letter-area{display:flex;align-items:center;gap:4px;min-height:42px}
+.game-screen .letter-label{font-size:9px;white-space:nowrap}
+.game-screen .hand{display:flex;flex:1;min-width:0;overflow-x:auto;justify-content:flex-start;gap:5px;margin:0;padding:3px 2px 6px}
+.game-screen .letter{flex:0 0 34px;width:34px;height:36px;min-height:36px;padding:0;font-size:18px;touch-action:none;user-select:none;-webkit-user-select:none}
+.game-screen .letter.dragging{opacity:.45;transform:scale(.92);outline:2px solid var(--accent)}
+.game-screen .check-turn{flex:0 0 42px;width:42px;height:42px;min-height:42px;padding:0;margin:0;border-radius:12px;font-size:25px;line-height:1}
+.game-screen .items{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin:0}
+.game-screen .item{padding:3px 2px;font-size:9px;line-height:1.05}
+.game-screen .item strong{font-size:13px}
+.game-screen .game-hint{font-size:8px;line-height:1;margin:0;text-align:center}
+.game-screen .questions,.game-screen .clue-title{display:none!important}
+.game-screen .cell.pending-cell{background:#4b3c70;border-color:#a78bfa}
+@media(max-height:650px){.game-screen .game-tools{min-height:68px}.game-screen .items{display:none}.game-screen .letter{height:31px;min-height:31px}}
