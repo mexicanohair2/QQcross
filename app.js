@@ -155,12 +155,12 @@ function renderGame(root){
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
   const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
+  const clueList=puzzle.words.slice().sort((a,b)=>a.number-b.number).map(w=>'<div class="clue-row"><b>'+w.number+'.</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></div>').join("");
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
     const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[],words=starts[k]||[];
     if(clues.length){
-      const clue=clues.map(w=>'<span>'+esc(w.clue)+'</span>').join("");
-      cells.push('<div class="cell clue-tile" aria-label="'+esc(clues.map(w=>w.clue).join("; "))+'" title="'+esc(clues.map(w=>w.clue).join("; "))+'">'+clue+'</div>');
+      cells.push('<div class="cell clue-tile"><span>'+clues.map(w=>w.number).join("/")+'</span></div>');
       continue;
     }
     const mark=words.length?'<span class="cell-mark">'+words.map(w=>w.number).join("/")+'</span>':"";
@@ -171,6 +171,7 @@ function renderGame(root){
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+boardSize+';grid-template-columns:repeat('+boardSize+',minmax(0,1fr));grid-template-rows:repeat('+boardSize+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
+    '<section class="clue-panel"><h3>Вопросы</h3><div class="clue-list-readable">'+clueList+'</div></section>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
