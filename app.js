@@ -73,10 +73,9 @@ function makeRandomPuzzle(){
       placed.push({...word,...spot});
     }
     if(failed||placed.length!==chosen.length)continue;
-    const starts={};
-    placed.forEach(w=>{const k=w.row+","+w.col;(starts[k]||(starts[k]=[])).push(w)});
-    const numberMap={};
-    Object.keys(starts).sort((a,b)=>{const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);return ar-br||ac-bc}).forEach((k,i)=>numberMap[k]=i+1);
+    const clueOrder=placed.slice().sort((a,b)=>a.clueRow-b.clueRow||a.clueCol-b.clueCol);
+    const numberMap=new Map();
+    clueOrder.forEach((w,i)=>numberMap.set(w.clueRow+","+w.clueCol,i+1));
     const minRow=Math.min(...placed.flatMap(w=>[w.row,w.clueRow])),minCol=Math.min(...placed.flatMap(w=>[w.col,w.clueCol]));
     const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
     const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
@@ -85,7 +84,7 @@ function makeRandomPuzzle(){
     placed.forEach((w,i)=>{
       const cells=Array.from({length:w.answer.length},(_,j)=>[w.row-minRow+(w.dir==="v"?j:0)+1,w.col-minCol+(w.dir==="h"?j:0)+1]);
       const clueCell=[w.clueRow-minRow+1,w.clueCol-minCol+1];
-      puzzle.words.push({id:"w"+(i+1),number:numberMap[w.row+","+w.col],answer:w.answer,clue:w.clue,art:w.art,cells,clueCell,dir:w.dir});
+      puzzle.words.push({id:"w"+(i+1),number:numberMap.get(w.clueRow+","+w.clueCol),answer:w.answer,clue:w.clue,art:w.art,cells,clueCell,dir:w.dir});
       cells.forEach((cell,j)=>expected[cell.join(",")]=w.answer[j]);
     });
     const crossings={};
