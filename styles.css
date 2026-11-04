@@ -317,3 +317,43 @@ body{
   .board{gap:1.5px!important}
   .board .cell-letter{font-size:clamp(10px,calc(100vw / (var(--board-size) * 1.8)),21px)!important}
 }
+
+
+/* Крупный кроссворд для удобного чтения и перетаскивания букв */
+.game-screen .board-wrap{
+  width:100%!important;
+  max-width:none!important;
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  padding:6px!important;
+  -webkit-overflow-scrolling:touch;
+}
+.game-screen .board{
+  width:max(100%,calc(var(--board-size) * 46px))!important;
+  min-width:calc(var(--board-size) * 46px)!important;
+  max-width:none!important;
+  gap:2px!important;
+}
+.game-screen .board .cell-letter{
+  font-size:clamp(18px,calc(var(--board-size) * 1.35px),30px)!important;
+  font-weight:900!important;
+}
+.game-screen .board .clue-number,
+.game-screen .board .cell-mark{
+  min-width:22px!important;
+  height:22px!important;
+  font-size:13px!important;
+  line-height:22px!important;
+}
+.game-screen .letter{
+  width:50px!important;
+  min-width:50px!important;
+  height:56px!important;
+  font-size:24px!important;
+}
+.game-screen .hand{gap:8px!important}
+@media(max-width:520px){
+  .game-screen .board-wrap{padding:5px!important}
+  .game-screen .board{width:max(100%,calc(var(--board-size) * 46px))!important}
+  .game-screen .board .cell-letter{font-size:clamp(18px,calc(var(--board-size) * 1.35px),28px)!important}
+}
