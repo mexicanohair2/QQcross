@@ -120,7 +120,7 @@ function profile(){return `<h2>Профиль</h2><div class="card row"><div cla
 function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const af=$("#addFriend");if(af)af.onclick=()=>{const n=$("#friendName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Проверь имя игрока");return}if(n.toLowerCase()===state.profile.username.toLowerCase()){toast("Нельзя добавить самого себя");return}if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Добавлено в демо-список")};document.querySelectorAll(".inviteFriend").forEach(b=>b.onclick=()=>openInvite(b.dataset.name));document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}}}
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><p class="small muted">Ты — первый игрок. Остальные места займут приглашённые друзья.</p><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><b>Как работает приглашение</b><p class="small muted">Игрок увидит плашку с выбором: согласиться или отказаться. Сейчас это демонстрация интерфейса; доставка между разными устройствами заработает после подключения сервера.</p><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
-function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.completed=new Set();state.scores=0;state.turn=0;state.seconds=60;state.letters=drawLetters(7);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";render()}
+function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.letters=drawLetters(7);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";render()}
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -137,64 +137,58 @@ function renderGame(root){
   puzzle.words.forEach(w=>{
     const k=w.cells[0].join(",");
     if(!starts[k])starts[k]=[];
-    starts[k].push(w.number+(w.dir==="h"?"→":"↓"));
+    starts[k].push(w.number);
   });
+  const owners=state.owners||{};
   let cells=[];
   for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){
-    const k=y+","+x,exists=expected[k]!==undefined,filled=state.filled[k];
-    cells.push('<button class="cell '+(!exists?'block ':'')+(filled?'filled':'')+(state.wrong===k?' wrong':'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" ")+'</span>':'')+'<span class="cell-letter">'+(filled||'')+'</span></button>');
+    const k=y+","+x,exists=expected[k]!==undefined,filled=state.filled[k],owner=owners[k];
+    cells.push('<button class="cell '+(!exists?'block ':'')+(filled?'filled':'')+(owner!==undefined?' owner-'+owner:'')+(state.wrong===k?' wrong':'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" / ")+'</span>':'')+'<span class="cell-letter">'+(filled||'')+'</span></button>');
   }
+  const playerNames=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
+  const scoreLine=playerNames.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join('');
   root.innerHTML=
     '<div class="screen game-screen">'+
       '<div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
-      '<div class="game-head"><div><b>Случайные слова · 17 слов</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+(state.turn===0?'Ты':'Игрок '+(state.turn+1))+'</div></div><span class="pill">Очки: '+state.scores+'</span></div>'+
+      '<div class="game-head"><div><b>QQCross · Словесная битва</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+playerNames[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
+      '<div class="score-strip">'+scoreLine+'</div>'+
       '<div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join('')+'</div></div>'+
-      '<div class="clue-title">Все вопросы <span>17 слов · все открыты</span></div>'+
-      '<div class="questions">'+puzzle.words.map(w=>'<div class="question"><b>'+w.number+(w.dir==="h"?" →":" ↓")+'</b><span><i class="question-art">'+(w.art||"✨")+'</i>'+esc(w.clue)+'</span><small>'+w.answer.length+' бук.</small></div>').join('')+'</div>'+
+      '<div class="clue-title">Игровое поле <span>'+puzzle.words.length+' пересекающихся слов · без тематик</span></div>'+
       '<div class="game-tools">'+
         '<div class="items">'+
           '<button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+
           '<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы +20с</button>'+
           '<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button>'+
         '</div>'+
-        '<div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+l+'</button>').join('')+'</div></div>'+
-        '<button class="btn primary full compact-action" id="endturn">'+(state.partySize>1?'Завершить ход':'Перемешать буквы')+'</button>'+
+        '<div class="letter-area"><span class="letter-label">Твои буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+l+'</button>').join('')+'</div></div>'+
+        '<p class="game-hint">Выбери букву и поставь её в подходящую клетку. Собирай пересекающиеся слова.</p>'+
+        '<button class="btn primary full compact-action" id="endturn">'+(state.partySize>1?'Передать ход':'Перемешать буквы')+'</button>'+
       '</div>'+
     '</div>';
   root.querySelectorAll("[data-letter]").forEach(b=>b.addEventListener("pointerdown",e=>{
-    e.preventDefault();
-    state.selectedLetter=+b.dataset.letter;
-    draggingLetter=true;
-    b.classList.add("selected");
+    e.preventDefault();state.selectedLetter=+b.dataset.letter;draggingLetter=true;b.classList.add("selected");
   }));
   document.onpointerup=e=>{
     if(!draggingLetter)return;
     draggingLetter=false;
     const target=document.elementFromPoint(e.clientX,e.clientY);
     const cell=target&&target.closest?target.closest("[data-cell]"):null;
-    if(cell&&!cell.disabled){
-      suppressCellClick=true;
-      place(cell.dataset.cell,root);
-    }else{
-      renderGame(root);
-    }
+    if(cell&&!cell.disabled){suppressCellClick=true;place(cell.dataset.cell,root)}else renderGame(root);
   };
   root.querySelectorAll("[data-cell]").forEach(b=>b.onclick=()=>{
-    if(suppressCellClick){suppressCellClick=false;return;}
-    place(b.dataset.cell,root);
+    if(suppressCellClick){suppressCellClick=false;return}place(b.dataset.cell,root);
   });
-  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{
-    state.selectedLetter=+b.dataset.letter;
-    renderGame(root);
-  });
+  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{state.selectedLetter=+b.dataset.letter;renderGame(root)});
   $("#exit").onclick=()=>{state.screen="";render()};
   $("#endturn").onclick=()=>{
-    if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;state.seconds=60;}
-    else{
+    if(state.partySize>1){
       letterBag.push(...state.letters);
       for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
-      state.letters=drawLetters(7);
-      state.selectedLetter=-1;
+      state.turn=(state.turn+1)%state.partySize;state.seconds=60;state.letters=drawLetters(7);state.selectedLetter=-1;
+    }else{
+      letterBag.push(...state.letters);
+      for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()* (i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
+      state.letters=drawLetters(7);state.selectedLetter=-1;
     }
     renderGame(root);
   };
@@ -209,38 +203,47 @@ function renderGame(root){
     if(!useItem("magnifier"))return;
     const next=puzzle.words.flatMap(w=>w.cells).find(c=>!state.filled[c.join(",")]);
     if(!next){toast("Все клетки заполнены");return}
-    const k=next.join(","),needed=expected[k];
-    let ix=state.letters.indexOf(needed);
-    if(ix>=0)state.letters.splice(ix,1);
-    else{ix=letterBag.indexOf(needed);if(ix>=0)letterBag.splice(ix,1);}
-    state.filled[k]=needed;
+    const k=next.join(","),needed=expected[k];let ix=state.letters.indexOf(needed);
+    if(ix>=0)state.letters.splice(ix,1);else{ix=letterBag.indexOf(needed);if(ix>=0)letterBag.splice(ix,1);}
+    state.filled[k]=needed;state.owners[k]=state.turn;
     if(state.letters.length<7&&letterBag.length)state.letters.push(drawLetters(1)[0]);
-    state.scores++;checkWords();save();renderGame(root);toast("Лупа открыла букву");
+    state.playerScores[state.turn]++;state.scores++;
+    checkWords();save();renderGame(root);toast("Лупа открыла букву");
   };
   state.interval=setInterval(()=>{
-    state.seconds--;
-    const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;
-    if(state.seconds<=0){clearInterval(state.interval);state.turn=(state.turn+1)%Math.max(1,state.partySize);state.seconds=60;renderGame(root)}
+    state.seconds--;const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;
+    if(state.seconds<=0){clearInterval(state.interval);if(state.partySize>1){letterBag.push(...state.letters);state.turn=(state.turn+1)%state.partySize;state.letters=drawLetters(7)}state.seconds=60;state.selectedLetter=-1;renderGame(root)}
   },1000);
 }
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
 function place(k,root){
-  if(state.selectedLetter<0){toast("Перетащи букву из нижнего ряда в клетку");return}
-  if(expected[k]===undefined){return}
-  if(state.filled[k]){toast("Клетка уже заполнена");return}
+  if(state.selectedLetter<0){toast("Сначала выбери букву");return}
+  if(expected[k]===undefined)return;
+  if(state.filled[k]){toast("Клетка уже занята");return}
   const l=state.letters[state.selectedLetter];
   if(expected[k]===l){
-    state.filled[k]=l;
+    state.filled[k]=l;state.owners[k]=state.turn;
     state.letters.splice(state.selectedLetter,1);
     if(letterBag.length)state.letters.push(drawLetters(1)[0]);
     state.selectedLetter=-1;state.selectedCell=null;state.wrong=null;
+    state.playerScores[state.turn]++;state.scores++;
     checkWords();renderGame(root);
   }else{
-    state.wrong=k;renderGame(root);toast("Эта буква сюда не подходит");
+    state.wrong=k;renderGame(root);toast("Эта буква не подходит к клетке");
     setTimeout(()=>{state.wrong=null;const el=document.querySelector('[data-cell="'+k+'"]');if(el)el.classList.remove("wrong")},500);
   }
 }
-function checkWords(){puzzle.words.forEach(w=>{if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){state.completed.add(w.id);state.scores+=5;toast(`Слово «${w.answer}» собрано! +5`)}});if(state.completed.size===puzzle.words.length){state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();state.screen="";setTimeout(()=>{render();toast("Партия завершена!")},500)}}
+function checkWords(){
+  puzzle.words.forEach(w=>{
+    if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){
+      state.completed.add(w.id);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
+    }
+  });
+  if(state.completed.size===puzzle.words.length){
+    state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();state.screen="";
+    setTimeout(()=>{render();toast("Партия завершена!")},500);
+  }
+}
 async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:defaultItems(),friends:[]};localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));}
 async function initAuth(){try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){await loadCloudProfile(data.session.user.id)}}catch(e){console.error("QQcross auth:",e);toast("Не удалось загрузить аккаунт. Попробуй обновить страницу.")}render()}
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
