@@ -248,3 +248,34 @@
 .clue-entry b{color:#c7baff;font-size:11px}
 .clue-entry span{grid-column:1/-1;overflow-wrap:anywhere}
 .clue-entry small{grid-column:1/-1;color:#c6bfd7;font-size:10px}
+
+
+/* Answer feedback: green correct cells, red incorrect attempts */
+.game-screen .cell.feedback-correct{
+  background:#145c35!important;
+  border:2px solid #35f08a!important;
+  color:#eafff2!important;
+  box-shadow:0 0 7px #22e879,0 0 15px #22e87988,inset 0 0 8px #22e87955!important;
+}
+.game-screen .cell.feedback-wrong{
+  background:#5b202b!important;
+  border:2px solid #ff5368!important;
+  color:#fff!important;
+  box-shadow:0 0 7px #ff334f,0 0 15px #ff334f99,inset 0 0 8px #ff334f55!important;
+  animation:wrongPulse .65s ease-in-out 2;
+}
+@keyframes wrongPulse{50%{box-shadow:0 0 13px #ff334f,0 0 24px #ff334fcc}}
+.game-screen .cell.has-phantom{
+  background:#293b58!important;
+  border:2px dashed #8cc7ff!important;
+  box-shadow:0 0 10px #65baff99,inset 0 0 9px #65baff55!important;
+}
+.game-screen .phantom-letter{
+  position:absolute;inset:0;display:grid;place-items:center;
+  color:#8cc7ff!important;font-size:inherit;font-weight:900;
+  opacity:.72;text-shadow:0 0 7px #65baff;
+  pointer-events:none;
+}
+.game-screen #magnifier:focus,.game-screen #magnifier:active{
+  outline:2px solid #8cc7ff;
+}
