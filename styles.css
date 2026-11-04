@@ -622,3 +622,14 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
 .game-screen .cell.clue-tile{position:relative!important;overflow:visible!important;z-index:30!important;display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;background:#263f49!important;border:1px solid #62b9c9!important;border-radius:6px!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important}
 .game-screen .cell.clue-tile .clue-number{position:absolute!important;top:1px!important;left:2px!important;font-size:clamp(8px,2vw,12px)!important;font-weight:900!important;color:#8ceafa!important}
 .game-screen .cell.clue-tile .clue-question{position:absolute!important;right:calc(100% + 3px)!important;top:0!important;width:clamp(92px,30vw,150px)!important;min-height:100%!important;max-height:76px!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;padding:4px 6px!important;border:1px solid #62b9c9!important;border-radius:6px!important;background:#1b3038!important;color:#f1fbfd!important;font-size:clamp(8px,2.2vw,11px)!important;font-weight:650!important;line-height:1.15!important;text-align:right!important;overflow-wrap:anywhere!important;box-shadow:0 2px 7px #0008!important}
+
+/* Tap a crossword number to reveal its clue; keep the board free of a question list. */
+.game-screen .cell-mark,.game-screen .clue-number{position:absolute!important;z-index:8!important;display:block!important;background:#193d49!important;color:#a6f3ff!important;border:1px solid #65c7d8!important;border-radius:4px!important;padding:0 3px!important;font-size:clamp(8px,2vw,11px)!important;line-height:1.35!important;font-weight:900!important;cursor:pointer!important}
+.game-screen .cell-mark{top:0!important;left:0!important;min-width:14px!important;min-height:14px!important}
+.game-screen .cell.clue-tile{position:relative!important;overflow:visible!important}
+.game-screen .clue-number{top:50%!important;left:50%!important;transform:translate(-50%,-50%)!important}
+.game-screen .clue-popup{position:relative;z-index:50;margin:8px auto 0;width:min(92%,420px);padding:12px;background:#1b3038;border:1px solid #65c7d8;border-radius:12px;color:#f1fbfd;box-shadow:0 8px 24px #0009}
+.game-screen .clue-popup-item{padding:5px 2px;font-size:14px;line-height:1.3}
+.game-screen .clue-popup-item small{color:#a9c5cd}
+.game-screen .clue-popup-close{display:block;margin:8px auto 0;padding:7px 16px;border-radius:8px;background:#315563;color:white}
+.game-screen .clue-question,.game-screen .question-core{display:none!important}
