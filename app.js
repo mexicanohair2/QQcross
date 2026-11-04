@@ -74,7 +74,7 @@ function makeRandomPuzzle(){
 
   const ordered=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
   const maxLen=Math.max(...ordered.map(w=>Array.from(w.answer).length));
-  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:maxLen+4,h:ordered.length,words:[]};
+  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:15,h:ordered.length,words:[]};
   Object.keys(expected).forEach(k=>delete expected[k]);
   ordered.forEach((w,i)=>{
     const row=i+1, chars=Array.from(w.answer);
@@ -108,7 +108,7 @@ $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password
 }
 function renderShell(root){const tabs=["Главная","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${AVATARS[state.profile.avatar]}</div><div><b>@${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
 function content(){if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
-function home(){return `<section class="card hero"><span class="pill">Кроссворд для друзей</span><h2>Собирай слова.<br>Побеждай друзей.</h2><button class="btn primary full" id="createParty">Создать партию</button></section><section class="card row between"><div><b>Случайный кроссворд</b></div><span class="pill">17 слов</span></section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока @${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отказаться</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b></div>`}<h3 class="section-title">Начать игру</h3><div class="card row between"><div><b>Одиночная игра</b></div><button class="btn blue" id="practice">Играть</button></div>`}
+function home(){return `<section class="card hero"><span class="pill">Сканворд для друзей</span><h2>Собирай слова.<br>Побеждай друзей.</h2><button class="btn primary full" id="createParty">Создать партию</button></section><section class="card row between"><div><b>Случайный сканворд</b></div><span class="pill">17 слов</span></section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока @${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отказаться</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b></div>`}<h3 class="section-title">Начать игру</h3><div class="card row between"><div><b>Одиночная игра</b></div><button class="btn blue" id="practice">Играть</button></div>`}
 function friends(){return `<h2>Друзья</h2><div class="card"><input class="input" id="friendName" placeholder="Имя игрока"><button class="btn primary full" id="addFriend">Добавить друга</button><button class="btn full" id="addTestBot">🤖 Добавить тестового бота @QQcrossBot</button></div><h3 class="section-title">Мои друзья</h3>${(state.profile.friends||[]).length?state.profile.friends.map(n=>`<div class="card row between"><b>@${esc(n)}</b><button class="btn inviteFriend" data-name="${esc(n)}">Пригласить</button></div>`).join(""):`<p class="muted">Список пока пуст.</p>`}`}
 function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
 function profile(){return `<h2>Профиль</h2><div class="card row"><div class="avatar big">${AVATARS[state.profile.avatar]}</div><div><h3>@${esc(state.profile.username)}</h3><span class="muted small">Игрок QQcross</span></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
@@ -154,15 +154,16 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
 
-  const boardW=puzzle.w,boardH=puzzle.h;
-  const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
-  const cellSize=Math.max(8,Math.floor((viewportWidth-12)/boardW));
+  const boardH=puzzle.h;
   const rows=[];
   for(let y=1;y<=boardH;y++){
     const word=puzzle.words.find(w=>w.cells[0][0]===y);
     if(!word)continue;
-    const clue='<div class="cell clue-tile scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
     const visualCells=word.cells.slice().sort((a,b)=>a[1]-b[1]);
+    const answerLength=visualCells.length;
+    const clueWidth=Math.max(35,100-answerLength*5.9);
+    const letterWidth=(100-clueWidth)/answerLength;
+    const clue='<div class="cell clue-tile scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
     const letters=visualCells.map(pos=>{
       const k=pos.join(","),letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
       const selectedCell=state.selectedWord===word.id;
@@ -170,7 +171,7 @@ function renderGame(root){
       return '<div class="'+cls+'" data-cell="'+k+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>';
     }).join("");
     const rowContent=word.clueSide==="right"?letters+clue:clue+letters;
-    rows.push('<div class="scanword-row" style="--scan-cell:'+cellSize+'px">'+rowContent+'</div>');
+    rows.push('<div class="scanword-row" style="--scan-clue-width:'+clueWidth+'%;--scan-letter-width:'+letterWidth+'%">'+rowContent+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
