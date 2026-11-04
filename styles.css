@@ -583,3 +583,88 @@ html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,html[data-qq-theme] 
   .game-screen .items .item{padding:3px!important}
   .game-screen .game-hint{display:none!important}
 }
+
+
+/* Final mobile fit: keep the complete crossword visible, never crop the grid */
+.game-screen{
+  display:flex!important;
+  flex-direction:column!important;
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  gap:4px!important;
+  padding: max(4px,env(safe-area-inset-top)) 4px max(4px,env(safe-area-inset-bottom))!important;
+}
+.game-screen>.top,
+.game-screen>.game-head,
+.game-screen>.score-strip,
+.game-screen>.game-tools{flex:0 0 auto!important;min-height:0!important}
+.game-screen>.board-wrap{
+  flex:1 1 0!important;
+  min-height:0!important;
+  max-height:100%!important;
+  width:100%!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:2px!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+}
+.game-screen .board{
+  display:grid!important;
+  width:max-content!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:max-content!important;
+  min-height:0!important;
+  aspect-ratio:auto!important;
+  gap:1px!important;
+  padding:0!important;
+  margin:0 auto!important;
+  flex:0 0 auto!important;
+}
+.game-screen .board .cell{
+  width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:1/1!important;
+  border-width:1px!important;
+  border-radius:2px!important;
+}
+.game-screen .board .cell-letter{
+  font-size:clamp(7px,calc(var(--qq-cell-size) * .48),20px)!important;
+  line-height:1!important;
+}
+.game-screen .board .clue-number,
+.game-screen .board .cell-mark{
+  min-width:clamp(7px,calc(var(--qq-cell-size) * .28),12px)!important;
+  height:clamp(7px,calc(var(--qq-cell-size) * .28),12px)!important;
+  padding:0 1px!important;
+  font-size:clamp(5px,calc(var(--qq-cell-size) * .19),9px)!important;
+  line-height:1!important;
+}
+.game-screen>.game-tools{gap:4px!important}
+.game-screen .letter-area{padding:4px!important;gap:4px!important}
+.game-screen .letter-label{font-size:9px!important}
+.game-screen .hand{gap:3px!important}
+.game-screen .letter{
+  width:clamp(28px,8vw,38px)!important;
+  min-width:0!important;
+  height:clamp(34px,9vw,42px)!important;
+  font-size:clamp(15px,4vw,19px)!important;
+}
+.game-screen .check-turn{width:36px!important;height:36px!important;min-width:36px!important;font-size:18px!important}
+.game-screen .items{padding:4px!important;gap:4px!important}
+.game-screen .items .item{padding:4px 2px!important;gap:2px!important;font-size:9px!important}
+.game-screen .items .item strong{font-size:12px!important}
+.game-screen .game-hint{font-size:8px!important;line-height:1.1!important;margin:0!important}
+@media(max-height:700px){
+  .game-screen{gap:2px!important}
+  .game-screen .game-hint{display:none!important}
+  .game-screen .letter-area{padding:3px!important}
+  .game-screen .items{padding:3px!important}
+}
