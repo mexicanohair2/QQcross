@@ -160,3 +160,7 @@
 .game-screen .letter{touch-action:none;user-select:none;-webkit-user-select:none}
 .game-screen .letter.dragging{opacity:.55;transform:scale(1.08);outline:2px solid var(--accent)}
 .game-screen .cell{touch-action:manipulation}
+
+/* Only selected clue cards show an illustration */
+.game-screen .question.no-picture{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto}
+.game-screen .question.no-picture span,.game-screen .question.no-picture small{grid-column:1}
