@@ -171,16 +171,21 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardW=puzzle.w,boardH=puzzle.h;
+  const squareSize=Math.max(boardW,boardH);
+  const offsetX=Math.floor((squareSize-boardW)/2),offsetY=Math.floor((squareSize-boardH)/2);
   const viewportHeight=Math.floor(window.visualViewport?.height||window.innerHeight);
-  const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
-  const availableBoardHeight=Math.max(100,viewportHeight-410);
-  const availableBoardWidth=Math.max(120,viewportWidth-24);
-  const fitCellSize=Math.max(5,Math.min(40,Math.floor(Math.min((availableBoardWidth-(boardW-1))/boardW,(availableBoardHeight-(boardH-1))/boardH)*0.90)));
-  const cellSize=fitCellSize;
+  const availableBoardHeight=Math.max(120,viewportHeight-390);
+  const fitCellSize=Math.max(8,Math.floor((availableBoardHeight-(squareSize-1)*2)/squareSize));
+  const cellSize=Math.min(64,Math.max(8,Math.round(fitCellSize*1.2)));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
-  for(let gy=1;gy<=boardH;gy++)for(let gx=1;gx<=boardW;gx++){
-    const y=gy,x=gx,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[];
+  for(let gy=1;gy<=squareSize;gy++)for(let gx=1;gx<=squareSize;gx++){
+    const originalX=gx-offsetX,originalY=gy-offsetY;
+    if(originalX<1||originalX>boardW||originalY<1||originalY>boardH){
+      cells.push('<div class="cell block" style="grid-row:'+gy+';grid-column:'+gx+'"></div>');
+      continue;
+    }
+    const y=originalY,x=originalX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[];
     if(clues.length){
        cells.push('<div class="cell clue-tile" style="grid-row:'+gy+';grid-column:'+gx+'">'+clues.map(w=>'<button type="button" class="clue-number" data-show-clue="'+w.id+'">'+w.number+'</button>').join("")+'</div>');
       continue;
@@ -194,7 +199,7 @@ function renderGame(root){
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+Math.max(boardW,boardH)+';--board-ratio:'+boardW+'/'+boardH+';--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+boardW+',var(--qq-cell-size));grid-template-rows:repeat('+boardH+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+squareSize+';--board-ratio:1/1;--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+squareSize+',var(--qq-cell-size));grid-template-rows:repeat('+squareSize+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
