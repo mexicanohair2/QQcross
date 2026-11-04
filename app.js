@@ -23,7 +23,7 @@ const WORD_POOL = [
 ];
 
 function makeRandomPuzzle(){
-  const counts={11:1,8:2,7:5,4:4,3:3,2:2};
+  const counts={11:1,8:2,7:5,4:4,3:6,2:2};
   const chosen=[];
   for(const [len,count] of Object.entries(counts)){
     const pool=WORD_POOL.filter(x=>Array.from(x[0]).length===+len);
@@ -158,37 +158,67 @@ function renderGame(root){
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
-    '<div class="clue-list">'+puzzle.words.map(w=>'<div class="clue-card"><b>'+w.number+'.</b> '+esc(w.clue)+'</div>').join("")+'</div>'+
+    '<div class="clue-list">'+puzzle.words.map(w=>'<div class="clue-card"><b>'+w.number+'.</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></div>').join("")+'</div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  let dragIndex=-1,dragPointer=-1,dragButton=null;
+  let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null;
   const clearDrag=()=>{
     if(dragButton)dragButton.classList.remove("dragging");
-    dragIndex=-1;dragPointer=-1;dragButton=null;
-  };
-  const onUp=e=>{
-    if(dragIndex<0||e.pointerId!==dragPointer)return;
-    const target=document.elementFromPoint(e.clientX,e.clientY);
-    const cell=target&&target.closest?target.closest("[data-cell]"):null;
-    const index=dragIndex;
-    clearDrag();
-    document.removeEventListener("pointerup",onUp);
-    document.removeEventListener("pointercancel",onCancel);
-    if(cell&&expected[cell.dataset.cell]!==undefined)placeAtCell(cell.dataset.cell,index,root);
-  };
-  const onCancel=e=>{
-    if(dragIndex<0||e.pointerId!==dragPointer)return;
-    clearDrag();
+    if(hoverCell)hoverCell.classList.remove("drop-hover");
+    dragIndex=-1;dragPointer=-1;dragButton=null;hoverCell=null;
     document.removeEventListener("pointermove",onMove);
     document.removeEventListener("pointerup",onUp);
     document.removeEventListener("pointercancel",onCancel);
+  };
+  const moveGhost=(x,y)=>{
+    if(!dragGhost)return;
+    const w=dragGhost.offsetWidth,h=dragGhost.offsetHeight;
+    dragGhost.style.transform="translate3d("+(x-w/2)+"px,"+(y-h/2)+"px,0) scale(1.12)";
+    const under=document.elementsFromPoint(x,y);
+    const cell=under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
+    if(hoverCell!==cell){if(hoverCell)hoverCell.classList.remove("drop-hover");hoverCell=cell;if(hoverCell)hoverCell.classList.add("drop-hover")}
+  };
+  const onMove=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    moveGhost(e.clientX,e.clientY);e.preventDefault();
+  };
+  const onUp=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    const cell=document.elementsFromPoint(e.clientX,e.clientY)
+      .map(el=>el.closest&&el.closest("[data-cell]"))
+      .find(el=>el&&expected[el.dataset.cell]!==undefined);
+    const index=dragIndex,ghost=dragGhost;
+    const valid=cell&&!state.filled[cell.dataset.cell]&&!state.pendingMoves.some(m=>m.k===cell.dataset.cell);
+    clearDrag();dragGhost=null;
+    if(ghost&&valid){
+      const r=cell.getBoundingClientRect();
+      ghost.style.transition="transform 180ms cubic-bezier(.2,.8,.2,1),opacity 180ms";
+      ghost.style.transform="translate3d("+r.left+"px,"+r.top+"px,0) scale(.72)";
+      ghost.style.opacity=".25";
+      setTimeout(()=>{ghost.remove();placeAtCell(cell.dataset.cell,index,root)},185);
+    }else if(ghost){
+      ghost.style.transition="transform 140ms ease,opacity 140ms ease";
+      ghost.style.opacity="0";ghost.style.transform+=" scale(.75)";
+      setTimeout(()=>ghost.remove(),145);
+    }
+    e.preventDefault();
+  };
+  const onCancel=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    const ghost=dragGhost;clearDrag();dragGhost=null;
+    if(ghost){ghost.style.transition="opacity 120ms";ghost.style.opacity="0";setTimeout(()=>ghost.remove(),125)}
   };
   root.querySelectorAll("[data-letter]").forEach(b=>{
     b.addEventListener("pointerdown",e=>{
       if(dragIndex!==-1)return;
       dragIndex=Number(b.dataset.letter);dragPointer=e.pointerId;dragButton=b;
-      b.classList.add("dragging");
+      const r=b.getBoundingClientRect();
+      dragGhost=b.cloneNode(true);dragGhost.classList.add("drag-ghost");
+      Object.assign(dragGhost.style,{position:"fixed",left:"0",top:"0",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"99999",pointerEvents:"none",transition:"none",opacity:"1",transform:"translate3d("+r.left+"px,"+r.top+"px,0) scale(1.05)"});
+      document.body.appendChild(dragGhost);b.classList.add("dragging");
+      moveGhost(e.clientX,e.clientY);
+      document.addEventListener("pointermove",onMove,{passive:false});
       document.addEventListener("pointerup",onUp);
       document.addEventListener("pointercancel",onCancel);
       e.preventDefault();
