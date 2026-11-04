@@ -92,6 +92,9 @@ function makeRandomPuzzle(){
 function loadPuzzle(){
   const ok=makeRandomPuzzle();
   letterBag=puzzle.words.flatMap(word=>word.answer.split(""));
+  const alphabet="АААААААААББВВГДДЕЕЕЕЖЗЗИИИИККЛЛММННННОООООППРРРРСССТТТТУУФХЦЧШЩЫЭЮЯЬ";
+  const extra=Math.max(35,Math.ceil(letterBag.length*.55));
+  for(let i=0;i<extra;i++)letterBag.push(alphabet[Math.floor(Math.random()*alphabet.length)]);
   for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
   state.levelId=1;
   return ok;
@@ -120,7 +123,7 @@ function profile(){return `<h2>Профиль</h2><div class="card row"><div cla
 function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const af=$("#addFriend");if(af)af.onclick=()=>{const n=$("#friendName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Проверь имя игрока");return}if(n.toLowerCase()===state.profile.username.toLowerCase()){toast("Нельзя добавить самого себя");return}if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Добавлено в демо-список")};document.querySelectorAll(".inviteFriend").forEach(b=>b.onclick=()=>openInvite(b.dataset.name));document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}}}
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><p class="small muted">Ты — первый игрок. Остальные места займут приглашённые друзья.</p><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><b>Как работает приглашение</b><p class="small muted">Игрок увидит плашку с выбором: согласиться или отказаться. Сейчас это демонстрация интерфейса; доставка между разными устройствами заработает после подключения сервера.</p><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
-function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.letters=drawLetters(7);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";render()}
+function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.owners={};state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.seconds=60;state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";render()}
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -133,6 +136,9 @@ function ensureWordLetter(){const w=currentWord(),c=nextCell(w);if(!c)return;con
 function currentWord(){return puzzle.words.find(w=>!state.completed.has(w.id))||puzzle.words[0]}
 function nextCell(word){return word.cells.find(c=>!state.filled[c.join(",")])}
 function renderGame(root){
+  clearInterval(state.interval);
+  if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
+  state.letters=state.playerRacks[state.turn]||[];
   const starts={};
   puzzle.words.forEach(w=>{
     const k=w.cells[0].join(",");
@@ -182,22 +188,16 @@ function renderGame(root){
   $("#exit").onclick=()=>{state.screen="";render()};
   $("#endturn").onclick=()=>{
     if(state.partySize>1){
-      letterBag.push(...state.letters);
-      for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
-      state.turn=(state.turn+1)%state.partySize;state.seconds=60;state.letters=drawLetters(7);state.selectedLetter=-1;
+      refillRack(state.turn);state.turn=(state.turn+1)%state.partySize;state.seconds=60;state.letters=state.playerRacks[state.turn];state.selectedLetter=-1;
     }else{
-      letterBag.push(...state.letters);
-      for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()* (i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
-      state.letters=drawLetters(7);state.selectedLetter=-1;
+      refillRack(state.turn);state.letters=state.playerRacks[state.turn];state.selectedLetter=-1;
     }
     renderGame(root);
   };
   $("#clock").onclick=()=>{if(!useItem("clock"))return;state.seconds+=20;renderGame(root)};
   $("#trash").onclick=()=>{
     if(!useItem("trash"))return;
-    letterBag.push(...state.letters);
-    for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
-    state.letters=drawLetters(7);state.selectedLetter=-1;renderGame(root);
+    state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);state.selectedLetter=-1;renderGame(root);
   };
   $("#magnifier").onclick=()=>{
     if(!useItem("magnifier"))return;
@@ -212,9 +212,10 @@ function renderGame(root){
   };
   state.interval=setInterval(()=>{
     state.seconds--;const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;
-    if(state.seconds<=0){clearInterval(state.interval);if(state.partySize>1){letterBag.push(...state.letters);state.turn=(state.turn+1)%state.partySize;state.letters=drawLetters(7)}state.seconds=60;state.selectedLetter=-1;renderGame(root)}
+    if(state.seconds<=0){clearInterval(state.interval);if(state.partySize>1){refillRack(state.turn);state.turn=(state.turn+1)%state.partySize;state.letters=state.playerRacks[state.turn]}state.seconds=60;state.selectedLetter=-1;renderGame(root)}
   },1000);
 }
+function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);while(rack.length<7&&letterBag.length)rack.push(...drawLetters(Math.min(7-rack.length,letterBag.length)));}
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
@@ -225,8 +226,9 @@ function place(k,root){
     state.filled[k]=l;state.owners[k]=state.turn;
     state.letters.splice(state.selectedLetter,1);
     if(letterBag.length)state.letters.push(drawLetters(1)[0]);
+    state.playerRacks[state.turn]=state.letters;
     state.selectedLetter=-1;state.selectedCell=null;state.wrong=null;
-    state.playerScores[state.turn]++;state.scores++;
+    state.playerScores[state.turn]++;state.scores++;state.playerRacks[state.turn]=state.letters;
     checkWords();renderGame(root);
   }else{
     state.wrong=k;renderGame(root);toast("Эта буква не подходит к клетке");
