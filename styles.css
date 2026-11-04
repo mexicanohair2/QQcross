@@ -1012,3 +1012,11 @@ html,body,body #app{
   overscroll-behavior:none!important;
   touch-action:none!important;
 }
+
+
+/* Add half a cell of horizontal space on each side without resizing cells */
+.game-screen>.board-wrap>.board{
+  box-sizing:content-box!important;
+  padding-left:calc(var(--qq-cell-size) * 0.5)!important;
+  padding-right:calc(var(--qq-cell-size) * 0.5)!important;
+}
