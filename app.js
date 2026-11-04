@@ -171,6 +171,8 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardW=puzzle.w,boardH=puzzle.h;
+  const availableBoardHeight=Math.max(100,window.innerHeight-340);
+  const cellSize=Math.max(12,Math.min(56,Math.floor(Math.min((window.innerWidth-20)/boardW,availableBoardHeight/boardH))));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=boardH;gy++)for(let gx=1;gx<=boardW;gx++){
@@ -188,7 +190,7 @@ function renderGame(root){
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+Math.max(boardW,boardH)+';--board-ratio:'+boardW+'/'+boardH+';grid-template-columns:repeat('+boardW+',92px);grid-template-rows:repeat('+boardH+',92px)">'+cells.join("")+'</div></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+Math.max(boardW,boardH)+';--board-ratio:'+boardW+'/'+boardH+';--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+boardW+',var(--qq-cell-size));grid-template-rows:repeat('+boardH+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
