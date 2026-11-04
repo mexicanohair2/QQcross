@@ -176,7 +176,7 @@ function renderGame(root){
   const viewportHeight=Math.floor(window.visualViewport?.height||window.innerHeight);
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
   // Поле занимает 85% ширины экрана, но целиком помещается по высоте.
-  const boardPixelSize=Math.max(120,Math.min(viewportWidth*0.85,viewportHeight-300));
+  const boardPixelSize=Math.max(120,Math.min(viewportWidth*0.95,viewportHeight-260));
   const fitCellSize=Math.floor((boardPixelSize-(squareSize-1))/squareSize);
   const cellSize=Math.min(64,Math.max(8,fitCellSize));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
