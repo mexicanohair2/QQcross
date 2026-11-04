@@ -75,9 +75,27 @@ function makeRandomPuzzle(){
         candidates.push({row:r,col:c0,dir,crosses,clueRow:cr,clueCol:cc});
       }
       if(!candidates.length){failed=true;break}
-      const centerR=placed.reduce((n,w)=>n+w.row,0)/placed.length,centerC=placed.reduce((n,w)=>n+w.col,0)/placed.length;
-      candidates.sort((a,b)=>b.crosses-a.crosses||(Math.abs(a.row-centerR)+Math.abs(a.col-centerC))-(Math.abs(b.row-centerR)+Math.abs(b.col-centerC)));
-      const best=candidates.slice(0,Math.min(10,candidates.length)),spot=best[Math.floor(Math.random()*best.length)];
+      // Выбираем пересечения, которые сохраняют компактную форму поля.
+      // Это уменьшает пустые ряды и столбцы, увеличивая реальные клетки на экране.
+      const bounds=placed.reduce((b,w)=>{
+        const len=w.answer.length;
+        b.minR=Math.min(b.minR,w.row,w.clueRow);
+        b.minC=Math.min(b.minC,w.col,w.clueCol);
+        b.maxR=Math.max(b.maxR,w.row+(w.dir==="v"?len-1:0));
+        b.maxC=Math.max(b.maxC,w.col+(w.dir==="h"?len-1:0));
+        return b;
+      },{minR:24,minC:24,maxR:0,maxC:0});
+      const score=spot=>{
+        const len=word.answer.length;
+        const minR=Math.min(bounds.minR,spot.row,spot.clueRow);
+        const minC=Math.min(bounds.minC,spot.col,spot.clueCol);
+        const maxR=Math.max(bounds.maxR,spot.row+(spot.dir==="v"?len-1:0));
+        const maxC=Math.max(bounds.maxC,spot.col+(spot.dir==="h"?len-1:0));
+        const height=maxR-minR+1,width=maxC-minC+1;
+        return Math.max(width,height)*10000+width*height*10-spot.crosses*100;
+      };
+      candidates.sort((a,b)=>score(a)-score(b));
+      const best=candidates.slice(0,Math.min(8,candidates.length)),spot=best[Math.floor(Math.random()*best.length)];
       for(let i=0;i<word.answer.length;i++)grid[spot.row+(spot.dir==="v"?i:0)][spot.col+(spot.dir==="h"?i:0)]=word.answer[i];
       reserved.add(spot.clueRow+","+spot.clueCol);
       placed.push({...word,...spot});
