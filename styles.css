@@ -1018,3 +1018,36 @@ html,body,body #app{
   transform:scale(1)!important;
   transform-origin:center center!important;
 }
+
+
+/* Исправление: сетка растягивается на всю ширину экрана, клетки делят ширину поровну */
+.game-screen{zoom:1!important}
+.game-screen .board-wrap{
+  width:100%!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  padding:3px!important;
+  overflow-x:hidden!important;
+}
+.game-screen .board{
+  display:grid!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:auto!important;
+  aspect-ratio:1/1!important;
+  grid-template-columns:repeat(var(--board-size),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--board-size),minmax(0,1fr))!important;
+  gap:2px!important;
+}
+.game-screen .board .cell{
+  width:auto!important;
+  height:auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:1/1!important;
+  box-sizing:border-box!important;
+}
+.game-screen .board .cell-letter{
+  font-size:clamp(11px,calc(100vw / (var(--board-size) * 2.2)),32px)!important;
+}
