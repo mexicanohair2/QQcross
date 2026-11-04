@@ -171,10 +171,10 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardW=puzzle.w,boardH=puzzle.h;
-  const availableBoardHeight=Math.max(120,window.innerHeight-273);
-  const availableBoardWidth=Math.max(160,window.innerWidth-12);
+  const availableBoardHeight=Math.max(120,window.innerHeight-300);
+  const availableBoardWidth=Math.max(160,window.innerWidth-16);
   const fitCellSize=Math.max(7,Math.min(40,Math.floor(Math.min((availableBoardWidth-(boardW-1))/boardW,(availableBoardHeight-(boardH-1))/boardH))));
-  const cellSize=fitCellSize+4;
+  const cellSize=fitCellSize;
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=boardH;gy++)for(let gx=1;gx<=boardW;gx++){
