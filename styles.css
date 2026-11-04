@@ -681,3 +681,64 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
 .game-screen .clue-heading,
 .game-screen .clue-title,
 .game-screen .clue-row{display:none!important}
+
+
+/* QQcross: crossword is the main focus; no clue list below it. */
+.game-screen .clue-panel,
+.game-screen .clue-list-readable,
+.game-screen .clue-row,
+.game-screen .questions,
+.game-screen .clue-heading,
+.game-screen .clue-title { display:none !important; }
+
+.game-screen .board-wrap {
+  width:100% !important;
+  overflow-x:auto !important;
+  overflow-y:visible !important;
+  display:flex !important;
+  justify-content:center !important;
+  align-items:flex-start !important;
+  padding:8px 0 14px !important;
+  box-sizing:border-box !important;
+}
+.game-screen .board {
+  width:min(96vw, 720px) !important;
+  height:auto !important;
+  aspect-ratio:1 / 1 !important;
+  min-width:0 !important;
+  max-width:none !important;
+  max-height:none !important;
+  flex:0 0 auto !important;
+  gap:2px !important;
+  padding:4px !important;
+  box-sizing:border-box !important;
+}
+.game-screen .cell {
+  min-width:0 !important;
+  min-height:0 !important;
+  position:relative !important;
+}
+.game-screen .cell-mark,
+.game-screen .clue-number {
+  min-width:17px !important;
+  min-height:17px !important;
+  font-size:clamp(9px,2.5vw,13px) !important;
+  line-height:1.2 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  touch-action:manipulation !important;
+}
+.game-screen .clue-popup {
+  position:absolute !important;
+  left:50% !important;
+  top:50% !important;
+  transform:translate(-50%,-50%) !important;
+  width:min(88%,420px) !important;
+  max-height:75% !important;
+  overflow:auto !important;
+  z-index:1000 !important;
+}
+@media (min-width:600px) {
+  .game-screen .board { width:min(96vw,720px) !important; }
+}
