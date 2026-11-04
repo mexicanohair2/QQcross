@@ -1015,6 +1015,6 @@ html,body,body #app{
 
 /* Zoom the whole crossword out while keeping the cell geometry unchanged */
 .game-screen>.board-wrap>.board{
-  transform:scale(.8)!important;
+  transform:scale(.85)!important;
   transform-origin:center center!important;
 }
