@@ -176,13 +176,15 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  root.querySelectorAll("[data-show-clue]").forEach(btn=>btn.addEventListener("click",e=>{e.stopPropagation();const w=puzzle.words.find(item=>item.id===btn.dataset.showClue);if(!w)return;root.querySelector(".clue-popup")?.remove();const popup=document.createElement("div");popup.className="clue-popup";popup.innerHTML='<div class="clue-popup-number">ВОПРОС '+w.number+'</div><div class="clue-popup-text">'+esc(w.clue)+'</div><div class="clue-popup-length">'+w.answer.length+' букв</div><button type="button" class="clue-popup-close">Понятно</button>';root.querySelector(".board-wrap").appendChild(popup);popup.querySelector(".clue-popup-close").onclick=()=>popup.remove();}));
+  const showClue=id=>{const w=puzzle.words.find(item=>item.id===id);if(!w)return;root.querySelector(".clue-popup")?.remove();const popup=document.createElement("div");popup.className="clue-popup";popup.innerHTML='<div class="clue-popup-number">ВОПРОС '+w.number+'</div><div class="clue-popup-text">'+esc(w.clue)+'</div><div class="clue-popup-length">'+w.answer.length+' букв</div><button type="button" class="clue-popup-close">Понятно</button>';root.querySelector(".board-wrap").appendChild(popup);popup.querySelector(".clue-popup-close").onclick=()=>popup.remove();};
+  root.querySelectorAll("[data-show-clue]").forEach(btn=>btn.addEventListener("click",e=>{e.stopPropagation();showClue(btn.dataset.showClue)}));
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
-  let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null;
+  let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null;
   const clearDrag=()=>{
     if(dragButton)dragButton.classList.remove("dragging");
     if(hoverCell)hoverCell.classList.remove("drop-hover");
-    dragIndex=-1;dragPointer=-1;dragButton=null;hoverCell=null;
+    if(hoverClue)hoverClue.classList.remove("drop-clue-hover");
+    dragIndex=-1;dragPointer=-1;dragButton=null;hoverCell=null;hoverClue=null;
     document.removeEventListener("pointermove",onMove);
     document.removeEventListener("pointerup",onUp);
     document.removeEventListener("pointercancel",onCancel);
@@ -192,7 +194,9 @@ function renderGame(root){
     const w=dragGhost.offsetWidth,h=dragGhost.offsetHeight;
     dragGhost.style.transform="translate3d("+(x-w/2)+"px,"+(y-h/2)+"px,0) scale(1.12)";
     const under=document.elementsFromPoint(x,y);
-    const cell=under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
+    const clue=under.map(el=>el.closest&&el.closest("[data-show-clue]")).find(Boolean);
+    const cell=clue?null:under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
+    if(hoverClue!==clue){if(hoverClue)hoverClue.classList.remove("drop-clue-hover");hoverClue=clue;if(hoverClue)hoverClue.classList.add("drop-clue-hover")}
     if(hoverCell!==cell){if(hoverCell)hoverCell.classList.remove("drop-hover");hoverCell=cell;if(hoverCell)hoverCell.classList.add("drop-hover")}
   };
   const onMove=e=>{
@@ -201,12 +205,13 @@ function renderGame(root){
   };
   const onUp=e=>{
     if(dragIndex<0||e.pointerId!==dragPointer)return;
-    const cell=document.elementsFromPoint(e.clientX,e.clientY)
-      .map(el=>el.closest&&el.closest("[data-cell]"))
-      .find(el=>el&&expected[el.dataset.cell]!==undefined);
+    const under=document.elementsFromPoint(e.clientX,e.clientY);
+    const clueButton=under.map(el=>el.closest&&el.closest("[data-show-clue]")).find(Boolean);
+    const cell=clueButton?null:under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
     const index=dragIndex,ghost=dragGhost;
     const valid=cell&&!state.filled[cell.dataset.cell]&&!state.pendingMoves.some(m=>m.k===cell.dataset.cell);
     clearDrag();dragGhost=null;
+    if(ghost&&clueButton){ghost.remove();showClue(clueButton.dataset.showClue);e.preventDefault();return}
     if(ghost&&valid){
       const r=cell.getBoundingClientRect();
       ghost.style.transition="transform 180ms cubic-bezier(.2,.8,.2,1),opacity 180ms";
