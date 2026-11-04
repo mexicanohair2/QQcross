@@ -68,7 +68,7 @@ function makeRandomPuzzle(){
       for(let i=0;i<word.answer.length;i++)grid[spot.row+(spot.dir==="v"?i:0)][spot.col+(spot.dir==="h"?i:0)]=word.answer[i];
       placed.push({...word,...spot});
     }
-    if(failed||placed.length!==17)continue;
+    if(failed||placed.length!==chosen.length)continue;
     const numbers={};
     placed.forEach(w=>{const k=w.row+","+w.col;if(!numbers[k])numbers[k]=0});
     Object.keys(numbers).sort((a,b)=>{const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);return ar-br||ac-bc}).forEach((k,i)=>numbers[k]=i+1);
@@ -146,19 +146,21 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
+  const boardSize=Math.max(puzzle.w,puzzle.h);
+  const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
   const cells=[];
-  for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){
-    const k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
+  for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
+    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
     const clues=starts[k]||[];
     const marker=clues.length?'<span class="cell-mark">'+clues.map(w=>w.number).join("/")+'</span>':'';
-    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'">'+marker+'<span class="cell-letter">'+esc(letter)+'</span></div>');
+    const clueTitle=clues.length?clues.map(w=>w.clue).join(" / "):"";
+    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'" '+(clueTitle?'title="'+esc(clueTitle)+'"':'')+'>'+marker+'<span class="cell-letter">'+esc(letter)+'</span></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
-    '<div class="clue-list">'+puzzle.words.map(w=>'<div class="clue-card"><b>'+w.number+'.</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></div>').join("")+'</div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+boardSize+';grid-template-columns:repeat('+boardSize+',minmax(0,1fr));grid-template-rows:repeat('+boardSize+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
