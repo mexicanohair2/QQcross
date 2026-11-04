@@ -6,13 +6,25 @@
 <meta name="theme-color" content="#08060f">
 <meta name="description" content="QQcross — собирай слова, побеждай друзей">
 <link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="./styles.css?v=20261104t">
+<link rel="stylesheet" href="./styles.css?v=20261104u">
 <title>QQcross</title>
 </head>
 <body>
 <div id="app"><div class="splash"><div class="logo">QQ</div><h1>QQcross</h1><p>Загрузка игры…</p></div></div>
+<script>
+(function(){
+  function showBootError(message){
+    var root=document.getElementById("app");
+    if(!root || !root.textContent.includes("Загрузка игры")) return;
+    root.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#08060f;color:#eee;font:16px system-ui;text-align:center"><div><div style="font-size:42px;font-weight:800;color:#b9a4ed">QQ</div><h2>Не удалось запустить QQcross</h2><p style="color:#b9b2c5;max-width:320px">'+String(message||"Скрипт игры не запустился").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+'</p><button onclick="location.reload()" style="border:0;border-radius:12px;padding:13px 22px;background:#8b70c9;color:white;font-weight:700">Обновить игру</button></div></div>';
+  }
+  window.addEventListener("error",function(e){showBootError(e.message+" ("+(e.filename||"")+(e.lineno?":"+e.lineno:"")+")")});
+  window.addEventListener("unhandledrejection",function(e){var r=e.reason;showBootError(r&&r.message?r.message:String(r||"Ошибка запуска"))});
+  setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},8000);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./levels.js?v=20261104t"></script>
-<script src="./app.js?v=20261104t"></script>
+<script src="./levels.js?v=20261104u"></script>
+<script src="./app.js?v=20261104u"></script>
 </body>
 </html>
