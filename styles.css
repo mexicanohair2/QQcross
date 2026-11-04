@@ -286,3 +286,34 @@ body{
 #app:has(> .splash){display:block!important;min-height:100dvh!important;padding:0!important}
 #app:has(> .splash) > .splash{box-sizing:border-box;min-height:100dvh!important;width:100%!important;max-width:100%!important;margin:0!important;display:flex!important;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px 16px!important}
 #app:has(> .splash) > .splash .logo{margin:0 auto 12px!important}
+
+
+/* Кроссворд занимает всю рамку: без пустых полей квадратной сетки */
+.board-wrap{
+  width:min(100%,740px)!important;
+  max-width:740px!important;
+  margin:0 auto!important;
+  padding:5px!important;
+  overflow:hidden!important;
+}
+.board{
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  aspect-ratio:var(--board-ratio,1/1)!important;
+  gap:2px!important;
+}
+.board .cell{
+  aspect-ratio:1/1!important;
+  min-width:0!important;
+  min-height:0!important;
+}
+.board .cell-letter{
+  font-size:clamp(11px,calc(100vw / (var(--board-size) * 1.8)),24px)!important;
+  line-height:1!important;
+}
+@media(max-width:520px){
+  .board-wrap{padding:4px!important}
+  .board{gap:1.5px!important}
+  .board .cell-letter{font-size:clamp(10px,calc(100vw / (var(--board-size) * 1.8)),21px)!important}
+}
