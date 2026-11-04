@@ -154,7 +154,7 @@ function renderGame(root){
     const k=y+","+x,exists=expected[k]!==undefined;
     const letter=state.filled[k]||pending[k]||"";
     const owner=owners[k];
-    cells.push('<button class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+(owner!==undefined?' owner-'+owner:'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" / ")+'</span>')+'<span class="cell-letter">'+letter+'</span></button>');
+    cells.push('<button class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+(owner!==undefined?' owner-'+owner:'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" / ")+'</span>':'')+'<span class="cell-letter">'+letter+'</span></button>');
   }
   const playerNames=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scoreLine=playerNames.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join('');
