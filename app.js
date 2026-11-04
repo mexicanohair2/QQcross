@@ -107,11 +107,11 @@ function makeRandomPuzzle(){
     const minRow=Math.min(...placed.flatMap(w=>[w.row,w.clueRow])),minCol=Math.min(...placed.flatMap(w=>[w.col,w.clueCol]));
     const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
     const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
-    // Обрезаем пустые поля по краям: оставляем только область самого кроссворда.
-    const actualH=maxRow-minRow+1,actualW=maxCol-minCol+1;
-    if(actualH>20||actualW>20)continue;
-    const boardOffsetY=0,boardOffsetX=0;
-    puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:actualW,h:actualH,words:[]};
+    // Все уровни используют одинаковое поле 20×20; слова центрируются внутри него.
+    const fixedBoardSize=20,actualH=maxRow-minRow+1,actualW=maxCol-minCol+1;
+    if(actualH>fixedBoardSize||actualW>fixedBoardSize)continue;
+    const boardOffsetY=Math.floor((fixedBoardSize-actualH)/2),boardOffsetX=Math.floor((fixedBoardSize-actualW)/2);
+    puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:fixedBoardSize,h:fixedBoardSize,words:[]};
     Object.keys(expected).forEach(k=>delete expected[k]);
     placed.forEach((w,i)=>{
       const cells=Array.from({length:w.answer.length},(_,j)=>[w.row-minRow+boardOffsetY+(w.dir==="v"?j:0)+1,w.col-minCol+boardOffsetX+(w.dir==="h"?j:0)+1]);
@@ -193,8 +193,8 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardW=puzzle.w,boardH=puzzle.h;
-  const squareSize=Math.max(boardW,boardH);
-  const offsetX=0,offsetY=0;
+  const squareSize=20; // Одинаковое поле для всех кроссвордов.
+  const offsetX=Math.floor((squareSize-boardW)/2),offsetY=Math.floor((squareSize-boardH)/2);
   const viewportHeight=Math.floor(window.visualViewport?.height||window.innerHeight);
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
   // Размер клетки рассчитывается по большей стороне обрезанного поля.
@@ -203,7 +203,7 @@ function renderGame(root){
   const cellSize=Math.min(64,Math.max(8,Math.floor(fitCellSize*1.8320512)));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
-  for(let gy=1;gy<=boardH;gy++)for(let gx=1;gx<=boardW;gx++){
+  for(let gy=1;gy<=squareSize;gy++)for(let gx=1;gx<=squareSize;gx++){
     const originalX=gx-offsetX,originalY=gy-offsetY;
     if(originalX<1||originalX>boardW||originalY<1||originalY>boardH){
       cells.push('<div class="cell block" style="grid-row:'+gy+';grid-column:'+gx+'"></div>');
