@@ -151,3 +151,12 @@
 .game-screen .cell.owner-2{background:#7a4b27;color:#fff}
 .game-screen .cell.owner-3{background:#356344;color:#fff}
 .game-screen .game-hint{margin:0;text-align:center;font-size:10px;line-height:1.2;color:var(--muted)}
+
+/* Picture clues and drag-and-drop letters */
+.game-screen .question{grid-template-columns:34px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:2px 5px}
+.game-screen .question-picture{grid-column:1;grid-row:1 / span 2;width:32px;height:32px;object-fit:contain;align-self:center}
+.game-screen .question span{grid-column:2}
+.game-screen .question small{grid-column:2}
+.game-screen .letter{touch-action:none;user-select:none;-webkit-user-select:none}
+.game-screen .letter.dragging{opacity:.55;transform:scale(1.08);outline:2px solid var(--accent)}
+.game-screen .cell{touch-action:manipulation}
