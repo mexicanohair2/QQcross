@@ -1051,3 +1051,37 @@ html,body,body #app{
   transform-origin:top left!important;
   touch-action:pan-x pan-y!important;
 }
+
+
+/* Видимая кнопка обновления и корректное отображение увеличенной сетки */
+.game-screen>.top{
+  display:flex!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:8px!important;
+  min-height:44px!important;
+  overflow:visible!important;
+}
+.game-screen #refresh-page{
+  display:inline-flex!important;
+  visibility:visible!important;
+  opacity:1!important;
+  position:relative!important;
+  z-index:50!important;
+  min-height:40px!important;
+  padding:9px 13px!important;
+  color:#f3edf6!important;
+  background:#55445e!important;
+  border:1px solid #9a83a4!important;
+}
+.game-screen>.board-wrap{
+  max-height:68dvh!important;
+  overflow:auto!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+}
+.game-screen>.board-wrap>.board{
+  transform:scale(.80)!important;
+  transform-origin:top left!important;
+}
