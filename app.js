@@ -152,7 +152,7 @@ function renderGame(root){
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
     const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
     const clues=starts[k]||[];
-    const marker=clues.length?'<span class="cell-mark">'+clues.map(w=>w.number).join("/")+'</span>':'';
+    const marker=clues.length?'<button class="cell-mark clue-trigger" type="button" data-clues="'+clues.map(w=>w.id).join(",")+'">'+clues.map(w=>w.number).join("/")+'</button>':'';
     const clueTitle=clues.length?clues.map(w=>w.clue).join(" / "):"";
     cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'" '+(clueTitle?'title="'+esc(clueTitle)+'"':'')+'>'+marker+'<span class="cell-letter">'+esc(letter)+'</span></div>');
   }
@@ -164,6 +164,25 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
+  root.querySelectorAll(".clue-trigger").forEach(btn=>btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const cell=btn.closest(".cell"),old=cell.querySelector(".clue-popover");
+    root.querySelectorAll(".clue-popover").forEach(x=>x.remove());
+    if(old)return;
+    const ids=btn.dataset.clues.split(",");
+    const words=ids.map(id=>puzzle.words.find(w=>w.id===id)).filter(Boolean);
+    const pop=document.createElement("div");pop.className="clue-popover";
+    pop.innerHTML=words.map(w=>'<div class="clue-entry"><b>'+w.number+'. '+(w.dir==="h"?"→":"↓")+'</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></div>').join("");
+    document.body.appendChild(pop);
+    const r=cell.getBoundingClientRect(),p=pop.getBoundingClientRect(),margin=8;
+    let left=r.right+6,top=r.top;
+    if(left+p.width>innerWidth-margin)left=r.left-p.width-6;
+    if(left<margin)left=margin;
+    if(top+p.height>innerHeight-margin)top=innerHeight-p.height-margin;
+    if(top<margin)top=margin;
+    pop.style.left=left+"px";pop.style.top=top+"px";
+  }));
+  document.addEventListener("click",e=>{if(!e.target.closest(".clue-popover,.clue-trigger"))root.querySelectorAll(".clue-popover").forEach(x=>x.remove())},{once:true});
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null;
   const clearDrag=()=>{
     if(dragButton)dragButton.classList.remove("dragging");
