@@ -79,7 +79,7 @@ function makeRandomPuzzle(){
   ordered.forEach((w,i)=>{
     const row=i+1, chars=Array.from(w.answer);
     const clueSide=i%2===0?"left":"right";
-    const cells=chars.map((_,j)=>[row,clueSide==="left"?j+5:maxLen+1-j]);
+    const cells=chars.map((_,j)=>[row,clueSide==="left"?j+5:maxLen-j]);
     puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,clueSide==="left"?1:maxLen+1],clueSide,dir:"h"});
     cells.forEach((cell,j)=>expected[cell.join(",")]=chars[j]);
   });
