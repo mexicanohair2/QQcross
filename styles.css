@@ -264,3 +264,20 @@ body{
   .board{width:100%!important;min-width:0!important}
   .cell-mark{font-size:7px!important}
 }
+
+
+/* Центрирование стартового экрана загрузки */
+#app>.splash{
+  min-height:100dvh;
+  width:100%;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:24px 16px;
+  margin:0 auto;
+}
+#app>.splash .logo{margin:0 auto 12px}
+#app>.splash h1{margin:8px 0}
+#app>.splash p{margin:0}
