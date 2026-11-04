@@ -192,7 +192,7 @@ function renderGame(root){
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+Math.max(boardW,boardH)+';--board-ratio:'+boardW+'/'+boardH+';--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+boardW+',var(--qq-cell-size));grid-template-rows:repeat('+boardH+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+Math.max(boardW,boardH)+';--board-ratio:'+boardW+'/'+boardH+';--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+boardW+',var(--qq-cell-size));grid-template-rows:repeat('+boardH+',var(--qq-cell-size))">'+cells.join("")+'</div><div class="board-zoom-controls"><button type="button" id="zoomOut" aria-label="Уменьшить кроссворд">−</button><button type="button" id="zoomIn" aria-label="Увеличить кроссворд">+</button><button type="button" id="zoomReset" aria-label="Сбросить масштаб">100%</button></div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
@@ -209,6 +209,10 @@ function renderGame(root){
     backdrop.querySelector(".clue-popup-close").onclick=close;
   };
   root.querySelectorAll("[data-show-clue]").forEach(btn=>btn.addEventListener("click",e=>{e.stopPropagation();showClue(btn.dataset.showClue)}));
+  const changeBoardZoom=delta=>{state.boardZoom=Math.max(.7,Math.min(2.5,Math.round(((state.boardZoom||1)+delta)*10)/10));renderGame(root)};
+  $("#zoomIn").onclick=()=>changeBoardZoom(.1);
+  $("#zoomOut").onclick=()=>changeBoardZoom(-.1);
+  $("#zoomReset").onclick=()=>{state.boardZoom=1;renderGame(root)};
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null;
   const clearDrag=()=>{
