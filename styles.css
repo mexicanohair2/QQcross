@@ -312,3 +312,18 @@
   overflow:hidden;
   max-width:100%;
 }
+
+
+/* Improve board scale and make clue text readable */
+.game-screen .board{width:min(96vw,76dvh);height:min(96vw,76dvh)}
+.game-screen .cell.clue-tile{overflow:visible;z-index:20;background:transparent;border:0;box-shadow:none;position:relative}
+.game-screen .cell.clue-tile span{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:block;width:min(30vw,150px);max-width:none;max-height:5.5em;
+  padding:4px 5px;border:1px solid #b7a0ff;border-radius:5px;
+  background:#302747;color:#fff;font-size:clamp(8px,2.2vw,11px);
+  line-height:1.15;text-align:left;overflow:hidden;overflow-wrap:anywhere;
+  box-shadow:0 2px 7px #0009;z-index:30;
+  -webkit-line-clamp:unset;-webkit-box-orient:initial;
+}
+@media(max-height:700px){.game-screen .board{width:min(96vw,70dvh);height:min(96vw,70dvh)}}
