@@ -547,3 +547,35 @@ body{
 }
 .game-screen .clue-row span{display:block!important;white-space:normal!important;overflow-wrap:anywhere!important}
 .game-screen .game-tools{max-height:none!important;overflow:visible!important}
+
+
+/* QQcross mobile readability pass */
+html,body{min-height:100%;overflow-x:hidden}
+body{background:radial-gradient(ellipse at 50% 0%,#61243a 0%,#2a111c 48%,#10090d 100%) fixed!important}
+#app{width:100%;max-width:760px;margin:0 auto}
+.game-screen{padding:14px 12px 30px!important;min-height:100dvh;height:auto!important;overflow:visible!important}
+.game-screen .board-wrap{display:flex!important;justify-content:center!important;width:100%!important;overflow:visible!important}
+.game-screen .board{width:min(92vw,440px)!important;height:auto!important;aspect-ratio:1/1!important;grid-template-columns:repeat(var(--board-size),minmax(0,1fr))!important;grid-template-rows:repeat(var(--board-size),minmax(0,1fr))!important}
+.game-screen .clue-panel{width:100%!important;height:auto!important;max-height:none!important;margin:16px 0!important;padding:14px!important}
+.game-screen .clue-panel h3{font-size:19px!important;margin:0 0 12px!important}
+.game-screen .clue-list-readable{display:grid!important;grid-template-columns:1fr!important;gap:8px!important;max-height:none!important;height:auto!important;overflow:visible!important}
+.game-screen .clue-row{
+ appearance:none!important;-webkit-appearance:none!important;
+ display:grid!important;grid-template-columns:30px minmax(0,1fr) auto!important;
+ align-items:start!important;gap:9px!important;width:100%!important;
+ min-height:48px!important;padding:11px 10px!important;margin:0!important;
+ border:1px solid #754057!important;border-radius:10px!important;
+ background:#321724!important;color:#fff2f5!important;
+ text-align:left!important;font:inherit!important;font-size:16px!important;line-height:1.4!important;
+ white-space:normal!important;cursor:pointer!important;
+}
+.game-screen .clue-row b{font-size:16px!important;color:#ffabc0!important}
+.game-screen .clue-row span{display:block!important;min-width:0!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.game-screen .clue-row small{font-size:12px!important;color:#e4b9c7!important;white-space:nowrap!important}
+.game-screen .clue-row.is-selected{background:#63283f!important;border-color:#ff9db7!important;box-shadow:0 0 0 2px #ff9db733!important}
+.game-screen .cell.selected-word-cell{background:#7d3552!important;border-color:#ffabc0!important;box-shadow:inset 0 0 0 2px #ffc4d4!important}
+.game-screen .game-tools{margin-top:14px!important;max-height:none!important;overflow:visible!important}
+@media(max-width:380px){
+ .game-screen{padding-left:8px!important;padding-right:8px!important}
+ .game-screen .clue-row{grid-template-columns:26px minmax(0,1fr) auto!important;font-size:15px!important;padding:10px 8px!important}
+}
