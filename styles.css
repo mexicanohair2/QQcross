@@ -499,3 +499,87 @@ html[data-qq-theme] .clue-popup-close{background:var(--qq-theme-panel-strong)!im
 html[data-qq-theme] .toast{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .nav button.active{color:var(--qq-theme-accent)!important}
 html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,html[data-qq-theme] .letter-label,html[data-qq-theme] .game-hint{color:var(--qq-theme-muted)!important}
+
+
+/* QQcross: весь игровой интерфейс помещается на экран телефона */
+.game-screen{
+  height:100dvh!important;
+  min-height:0!important;
+  max-height:100dvh!important;
+  overflow:hidden!important;
+  zoom:1!important;
+  padding: max(5px,env(safe-area-inset-top)) 5px max(5px,env(safe-area-inset-bottom))!important;
+  gap:5px!important;
+}
+.game-screen .top,.game-screen .game-head{flex:0 0 auto;min-height:0}
+.game-screen .game-head b{font-size:16px!important}
+.game-screen .score-strip{flex:0 0 auto;gap:4px!important;padding:5px!important}
+.game-screen .score-strip span{min-width:0!important;padding:5px 3px!important;font-size:10px!important}
+.game-screen .board-wrap{
+  flex:0 1 auto!important;
+  min-height:0!important;
+  max-height:none!important;
+  width:100%!important;
+  max-width:100%!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:2px!important;
+  margin:0 auto!important;
+}
+.game-screen .board{
+  display:grid!important;
+  width:max-content!important;
+  height:max-content!important;
+  min-width:0!important;
+  max-width:100%!important;
+  min-height:0!important;
+  aspect-ratio:auto!important;
+  gap:1px!important;
+  margin:0 auto!important;
+}
+.game-screen .board .cell{
+  width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;
+  min-width:0!important;
+  min-height:0!important;
+  aspect-ratio:1/1!important;
+  border-width:1px!important;
+  border-radius:3px!important;
+}
+.game-screen .board .cell-letter{
+  font-size:clamp(9px,calc(var(--qq-cell-size) * .48),24px)!important;
+  line-height:1!important;
+}
+.game-screen .board .clue-number,.game-screen .board .cell-mark{
+  min-width:clamp(9px,calc(var(--qq-cell-size) * .28),15px)!important;
+  width:auto!important;
+  height:clamp(9px,calc(var(--qq-cell-size) * .28),15px)!important;
+  padding:0 1px!important;
+  font-size:clamp(6px,calc(var(--qq-cell-size) * .20),10px)!important;
+  line-height:1!important;
+}
+.game-screen .game-tools{flex:0 0 auto;gap:5px!important}
+.game-screen .letter-area{padding:6px!important;gap:5px!important}
+.game-screen .letter-label{font-size:10px!important}
+.game-screen .hand{gap:4px!important}
+.game-screen .letter{
+  width:clamp(30px,8.5vw,42px)!important;
+  min-width:0!important;
+  height:clamp(38px,10vw,46px)!important;
+  font-size:clamp(16px,4.5vw,21px)!important;
+  border-radius:8px!important;
+}
+.game-screen .check-turn{width:40px!important;height:40px!important;min-width:40px!important;font-size:20px!important}
+.game-screen .items{padding:5px!important;gap:5px!important}
+.game-screen .items .item{padding:5px 3px!important;gap:3px!important;font-size:10px!important}
+.game-screen .items .item strong{font-size:14px!important}
+.game-screen .game-hint{font-size:9px!important;line-height:1.2!important;margin:0!important}
+@media(max-height:700px){
+  .game-screen{gap:3px!important}
+  .game-screen .score-strip{padding:3px!important}
+  .game-screen .letter-area{padding:4px!important}
+  .game-screen .items .item{padding:3px!important}
+  .game-screen .game-hint{display:none!important}
+}
