@@ -150,22 +150,56 @@ function renderGame(root){
   for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){
     const k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
     const clues=starts[k]||[];
-    const clue=clues.map(w=>'<span class="clue-chip">'+esc(w.clue)+'</span>').join("");
-    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'">'+(clue?'<div class="cell-clues">'+clue+'</div>':'')+'<span class="cell-letter">'+esc(letter)+'</span></div>');
+    const marker=clues.length?'<span class="cell-mark">'+clues.map(w=>w.number).join("/")+'</span>':'';
+    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'">'+marker+'<span class="cell-letter">'+esc(letter)+'</span></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
+    '<div class="clue-list">'+puzzle.words.map(w=>'<div class="clue-card"><b>'+w.number+'.</b> '+esc(w.clue)+'</div>').join("")+'</div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  let dragIndex=-1,dragPointer=-1;
+  let dragIndex=-1,dragPointer=-1,dragButton=null;
+  const clearDrag=()=>{
+    if(dragButton)dragButton.classList.remove("dragging");
+    dragIndex=-1;dragPointer=-1;dragButton=null;
+  };
+  const onMove=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    e.preventDefault();
+    if(dragButton)dragButton.style.transform='translate('+Math.min(30,Math.max(-30,e.clientX-(dragButton._startX||e.clientX)))+'px,0) scale(1.08)';
+  };
+  const onUp=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    const target=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=target&&target.closest?target.closest("[data-cell]"):null;
+    const index=dragIndex;
+    clearDrag();
+    document.removeEventListener("pointermove",onMove);
+    document.removeEventListener("pointerup",onUp);
+    document.removeEventListener("pointercancel",onCancel);
+    if(cell&&expected[cell.dataset.cell]!==undefined)placeAtCell(cell.dataset.cell,index,root);
+  };
+  const onCancel=e=>{
+    if(dragIndex<0||e.pointerId!==dragPointer)return;
+    clearDrag();
+    document.removeEventListener("pointermove",onMove);
+    document.removeEventListener("pointerup",onUp);
+    document.removeEventListener("pointercancel",onCancel);
+  };
   root.querySelectorAll("[data-letter]").forEach(b=>{
-    b.addEventListener("pointerdown",e=>{if(dragIndex!==-1)return;dragIndex=+b.dataset.letter;dragPointer=e.pointerId;b.classList.add("dragging");try{b.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
-    b.addEventListener("pointerup",e=>{if(dragIndex<0||e.pointerId!==dragPointer)return;const t=document.elementFromPoint(e.clientX,e.clientY),cell=t&&t.closest?t.closest("[data-cell]"):null,index=dragIndex;dragIndex=-1;dragPointer=-1;if(cell&&expected[cell.dataset.cell]!==undefined)placeAtCell(cell.dataset.cell,index,root);else b.classList.remove("dragging")});
-    b.addEventListener("pointercancel",()=>{dragIndex=-1;dragPointer=-1;b.classList.remove("dragging")});
+    b.addEventListener("pointerdown",e=>{
+      if(dragIndex!==-1)return;
+      dragIndex=Number(b.dataset.letter);dragPointer=e.pointerId;dragButton=b;
+      b._startX=e.clientX;b.classList.add("dragging");
+      document.addEventListener("pointermove",onMove,{passive:false});
+      document.addEventListener("pointerup",onUp);
+      document.addEventListener("pointercancel",onCancel);
+      e.preventDefault();
+    });
   });
   $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
