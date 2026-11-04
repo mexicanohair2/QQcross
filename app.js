@@ -161,7 +161,7 @@ function renderGame(root){
     if(!word)continue;
     const visualCells=word.cells.slice().sort((a,b)=>a[1]-b[1]);
     const answerLength=visualCells.length;
-    const clueWidth=Math.max(35,100-answerLength*5.9);
+    const clueWidth=Math.min(58,Math.max(38,24+word.clue.length*0.55));
     const letterWidth=(100-clueWidth)/answerLength;
     const clue='<div class="cell clue-tile scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
     const letters=visualCells.map(pos=>{
@@ -175,11 +175,10 @@ function renderGame(root){
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
-  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
-    '<div class="game-head"><div><b>QQСканворд</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
+  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+rows.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
   // Старые панели со списком вопросов больше не используются.
   root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
