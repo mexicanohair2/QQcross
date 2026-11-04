@@ -71,93 +71,20 @@ function makeRandomPuzzle(){
     const shuffled=fresh.slice().sort(()=>Math.random()-.5);
     chosen.push(...shuffled.slice(0,count).map(x=>({answer:x[0],clue:x[1],art:x[2]})));
   }
-  for(let attempt=0;attempt<120;attempt++){
-    const grid=Array.from({length:25},()=>Array(25).fill(""));
-    const reserved=new Set(),placed=[];
-    const words=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
-    const first=words.shift(),firstRow=12,firstCol=7;
-    const firstClue=firstRow+","+ (firstCol-1);
-    if(firstCol-1<1)continue;
-    reserved.add(firstClue);
-    for(let i=0;i<first.answer.length;i++)grid[firstRow][firstCol+i]=first.answer[i];
-    placed.push({...first,row:firstRow,col:firstCol,dir:"h",clueRow:firstRow,clueCol:firstCol-1});
-    let failed=false;
-    for(const word of words){
-      const candidates=[];
-      for(let r=1;r<24;r++)for(let c0=1;c0<24;c0++)for(const dir of ["h","v"]){
-        const len=word.answer.length,er=r+(dir==="v"?len-1:0),ec=c0+(dir==="h"?len-1:0);
-        if(er>=24||ec>=24)continue;
-        const cr=r-(dir==="v"?1:0),cc=c0-(dir==="h"?1:0),ck=cr+","+cc;
-        if(cr<1||cc<1||cr>=24||cc>=24||grid[cr][cc]||reserved.has(ck))continue;
-        let crosses=0,valid=true;
-        for(let i=0;i<len&&valid;i++){
-          const rr=r+(dir==="v"?i:0),ccell=c0+(dir==="h"?i:0),existing=grid[rr][ccell],ch=word.answer[i],key=rr+","+ccell;
-          if(reserved.has(key)||(existing&&existing!==ch)){valid=false;break}
-          if(existing===ch)crosses++;
-          if(!existing){
-            const side=dir==="h"?[[rr-1,ccell],[rr+1,ccell]]:[[rr,ccell-1],[rr,ccell+1]];
-            if(side.some(([a,b])=>grid[a]?.[b]))valid=false;
-          }
-        }
-        if(!valid||crosses===0)continue;
-        const before=dir==="h"?[r,c0-1]:[r-1,c0],after=dir==="h"?[r,c0+len]:[r+len,c0];
-        if(grid[before[0]]?.[before[1]]||grid[after[0]]?.[after[1]])continue;
-        candidates.push({row:r,col:c0,dir,crosses,clueRow:cr,clueCol:cc});
-      }
-      if(!candidates.length){failed=true;break}
-      // Выбираем пересечения, которые сохраняют компактную форму поля.
-      // Это уменьшает пустые ряды и столбцы, увеличивая реальные клетки на экране.
-      const bounds=placed.reduce((b,w)=>{
-        const len=w.answer.length;
-        b.minR=Math.min(b.minR,w.row,w.clueRow);
-        b.minC=Math.min(b.minC,w.col,w.clueCol);
-        b.maxR=Math.max(b.maxR,w.row+(w.dir==="v"?len-1:0));
-        b.maxC=Math.max(b.maxC,w.col+(w.dir==="h"?len-1:0));
-        return b;
-      },{minR:24,minC:24,maxR:0,maxC:0});
-      const score=spot=>{
-        const len=word.answer.length;
-        const minR=Math.min(bounds.minR,spot.row,spot.clueRow);
-        const minC=Math.min(bounds.minC,spot.col,spot.clueCol);
-        const maxR=Math.max(bounds.maxR,spot.row+(spot.dir==="v"?len-1:0));
-        const maxC=Math.max(bounds.maxC,spot.col+(spot.dir==="h"?len-1:0));
-        const height=maxR-minR+1,width=maxC-minC+1;
-        return Math.max(width,height)*10000+width*height*10-spot.crosses*100;
-      };
-      candidates.sort((a,b)=>score(a)-score(b));
-      const best=candidates.slice(0,Math.min(8,candidates.length)),spot=best[Math.floor(Math.random()*best.length)];
-      for(let i=0;i<word.answer.length;i++)grid[spot.row+(spot.dir==="v"?i:0)][spot.col+(spot.dir==="h"?i:0)]=word.answer[i];
-      reserved.add(spot.clueRow+","+spot.clueCol);
-      placed.push({...word,...spot});
-    }
-    if(failed||placed.length!==chosen.length)continue;
-    const clueOrder=placed.slice().sort((a,b)=>a.row-b.row||a.col-b.col||(a.dir==="h"?-1:1));
-    const numberMap=new Map();
-    clueOrder.forEach((w,i)=>numberMap.set(w,i+1));
-    const minRow=Math.min(...placed.flatMap(w=>[w.row,w.clueRow])),minCol=Math.min(...placed.flatMap(w=>[w.col,w.clueCol]));
-    const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
-    const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
-    // Каждый уровень занимает одинаковое поле 20×20. Слишком большие раскладки
-    // отбрасываем и генерируем заново, чтобы слова не обрезались.
-    const fixedBoardSize=20,actualH=maxRow-minRow+1,actualW=maxCol-minCol+1;
-    if(actualH>fixedBoardSize||actualW>fixedBoardSize)continue;
-    const boardOffsetY=Math.floor((fixedBoardSize-actualH)/2),boardOffsetX=Math.floor((fixedBoardSize-actualW)/2);
-    puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:fixedBoardSize,h:fixedBoardSize,words:[]};
-    Object.keys(expected).forEach(k=>delete expected[k]);
-    placed.forEach((w,i)=>{
-      const cells=Array.from({length:w.answer.length},(_,j)=>[w.row-minRow+boardOffsetY+(w.dir==="v"?j:0)+1,w.col-minCol+boardOffsetX+(w.dir==="h"?j:0)+1]);
-      const clueCell=[w.clueRow-minRow+boardOffsetY+1,w.clueCol-minCol+boardOffsetX+1];
-      puzzle.words.push({id:"w"+(i+1),number:numberMap.get(w),answer:w.answer,clue:w.clue,art:w.art,cells,clueCell,dir:w.dir});
-      cells.forEach((cell,j)=>expected[cell.join(",")]=w.answer[j]);
-    });
-    const crossings={};
-    puzzle.words.forEach(w=>w.cells.forEach(cell=>crossings[cell.join(",")]=(crossings[cell.join(",")]||0)+1));
-    if(!puzzle.words.every(w=>w.cells.some(cell=>crossings[cell.join(",")]>1)))continue;
-    chosen.forEach(w=>used[w.answer]=1);
-    try{localStorage.setItem("qqcross_used_words_v1",JSON.stringify(used))}catch(e){}
-    return true;
-  }
-  throw new Error("Не удалось собрать случайный кроссворд. Попробуй ещё раз.");
+
+  const ordered=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
+  const maxLen=Math.max(...ordered.map(w=>Array.from(w.answer).length));
+  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:maxLen+3,h:ordered.length,words:[]};
+  Object.keys(expected).forEach(k=>delete expected[k]);
+  ordered.forEach((w,i)=>{
+    const row=i+1, chars=Array.from(w.answer);
+    const cells=chars.map((_,j)=>[row,j+4]);
+    puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,1],dir:"h"});
+    cells.forEach((cell,j)=>expected[cell.join(",")]=chars[j]);
+  });
+  chosen.forEach(w=>used[w.answer]=1);
+  try{localStorage.setItem("qqcross_used_words_v1",JSON.stringify(used))}catch(e){}
+  return true;
 }
 function loadPuzzle(){
   const ok=makeRandomPuzzle();
@@ -225,38 +152,28 @@ function renderGame(root){
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
+
   const boardW=puzzle.w,boardH=puzzle.h;
-  // Убираем лишние пустые ряды: размер сетки соответствует самому кроссворду.
-  const squareSize=Math.max(boardW,boardH);
-  const offsetX=Math.floor((squareSize-boardW)/2),offsetY=Math.floor((squareSize-boardH)/2);
-  const viewportHeight=Math.floor(window.visualViewport?.height||window.innerHeight);
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
-  // Поле занимает доступную ширину экрана; клетки равномерно заполняют его.
-  const boardPixelSize=Math.max(120,viewportWidth);
-  const cellSize=Math.max(8,Math.floor((boardPixelSize-(squareSize-1)*2)/squareSize));
-  const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
-  const cells=[];
-  for(let gy=1;gy<=squareSize;gy++)for(let gx=1;gx<=squareSize;gx++){
-    const originalX=gx-offsetX,originalY=gy-offsetY;
-    if(originalX<1||originalX>boardW||originalY<1||originalY>boardH){
-      cells.push('<div class="cell block" style="grid-row:'+gy+';grid-column:'+gx+'"></div>');
-      continue;
-    }
-    const y=originalY,x=originalX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[];
-    if(clues.length){
-       cells.push('<div class="cell clue-tile scan-clue" style="grid-row:'+gy+';grid-column:'+gx+'">'+clues.map(w=>'<span class="scan-arrow">'+(w.dir==="h"?"➜":"⬇")+'</span><span class="scan-clue-text">'+esc(w.clue)+'</span>').join("")+'</div>');
-      continue;
-    }
-    const selectedWord=puzzle.words.find(w=>w.id===state.selectedWord);
-    const selectedCell=selectedWord&&selectedWord.cells.some(pos=>pos.join(",")===k);
-     const cellClass="cell "+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
-     cells.push('<div class="'+cellClass+'" data-cell="'+k+'" style="grid-row:'+gy+';grid-column:'+gx+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+  const cellSize=Math.max(8,Math.floor((viewportWidth-12)/boardW));
+  const rows=[];
+  for(let y=1;y<=boardH;y++){
+    const word=puzzle.words.find(w=>w.cells[0][0]===y);
+    if(!word)continue;
+    const clue='<div class="cell clue-tile scan-clue" style="grid-column:span 3"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
+    const letters=word.cells.map(pos=>{
+      const k=pos.join(","),letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
+      const selectedCell=state.selectedWord===word.id;
+      const cls="cell "+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
+      return '<div class="'+cls+'" data-cell="'+k+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>';
+    }).join("");
+    rows.push('<div class="scanword-row" style="--scan-cell:'+cellSize+'px">'+clue+letters+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+squareSize+';--board-ratio:1/1;--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+squareSize+',var(--qq-cell-size));grid-template-rows:repeat('+squareSize+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+rows.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
