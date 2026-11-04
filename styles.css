@@ -833,7 +833,7 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
 
 
 /* Manual crossword zoom controls */
-.game-screen .board-wrap{position:relative!important;padding-right:46px!important;}
-.game-screen .board-zoom-controls{position:absolute!important;right:3px!important;top:50%!important;transform:translateY(-50%)!important;z-index:15!important;display:flex!important;flex-direction:column!important;gap:7px!important;align-items:center!important;}
-.game-screen .board-zoom-controls button{width:38px!important;height:38px!important;border:1px solid var(--qq-theme-accent,#a97885)!important;border-radius:10px!important;background:var(--qq-theme-panel,linear-gradient(145deg,#30212b,#21151b))!important;color:var(--qq-theme-text,#f0e5e8)!important;font-size:25px!important;font-weight:700!important;line-height:1!important;box-shadow:0 3px 10px #0006!important;padding:0!important;}
+ .game-screen .board-wrap{position:relative!important;padding-right:2px!important;}
+ .game-screen .board-zoom-controls{position:absolute!important;right:3px!important;top:50%!important;transform:translateY(-50%)!important;z-index:15!important;display:flex!important;flex-direction:column!important;gap:7px!important;align-items:center!important;pointer-events:none!important;}
+ .game-screen .board-zoom-controls button{pointer-events:auto!important;width:34px!important;height:34px!important;border:1px solid var(--qq-theme-accent,#a97885)!important;border-radius:10px!important;background:var(--qq-theme-panel,linear-gradient(145deg,#30212b,#21151b))!important;color:var(--qq-theme-text,#f0e5e8)!important;font-size:25px!important;font-weight:700!important;line-height:1!important;box-shadow:0 3px 10px #0006!important;padding:0!important;}
 .game-screen .board-zoom-controls #zoomReset{height:30px!important;font-size:10px!important;}
