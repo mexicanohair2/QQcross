@@ -339,7 +339,30 @@ function checkWords(){
   }
 }
 async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();}
-async function initAuth(){if(!supabaseClient){render();return}try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){await loadCloudProfile(data.session.user.id)}}catch(e){console.error("QQcross auth:",e);toast("Не удалось загрузить аккаунт. Попробуй обновить страницу.")}render()}
+async function initAuth(){
+  if(!supabaseClient){render();return}
+  let timedOut=false,timer;
+  const authTask=(async()=>{
+    const {data,error}=await supabaseClient.auth.getSession();
+    if(error)throw error;
+    if(data.session)await loadCloudProfile(data.session.user.id);
+  })();
+  authTask.catch(e=>console.error("QQcross auth:",e));
+  try{
+    await Promise.race([
+      authTask,
+      new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;reject(new Error("Авторизация не ответила за 6 секунд"))},6000)})
+    ]);
+  }catch(e){
+    console.error("QQcross auth:",e);
+    if(timedOut)toast("Сервис аккаунта отвечает слишком долго. Можно продолжить как гость.");
+    else toast("Не удалось загрузить аккаунт. Попробуй войти ещё раз.");
+  }finally{
+    clearTimeout(timer);
+    render();
+  }
+  if(timedOut)authTask.then(()=>render()).catch(()=>{});
+}
 if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
 applyTheme(activeTheme);
 initAuth();
