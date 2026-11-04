@@ -579,3 +579,40 @@ body{background:radial-gradient(ellipse at 50% 0%,#61243a 0%,#2a111c 48%,#10090d
  .game-screen{padding-left:8px!important;padding-right:8px!important}
  .game-screen .clue-row{grid-template-columns:26px minmax(0,1fr) auto!important;font-size:15px!important;padding:10px 8px!important}
 }
+
+
+/* QQcross: graphite + cyan, central clue tile */
+html,body{background:#101418!important;color:#eef3f6!important}
+body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114 100%) fixed!important;color:#edf4f7!important}
+.game-screen{background:linear-gradient(160deg,#182329 0%,#11191e 58%,#0d1114 100%)!important;color:#eef4f7!important}
+.game-screen .top .btn,.game-screen .btn{background:#26343b!important;border:1px solid #3b505a!important;color:#eaf7fa!important}
+.game-screen .pill,.game-screen .timer{background:#1c3038!important;border:1px solid #3c7888!important;color:#8fe6f4!important}
+.game-screen .score-strip{background:#172229!important;border:1px solid #2c4650!important;border-radius:12px!important;padding:8px!important}
+.game-screen .active-player{color:#83e6f4!important}
+.game-screen .board-wrap{display:flex!important;justify-content:center!important;width:100%!important;overflow:visible!important}
+.game-screen .board{width:min(94vw,520px)!important;height:auto!important;aspect-ratio:1/1!important;gap:1px!important;background:#10171b!important;border:1px solid #40515a!important;border-radius:8px!important;padding:3px!important}
+.game-screen .cell{background:#26343b!important;border:1px solid #3a4d56!important;color:#f2f8fa!important}
+.game-screen .cell.block{background:#11191e!important;border-color:#182329!important}
+.game-screen .cell.filled{background:#176071!important;border-color:#4ab9cd!important}
+.game-screen .cell.pending-cell{background:#244d59!important;border-color:#66d8e8!important}
+.game-screen .cell.clue-tile{background:#34434a!important;border:1px solid #71838b!important;color:#e8f3f6!important}
+.game-screen .cell.clue-tile span{color:#d5e9ee!important}
+.game-screen .cell.selected-word-cell{background:#246879!important;border-color:#83e6f4!important;box-shadow:inset 0 0 0 1px #83e6f4!important}
+.game-screen .question-core{
+ z-index:5;min-width:0;min-height:0;display:flex;flex-direction:column;
+ align-items:center;justify-content:center;gap:clamp(2px,1vw,7px);
+ padding:clamp(4px,1.4vw,12px);overflow:hidden;text-align:center;
+ background:linear-gradient(145deg,#263c45,#17252c)!important;
+ border:2px solid #55c5d8!important;border-radius:12px!important;
+ box-shadow:0 5px 20px #0009,inset 0 0 0 1px #b8f4ff22!important;color:#f2fbfd!important;
+}
+.game-screen .question-title{font-size:clamp(8px,2.2vw,13px);font-weight:900;letter-spacing:.12em;color:#85e6f4}
+.game-screen .question-art{font-size:clamp(15px,4vw,25px);line-height:1}
+.game-screen .question-text{font-size:clamp(10px,2.9vw,16px);font-weight:750;line-height:1.2;overflow-wrap:anywhere;max-width:100%;color:#f4fbfd}
+.game-screen .question-nav{display:flex;align-items:center;justify-content:center;gap:12px;font-size:11px;color:#a9c5cd}
+.game-screen .question-nav button{width:27px;height:25px;border-radius:7px;background:#315563!important;border:1px solid #5ba9b9!important;color:white!important;font-size:19px;line-height:1}
+.game-screen .letter-area,.game-screen .items{background:#18252b!important;border:1px solid #344e58!important;border-radius:12px!important;padding:10px!important}
+.game-screen .letter{background:#d9edf1!important;color:#122027!important;border:1px solid #83b8c3!important}
+.game-screen .item{background:#20343d!important;border:1px solid #3b6572!important;color:#effbfe!important}
+.game-screen .game-hint{color:#b4cbd1!important}
+@media(max-width:380px){.game-screen .question-text{font-size:10px}.game-screen .question-core{padding:3px;gap:2px}}
