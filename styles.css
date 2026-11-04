@@ -876,6 +876,13 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
 
 /* QQcross: zoom board out without changing cell dimensions */
 .game-screen>.board-wrap>.board{
-  transform:scale(.75)!important;
+  transform:scale(.9)!important;
   transform-origin:center center!important;
+  touch-action:pan-x!important;
+}
+.game-screen>.board-wrap{
+  overflow-x:auto!important;
+  overflow-y:hidden!important;
+  overscroll-behavior-y:contain!important;
+  touch-action:pan-x!important;
 }
