@@ -405,3 +405,12 @@ body{
   .game-screen .board{width:max(100%,calc(var(--board-size) * 64px))!important}
   .game-screen .board .cell-letter{font-size:clamp(26px,calc(var(--board-size) * 1.8px),38px)!important}
 }
+
+
+/* Реально крупные клетки: фиксированный размер, поле прокручивается */
+.game-screen .board-wrap{width:100%!important;max-width:100%!important;overflow:auto!important;padding:8px!important;box-sizing:border-box!important;-webkit-overflow-scrolling:touch!important}
+.game-screen .board{display:grid!important;width:max-content!important;min-width:0!important;max-width:none!important;height:auto!important;aspect-ratio:auto!important;gap:3px!important}
+.game-screen .board .cell{width:72px!important;height:72px!important;min-width:72px!important;min-height:72px!important;box-sizing:border-box!important;border:2px solid #62586b!important;border-radius:5px!important}
+.game-screen .board .cell-letter{font-size:36px!important;line-height:1!important;font-weight:950!important}
+.game-screen .board .clue-number,.game-screen .board .cell-mark{min-width:27px!important;height:27px!important;font-size:16px!important;line-height:27px!important}
+.game-screen .letter{width:68px!important;min-width:68px!important;height:76px!important;font-size:34px!important}
