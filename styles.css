@@ -71,7 +71,7 @@
 .game-screen .questions{
   flex:1 1 auto;
   min-height:72px;
-  max-height:25dvh;
+  max-height:27dvh;
   overflow-y:auto;
   grid-template-columns:repeat(3,minmax(0,1fr));
   gap:3px;
@@ -80,7 +80,7 @@
 }
 .game-screen .question{
   min-width:0;
-  min-height:39px;
+  min-height:33px;
   display:grid;
   grid-template-columns:20px minmax(0,1fr);
   grid-template-rows:auto auto;
@@ -129,7 +129,7 @@
 .game-screen .compact-action{margin:0;min-height:31px;padding:5px 10px;font-size:11px;border-radius:9px}
 @media(max-height:720px){
   .game-screen{gap:3px;padding-top:5px}
-  .game-screen .questions{max-height:20dvh;min-height:60px}
+  .game-screen .questions{max-height:23dvh;min-height:58px}
   .game-screen .cell{font-size:clamp(9px,2.9vw,15px)}
   .game-screen .letter{height:32px;min-height:32px}
   .game-screen .item{padding:3px 2px}
