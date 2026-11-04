@@ -876,6 +876,6 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
 
 /* QQcross: zoom board out without changing cell dimensions */
 .game-screen>.board-wrap>.board{
-  transform:scale(.85)!important;
+  transform:scale(.75)!important;
   transform-origin:center center!important;
 }
