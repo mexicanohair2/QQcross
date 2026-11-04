@@ -135,6 +135,10 @@ function drawLetters(n){
 function ensureWordLetter(){const w=currentWord(),c=nextCell(w);if(!c)return;const needed=expected[c.join(",")];if(!state.letters.includes(needed)&&state.letters.length)state.letters[state.letters.length-1]=needed}
 function currentWord(){return puzzle.words.find(w=>!state.completed.has(w.id))||puzzle.words[0]}
 function nextCell(word){return word.cells.find(c=>!state.filled[c.join(",")])}
+function pictureUrl(emoji){
+  const code=Array.from(emoji).map(ch=>ch.codePointAt(0).toString(16)).filter(x=>x!=="fe0f"&&x!=="fe0e").join("-");
+  return "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/"+code+".png";
+}
 function renderGame(root){
   clearInterval(state.interval);
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
@@ -161,7 +165,7 @@ function renderGame(root){
   const questions=puzzle.words.map(w=>{
     const done=w.cells.every(c=>state.filled[c.join(",")]!==undefined);
     const active=state.selectedWord===w.id;
-    return '<button class="question '+(active?'question-active ':'')+(done?'question-done':'')+'" data-word="'+w.id+'"><i class="question-art">'+(w.art||'🔤')+'</i><span><b>'+w.number+'.</b> '+w.clue+'</span><small>'+w.answer.length+' букв'+(done?' · готово':'')+'</small></button>';
+    return '<button class="question '+(active?'question-active ':'')+(done?'question-done':'')+'" data-word="'+w.id+'"><img class="question-picture" src="'+pictureUrl(w.art||'🔤')+'" alt="" loading="lazy"><span><b>'+w.number+'.</b> '+w.clue+'</span><small>'+w.answer.length+' букв'+(done?' · готово':'')+'</small></button>';
   }).join('');
   root.innerHTML=
     '<div class="screen game-screen">'+
@@ -169,7 +173,7 @@ function renderGame(root){
       '<div class="game-head"><div><b>QQCross · Словесная битва</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+playerNames[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
       '<div class="score-strip">'+scoreLine+'</div>'+
       '<div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join('')+'</div></div>'+
-      '<div class="clue-title">Вопросы и картинки <span>Выбери слово после буквы</span></div>'+
+      '<div class="clue-title">Вопросы и картинки <span>Перетащи букву в клетку</span></div>'+
       '<div class="questions">'+questions+'</div>'+
       '<div class="game-tools">'+
         '<div class="items">'+
@@ -178,13 +182,33 @@ function renderGame(root){
           '<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button>'+
         '</div>'+
         '<div class="letter-area"><span class="letter-label">Твои буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+l+'</button>').join('')+'</div></div>'+
-        '<p class="game-hint">Нажми букву, затем нажми на вопрос. Буква поставится в следующее свободное место этого слова.</p>'+
+        '<p class="game-hint">Перетащи букву из набора прямо в нужную клетку. Можно также выбрать букву и нажать на вопрос.</p>'+
         '<button class="btn primary full compact-action" id="endturn">✓ Подтвердить расстановку и завершить ход</button>'+
       '</div>'+
     '</div>';
-  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{
-    state.selectedLetter=+b.dataset.letter;
-    renderGame(root);
+  let dragIndex=-1;
+  root.querySelectorAll("[data-letter]").forEach(b=>{
+    b.onclick=()=>{
+      if(dragIndex!==-1)return;
+      state.selectedLetter=+b.dataset.letter;
+      renderGame(root);
+    };
+    b.addEventListener("pointerdown",e=>{
+      dragIndex=+b.dataset.letter;
+      b.classList.add("dragging");
+      b.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    });
+    b.addEventListener("pointerup",e=>{
+      if(dragIndex<0)return;
+      const target=document.elementFromPoint(e.clientX,e.clientY);
+      const cell=target?.closest?.("[data-cell]");
+      const index=dragIndex;
+      dragIndex=-1;
+      if(cell&&!cell.disabled)placeAtCell(cell.dataset.cell,index,root);
+      else renderGame(root);
+    });
+    b.addEventListener("pointercancel",()=>{dragIndex=-1;renderGame(root)});
   });
   root.querySelectorAll("[data-word]").forEach(b=>b.onclick=()=>{
     state.selectedWord=b.dataset.word;
@@ -221,6 +245,23 @@ function renderGame(root){
       finishTurn(root,true);
     }
   },1000);
+}
+function placeAtCell(k,letterIndex,root){
+  if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){
+    toast("Эта клетка уже занята или недоступна");renderGame(root);return;
+  }
+  const letter=state.letters[letterIndex];
+  if(!letter)return;
+  if(letter!==expected[k]){
+    toast("Буква не подходит к этой клетке");renderGame(root);return;
+  }
+  state.pendingMoves.push({k,l:letter});
+  state.letters.splice(letterIndex,1);
+  state.playerRacks[state.turn]=state.letters;
+  state.selectedLetter=-1;
+  const word=puzzle.words.find(w=>w.cells.some(c=>c.join(",")===k));
+  if(word)state.selectedWord=word.id;
+  renderGame(root);
 }
 function placeInWord(wordId,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву внизу");return}
