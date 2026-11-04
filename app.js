@@ -9,18 +9,66 @@ let authMode="signup";
 const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,completed:new Set(),partySize:2,inviteName:"",invite:null,levelId:1};
 let puzzle=null;
 const expected={};
+let letterBag=[];
+let draggingLetter=false;
+let suppressCellClick=false;
 function loadPuzzle(){
-  const entries=[
-    ["КОСМИЧЕСКИЙ","Связанный с космосом",0,0,"v"],["МЕТЕОРЫ","Явления при сгорании частиц в атмосфере",0,3,"v"],["ПУЛЬСАР","Быстро вращающаяся нейтронная звезда",0,7,"v"],["ЛУНА","Естественный спутник Земли",0,9,"v"],["АСТЕРОИД","Малое каменистое тело Солнечной системы",0,11,"v"],
-    ["СВЕТ","Излучение, воспринимаемое глазом",2,0,"h"],["ПЛАНЕТА","Небесное тело, обращающееся вокруг звезды",2,6,"h"],["ГОДЫ","Периоды обращения планет измеряют в этих единицах времени",4,2,"h"],["ЛУЧ","Узкий поток света",5,9,"v"],["МЕРКУРИЙ","Ближайшая к Солнцу планета",6,5,"h"],["МИР","Всё существующее; Вселенная",6,5,"v"],["МАРС","Красная планета",7,2,"v"],["КВАЗАРЫ","Очень яркие далёкие космические объекты",8,0,"h"],["ПИК","Наивысшая точка",8,8,"v"],["ИК","Инфракрасное излучение (сокращённо)",9,8,"v"],["СПУТНИК","Тело, обращающееся вокруг планеты",10,2,"h"],["УФ","Ультрафиолетовое излучение (сокращённо)",10,4,"v"]
+  const data=[
+    {answer:"УРАН",clue:"Планета-гигант с необычным наклоном оси",row:0,col:4,dir:"v"},
+    {answer:"ИК",clue:"Сокращение для инфракрасного излучения",row:1,col:0,dir:"v"},
+    {answer:"ЗАТМЕНИЕ",clue:"Явление, при котором одно небесное тело закрывает другое",row:1,col:2,dir:"v"},
+    {answer:"ПЛАНЕТОХОДЫ",clue:"Аппараты для исследования поверхности других планет",row:1,col:14,dir:"v"},
+    {answer:"КВАЗАРЫ",clue:"Чрезвычайно яркие далёкие активные ядра галактик",row:2,col:0,dir:"h"},
+    {answer:"ПЛАНЕТА",clue:"Небесное тело, вращающееся вокруг звезды",row:3,col:8,dir:"h"},
+    {answer:"АСТЕРОИД",clue:"Небольшое каменное тело, обращающееся вокруг Солнца",row:3,col:10,dir:"v"},
+    {answer:"МАРС",clue:"Красная планета",row:4,col:0,dir:"v"},
+    {answer:"ГАЗ",clue:"Состояние вещества, из которого состоят многие туманности",row:4,col:7,dir:"v"},
+    {answer:"ПЛАНЕТЫ",clue:"Небесные тела, вращающиеся вокруг звёзд",row:5,col:5,dir:"h"},
+    {answer:"ПУЛЬСАР",clue:"Нейтронная звезда, испускающая регулярные импульсы",row:5,col:5,dir:"v"},
+    {answer:"СПИРАЛЬ",clue:"Форма галактик с закрученными рукавами",row:7,col:0,dir:"h"},
+    {answer:"НЕБО",clue:"Видимое пространство над поверхностью Земли",row:8,col:7,dir:"h"},
+    {answer:"ЛУНА",clue:"Естественный спутник Земли",row:10,col:2,dir:"h"},
+    {answer:"УФ",clue:"Сокращение для ультрафиолетового излучения",row:10,col:3,dir:"v"},
+    {answer:"ГОД",clue:"Период обращения планеты вокруг звезды",row:10,col:8,dir:"h"},
+    {answer:"ЛЁД",clue:"Замёрзшая вода, встречающаяся на кометах",row:10,col:12,dir:"h"}
   ];
-  const words=entries.map((e,i)=>({id:"w"+(i+1),number:i+1,answer:e[0],clue:e[1],dir:e[4],cells:Array.from({length:e[0].length},(_,j)=>[e[2]+1+(e[4]==="v"?j:0),e[3]+1+(e[4]==="h"?j:0)])}));
-  const map={}; for(const w of words)for(let i=0;i<w.cells.length;i++){const k=w.cells[i].join(",");if(map[k]&&map[k]!==w.answer[i])throw new Error("Ошибка пересечения: "+w.answer);map[k]=w.answer[i]}
-  Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,map);
-  const allLetters=words.flatMap(w=>w.answer.split(""));for(let i=allLetters.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[allLetters[i],allLetters[j]]=[allLetters[j],allLetters[i]]}
-  puzzle={id:"cosmos-test-1",title:"Космос",w:13,h:13,words,availableLetters:allLetters};state.levelId=1;return true;
+  puzzle={id:"cosmos-test",title:"Космос",w:15,h:12,words:[]};
+  Object.keys(expected).forEach(key=>delete expected[key]);
+  const starts={};
+  data.forEach((word,index)=>{
+    const key=word.row+","+word.col;
+    if(!starts[key])starts[key]=0;
+  });
+  const ordered=Object.keys(starts).sort((a,b)=>{
+    const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);
+    return ar-br||ac-bc;
+  });
+  const numbers={};
+  ordered.forEach((key,index)=>numbers[key]=index+1);
+  data.forEach((word,index)=>{
+    const length=word.answer.length;
+    if(word.dir==="h" ? word.col+length>puzzle.w : word.row+length>puzzle.h) throw new Error("Слово выходит за границы сетки: "+word.answer);
+    const cells=Array.from({length},(_,i)=>[word.row+(word.dir==="v"?i:0)+1,word.col+(word.dir==="h"?i:0)+1]);
+    puzzle.words.push({id:"w"+(index+1),number:numbers[word.row+","+word.col],answer:word.answer,clue:word.clue,cells,dir:word.dir});
+    cells.forEach((cell,i)=>{
+      const key=cell.join(",");
+      if(expected[key]&&expected[key]!==word.answer[i])throw new Error("Не совпали буквы на пересечении: "+word.answer);
+      expected[key]=word.answer[i];
+    });
+  });
+  const crossing={};
+  puzzle.words.forEach(word=>word.cells.forEach(cell=>{
+    const key=cell.join(",");
+    crossing[key]=(crossing[key]||0)+1;
+  }));
+  puzzle.words.forEach(word=>{
+    if(!word.cells.some(cell=>crossing[cell.join(",")]>1))throw new Error("Слово не пересекается: "+word.answer);
+  });
+  letterBag=puzzle.words.flatMap(word=>word.answer.split(""));
+  for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
+  state.levelId=1;
+  return true;
 }
-loadPuzzle();
 function defaultItems(){return {magnifier:5,clock:5,trash:5}}
 function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(state.profile))}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
@@ -33,7 +81,7 @@ $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password
 }
 function renderShell(root){const tabs=["Главная","Друзья","Магазин","Профиль"],icons=["⌂","♧","🛍","◉"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${AVATARS[state.profile.avatar]}</div><div><b>@${esc(state.profile.username)}</b><div class="small muted">Добро пожаловать!</div></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
 function content(){if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();return home()}
-function home(){return `<section class="card hero"><span class="pill">Кроссворд для друзей</span><h2>Собирай слова.<br>Побеждай друзей.</h2><p class="muted">Создай партию и пригласи друзей.</p><button class="btn primary full" id="createParty">Создать партию</button></section><section class="card row between"><div><b>Случайный кроссворд</b><div class="small muted">Вопросы из общей базы, каждый раз в новом порядке</div></div><span class="pill">🎲 Random</span></section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока @${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отказаться</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b><div class="small muted">Здесь появятся приглашения от друзей.</div></div>`}<h3 class="section-title">Начать игру</h3><div class="card row between"><div><b>Одиночная игра</b><div class="small muted">Случайные 8 вопросов</div></div><button class="btn blue" id="practice">Играть</button></div>`}
+function home(){return `<section class="card hero"><span class="pill">Кроссворд для друзей</span><h2>Собирай слова.<br>Побеждай друзей.</h2><p class="muted">Создай партию и пригласи друзей.</p><button class="btn primary full" id="createParty">Создать партию</button></section><section class="card row between"><div><b>Космический кроссворд</b><div class="small muted">17 слов с настоящими пересечениями</div></div><span class="pill">🎲 Random</span></section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока @${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отказаться</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b><div class="small muted">Здесь появятся приглашения от друзей.</div></div>`}<h3 class="section-title">Начать игру</h3><div class="card row between"><div><b>Одиночная игра</b><div class="small muted">17 пересекающихся слов</div></div><button class="btn blue" id="practice">Играть</button></div>`}
 function renderLevels(root){
   root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="levelsBack">← Назад</button><span class="pill">10 уровней</span></div><h2>Выбери кроссворд</h2><div class="grid2">${window.QQCROSS_LEVELS.map(level=>`<button class="btn level-button" data-level="${level.level_id}"><b>Уровень ${level.level_id}</b><br><span class="small muted">${esc(level.theme)}</span></button>`).join("")}</div></div>`;
   $("#levelsBack").onclick=()=>{state.screen="";render()};
@@ -46,22 +94,125 @@ function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.sc
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><p class="small muted">Ты — первый игрок. Остальные места займут приглашённые друзья.</p><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><b>Как работает приглашение</b><p class="small muted">Игрок увидит плашку с выбором: согласиться или отказаться. Сейчас это демонстрация интерфейса; доставка между разными устройствами заработает после подключения сервера.</p><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
 function begin(size=1){if(!loadPuzzle())return;state.screen="game";state.partySize=size;state.filled={};state.completed=new Set();state.scores=0;state.turn=0;state.seconds=60;state.letterPool=puzzle.availableLetters.slice();state.letters=drawLetters(7);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";render()}
-function drawLetters(n){const out=[];for(let i=0;i<n&&state.letterPool&&state.letterPool.length;i++){const j=Math.floor(Math.random()*state.letterPool.length);out.push(state.letterPool.splice(j,1)[0])}return out}
+function drawLetters(n){
+  const out=[];
+  for(let i=0;i<n&&letterBag.length;i++){
+    const index=Math.floor(Math.random()*letterBag.length);
+    out.push(letterBag.splice(index,1)[0]);
+  }
+  return out;
+}
 function ensureWordLetter(){const w=currentWord(),c=nextCell(w);if(!c)return;const needed=expected[c.join(",")];if(!state.letters.includes(needed)&&state.letters.length)state.letters[state.letters.length-1]=needed}
-function currentWord(){return puzzle.words.find(w=>w.id===state.selectedWord)||puzzle.words[0]}
+function currentWord(){return puzzle.words.find(w=>!state.completed.has(w.id))||puzzle.words[0]}
 function nextCell(word){return word.cells.find(c=>!state.filled[c.join(",")])}
 function renderGame(root){
-  const starts={};puzzle.words.forEach(w=>{starts[w.cells[0].join(",")]=w.number});let cells=[];
-  for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){const k=y+","+x,exists=expected[k]!==undefined,filled=state.filled[k],num=starts[k];cells.push('<button class="cell '+(!exists?"block ":"")+(filled?"filled":"")+(state.wrong===k?" wrong":"")+(state.selectedCell===k?" target":"")+'" data-cell="'+k+'" '+(!exists?"disabled":"")+'">'+(filled||"")+(num?'<span class="cell-number">'+num+'</span>':"")+'</button>')}
-  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div><span class="pill">Очки: '+state.scores+'</span></div><div class="game-subtitle"><b>Космос</b><span class="small muted">'+(state.partySize===1?"Тренировка":"Партия · "+state.partySize+" игрока(ов)")+'</span></div><div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',auto)">'+cells.join("")+'</div></div><div class="clue-heading">Вопросы <span>17 слов · все открыты</span></div><div class="questions">'+puzzle.words.map(w=>'<div class="question"><b>'+w.number+(w.dir==="h"?" →":" ↓")+'</b><span>'+w.clue+'</span><small>'+w.answer.length+'</small></div>').join("")+'</div><div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы +20с</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div><div class="letter-heading">Банк букв</div><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?"selected":"")+'" data-letter="'+i+'" draggable="true">'+l+'</button>').join("")+'</div><p class="small muted center game-hint">Перетащи букву в клетку или выбери букву и клетку.</p></div>';
-  root.querySelectorAll("[data-letter]").forEach(b=>{b.onclick=()=>{state.selectedLetter=+b.dataset.letter;renderGame(root)};b.ondragstart=e=>{state.selectedLetter=+b.dataset.letter;e.dataTransfer.setData("text/plain",b.dataset.letter)}});
-  root.querySelectorAll("[data-cell]").forEach(b=>{b.onclick=()=>place(b.dataset.cell,root);b.ondragover=e=>e.preventDefault();b.ondrop=e=>{e.preventDefault();const i=Number(e.dataTransfer.getData("text/plain"));if(Number.isInteger(i)){state.selectedLetter=i;place(b.dataset.cell,root)}}});
-  $("#exit").onclick=()=>{state.screen="";render()};$("#clock").onclick=()=>{if(!useItem("clock"))return;state.seconds+=20;renderGame(root)};$("#trash").onclick=()=>{if(!useItem("trash"))return;state.letters=drawLetters(7);state.selectedLetter=-1;renderGame(root)};
-  $("#magnifier").onclick=()=>{if(!useItem("magnifier"))return;const w=puzzle.words.find(word=>word.cells.some(c=>!state.filled[c.join(",")]));if(!w){toast("Все клетки заполнены");return}const c=w.cells.find(cell=>!state.filled[cell.join(",")]);const k=c.join(",");state.filled[k]=expected[k];state.scores++;checkWords();save();renderGame(root);toast("Лупа открыла следующую букву")};
-  state.interval=setInterval(()=>{state.seconds--;const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;if(state.seconds<=0){clearInterval(state.interval);state.turn=(state.turn+1)%Math.max(1,state.partySize);state.seconds=60;renderGame(root)}},1000)
+  const starts={};
+  puzzle.words.forEach(w=>{
+    const k=w.cells[0].join(",");
+    if(!starts[k])starts[k]=[];
+    starts[k].push(w.number+(w.dir==="h"?"→":"↓"));
+  });
+  let cells=[];
+  for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){
+    const k=y+","+x,exists=expected[k]!==undefined,filled=state.filled[k];
+    cells.push('<button class="cell '+(!exists?'block ':'')+(filled?'filled':'')+(state.wrong===k?' wrong':'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" ")+'</span>':'')+'<span class="cell-letter">'+(filled||'')+'</span></button>');
+  }
+  root.innerHTML=
+    '<div class="screen game-screen">'+
+      '<div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
+      '<div class="game-head"><div><b>Космос · 17 слов</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+(state.turn===0?'Ты':'Игрок '+(state.turn+1))+'</div></div><span class="pill">Очки: '+state.scores+'</span></div>'+
+      '<div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join('')+'</div></div>'+
+      '<div class="clue-title">Все вопросы <span>17 слов · все открыты</span></div>'+
+      '<div class="questions">'+puzzle.words.map(w=>'<div class="question"><b>'+w.number+(w.dir==="h"?" →":" ↓")+'</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' бук.</small></div>').join('')+'</div>'+
+      '<div class="game-tools">'+
+        '<div class="items">'+
+          '<button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+
+          '<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы +20с</button>'+
+          '<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button>'+
+        '</div>'+
+        '<div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+l+'</button>').join('')+'</div></div>'+
+        '<button class="btn primary full compact-action" id="endturn">'+(state.partySize>1?'Завершить ход':'Перемешать буквы')+'</button>'+
+      '</div>'+
+    '</div>';
+  root.querySelectorAll("[data-letter]").forEach(b=>b.addEventListener("pointerdown",e=>{
+    e.preventDefault();
+    state.selectedLetter=+b.dataset.letter;
+    draggingLetter=true;
+    b.classList.add("selected");
+  }));
+  document.onpointerup=e=>{
+    if(!draggingLetter)return;
+    draggingLetter=false;
+    const target=document.elementFromPoint(e.clientX,e.clientY);
+    const cell=target&&target.closest?target.closest("[data-cell]"):null;
+    if(cell&&!cell.disabled){
+      suppressCellClick=true;
+      place(cell.dataset.cell,root);
+    }else{
+      renderGame(root);
+    }
+  };
+  root.querySelectorAll("[data-cell]").forEach(b=>b.onclick=()=>{
+    if(suppressCellClick){suppressCellClick=false;return;}
+    place(b.dataset.cell,root);
+  });
+  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{
+    state.selectedLetter=+b.dataset.letter;
+    renderGame(root);
+  });
+  $("#exit").onclick=()=>{state.screen="";render()};
+  $("#endturn").onclick=()=>{
+    if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;state.seconds=60;}
+    else{
+      letterBag.push(...state.letters);
+      for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
+      state.letters=drawLetters(7);
+      state.selectedLetter=-1;
+    }
+    renderGame(root);
+  };
+  $("#clock").onclick=()=>{if(!useItem("clock"))return;state.seconds+=20;renderGame(root)};
+  $("#trash").onclick=()=>{
+    if(!useItem("trash"))return;
+    letterBag.push(...state.letters);
+    for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]];}
+    state.letters=drawLetters(7);state.selectedLetter=-1;renderGame(root);
+  };
+  $("#magnifier").onclick=()=>{
+    if(!useItem("magnifier"))return;
+    const next=puzzle.words.flatMap(w=>w.cells).find(c=>!state.filled[c.join(",")]);
+    if(!next){toast("Все клетки заполнены");return}
+    const k=next.join(","),needed=expected[k];
+    let ix=state.letters.indexOf(needed);
+    if(ix>=0)state.letters.splice(ix,1);
+    else{ix=letterBag.indexOf(needed);if(ix>=0)letterBag.splice(ix,1);}
+    state.filled[k]=needed;
+    if(state.letters.length<7&&letterBag.length)state.letters.push(drawLetters(1)[0]);
+    state.scores++;checkWords();save();renderGame(root);toast("Лупа открыла букву");
+  };
+  state.interval=setInterval(()=>{
+    state.seconds--;
+    const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;
+    if(state.seconds<=0){clearInterval(state.interval);state.turn=(state.turn+1)%Math.max(1,state.partySize);state.seconds=60;renderGame(root)}
+  },1000);
 }
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
-function place(k,root){if(state.selectedLetter<0){toast("Сначала выбери букву");return}if(state.filled[k]){toast("Клетка уже заполнена");return}const l=state.letters[state.selectedLetter];if(expected[k]===l){state.filled[k]=l;state.scores++;state.letters.splice(state.selectedLetter,1);const next=drawLetters(1);if(next.length)state.letters.push(next[0]);state.selectedLetter=-1;state.selectedCell=null;checkWords();renderGame(root)}else{state.wrong=k;renderGame(root);toast("Буква не подходит");setTimeout(()=>{state.wrong=null;const el=document.querySelector('[data-cell="'+k+'"]');if(el)el.classList.remove("wrong")},500)}}
+function place(k,root){
+  if(state.selectedLetter<0){toast("Перетащи букву из нижнего ряда в клетку");return}
+  if(expected[k]===undefined){return}
+  if(state.filled[k]){toast("Клетка уже заполнена");return}
+  const l=state.letters[state.selectedLetter];
+  if(expected[k]===l){
+    state.filled[k]=l;
+    state.letters.splice(state.selectedLetter,1);
+    if(letterBag.length)state.letters.push(drawLetters(1)[0]);
+    state.selectedLetter=-1;state.selectedCell=null;state.wrong=null;
+    checkWords();renderGame(root);
+  }else{
+    state.wrong=k;renderGame(root);toast("Эта буква сюда не подходит");
+    setTimeout(()=>{state.wrong=null;const el=document.querySelector('[data-cell="'+k+'"]');if(el)el.classList.remove("wrong")},500);
+  }
+}
 function checkWords(){puzzle.words.forEach(w=>{if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){state.completed.add(w.id);state.scores+=5;toast(`Слово «${w.answer}» собрано! +5`)}});if(state.completed.size===puzzle.words.length){state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();state.screen="";setTimeout(()=>{render();toast("Партия завершена!")},500)}}
 async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:defaultItems(),friends:[]};localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));}
 async function initAuth(){try{const {data,error}=await supabaseClient.auth.getSession();if(error)throw error;if(data.session){await loadCloudProfile(data.session.user.id)}}catch(e){console.error("QQcross auth:",e);toast("Не удалось загрузить аккаунт. Попробуй обновить страницу.")}render()}
