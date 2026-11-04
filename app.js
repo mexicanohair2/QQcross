@@ -150,11 +150,9 @@ function renderGame(root){
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
-    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
-    const clues=starts[k]||[];
-    const marker=clues.length?'<button class="cell-mark clue-trigger" type="button" data-clues="'+clues.map(w=>w.id).join(",")+'">'+clues.map(w=>w.number).join("/")+'</button>':'';
-    const clueTitle=clues.length?clues.map(w=>w.clue).join(" / "):"";
-    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+(state.feedback[k]==='correct'?'feedback-correct ':'')+(state.feedback[k]==='wrong'?'feedback-wrong ':'')+(hint&&!letter?'has-phantom ':'')+'" data-cell="'+k+'" '+(clueTitle?'title="'+esc(clueTitle)+'"':'')+'>'+marker+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':'')+'</div>');
+    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=starts[k]||[];
+    const clueMarkup=clues.length?'<div class="clue-cell" role="button" tabindex="0" data-clues="'+clues.map(w=>w.id).join(",")+'"> '+clues.map(w=>'<span>'+esc(w.clue)+'</span>').join("")+'</div>':"";
+    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'">'+(clues.length?clueMarkup:"")+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -165,24 +163,7 @@ function renderGame(root){
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
-  root.querySelectorAll(".clue-trigger").forEach(btn=>btn.addEventListener("click",e=>{
-    e.stopPropagation();
-    const cell=btn.closest(".cell"),old=cell.querySelector(".clue-popover");
-    root.querySelectorAll(".clue-popover").forEach(x=>x.remove());
-    if(old)return;
-    const ids=btn.dataset.clues.split(",");
-    const words=ids.map(id=>puzzle.words.find(w=>w.id===id)).filter(Boolean);
-    const pop=document.createElement("div");pop.className="clue-popover";
-    pop.innerHTML=words.map(w=>'<div class="clue-entry"><b>'+w.number+'. '+(w.dir==="h"?"→":"↓")+'</b><span>'+esc(w.clue)+'</span><small>'+w.answer.length+' букв</small></div>').join("");
-    document.body.appendChild(pop);
-    const r=cell.getBoundingClientRect(),p=pop.getBoundingClientRect(),margin=8;
-    let left=r.right+6,top=r.top;
-    if(left+p.width>innerWidth-margin)left=r.left-p.width-6;
-    if(left<margin)left=margin;
-    if(top+p.height>innerHeight-margin)top=innerHeight-p.height-margin;
-    if(top<margin)top=margin;
-    pop.style.left=left+"px";pop.style.top=top+"px";
-  }));
+  root.querySelectorAll(".clue-cell").forEach(btn=>{const open=()=>{const words=btn.dataset.clues.split(",").map(id=>puzzle.words.find(w=>w.id===id)).filter(Boolean);btn.innerHTML=words.map(w=>"<b>"+w.number+".</b> "+esc(w.clue)+" <small>("+w.answer.length+")</small>").join("<hr>")};btn.addEventListener("click",e=>{e.stopPropagation();open()});btn.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})});
   document.addEventListener("click",e=>{if(!e.target.closest(".clue-popover,.clue-trigger"))root.querySelectorAll(".clue-popover").forEach(x=>x.remove())},{once:true});
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null;
   const clearDrag=()=>{
