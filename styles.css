@@ -919,3 +919,42 @@ body:has(.game-screen) #app{
 .game-screen>.board-wrap>.board{
   touch-action:pan-x!important;
 }
+
+
+/* Final layout: fit the actual crossword to the screen, with larger cells and no board scrolling */
+.game-screen>.board-wrap{
+  flex:0 0 auto!important;
+  width:96vw!important;
+  height:auto!important;
+  max-width:96vw!important;
+  max-height:none!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:hidden!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  touch-action:manipulation!important;
+}
+.game-screen>.board-wrap>.board{
+  width:max-content!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+  margin:0 auto!important;
+  gap:2px!important;
+  transform:none!important;
+  touch-action:manipulation!important;
+}
+.game-screen>.board-wrap>.board>.cell{
+  width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;
+  min-width:var(--qq-cell-size)!important;
+  min-height:var(--qq-cell-size)!important;
+  aspect-ratio:1/1!important;
+}
+html,body,body #app{overflow:hidden!important;overscroll-behavior:none!important}
+.game-screen{overflow:hidden!important;touch-action:pan-y!important}
