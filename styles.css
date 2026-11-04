@@ -616,3 +616,9 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
 .game-screen .item{background:#20343d!important;border:1px solid #3b6572!important;color:#effbfe!important}
 .game-screen .game-hint{color:#b4cbd1!important}
 @media(max-width:380px){.game-screen .question-text{font-size:10px}.game-screen .question-core{padding:3px;gap:2px}}
+
+/* Clues live in the crossword clue cells beside their answer starts. */
+.game-screen .question-core,.game-screen .question-nav{display:none!important}
+.game-screen .cell.clue-tile{position:relative!important;overflow:visible!important;z-index:30!important;display:flex!important;align-items:flex-start!important;justify-content:flex-start!important;background:#263f49!important;border:1px solid #62b9c9!important;border-radius:6px!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important}
+.game-screen .cell.clue-tile .clue-number{position:absolute!important;top:1px!important;left:2px!important;font-size:clamp(8px,2vw,12px)!important;font-weight:900!important;color:#8ceafa!important}
+.game-screen .cell.clue-tile .clue-question{position:absolute!important;right:calc(100% + 3px)!important;top:0!important;width:clamp(92px,30vw,150px)!important;min-height:100%!important;max-height:76px!important;overflow:hidden!important;display:flex!important;align-items:center!important;justify-content:flex-end!important;padding:4px 6px!important;border:1px solid #62b9c9!important;border-radius:6px!important;background:#1b3038!important;color:#f1fbfd!important;font-size:clamp(8px,2.2vw,11px)!important;font-weight:650!important;line-height:1.15!important;text-align:right!important;overflow-wrap:anywhere!important;box-shadow:0 2px 7px #0008!important}
