@@ -202,7 +202,7 @@ function renderGame(root){
   const boardPixelSize=Math.max(120,Math.min(viewportWidth*0.98,viewportHeight-235));
   const fitCellSize=Math.floor((boardPixelSize-(squareSize-1))/squareSize);
   // Увеличиваем только размер клеток; геометрию и позиционирование поля не меняем.
-  const cellSize=Math.min(64,Math.max(8,Math.floor(fitCellSize*1.63576)));
+  const cellSize=Math.min(64,Math.max(8,Math.floor(fitCellSize*1.390396)));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=squareSize;gy++)for(let gx=1;gx<=squareSize;gx++){
