@@ -107,7 +107,8 @@ function makeRandomPuzzle(){
     const minRow=Math.min(...placed.flatMap(w=>[w.row,w.clueRow])),minCol=Math.min(...placed.flatMap(w=>[w.col,w.clueCol]));
     const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
     const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
-    // Все уровни используют одинаковое поле 20×20; слова центрируются внутри него.
+    // Каждый уровень занимает одинаковое поле 20×20. Слишком большие раскладки
+    // отбрасываем и генерируем заново, чтобы слова не обрезались.
     const fixedBoardSize=20,actualH=maxRow-minRow+1,actualW=maxCol-minCol+1;
     if(actualH>fixedBoardSize||actualW>fixedBoardSize)continue;
     const boardOffsetY=Math.floor((fixedBoardSize-actualH)/2),boardOffsetX=Math.floor((fixedBoardSize-actualW)/2);
@@ -193,13 +194,14 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardW=puzzle.w,boardH=puzzle.h;
-  const squareSize=20; // Одинаковое поле для всех кроссвордов.
+  const squareSize=20; // Фиксированный размер сетки для всех случайных кроссвордов.
   const offsetX=Math.floor((squareSize-boardW)/2),offsetY=Math.floor((squareSize-boardH)/2);
   const viewportHeight=Math.floor(window.visualViewport?.height||window.innerHeight);
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
-  // Размер клетки рассчитывается по большей стороне обрезанного поля.
+  // Чуть крупнее: используем почти всю ширину и высоту, оставляя место интерфейсу.
   const boardPixelSize=Math.max(120,Math.min(viewportWidth*0.98,viewportHeight-235));
   const fitCellSize=Math.floor((boardPixelSize-(squareSize-1))/squareSize);
+  // Увеличиваем только размер клеток; геометрию и позиционирование поля не меняем.
   const cellSize=Math.min(64,Math.max(8,Math.floor(fitCellSize*1.8320512)));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
