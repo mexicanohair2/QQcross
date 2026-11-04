@@ -414,3 +414,11 @@ body{
 .game-screen .board .cell-letter{font-size:36px!important;line-height:1!important;font-weight:950!important}
 .game-screen .board .clue-number,.game-screen .board .cell-mark{min-width:27px!important;height:27px!important;font-size:16px!important;line-height:27px!important}
 .game-screen .letter{width:68px!important;min-width:68px!important;height:76px!important;font-size:34px!important}
+
+
+/* Клетки кроссворда увеличены ещё на 20px; инвентарь компактнее на 20px */
+.game-screen .board .cell{width:92px!important;height:92px!important;min-width:92px!important;min-height:92px!important}
+.game-screen .board .cell-letter{font-size:46px!important}
+.game-screen .board .clue-number,.game-screen .board .cell-mark{min-width:30px!important;height:30px!important;font-size:18px!important;line-height:30px!important}
+.game-screen .items{padding:4px 9px!important}
+.game-screen .items .item{padding:4px 4px!important;gap:4px!important}
