@@ -224,3 +224,17 @@
  .game-screen .clue-card{min-height:48px;padding:6px 7px}
 }
 @media(max-width:370px){.game-screen .clue-list{grid-template-columns:1fr}.game-screen .clue-card{min-height:42px}}
+
+
+/* Square crossword board: use a true square grid and give it most of the screen */
+#app:has(.game-screen){height:100dvh;overflow:hidden;padding:0}
+.game-screen{height:100dvh;max-height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:5px;padding:5px 7px calc(5px + env(safe-area-inset-bottom))}
+.game-screen .board-wrap{flex:1 1 auto;min-height:0;max-height:none;width:100%;margin:0;padding:0;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.game-screen .board{width:min(88vw,68dvh);height:min(88vw,68dvh);max-width:100%;max-height:100%;aspect-ratio:1;display:grid;grid-auto-rows:minmax(0,1fr);gap:2px;flex:0 0 auto;margin:auto}
+.game-screen .cell{width:100%;height:100%;min-width:0;min-height:0;aspect-ratio:1;position:relative;overflow:hidden;border-radius:4px;font-size:clamp(9px,2.6vw,17px)}
+.game-screen .cell.block{background:transparent;border-color:transparent}
+.game-screen .clue-list,.game-screen .questions,.game-screen .clue-title{display:none!important}
+.game-screen .game-tools{flex:0 0 auto;min-height:68px;max-height:19dvh;display:flex;flex-direction:column;justify-content:flex-end;gap:3px}
+.game-screen .letter-area{min-height:40px}
+.game-screen .letter{flex:0 0 34px;width:34px;height:36px;min-height:36px}
+@media(max-height:700px){.game-screen .board{width:min(88vw,64dvh);height:min(88vw,64dvh)}.game-screen .game-tools{min-height:62px;max-height:18dvh}}
