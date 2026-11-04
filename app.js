@@ -167,18 +167,12 @@ function renderGame(root){
     if(dragButton)dragButton.classList.remove("dragging");
     dragIndex=-1;dragPointer=-1;dragButton=null;
   };
-  const onMove=e=>{
-    if(dragIndex<0||e.pointerId!==dragPointer)return;
-    e.preventDefault();
-    if(dragButton)dragButton.style.transform='translate('+Math.min(30,Math.max(-30,e.clientX-(dragButton._startX||e.clientX)))+'px,0) scale(1.08)';
-  };
   const onUp=e=>{
     if(dragIndex<0||e.pointerId!==dragPointer)return;
     const target=document.elementFromPoint(e.clientX,e.clientY);
     const cell=target&&target.closest?target.closest("[data-cell]"):null;
     const index=dragIndex;
     clearDrag();
-    document.removeEventListener("pointermove",onMove);
     document.removeEventListener("pointerup",onUp);
     document.removeEventListener("pointercancel",onCancel);
     if(cell&&expected[cell.dataset.cell]!==undefined)placeAtCell(cell.dataset.cell,index,root);
@@ -194,8 +188,7 @@ function renderGame(root){
     b.addEventListener("pointerdown",e=>{
       if(dragIndex!==-1)return;
       dragIndex=Number(b.dataset.letter);dragPointer=e.pointerId;dragButton=b;
-      b._startX=e.clientX;b.classList.add("dragging");
-      document.addEventListener("pointermove",onMove,{passive:false});
+      b.classList.add("dragging");
       document.addEventListener("pointerup",onUp);
       document.addEventListener("pointercancel",onCancel);
       e.preventDefault();
