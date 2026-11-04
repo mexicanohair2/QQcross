@@ -770,3 +770,36 @@ html[data-qq-theme] .game-screen .board .cell.selected-word-cell:not(.block){
   border-color:#c0929e!important;
   box-shadow:inset 0 0 0 1px #9b6875!important;
 }
+
+
+/* Strong final override: no board frame; playable cells clearly visible */
+html[data-qq-theme] .game-screen .board-wrap,
+.game-screen .board-wrap{
+  background:transparent!important;
+  border:0!important;
+  box-shadow:none!important;
+  border-radius:0!important;
+  padding:0!important;
+}
+html[data-qq-theme] .game-screen .board .cell:not(.block):not(.filled):not(.pending-cell):not(.clue-tile),
+.game-screen .board .cell:not(.block):not(.filled):not(.pending-cell):not(.clue-tile){
+  background:linear-gradient(145deg,#3b252e,#2b1a21)!important;
+  border:1px solid #79505c!important;
+  box-shadow:inset 0 1px 3px #10090c!important;
+}
+html[data-qq-theme] .game-screen .board .cell.block,
+.game-screen .board .cell.block{
+  background:linear-gradient(145deg,#100b0e,#0b080a)!important;
+  border:1px solid #171014!important;
+  box-shadow:none!important;
+}
+html[data-qq-theme] .game-screen .board .cell.filled,
+.game-screen .board .cell.filled{
+  background:linear-gradient(145deg,#79505c,#563640)!important;
+  border:1px solid #986875!important;
+}
+html[data-qq-theme] .game-screen .board .cell.pending-cell,
+.game-screen .board .cell.pending-cell{
+  background:linear-gradient(145deg,#69414d,#472b35)!important;
+  border:1px solid #ad7c89!important;
+}
