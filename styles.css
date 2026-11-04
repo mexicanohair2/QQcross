@@ -286,3 +286,29 @@
 .game-screen .clue-cell span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .game-screen .clue-cell small{font-size:8px;color:#c7baff}
 .game-screen .clue-cell hr{width:100%;border:0;border-top:1px solid #ffffff30;margin:2px 0}
+
+
+/* Clue prompts occupy real square grid cells immediately before each answer */
+.game-screen .cell.clue-tile{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:2px;
+  overflow:hidden;
+  background:#392d59;
+  border:1px solid #a78bfa;
+  color:#fff;
+  box-shadow:inset 0 0 0 1px #ffffff12;
+  font-size:clamp(5px,1.45vw,9px);
+  line-height:1.05;
+  text-align:center;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
+.game-screen .cell.clue-tile span{
+  display:-webkit-box;
+  -webkit-line-clamp:5;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  max-width:100%;
+}
