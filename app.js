@@ -176,7 +176,18 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  const showClue=id=>{const w=puzzle.words.find(item=>item.id===id);if(!w)return;root.querySelector(".clue-popup")?.remove();const popup=document.createElement("div");popup.className="clue-popup";popup.innerHTML='<div class="clue-popup-number">ВОПРОС '+w.number+'</div><div class="clue-popup-text">'+esc(w.clue)+'</div><div class="clue-popup-length">'+w.answer.length+' букв</div><button type="button" class="clue-popup-close">Понятно</button>';root.querySelector(".board-wrap").appendChild(popup);popup.querySelector(".clue-popup-close").onclick=()=>popup.remove();};
+  // Старые панели со списком вопросов больше не используются.
+  root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
+  const showClue=id=>{
+    const w=puzzle.words.find(item=>item.id===id);if(!w)return;
+    root.querySelector(".clue-popup-backdrop")?.remove();
+    const backdrop=document.createElement("div");backdrop.className="clue-popup-backdrop";
+    backdrop.innerHTML='<div class="clue-popup" role="dialog" aria-modal="true"><div class="clue-popup-number">ВОПРОС '+w.number+'</div><div class="clue-popup-text">'+esc(w.clue)+'</div><div class="clue-popup-length">'+w.answer.length+' букв</div><button type="button" class="clue-popup-close">Понятно</button></div>';
+    root.querySelector(".board-wrap").appendChild(backdrop);
+    const close=()=>backdrop.remove();
+    backdrop.addEventListener("click",e=>{if(e.target===backdrop)close()});
+    backdrop.querySelector(".clue-popup-close").onclick=close;
+  };
   root.querySelectorAll("[data-show-clue]").forEach(btn=>btn.addEventListener("click",e=>{e.stopPropagation();showClue(btn.dataset.showClue)}));
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null;
