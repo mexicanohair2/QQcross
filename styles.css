@@ -832,8 +832,43 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
 }
 
 
-/* Manual crossword zoom controls */
- .game-screen .board-wrap{position:relative!important;padding-right:2px!important;}
- .game-screen .board-zoom-controls{position:absolute!important;right:3px!important;top:50%!important;transform:translateY(-50%)!important;z-index:15!important;display:flex!important;flex-direction:column!important;gap:7px!important;align-items:center!important;pointer-events:none!important;}
- .game-screen .board-zoom-controls button{pointer-events:auto!important;width:34px!important;height:34px!important;border:1px solid var(--qq-theme-accent,#a97885)!important;border-radius:10px!important;background:var(--qq-theme-panel,linear-gradient(145deg,#30212b,#21151b))!important;color:var(--qq-theme-text,#f0e5e8)!important;font-size:25px!important;font-weight:700!important;line-height:1!important;box-shadow:0 3px 10px #0006!important;padding:0!important;}
-.game-screen .board-zoom-controls #zoomReset{height:30px!important;font-size:10px!important;}
+
+/* Zoom controls sit in a reserved side rail; board width stays inside the screen */
+.game-screen .board-wrap{
+  position:relative!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:100%!important;
+  padding-right:44px!important;
+  overflow:auto!important;
+}
+.game-screen .board-zoom-controls{
+  position:absolute!important;
+  right:4px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  z-index:20!important;
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  align-items:center!important;
+  pointer-events:none!important;
+}
+.game-screen .board-zoom-controls button{
+  pointer-events:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:34px!important;
+  height:34px!important;
+  min-width:34px!important;
+  border:1px solid var(--qq-theme-accent,#a97885)!important;
+  border-radius:9px!important;
+  background:var(--qq-theme-panel,linear-gradient(145deg,#30212b,#21151b))!important;
+  color:var(--qq-theme-text,#f0e5e8)!important;
+  font-size:24px!important;
+  font-weight:700!important;
+  line-height:1!important;
+  padding:0!important;
+}
+.game-screen .board-zoom-controls #zoomReset{height:28px!important;font-size:9px!important;}
