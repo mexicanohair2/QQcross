@@ -657,3 +657,27 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
   transform:scale(1.2)!important;
 }
 .game-screen .clue-popup{margin:8px auto 0!important}
+
+
+/* Put the selected clue over the crossword, never underneath it. */
+.game-screen .board-wrap{position:relative!important}
+.game-screen .clue-popup{
+  position:absolute!important;
+  left:50%!important;
+  top:50%!important;
+  transform:translate(-50%,-50%)!important;
+  width:min(86%,340px)!important;
+  max-height:75%!important;
+  overflow:auto!important;
+  margin:0!important;
+  z-index:500!important;
+  background:#142a32!important;
+  border:2px solid #65c7d8!important;
+  box-shadow:0 12px 35px #000e!important;
+}
+.game-screen .questions,
+.game-screen .clue-panel,
+.game-screen .clue-list-readable,
+.game-screen .clue-heading,
+.game-screen .clue-title,
+.game-screen .clue-row{display:none!important}
