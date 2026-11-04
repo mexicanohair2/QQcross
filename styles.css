@@ -696,3 +696,20 @@ html[data-qq-theme] .board .cell.selected-word-cell:not(.filled){
   border-color:var(--qq-theme-accent)!important;
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--qq-theme-accent) 55%,transparent)!important;
 }
+
+
+/* Clear crossword cell states: playable empty cells vs inactive dark blocks */
+html[data-qq-theme] .board .cell:not(.block):not(.filled):not(.pending-cell):not(.clue-tile){
+  background:var(--qq-theme-cell)!important;
+  border:1px solid color-mix(in srgb,var(--qq-theme-accent) 48%,var(--qq-theme-border))!important;
+  box-shadow:inset 0 1px 3px #0008!important;
+}
+html[data-qq-theme] .board .cell.block{
+  background:var(--qq-theme-block)!important;
+  border:1px solid color-mix(in srgb,var(--qq-theme-block) 72%,#000)!important;
+  box-shadow:inset 0 1px 3px #000b!important;
+}
+html[data-qq-theme] .board .cell.selected-word-cell:not(.filled):not(.block){
+  border:1.5px solid var(--qq-theme-accent)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--qq-theme-accent) 35%,transparent)!important;
+}
