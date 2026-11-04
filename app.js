@@ -61,7 +61,8 @@ function makeRandomPuzzle(){
         candidates.push({row:r,col:c,dir,crosses});
       }
       if(!candidates.length){failed=true;break}
-      candidates.sort((a,b)=>b.crosses-a.crosses);
+      const centerR=placed.reduce((n,w)=>n+w.row,0)/placed.length,centerC=placed.reduce((n,w)=>n+w.col,0)/placed.length;
+      candidates.sort((a,b)=>b.crosses-a.crosses||(Math.abs(a.row-centerR)+Math.abs(a.col-centerC))-(Math.abs(b.row-centerR)+Math.abs(b.col-centerC)));
       const best=candidates.slice(0,Math.min(8,candidates.length));
       const spot=best[Math.floor(Math.random()*best.length)];
       for(let i=0;i<word.answer.length;i++)grid[spot.row+(spot.dir==="v"?i:0)][spot.col+(spot.dir==="h"?i:0)]=word.answer[i];
@@ -71,10 +72,13 @@ function makeRandomPuzzle(){
     const numbers={};
     placed.forEach(w=>{const k=w.row+","+w.col;if(!numbers[k])numbers[k]=0});
     Object.keys(numbers).sort((a,b)=>{const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);return ar-br||ac-bc}).forEach((k,i)=>numbers[k]=i+1);
-    puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:25,h:25,words:[]};
+    const minRow=Math.min(...placed.map(w=>w.row)),minCol=Math.min(...placed.map(w=>w.col));
+    const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
+    const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
+    puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:maxCol-minCol+1,h:maxRow-minRow+1,words:[]};
     Object.keys(expected).forEach(k=>delete expected[k]);
     placed.forEach((w,i)=>{
-      const cells=Array.from({length:w.answer.length},(_,j)=>[w.row+(w.dir==="v"?j:0)+1,w.col+(w.dir==="h"?j:0)+1]);
+      const cells=Array.from({length:w.answer.length},(_,j)=>[w.row-minRow+(w.dir==="v"?j:0)+1,w.col-minCol+(w.dir==="h"?j:0)+1]);
       puzzle.words.push({id:"w"+(i+1),number:numbers[w.row+","+w.col],answer:w.answer,clue:w.clue,art:w.art,cells,dir:w.dir});
       cells.forEach((cell,j)=>expected[cell.join(",")]=w.answer[j]);
     });
