@@ -59,28 +59,27 @@ const WORD_POOL = [
 ];
 
 function makeRandomPuzzle(){
-  const counts={11:1,8:2,7:5,5:3,4:4,3:3,2:2};
+  const counts={7:2,6:2,5:2,4:2,3:2,2:2};
   const chosen=[];
   let used={};
   try{used=JSON.parse(localStorage.getItem("qqcross_used_words_v1")||"{}")||{}}catch(e){used={}}
   for(const [len,count] of Object.entries(counts)){
-    const pool=WORD_POOL.filter(x=>Array.isArray(x)&&typeof x[0]==="string"&&x[0].length>0&&Array.from(x[0]).length===+len);
+    const pool=WORD_POOL.filter(x=>Array.isArray(x)&&typeof x[0]==="string"&&Array.from(x[0]).length===+len);
     if(pool.length<count)throw new Error("Недостаточно слов длины "+len);
     let fresh=pool.filter(x=>!used[x[0]]);
     if(fresh.length<count){pool.forEach(x=>delete used[x[0]]);fresh=pool.slice()}
     const shuffled=fresh.slice().sort(()=>Math.random()-.5);
     chosen.push(...shuffled.slice(0,count).map(x=>({answer:x[0],clue:x[1],art:x[2]})));
   }
-
   const ordered=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
-  const maxLen=Math.max(...ordered.map(w=>Array.from(w.answer).length));
-  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:15,h:ordered.length,words:[]};
+  puzzle={id:"scanword-"+Date.now(),title:"Сканворд",w:8,h:12,words:[]};
   Object.keys(expected).forEach(k=>delete expected[k]);
   ordered.forEach((w,i)=>{
-    const row=i+1, chars=Array.from(w.answer);
-    const clueSide=i%2===0?"left":"right";
-    const cells=chars.map((_,j)=>[row,clueSide==="left"?j+5:maxLen-j]);
-    puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,clueSide==="left"?1:maxLen+1],clueSide,dir:"h"});
+    const row=i+1,chars=Array.from(w.answer),clueSide=i%2===0?"left":"right";
+    const start=clueSide==="left"?1:8-chars.length;
+    const cells=chars.map((_,j)=>[row,start+j]);
+    const clueCol=clueSide==="left"?0:7;
+    puzzle.words.push({id:"w"+(i+1),number:i+1,answer:w.answer,clue:w.clue,art:w.art,cells,clueCell:[row,clueCol],clueSide,dir:"h"});
     cells.forEach((cell,j)=>expected[cell.join(",")]=chars[j]);
   });
   chosen.forEach(w=>used[w.answer]=1);
@@ -154,24 +153,24 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
 
-  const boardH=puzzle.h;
+  const boardH=12,boardW=8;
   const rows=[];
+  const wordByRow=new Map(puzzle.words.map(w=>[w.cells[0][0],w]));
   for(let y=1;y<=boardH;y++){
-    const word=puzzle.words.find(w=>w.cells[0][0]===y);
-    if(!word)continue;
-    const visualCells=word.cells.slice().sort((a,b)=>a[1]-b[1]);
-    const answerLength=visualCells.length;
-    const clueWidth=Math.min(58,Math.max(38,24+word.clue.length*0.55));
-    const letterWidth=(100-clueWidth)/answerLength;
-    const clue='<div class="cell clue-tile scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>';
-    const letters=visualCells.map(pos=>{
-      const k=pos.join(","),letter=state.filled[k]||pending[k]||"",hint=state.hints[k];
-      const selectedCell=state.selectedWord===word.id;
-      const cls="cell "+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
-      return '<div class="'+cls+'" data-cell="'+k+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>';
-    }).join("");
-    const rowContent=word.clueSide==="right"?letters+clue:clue+letters;
-    rows.push('<div class="scanword-row" style="--scan-clue-width:'+clueWidth+'%;--scan-letter-width:'+letterWidth+'%">'+rowContent+'</div>');
+    const word=wordByRow.get(y);
+    const letterMap=new Map();
+    if(word)word.cells.forEach(pos=>letterMap.set(pos[1],pos));
+    for(let x=0;x<boardW;x++){
+      if(word&&word.clueCell[1]===x){
+        rows.push('<div class="scan-cell scan-clue" role="note"><span class="scan-arrow">'+(word.clueSide==="right"?"◀":"▶")+'</span><span class="scan-clue-text">'+esc(word.clue)+'</span></div>');
+        continue;
+      }
+      const pos=letterMap.get(x);
+      if(!pos){rows.push('<div class="scan-cell scan-empty" aria-hidden="true"></div>');continue;}
+      const k=pos.join(","),move=state.pendingMoves.find(m=>m.k===k),letter=state.filled[k]||(move&&move.l)||"",hint=state.hints[k];
+      const cls="scan-cell cell "+(state.filled[k]?"filled ":"")+(move?"pending-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"");
+      rows.push('<div class="'+cls+'" data-cell="'+k+'"><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+    }
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -184,12 +183,12 @@ function renderGame(root){
   root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
   // Подсказки сканворда отображаются прямо в клетках; отдельные всплывающие вопросы не нужны.
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
-  let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null;
+  let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null,dragFromCell=null;
   const clearDrag=()=>{
     if(dragButton)dragButton.classList.remove("dragging");
     if(hoverCell)hoverCell.classList.remove("drop-hover");
     if(hoverClue)hoverClue.classList.remove("drop-clue-hover");
-    dragIndex=-1;dragPointer=-1;dragButton=null;hoverCell=null;hoverClue=null;
+    dragIndex=-1;dragPointer=-1;dragButton=null;hoverCell=null;hoverClue=null;dragFromCell=null;
     document.removeEventListener("pointermove",onMove);
     document.removeEventListener("pointerup",onUp);
     document.removeEventListener("pointercancel",onCancel);
@@ -211,22 +210,23 @@ function renderGame(root){
   const onUp=e=>{
     if(dragIndex<0||e.pointerId!==dragPointer)return;
     const under=document.elementsFromPoint(e.clientX,e.clientY);
-    const clueButton=under.map(el=>el.closest&&el.closest("[data-show-clue]")).find(Boolean);
-    const cell=clueButton?null:under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
-    const index=dragIndex,ghost=dragGhost;
-    const valid=cell&&!state.filled[cell.dataset.cell]&&!state.pendingMoves.some(m=>m.k===cell.dataset.cell);
+    const cell=under.map(el=>el.closest&&el.closest("[data-cell]")).find(el=>el&&expected[el.dataset.cell]!==undefined);
+    const index=dragIndex,ghost=dragGhost,fromCell=dragFromCell;
+    const valid=cell&&!state.filled[cell.dataset.cell]&&(!state.pendingMoves.some(m=>m.k===cell.dataset.cell)||cell.dataset.cell===fromCell);
     clearDrag();dragGhost=null;
-    if(ghost&&clueButton){ghost.remove();showClue(clueButton.dataset.showClue);e.preventDefault();return}
-    if(ghost&&valid){
+    if(ghost&&valid&&fromCell&&cell.dataset.cell!==fromCell){
+      const move=state.pendingMoves.find(m=>m.k===fromCell);
+      if(move&&!state.pendingMoves.some(m=>m.k===cell.dataset.cell)){
+        move.k=cell.dataset.cell;ghost.remove();renderGame(root);
+      }else ghost.remove();
+    }else if(ghost&&valid&&!fromCell){
       const r=cell.getBoundingClientRect();
       ghost.style.transition="transform 180ms cubic-bezier(.2,.8,.2,1),opacity 180ms";
       ghost.style.transform="translate3d("+r.left+"px,"+r.top+"px,0) scale(.72)";
       ghost.style.opacity=".25";
       setTimeout(()=>{ghost.remove();placeAtCell(cell.dataset.cell,index,root)},185);
     }else if(ghost){
-      ghost.style.transition="transform 140ms ease,opacity 140ms ease";
-      ghost.style.opacity="0";ghost.style.transform+=" scale(.75)";
-      setTimeout(()=>ghost.remove(),145);
+      ghost.style.transition="opacity 120ms";ghost.style.opacity="0";setTimeout(()=>ghost.remove(),125);
     }
     e.preventDefault();
   };
@@ -243,6 +243,24 @@ function renderGame(root){
       dragGhost=b.cloneNode(true);dragGhost.classList.add("drag-ghost");
       Object.assign(dragGhost.style,{position:"fixed",left:"0",top:"0",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"99999",pointerEvents:"none",transition:"none",opacity:"1",transform:"translate3d("+r.left+"px,"+r.top+"px,0) scale(1.05)"});
       document.body.appendChild(dragGhost);b.classList.add("dragging");
+      moveGhost(e.clientX,e.clientY);
+      document.addEventListener("pointermove",onMove,{passive:false});
+      document.addEventListener("pointerup",onUp);
+      document.addEventListener("pointercancel",onCancel);
+      e.preventDefault();
+    });
+  });
+
+  root.querySelectorAll("[data-cell].pending-cell").forEach(cell=>{
+    cell.addEventListener("pointerdown",e=>{
+      if(dragIndex!==-1)return;
+      const move=state.pendingMoves.find(m=>m.k===cell.dataset.cell);
+      if(!move)return;
+      dragIndex=-2;dragPointer=e.pointerId;dragFromCell=cell.dataset.cell;
+      const r=cell.getBoundingClientRect();
+      dragGhost=document.createElement("div");dragGhost.className="letter drag-ghost";dragGhost.textContent=move.l;
+      Object.assign(dragGhost.style,{position:"fixed",left:"0",top:"0",width:r.width+"px",height:r.height+"px",margin:"0",zIndex:"99999",pointerEvents:"none",transition:"none",opacity:"1",transform:"translate3d("+r.left+"px,"+r.top+"px,0) scale(1.05)"});
+      document.body.appendChild(dragGhost);cell.classList.add("dragging");
       moveGhost(e.clientX,e.clientY);
       document.addEventListener("pointermove",onMove,{passive:false});
       document.addEventListener("pointerup",onUp);
