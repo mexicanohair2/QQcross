@@ -423,3 +423,79 @@ body{
 .game-screen .board .clue-number,.game-screen .board .cell-mark{min-width:30px!important;height:30px!important;font-size:18px!important;line-height:30px!important}
 .game-screen .items{padding:4px 9px!important}
 .game-screen .items .item{padding:4px 4px!important;gap:4px!important}
+
+
+/* QQcross personalization: calm gradient themes */
+.nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.nav button{font-size:10px!important;white-space:nowrap!important}
+.theme-list{display:grid;gap:10px;margin-top:14px}
+.theme-choice{width:100%;display:grid;grid-template-columns:54px minmax(0,1fr) 24px;align-items:center;gap:12px;padding:11px;border:1px solid var(--qq-theme-border,#51475c);border-radius:14px;background:var(--qq-theme-card,linear-gradient(145deg,#30283a,#24202d));color:var(--qq-theme-text,#f1edf4);text-align:left}
+.theme-choice.selected{border-color:var(--qq-theme-accent,#a899b8);box-shadow:0 0 0 2px color-mix(in srgb,var(--qq-theme-accent,#a899b8) 24%,transparent)}
+.theme-swatch{height:44px;border-radius:10px;border:1px solid #ffffff30;box-shadow:inset 0 1px 4px #ffffff17}
+.theme-swatch-purple{background:linear-gradient(145deg,#82718f,#3a3045 58%,#211d28)}
+.theme-swatch-burgundy{background:linear-gradient(145deg,#79505b,#39242d 58%,#20151b)}
+.theme-swatch-black{background:linear-gradient(145deg,#626262,#292929 58%,#111111)}
+.theme-copy{display:flex;flex-direction:column;gap:4px;min-width:0}
+.theme-copy b{font-size:14px}
+.theme-copy small{font-size:11px;color:var(--qq-theme-muted,#b7adbf);line-height:1.35}
+.theme-check{font-size:19px;font-weight:900;text-align:center;color:var(--qq-theme-accent,#a899b8)}
+.settings-card h3{margin:14px 0 6px}
+.settings-note{margin-top:12px}
+
+/* Theme tokens */
+html[data-qq-theme="purple"]{
+  --qq-theme-page:linear-gradient(155deg,#292233 0%,#1d1825 54%,#141119 100%);
+  --qq-theme-card:linear-gradient(145deg,#342b40,#24202d);
+  --qq-theme-panel:linear-gradient(145deg,#2d2636,#201c28);
+  --qq-theme-panel-strong:linear-gradient(135deg,#8d7a9f,#685a77);
+  --qq-theme-border:#51475c;--qq-theme-accent:#a899b8;--qq-theme-text:#f1edf4;--qq-theme-muted:#b7adbf;
+  --qq-theme-cell:linear-gradient(145deg,#352e3d,#27232e);
+  --qq-theme-block:linear-gradient(145deg,#1b1820,#151219);
+  --qq-theme-filled:linear-gradient(145deg,#65576f,#4b4054);
+  --qq-theme-pending:linear-gradient(145deg,#554762,#3c3247);
+  --qq-theme-clue:linear-gradient(145deg,#584d61,#3c3345);--qq-theme-chip:#302938;--qq-theme-field:#1b1820;
+}
+html[data-qq-theme="burgundy"]{
+  --qq-theme-page:linear-gradient(155deg,#302027 0%,#20151b 54%,#130e12 100%);
+  --qq-theme-card:linear-gradient(145deg,#402a33,#291b22);
+  --qq-theme-panel:linear-gradient(145deg,#38242c,#25171e);
+  --qq-theme-panel-strong:linear-gradient(135deg,#916875,#684752);
+  --qq-theme-border:#61404b;--qq-theme-accent:#bd929c;--qq-theme-text:#f4edef;--qq-theme-muted:#c2abb1;
+  --qq-theme-cell:linear-gradient(145deg,#3e2b33,#2c1e25);
+  --qq-theme-block:linear-gradient(145deg,#20151b,#160f13);
+  --qq-theme-filled:linear-gradient(145deg,#78515e,#583945);
+  --qq-theme-pending:linear-gradient(145deg,#694651,#49303a);
+  --qq-theme-clue:linear-gradient(145deg,#6b4b56,#49313a);--qq-theme-chip:#36232b;--qq-theme-field:#21171c;
+}
+html[data-qq-theme="black"]{
+  --qq-theme-page:linear-gradient(155deg,#242424 0%,#171717 54%,#0c0c0c 100%);
+  --qq-theme-card:linear-gradient(145deg,#303030,#202020);
+  --qq-theme-panel:linear-gradient(145deg,#292929,#1b1b1b);
+  --qq-theme-panel-strong:linear-gradient(135deg,#686868,#454545);
+  --qq-theme-border:#484848;--qq-theme-accent:#a0a0a0;--qq-theme-text:#f0f0f0;--qq-theme-muted:#b5b5b5;
+  --qq-theme-cell:linear-gradient(145deg,#343434,#252525);
+  --qq-theme-block:linear-gradient(145deg,#191919,#101010);
+  --qq-theme-filled:linear-gradient(145deg,#606060,#454545);
+  --qq-theme-pending:linear-gradient(145deg,#505050,#363636);
+  --qq-theme-clue:linear-gradient(145deg,#555555,#393939);--qq-theme-chip:#303030;--qq-theme-field:#191919;
+}
+html[data-qq-theme] body,html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .nav,html[data-qq-theme] .score-strip,html[data-qq-theme] .letter-area,html[data-qq-theme] .items,html[data-qq-theme] .coins,html[data-qq-theme] .pill,html[data-qq-theme] .timer{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .score-strip span{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .score-strip .active-player{background:var(--qq-theme-panel-strong)!important;outline:1px solid var(--qq-theme-accent)!important}
+html[data-qq-theme] .board-wrap{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .cell{background:var(--qq-theme-cell)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .cell.block{background:var(--qq-theme-block)!important;border-color:var(--qq-theme-block)!important}
+html[data-qq-theme] .cell.filled{background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .cell.pending-cell{background:var(--qq-theme-pending)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .cell.clue-tile{background:var(--qq-theme-clue)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .clue-number,html[data-qq-theme] .cell-mark{background:var(--qq-theme-chip)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .item,html[data-qq-theme] .btn,html[data-qq-theme] .avatar-choice,html[data-qq-theme] .party-option{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .btn.primary,html[data-qq-theme] .btn.blue,html[data-qq-theme] .party-option.selected{background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important}
+html[data-qq-theme] .input{background:var(--qq-theme-field)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .clue-popup{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-accent)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .clue-popup-close{background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .toast{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .nav button.active{color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,html[data-qq-theme] .letter-label,html[data-qq-theme] .game-hint{color:var(--qq-theme-muted)!important}
