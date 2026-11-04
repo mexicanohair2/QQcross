@@ -163,7 +163,7 @@ function renderGame(root){
     if(questionSlot&&gy>=questionSlot.row&&gy<questionSlot.row+questionSpan&&gx>=questionSlot.col&&gx<questionSlot.col+questionSpan){if(gy===questionSlot.row&&gx===questionSlot.col)cells.push('<div class="question-core" style="grid-row:'+gy+' / span '+questionSpan+';grid-column:'+gx+' / span '+questionSpan+'"><div class="question-title">ВОПРОС '+selectedQuestion.number+'</div><div class="question-art">'+esc(selectedQuestion.art||"❔")+'</div><div class="question-text">'+esc(selectedQuestion.clue)+'</div><div class="question-nav"><button type="button" data-question-prev aria-label="Предыдущий вопрос">‹</button><span>'+(puzzle.words.findIndex(w=>w.id===selectedQuestion.id)+1)+' / '+puzzle.words.length+'</span><button type="button" data-question-next aria-label="Следующий вопрос">›</button></div></div>');continue;}
     const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[],words=starts[k]||[];
     if(clues.length){
-      cells.push('<div class="cell clue-tile" style="grid-row:'+gy+';grid-column:'+gx+'"><span>'+clues.map(w=>w.number).join("/")+'</span></div>');
+       cells.push('<div class="cell clue-tile" style="grid-row:'+gy+';grid-column:'+gx+'"><span class="clue-number">'+clues.map(w=>w.number).join("/")+'</span><span class="clue-question">'+esc(clues.map(w=>w.clue).join(" / "))+'</span></div>');
       continue;
     }
     const mark=words.length?'<span class="cell-mark">'+words.map(w=>w.number).join("/")+'</span>':"";
@@ -179,11 +179,8 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
     '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  const chooseQuestion=id=>{state.selectedWord=id;renderGame(root)};
   root.querySelectorAll("[data-word-start]").forEach(cell=>cell.addEventListener("click",()=>chooseQuestion(cell.dataset.wordStart.split(",")[0])));
   const qIndex=puzzle.words.findIndex(w=>w.id===selectedQuestion.id);
-  root.querySelector("[data-question-prev]")?.addEventListener("click",()=>chooseQuestion(puzzle.words[(qIndex-1+puzzle.words.length)%puzzle.words.length].id));
-  root.querySelector("[data-question-next]")?.addEventListener("click",()=>chooseQuestion(puzzle.words[(qIndex+1)%puzzle.words.length].id));
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   root.querySelectorAll(".clue-cell").forEach(btn=>{const open=()=>{const words=btn.dataset.clues.split(",").map(id=>puzzle.words.find(w=>w.id===id)).filter(Boolean);btn.innerHTML=words.map(w=>"<b>"+w.number+".</b> "+esc(w.clue)+" <small>("+w.answer.length+")</small>").join("<hr>")};btn.addEventListener("click",e=>{e.stopPropagation();open()});btn.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();open()}})});
   document.addEventListener("click",e=>{if(!e.target.closest(".clue-popover,.clue-trigger"))root.querySelectorAll(".clue-popover").forEach(x=>x.remove())},{once:true});
