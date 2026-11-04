@@ -144,166 +144,52 @@ function renderGame(root){
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
-  const pending={};
-  state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-  const starts={};
-  puzzle.words.forEach(w=>{
-    const k=w.cells[0].join(",");
-    if(!starts[k])starts[k]=[];
-    starts[k].push(w.number);
-  });
-  const owners=state.owners||{};
+  const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
+  const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
   const cells=[];
   for(let y=1;y<=puzzle.h;y++)for(let x=1;x<=puzzle.w;x++){
-    const k=y+","+x,exists=expected[k]!==undefined;
-    const letter=state.filled[k]||pending[k]||"";
-    const owner=owners[k];
-    cells.push('<button class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+(owner!==undefined?' owner-'+owner:'')+'" data-cell="'+k+'" '+(!exists?'disabled':'')+'>'+(starts[k]?'<span class="cell-mark">'+starts[k].join(" / ")+'</span>':'')+'<span class="cell-letter">'+letter+'</span></button>');
+    const k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"";
+    const clues=starts[k]||[];
+    const clue=clues.map(w=>'<span class="clue-chip">'+esc(w.clue)+'</span>').join("");
+    cells.push('<div class="cell '+(!exists?'block ':'')+(letter?'filled ':'')+(pending[k]?'pending-cell ':'')+'" data-cell="'+k+'">'+(clue?'<div class="cell-clues">'+clue+'</div>':'')+'<span class="cell-letter">'+esc(letter)+'</span></div>');
   }
-  const playerNames=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
-  const scoreLine=playerNames.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join('');
-  const questions=puzzle.words.map(w=>{
-    const done=w.cells.every(c=>state.filled[c.join(",")]!==undefined);
-    const active=state.selectedWord===w.id;
-    const showPicture=w.number%3===0;
-    return '<button class="question '+(active?'question-active ':'')+(done?'question-done ':'')+(showPicture?'has-picture':'no-picture')+'" data-word="'+w.id+'">'+(showPicture?'<img class="question-picture" src="'+pictureUrl(w.art||'🔤')+'" alt="" loading="lazy">':'')+'<span><b>'+w.number+'.</b> '+w.clue+'</span><small>'+w.answer.length+' букв'+(done?' · готово':'')+'</small></button>';
-  }).join('');
-  root.innerHTML=
-    '<div class="screen game-screen">'+
-      '<div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
-      '<div class="game-head"><div><b>QQCross · Словесная битва</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+playerNames[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
-      '<div class="score-strip">'+scoreLine+'</div>'+
-      '<div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join('')+'</div></div>'+
-      '<div class="clue-title">Вопросы и картинки <span>Перетащи букву в клетку</span></div>'+
-      '<div class="questions">'+questions+'</div>'+
-      '<div class="game-tools">'+
-        '<div class="items">'+
-          '<button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+
-          '<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы +20с</button>'+
-          '<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button>'+
-        '</div>'+
-        '<div class="letter-area"><span class="letter-label">Твои буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+l+'</button>').join('')+'</div></div>'+
-        '<p class="game-hint">Перетащи букву из набора прямо в нужную клетку. Можно также выбрать букву и нажать на вопрос.</p>'+
-        '<button class="btn primary full compact-action" id="endturn">✓ Подтвердить расстановку и завершить ход</button>'+
-      '</div>'+
-    '</div>';
-  let dragIndex=-1;
+  const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
+  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
+    '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Ход '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="grid-template-columns:repeat('+puzzle.w+',minmax(0,1fr))">'+cells.join("")+'</div></div>'+
+    '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button></div>'+
+    '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
+  let dragIndex=-1,dragPointer=-1;
   root.querySelectorAll("[data-letter]").forEach(b=>{
-    b.onclick=()=>{
-      if(dragIndex!==-1)return;
-      state.selectedLetter=+b.dataset.letter;
-      renderGame(root);
-    };
-    b.addEventListener("pointerdown",e=>{
-      dragIndex=+b.dataset.letter;
-      b.classList.add("dragging");
-      b.setPointerCapture?.(e.pointerId);
-      e.preventDefault();
-    });
-    b.addEventListener("pointerup",e=>{
-      if(dragIndex<0)return;
-      const target=document.elementFromPoint(e.clientX,e.clientY);
-      const cell=target?.closest?.("[data-cell]");
-      const index=dragIndex;
-      dragIndex=-1;
-      if(cell&&!cell.disabled)placeAtCell(cell.dataset.cell,index,root);
-      else renderGame(root);
-    });
-    b.addEventListener("pointercancel",()=>{dragIndex=-1;renderGame(root)});
+    b.addEventListener("pointerdown",e=>{if(dragIndex!==-1)return;dragIndex=+b.dataset.letter;dragPointer=e.pointerId;b.classList.add("dragging");try{b.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault()});
+    b.addEventListener("pointerup",e=>{if(dragIndex<0||e.pointerId!==dragPointer)return;const t=document.elementFromPoint(e.clientX,e.clientY),cell=t&&t.closest?t.closest("[data-cell]"):null,index=dragIndex;dragIndex=-1;dragPointer=-1;if(cell&&expected[cell.dataset.cell]!==undefined)placeAtCell(cell.dataset.cell,index,root);else b.classList.remove("dragging")});
+    b.addEventListener("pointercancel",()=>{dragIndex=-1;dragPointer=-1;b.classList.remove("dragging")});
   });
-  root.querySelectorAll("[data-word]").forEach(b=>b.onclick=()=>{
-    state.selectedWord=b.dataset.word;
-    if(state.selectedLetter>=0)placeInWord(state.selectedWord,root);
-    else renderGame(root);
-  });
-  $("#exit").onclick=()=>{
-    if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;
-    state.pendingMoves=[];state.screen="";render();
-  };
+  $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
   $("#clock").onclick=()=>{if(!useItem("clock"))return;state.seconds+=20;renderGame(root)};
-  $("#trash").onclick=()=>{
-    if(!useItem("trash"))return;
-    state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];
-    refillRack(state.turn);state.selectedLetter=-1;renderGame(root);
-  };
-  $("#magnifier").onclick=()=>{
-    if(!useItem("magnifier"))return;
-    const w=puzzle.words.find(x=>x.id===state.selectedWord)||puzzle.words[0];
-    const next=w.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));
-    if(!next){toast("В этом слове больше нет пустых клеток");return}
-    const k=next.join(","),needed=expected[k],ix=state.letters.indexOf(needed);
-    if(ix>=0)state.letters.splice(ix,1);
-    state.pendingMoves.push({k,l:needed});
-    state.playerRacks[state.turn]=state.letters;
-    state.selectedLetter=-1;renderGame(root);toast("Подсказка добавлена в расстановку");
-  };
-  state.interval=setInterval(()=>{
-    state.seconds--;
-    const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;
-    if(state.seconds<=0){
-      clearInterval(state.interval);
-      finishTurn(root,true);
-    }
-  },1000);
+  $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
+  $("#magnifier").onclick=()=>{if(!useItem("magnifier"))return;const w=puzzle.words[0],next=w.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));if(!next){toast("В этом слове больше нет пустых клеток");return}const k=next.join(","),needed=expected[k],ix=state.letters.indexOf(needed);if(ix>=0){state.letters.splice(ix,1);state.pendingMoves.push({k,l:needed});state.playerRacks[state.turn]=state.letters}renderGame(root);toast("Подсказка добавлена")};
+  state.interval=setInterval(()=>{state.seconds--;const t=$("#timer");if(t)t.textContent="⏱ "+state.seconds;if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
 }
 function placeAtCell(k,letterIndex,root){
-  if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){
-    toast("Эта клетка уже занята или недоступна");renderGame(root);return;
-  }
-  const letter=state.letters[letterIndex];
-  if(!letter)return;
-  if(letter!==expected[k]){
-    toast("Буква не подходит к этой клетке");renderGame(root);return;
-  }
-  state.pendingMoves.push({k,l:letter});
-  state.letters.splice(letterIndex,1);
-  state.playerRacks[state.turn]=state.letters;
-  state.selectedLetter=-1;
-  const word=puzzle.words.find(w=>w.cells.some(c=>c.join(",")===k));
-  if(word)state.selectedWord=word.id;
-  renderGame(root);
-}
-function placeInWord(wordId,root){
-  if(state.selectedLetter<0){toast("Сначала выбери букву внизу");return}
-  const word=puzzle.words.find(w=>w.id===wordId);
-  if(!word)return;
-  const pending=state.pendingMoves||[];
-  const next=word.cells.find(c=>!state.filled[c.join(",")]&&!pending.some(m=>m.k===c.join(",")));
-  if(!next){toast("Это слово уже заполнено");return}
-  const k=next.join(","),letter=state.letters[state.selectedLetter];
-  if(letter!==expected[k]){
-    toast("Эта буква не подходит к выбранному слову. Посмотри на подсказку.");
-    return;
-  }
-  pending.push({k,l:letter});
-  state.pendingMoves=pending;
-  state.letters.splice(state.selectedLetter,1);
-  state.playerRacks[state.turn]=state.letters;
-  state.selectedLetter=-1;
-  state.selectedWord=wordId;
-  renderGame(root);
+  if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
+  const letter=state.letters[letterIndex];if(!letter)return;
+  state.pendingMoves.push({k,l:letter});state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
-  const moves=state.pendingMoves||[];
-  moves.forEach(m=>{
-    if(!state.filled[m.k]){
-      state.filled[m.k]=m.l;
-      state.owners[m.k]=state.turn;
-      state.playerScores[state.turn]++;
-      state.scores++;
-    }
+  const moves=state.pendingMoves||[];let correct=0,incorrect=0;
+  moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
+    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.playerScores[state.turn]++;state.scores++;correct++}
+    else{state.letters.push(m.l);incorrect++}
   });
-  state.pendingMoves=[];
-  if(moves.length)checkWords();
+  state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;if(correct)checkWords();
   if(state.screen!=="game"){render();return}
-  refillRack(state.turn);
-  if(state.partySize>1)state.turn=(state.turn+1)%state.partySize;
-  state.seconds=60;
-  state.selectedLetter=-1;
-  state.letters=state.playerRacks[state.turn];
-  if(timeout)toast("Время вышло — ход завершён");
-  renderGame(root);
+  refillRack(state.turn);if(state.partySize>1)state.turn=(state.turn+1)%state.partySize;
+  state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
+  toast(timeout?"Время вышло. Верных букв: "+correct:"Проверка: верно — "+correct+", неверно — "+incorrect+". Ход передан.");
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);while(rack.length<7&&letterBag.length)rack.push(...drawLetters(Math.min(7-rack.length,letterBag.length)));}
 function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
