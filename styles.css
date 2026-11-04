@@ -713,3 +713,28 @@ html[data-qq-theme] .board .cell.selected-word-cell:not(.filled):not(.block){
   border:1.5px solid var(--qq-theme-accent)!important;
   box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--qq-theme-accent) 35%,transparent)!important;
 }
+
+
+/* QQcross — без резкого белого: мягкая сливово-бордовая палитра */
+:root{
+  --text:#e5dce0!important;
+  --muted:#b9a8ae!important;
+}
+.logo{color:#eee3e7!important}
+.cell-letter{color:#eee3e7!important;text-shadow:0 1px 2px #160b10!important}
+.game-screen .letter{
+  background:linear-gradient(145deg,#76505c,#4b303a)!important;
+  border-color:#956c78!important;
+  color:#f0e5e8!important;
+  box-shadow:0 3px 0 #39232b!important;
+}
+.game-screen .letter:active{background:linear-gradient(145deg,#684653,#402832)!important}
+.btn.primary,.btn.blue,.clue-popup-close{
+  color:#f0e5e8!important;
+}
+.clue-popup-number{color:#c6a2ac!important}
+.cell.drop-clue-hover{outline-color:#a97885!important}
+.cell.selected-word-cell{border-color:#a97885!important}
+.cell.feedback-correct{color:#e4eee8!important}
+.cell.feedback-wrong{color:#f0e2e5!important}
+::selection{background:#684653!important;color:#f0e5e8!important}
