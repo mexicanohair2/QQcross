@@ -1085,3 +1085,18 @@ html,body,body #app{
   transform:scale(.80)!important;
   transform-origin:top left!important;
 }
+
+
+/* Увеличиваем только бордовые пустые игровые клетки; остальные сохраняют размер */
+.game-screen>.board-wrap>.board>.cell:not(.block):not(.filled):not(.pending-cell):not(.clue-tile){
+  transform:scale(2)!important;
+  transform-origin:center center!important;
+  position:relative!important;
+  z-index:4!important;
+}
+.game-screen>.board-wrap>.board>.cell.block,
+.game-screen>.board-wrap>.board>.cell.filled,
+.game-screen>.board-wrap>.board>.cell.pending-cell,
+.game-screen>.board-wrap>.board>.cell.clue-tile{
+  transform:none!important;
+}
