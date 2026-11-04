@@ -830,3 +830,36 @@ html[data-qq-theme] .game-screen .board .cell.pending-cell,
   min-width:var(--qq-cell-size)!important;
   min-height:var(--qq-cell-size)!important;
 }
+
+
+/* QQcross: поле занимает 85% ширины экрана, клетки максимально крупные без растягивания */
+.game-screen>.board-wrap{
+  flex:0 0 auto!important;
+  width:min(85vw,calc(100dvh - 300px))!important;
+  height:min(85vw,calc(100dvh - 300px))!important;
+  max-width:85vw!important;
+  max-height:calc(100dvh - 300px)!important;
+  min-height:0!important;
+  min-width:0!important;
+  margin:0 auto!important;
+  padding:0!important;
+  overflow:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  -webkit-overflow-scrolling:touch!important;
+}
+.game-screen>.board-wrap>.board{
+  width:max-content!important;
+  max-width:none!important;
+  min-width:max-content!important;
+  flex:0 0 auto!important;
+  margin:auto!important;
+  gap:1px!important;
+}
+.game-screen>.board-wrap>.board>.cell{
+  width:var(--qq-cell-size)!important;
+  height:var(--qq-cell-size)!important;
+  min-width:var(--qq-cell-size)!important;
+  min-height:var(--qq-cell-size)!important;
+}
