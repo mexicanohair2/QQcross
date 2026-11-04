@@ -15,3 +15,126 @@
 .letter-heading{font-size:12px;font-weight:800;text-align:center;margin-top:1px}.game-screen .hand{margin:2px 0;gap:6px;min-height:38px;flex:0 0 auto}.game-screen .letter{width:clamp(34px,9vw,43px);height:39px;border-radius:8px;font-size:20px;box-shadow:0 3px 0 #aeb8ca}.game-hint{margin:0;font-size:9px;line-height:1.1}
 @media(max-height:700px){.game-screen .questions{max-height:14vh}.game-screen .cell{width:clamp(17px,5.5vw,23px);height:clamp(17px,5.5vw,23px)}.game-screen .letter{height:34px}.game-screen .items{gap:3px}}
 @media(min-width:600px){.game-screen .cell{width:28px;height:28px}.game-screen .questions{max-height:180px}}
+
+
+/* Compact crossword play screen */
+#app:has(.game-screen){padding-bottom:0}
+.game-screen{
+  height:100dvh;
+  max-height:100dvh;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  padding:7px 10px calc(7px + env(safe-area-inset-bottom));
+}
+.game-screen .top{margin:0;min-height:32px}
+.game-screen .top .btn{min-height:32px;padding:5px 11px;font-size:13px}
+.game-screen .timer{font-size:17px}
+.game-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:32px}
+.game-head b{font-size:14px}
+.game-head .small{font-size:10px}
+.game-head .pill{font-size:11px;padding:4px 8px}
+.game-screen .board-wrap{flex:0 0 auto;width:100%;overflow:visible;margin:1px 0;padding:0}
+.game-screen .board{
+  width:100%;
+  max-width:520px;
+  margin:0 auto;
+  gap:2px;
+}
+.game-screen .cell{
+  position:relative;
+  width:100%;
+  min-width:0;
+  height:auto;
+  aspect-ratio:1;
+  border-radius:3px;
+  padding:0;
+  font-size:clamp(10px,3.2vw,17px);
+  line-height:1;
+  overflow:hidden;
+}
+.game-screen .cell-mark{
+  position:absolute;
+  top:1px;
+  left:1px;
+  z-index:1;
+  color:#b8c4d6;
+  font-size:clamp(5px,1.35vw,8px);
+  line-height:1;
+  font-weight:700;
+  white-space:nowrap;
+}
+.game-screen .cell-letter{position:relative;z-index:2}
+.clue-title{display:flex;align-items:center;justify-content:space-between;font-size:12px;font-weight:800;margin-top:1px}
+.clue-title span{font-size:10px;color:var(--muted);font-weight:500}
+.game-screen .questions{
+  flex:1 1 auto;
+  min-height:72px;
+  max-height:25dvh;
+  overflow-y:auto;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:3px;
+  align-content:start;
+  padding-right:1px;
+}
+.game-screen .question{
+  min-width:0;
+  min-height:39px;
+  display:grid;
+  grid-template-columns:20px minmax(0,1fr);
+  grid-template-rows:auto auto;
+  align-items:start;
+  gap:1px 3px;
+  padding:4px 4px;
+  border-radius:7px;
+  font-size:10px;
+  line-height:1.1;
+}
+.game-screen .question b{
+  grid-column:1;
+  grid-row:1 / span 2;
+  font-size:8px;
+  line-height:1.2;
+  color:var(--text);
+}
+.game-screen .question span{
+  grid-column:2;
+  font-size:9px;
+  line-height:1.12;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.game-screen .question small{grid-column:2;font-size:8px;line-height:1;color:var(--muted)}
+.game-tools{display:grid;gap:4px;flex:0 0 auto}
+.game-screen .items{margin:0;gap:5px}
+.game-screen .item{padding:4px 2px;border-radius:9px;font-size:9px;line-height:1.1}
+.game-screen .item strong{font-size:15px;line-height:1.2}
+.letter-area{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.letter-label{font-size:11px;color:var(--muted);font-weight:700}
+.game-screen .hand{margin:2px auto;gap:6px;flex:1;justify-content:center}
+.game-screen .letter{
+  width:clamp(30px,9vw,42px);
+  height:36px;
+  min-height:36px;
+  padding:0;
+  border-radius:8px;
+  font-size:19px;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+.game-screen .compact-action{margin:0;min-height:31px;padding:5px 10px;font-size:11px;border-radius:9px}
+@media(max-height:720px){
+  .game-screen{gap:3px;padding-top:5px}
+  .game-screen .questions{max-height:20dvh;min-height:60px}
+  .game-screen .cell{font-size:clamp(9px,2.9vw,15px)}
+  .game-screen .letter{height:32px;min-height:32px}
+  .game-screen .item{padding:3px 2px}
+}
+@media(min-width:600px){
+  .game-screen{padding-left:18px;padding-right:18px}
+  .game-screen .questions{grid-template-columns:repeat(3,minmax(0,1fr));max-height:23dvh}
+}
