@@ -154,19 +154,17 @@ function renderGame(root){
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const boardSize=Math.max(puzzle.w,puzzle.h);
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
-  const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
-    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[],words=starts[k]||[];
+    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[];
     if(clues.length){
        cells.push('<div class="cell clue-tile" style="grid-row:'+gy+';grid-column:'+gx+'">'+clues.map(w=>'<button type="button" class="clue-number" data-show-clue="'+w.id+'">'+w.number+'</button>').join("")+'</div>');
       continue;
     }
-    const mark=words.map(w=>'<button type="button" class="cell-mark" data-show-clue="'+w.id+'">'+w.number+'</button>').join("");
     const selectedWord=puzzle.words.find(w=>w.id===state.selectedWord);
     const selectedCell=selectedWord&&selectedWord.cells.some(pos=>pos.join(",")===k);
-    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'"'+(words.length?' data-word-start="'+words.map(w=>w.id).join(",")+'"':"")+' style="grid-row:'+gy+';grid-column:'+gx+'">'+mark+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(selectedCell?"selected-word-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'"'+' style="grid-row:'+gy+';grid-column:'+gx+'"'><span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
