@@ -31,60 +31,66 @@ function makeRandomPuzzle(){
     const shuffled=pool.slice().sort(()=>Math.random()-.5);
     chosen.push(...shuffled.slice(0,count).map(x=>({answer:x[0],clue:x[1],art:x[2]})));
   }
-  for(let attempt=0;attempt<250;attempt++){
+  for(let attempt=0;attempt<500;attempt++){
     const grid=Array.from({length:25},()=>Array(25).fill(""));
-    const placed=[];
+    const reserved=new Set(),placed=[];
     const words=chosen.slice().sort((a,b)=>b.answer.length-a.answer.length);
-    const first=words.shift();
-    const firstRow=12,firstCol=Math.floor((25-first.answer.length)/2);
+    const first=words.shift(),firstRow=12,firstCol=7;
+    const firstClue=firstRow+","+ (firstCol-1);
+    if(firstCol-1<1)continue;
+    reserved.add(firstClue);
     for(let i=0;i<first.answer.length;i++)grid[firstRow][firstCol+i]=first.answer[i];
-    placed.push({...first,row:firstRow,col:firstCol,dir:"h"});
+    placed.push({...first,row:firstRow,col:firstCol,dir:"h",clueRow:firstRow,clueCol:firstCol-1});
     let failed=false;
     for(const word of words){
       const candidates=[];
-      for(let r=1;r<24;r++)for(let c=1;c<24;c++)for(const dir of ["h","v"]){
-        const len=word.answer.length, er=r+(dir==="v"?len-1:0),ec=c+(dir==="h"?len-1:0);
+      for(let r=1;r<24;r++)for(let c0=1;c0<24;c0++)for(const dir of ["h","v"]){
+        const len=word.answer.length,er=r+(dir==="v"?len-1:0),ec=c0+(dir==="h"?len-1:0);
         if(er>=24||ec>=24)continue;
+        const cr=r-(dir==="v"?1:0),cc=c0-(dir==="h"?1:0),ck=cr+","+cc;
+        if(cr<1||cc<1||cr>=24||cc>=24||grid[cr][cc]||reserved.has(ck))continue;
         let crosses=0,valid=true;
         for(let i=0;i<len&&valid;i++){
-          const rr=r+(dir==="v"?i:0),cc=c+(dir==="h"?i:0),existing=grid[rr][cc],ch=word.answer[i];
-          if(existing&&existing!==ch){valid=false;break}
+          const rr=r+(dir==="v"?i:0),ccell=c0+(dir==="h"?i:0),existing=grid[rr][ccell],ch=word.answer[i],key=rr+","+ccell;
+          if(reserved.has(key)||(existing&&existing!==ch)){valid=false;break}
           if(existing===ch)crosses++;
           if(!existing){
-            const side=dir==="h"?[[rr-1,cc],[rr+1,cc]]:[[rr,cc-1],[rr,cc+1]];
+            const side=dir==="h"?[[rr-1,ccell],[rr+1,ccell]]:[[rr,ccell-1],[rr,ccell+1]];
             if(side.some(([a,b])=>grid[a]?.[b]))valid=false;
           }
         }
         if(!valid||crosses===0)continue;
-        const before=dir==="h"?[r,c-1]:[r-1,c],after=dir==="h"?[r,c+len]:[r+len,c];
+        const before=dir==="h"?[r,c0-1]:[r-1,c0],after=dir==="h"?[r,c0+len]:[r+len,c0];
         if(grid[before[0]]?.[before[1]]||grid[after[0]]?.[after[1]])continue;
-        candidates.push({row:r,col:c,dir,crosses});
+        candidates.push({row:r,col:c0,dir,crosses,clueRow:cr,clueCol:cc});
       }
       if(!candidates.length){failed=true;break}
       const centerR=placed.reduce((n,w)=>n+w.row,0)/placed.length,centerC=placed.reduce((n,w)=>n+w.col,0)/placed.length;
       candidates.sort((a,b)=>b.crosses-a.crosses||(Math.abs(a.row-centerR)+Math.abs(a.col-centerC))-(Math.abs(b.row-centerR)+Math.abs(b.col-centerC)));
-      const best=candidates.slice(0,Math.min(8,candidates.length));
-      const spot=best[Math.floor(Math.random()*best.length)];
+      const best=candidates.slice(0,Math.min(10,candidates.length)),spot=best[Math.floor(Math.random()*best.length)];
       for(let i=0;i<word.answer.length;i++)grid[spot.row+(spot.dir==="v"?i:0)][spot.col+(spot.dir==="h"?i:0)]=word.answer[i];
+      reserved.add(spot.clueRow+","+spot.clueCol);
       placed.push({...word,...spot});
     }
     if(failed||placed.length!==chosen.length)continue;
-    const numbers={};
-    placed.forEach(w=>{const k=w.row+","+w.col;if(!numbers[k])numbers[k]=0});
-    Object.keys(numbers).sort((a,b)=>{const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);return ar-br||ac-bc}).forEach((k,i)=>numbers[k]=i+1);
-    const minRow=Math.min(...placed.map(w=>w.row)),minCol=Math.min(...placed.map(w=>w.col));
+    const starts={};
+    placed.forEach(w=>{const k=w.row+","+w.col;(starts[k]||(starts[k]=[])).push(w)});
+    const numberMap={};
+    Object.keys(starts).sort((a,b)=>{const [ar,ac]=a.split(",").map(Number),[br,bc]=b.split(",").map(Number);return ar-br||ac-bc}).forEach((k,i)=>numberMap[k]=i+1);
+    const minRow=Math.min(...placed.flatMap(w=>[w.row,w.clueRow])),minCol=Math.min(...placed.flatMap(w=>[w.col,w.clueCol]));
     const maxRow=Math.max(...placed.map(w=>w.row+(w.dir==="v"?w.answer.length-1:0)));
     const maxCol=Math.max(...placed.map(w=>w.col+(w.dir==="h"?w.answer.length-1:0)));
     puzzle={id:"random-"+Date.now(),title:"Случайный кроссворд",w:maxCol-minCol+1,h:maxRow-minRow+1,words:[]};
     Object.keys(expected).forEach(k=>delete expected[k]);
     placed.forEach((w,i)=>{
       const cells=Array.from({length:w.answer.length},(_,j)=>[w.row-minRow+(w.dir==="v"?j:0)+1,w.col-minCol+(w.dir==="h"?j:0)+1]);
-      puzzle.words.push({id:"w"+(i+1),number:numbers[w.row+","+w.col],answer:w.answer,clue:w.clue,art:w.art,cells,dir:w.dir});
+      const clueCell=[w.clueRow-minRow+1,w.clueCol-minCol+1];
+      puzzle.words.push({id:"w"+(i+1),number:numberMap[w.row+","+w.col],answer:w.answer,clue:w.clue,art:w.art,cells,clueCell,dir:w.dir});
       cells.forEach((cell,j)=>expected[cell.join(",")]=w.answer[j]);
     });
     const crossings={};
-    puzzle.words.forEach(w=>w.cells.forEach(c=>crossings[c.join(",")]=(crossings[c.join(",")]||0)+1));
-    if(!puzzle.words.every(w=>w.cells.some(c=>crossings[c.join(",")]>1)))continue;
+    puzzle.words.forEach(w=>w.cells.forEach(cell=>crossings[cell.join(",")]=(crossings[cell.join(",")]||0)+1));
+    if(!puzzle.words.every(w=>w.cells.some(cell=>crossings[cell.join(",")]>1)))continue;
     return true;
   }
   throw new Error("Не удалось собрать случайный кроссворд. Попробуй ещё раз.");
@@ -145,14 +151,20 @@ function renderGame(root){
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-  const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
   const boardSize=Math.max(puzzle.w,puzzle.h);
   const offsetY=Math.floor((boardSize-puzzle.h)/2),offsetX=Math.floor((boardSize-puzzle.w)/2);
+  const starts={};puzzle.words.forEach(w=>{const k=w.cells[0].join(",");(starts[k]||(starts[k]=[])).push(w)});
+  const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=boardSize;gy++)for(let gx=1;gx<=boardSize;gx++){
-    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=starts[k]||[];
-    const clueMarkup=clues.length?'<div class="clue-cell" role="button" tabindex="0" data-clues="'+clues.map(w=>w.id).join(",")+'"> '+clues.map(w=>'<span>'+esc(w.clue)+'</span>').join("")+'</div>':"";
-    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'">'+(clues.length?clueMarkup:"")+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
+    const y=gy-offsetY,x=gx-offsetX,k=y+","+x,exists=expected[k]!==undefined,letter=state.filled[k]||pending[k]||"",hint=state.hints[k],clues=clueTiles[k]||[],words=starts[k]||[];
+    if(clues.length){
+      const clue=clues.map(w=>'<span>'+esc(w.clue)+'</span>').join("");
+      cells.push('<div class="cell clue-tile" aria-label="'+esc(clues.map(w=>w.clue).join("; "))+'" title="'+esc(clues.map(w=>w.clue).join("; "))+'">'+clue+'</div>');
+      continue;
+    }
+    const mark=words.length?'<span class="cell-mark">'+words.map(w=>w.number).join("/")+'</span>':"";
+    cells.push('<div class="cell '+(!exists?"block ":"")+(letter?"filled ":"")+(pending[k]?"pending-cell ":"")+(state.feedback[k]==="correct"?"feedback-correct ":"")+(state.feedback[k]==="wrong"?"feedback-wrong ":"")+(hint&&!letter?"has-phantom ":"")+'" data-cell="'+k+'">'+mark+'<span class="cell-letter">'+esc(letter)+'</span>'+(hint&&!letter?'<span class="phantom-letter">'+esc(hint)+'</span>':"")+'</div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
