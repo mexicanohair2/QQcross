@@ -510,3 +510,40 @@ body{
   .game-screen .board{width:min(88vw,45dvh)!important;height:min(88vw,45dvh)!important}
   .game-screen .clue-list-readable{max-height:25dvh!important}
 }
+
+
+/* Final layout: centered loader, burgundy-black background, square board, readable clue section */
+html,body{min-height:100%!important;background:#10090d!important}
+body{
+ background:radial-gradient(ellipse 110% 55% at 50% 0%,#61243a 0%,#2a111c 48%,#10090d 100%) fixed!important;
+ color:#fff0f4!important;
+}
+#app:has(.splash){min-height:100dvh!important;height:100dvh!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:0!important}
+#app:has(.splash) .splash{width:100%!important;min-height:100dvh!important;height:100dvh!important;display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;text-align:center!important;margin:0!important}
+.game-screen{background:linear-gradient(160deg,#29121d 0%,#160b11 55%,#10090d 100%)!important;overflow:visible!important;height:auto!important;max-height:none!important;min-height:100dvh!important}
+.game-screen .board-wrap{width:100%!important;height:auto!important;min-height:0!important;flex:0 0 auto!important;display:flex!important;justify-content:center!important;overflow:visible!important}
+.game-screen .board{
+ width:min(88vw,48dvh)!important;height:min(88vw,48dvh)!important;
+ min-width:0!important;max-width:100%!important;max-height:none!important;
+ aspect-ratio:1/1!important;flex:0 0 auto!important;overflow:visible!important;
+}
+.game-screen .clue-panel{
+ display:block!important;visibility:visible!important;opacity:1!important;
+ width:100%!important;max-height:none!important;height:auto!important;
+ margin:14px 0!important;padding:12px!important;
+ background:linear-gradient(145deg,#351522,#1a0d13)!important;
+ border:1px solid #87405a!important;border-radius:12px!important;
+}
+.game-screen .clue-list-readable{
+ display:grid!important;grid-template-columns:1fr!important;
+ max-height:40dvh!important;overflow-y:auto!important;
+ gap:7px!important;overscroll-behavior:contain!important;
+}
+.game-screen .clue-row{
+ display:grid!important;grid-template-columns:25px minmax(0,1fr) auto!important;
+ padding:9px!important;background:#2b1420!important;
+ border:1px solid #623047!important;color:#fff0f4!important;
+ font-size:14px!important;line-height:1.35!important;
+}
+.game-screen .clue-row span{display:block!important;white-space:normal!important;overflow-wrap:anywhere!important}
+.game-screen .game-tools{max-height:none!important;overflow:visible!important}
