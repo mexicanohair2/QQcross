@@ -1,6 +1,6 @@
 {
-  "name": "Кроссворд Дуэль",
-  "short_name": "Кроссворд",
+  "name": "QQcross",
+  "short_name": "QQcross",
   "lang": "ru",
   "start_url": "./",
   "scope": "./",
