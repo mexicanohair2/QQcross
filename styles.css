@@ -279,3 +279,10 @@
 .game-screen #magnifier:focus,.game-screen #magnifier:active{
   outline:2px solid #8cc7ff;
 }
+
+/* In-cell clue tiles attached to each word start */
+.game-screen .cell:has(.clue-cell){overflow:visible;z-index:3}
+.game-screen .clue-cell{position:absolute;z-index:8;right:calc(100% + 2px);top:0;width:min(34vw,150px);min-height:38px;max-height:68px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:4px 5px;border:1px solid #9b83e6;border-radius:5px;background:#302747;color:#fff;font-size:clamp(7px,1.9vw,10px);line-height:1.12;text-align:left;box-shadow:0 2px 6px #0006;cursor:pointer}
+.game-screen .clue-cell span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.game-screen .clue-cell small{font-size:8px;color:#c7baff}
+.game-screen .clue-cell hr{width:100%;border:0;border-top:1px solid #ffffff30;margin:2px 0}
