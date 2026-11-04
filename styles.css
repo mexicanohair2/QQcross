@@ -1089,3 +1089,39 @@ html,body,body #app{
   box-shadow:0 0 10px 3px rgba(220,75,90,.86),inset 0 0 12px rgba(220,75,90,.38)!important;
   border-color:#ef6878!important;
 }
+
+
+/* Scanword: clue text and direction arrow are printed inside the clue cell. */
+.game-screen .board .cell.scan-clue{
+  position:relative!important;
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  justify-content:flex-start!important;
+  gap:0!important;
+  padding:1px!important;
+  overflow:hidden!important;
+  white-space:normal!important;
+  background:linear-gradient(145deg,#4a3039,#302027)!important;
+  border:1px solid #98717c!important;
+  color:#f1dfe4!important;
+  box-sizing:border-box!important;
+}
+.game-screen .board .scan-arrow{
+  display:block!important;
+  font-size:clamp(5px,1.4vw,9px)!important;
+  line-height:1!important;
+  font-weight:800!important;
+  color:#e7b8c5!important;
+}
+.game-screen .board .scan-clue-text{
+  display:block!important;
+  width:100%!important;
+  font-size:clamp(3px,.72vw,5px)!important;
+  line-height:1.05!important;
+  font-weight:600!important;
+  overflow-wrap:anywhere!important;
+  word-break:break-word!important;
+  text-align:left!important;
+  color:#f4e8eb!important;
+}
