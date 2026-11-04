@@ -140,3 +140,14 @@
 }
 
 .question-art{display:inline-grid;place-items:center;width:23px;height:23px;margin-right:4px;border-radius:7px;background:#34304b;font-style:normal;font-size:16px;vertical-align:middle;flex:0 0 auto}.game-screen .question span{display:block;min-width:0}.game-screen .question-art{width:18px;height:18px;margin-right:3px;font-size:13px;border-radius:5px}
+
+
+/* QQCross: Kryss-inspired turn-based word battle */
+.score-strip{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;font-size:11px;font-weight:700}
+.score-strip span{padding:5px 9px;border-radius:9px;background:#242a37;color:var(--muted)}
+.score-strip .active-player{background:#3b315f;color:#fff;outline:1px solid #9a83ff}
+.game-screen .cell.owner-0{background:#493b79;color:#fff}
+.game-screen .cell.owner-1{background:#245d78;color:#fff}
+.game-screen .cell.owner-2{background:#7a4b27;color:#fff}
+.game-screen .cell.owner-3{background:#356344;color:#fff}
+.game-screen .game-hint{margin:0;text-align:center;font-size:10px;line-height:1.2;color:var(--muted)}
