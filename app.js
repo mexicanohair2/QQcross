@@ -201,7 +201,7 @@ function renderGame(root){
   const viewportWidth=Math.floor(window.visualViewport?.width||window.innerWidth);
   // Поле занимает доступную ширину экрана; клетки равномерно заполняют его.
   const boardPixelSize=Math.max(120,Math.min(viewportWidth*0.985,viewportHeight-235));
-  const cellSize=Math.max(8,Math.floor(((boardPixelSize-(squareSize-1)*2)/squareSize)*1.15));
+  const cellSize=Math.max(8,Math.floor(((boardPixelSize-(squareSize-1)*2)/squareSize)*1.3225));
   const clueTiles={};puzzle.words.forEach(w=>{const k=w.clueCell.join(",");(clueTiles[k]||(clueTiles[k]=[])).push(w)});
   const cells=[];
   for(let gy=1;gy<=squareSize;gy++)for(let gx=1;gx<=squareSize;gx++){
@@ -222,7 +222,7 @@ function renderGame(root){
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
-  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
+  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button><div class="timer" id="timer">⏱ '+state.seconds+'</div></div>'+
     '<div class="game-head"><div><b>QQCross</b><div class="small muted">'+(state.partySize===1?'Тренировка':'Партия · '+state.partySize+' игрока(ов)')+' · Ход: '+names[state.turn]+'</div></div><span class="pill">Раунд '+(state.round||1)+' · '+(state.turn+1)+'/'+state.partySize+'</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap"><div class="board" style="--board-size:'+squareSize+';--board-ratio:1/1;--qq-cell-size:'+cellSize+'px;grid-template-columns:repeat('+squareSize+',var(--qq-cell-size));grid-template-rows:repeat('+squareSize+',var(--qq-cell-size))">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
@@ -308,6 +308,7 @@ function renderGame(root){
       e.preventDefault();
     });
   });
+  $("#refresh-page").onclick=()=>window.location.reload();
   $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
   $("#magnifier").onclick=()=>{if(state.profile.items.magnifier<=0){toast("Лупы закончились — загляни в магазин");return}state.loupeActive=true;toast("Лупа активна: нажми на пустую клетку");};
