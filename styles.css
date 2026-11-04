@@ -742,3 +742,12 @@ body{background:radial-gradient(ellipse at 50% 0%,#26343b 0%,#171f24 46%,#0d1114
 @media (min-width:600px) {
   .game-screen .board { width:min(96vw,720px) !important; }
 }
+
+
+/* Final override: no clue/question list below the crossword. Clues open only from numbered cells. */
+.game-screen .clue-panel,
+.game-screen .clue-list-readable,
+.game-screen .clue-row,
+.game-screen .questions,
+.game-screen .clue-heading,
+.game-screen .clue-title { display:none !important; }
