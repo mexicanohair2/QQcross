@@ -114,12 +114,14 @@ stable
 security definer
 set search_path = ''
 as $$
-  select distinct p.id, p.username, p.avatar
-  from public.friendships f
-  join public.profiles p
-    on p.id = case when f.user_id = auth.uid() then f.friend_id else f.user_id end
+  select p.id, p.username, p.avatar
+  from public.profiles p
   where auth.uid() is not null
-    and (f.user_id = auth.uid() or f.friend_id = auth.uid())
+    and exists (
+      select 1 from public.friendships f
+      where (f.user_id = auth.uid() and f.friend_id = p.id)
+         or (f.friend_id = auth.uid() and f.user_id = p.id)
+    )
   order by p.username_lower;
 $$;
 
