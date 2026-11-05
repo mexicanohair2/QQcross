@@ -1,25 +1,24 @@
 
-/* Enforce scanword square geometry at runtime, independent of stylesheet cascade/cache. */
+/* Keep scanword cells square and responsive like the reference. */
 function enforceSquareScanword(){
   document.querySelectorAll(".game-screen .scanword-board").forEach(board=>{
     board.style.setProperty("display","grid","important");
-    board.style.setProperty("grid-template-columns","repeat(12,130px)","important");
-    board.style.setProperty("grid-template-rows","repeat(12,130px)","important");
-    board.style.setProperty("grid-auto-columns","130px","important");
-    board.style.setProperty("grid-auto-rows","130px","important");
-    board.style.setProperty("width","1560px","important");
-    board.style.setProperty("height","1560px","important");
-    board.style.setProperty("min-width","1560px","important");
-    board.style.setProperty("min-height","1560px","important");
-    board.style.setProperty("max-width","none","important");
+    board.style.setProperty("grid-template-columns","repeat(12,minmax(0,1fr))","important");
+    board.style.setProperty("grid-template-rows","repeat(12,minmax(0,1fr))","important");
+    board.style.setProperty("width","min(100%, calc(100dvh - 18dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px))","important");
+    board.style.setProperty("height","auto","important");
+    board.style.setProperty("aspect-ratio","1 / 1","important");
+    board.style.setProperty("min-width","0","important");
+    board.style.setProperty("min-height","0","important");
+    board.style.setProperty("max-width","100%","important");
     board.style.setProperty("max-height","none","important");
-    board.style.setProperty("gap","0","important");
+    board.style.setProperty("gap","2px","important");
     board.style.setProperty("transform","none","important");
     board.parentElement.style.setProperty("overflow","auto","important");
     board.parentElement.style.setProperty("touch-action","pan-x pan-y","important");
     board.querySelectorAll(":scope > .scan-cell").forEach(cell=>{
-      ["width","height","min-width","min-height","max-width","max-height"].forEach(prop=>cell.style.setProperty(prop,"130px","important"));
-      cell.style.setProperty("flex","0 0 130px","important");
+      ["width","height","min-width","min-height","max-width","max-height"].forEach(prop=>cell.style.setProperty(prop,"auto","important"));
+      cell.style.setProperty("flex","none","important");
       cell.style.setProperty("aspect-ratio","1 / 1","important");
       cell.style.setProperty("box-sizing","border-box","important");
       cell.style.setProperty("margin","0","important");
