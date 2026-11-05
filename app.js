@@ -713,7 +713,7 @@ function buildScanword(entries){
   // Center clues are re-positioned randomly on every new board.
   const extras=[...(chosen.extras||[])];
   for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
-  const canPlace=(entry,dir,x,y)=>{
+  const canPlace=(entry,dir,x,y,requireIntersection=true)=>{
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
     if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return null;
@@ -728,7 +728,7 @@ function buildScanword(entries){
         intersections++;
       }
     }
-    return intersections?{x,y,dir,intersections}:null;
+    return intersections||!requireIntersection?{x,y,dir,intersections}:null;
   };
   extras.forEach((extra,i)=>{
     const entry=normalizeScanwordEntry(entries[extra.index]);
@@ -747,6 +747,28 @@ function buildScanword(entries){
       addWord(entry,extra.index,extra.dir,extra.x,extra.y,"extra"+i);
     }
   });
+
+  // Top up the center with short, valid dictionary entries when a template
+  // leaves too many empty areas. Every placement is checked against crossings.
+  const targetCenterClues=8;
+  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length<=6);
+  for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
+  for(const entry of fillerPool){
+    const centerCount=words.filter(word=>word.clueCell[0]>0&&word.clueCell[1]>0).length;
+    if(centerCount>=targetCenterClues)break;
+    if(words.some(word=>word.answer===entry.answer))continue;
+    const crossing=[],open=[];
+    for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
+      for(let y=1;y<12;y++)for(let x=1;x<12;x++){
+        const placement=canPlace(entry,dir,x,y,false);
+        if(placement)(placement.intersections?crossing:open).push(placement);
+      }
+    }
+    const choices=crossing.length?crossing:open;
+    if(!choices.length)continue;
+    const placement=choices[Math.floor(Math.random()*choices.length)];
+    addWord(entry,-1,placement.dir,placement.x,placement.y,"random"+i);
+  }
 
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
