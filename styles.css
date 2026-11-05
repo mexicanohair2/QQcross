@@ -1548,3 +1548,25 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
   max-width:130px!important;max-height:130px!important;
   aspect-ratio:auto!important;box-sizing:border-box!important;
 }
+
+/* Final high-specificity override: fixed 130px cells with scrollable board. */
+.game-screen>.board-wrap.scanword-wrap{
+  display:block!important;width:100%!important;height:100%!important;
+  min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;
+  flex:none!important;margin:0!important;padding:4px!important;overflow:auto!important;
+  box-sizing:border-box!important;touch-action:pan-x pan-y!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
+}
+.game-screen .scanword-board{
+  display:grid!important;grid-template-columns:repeat(12,130px)!important;
+  grid-template-rows:repeat(12,130px)!important;grid-auto-flow:row!important;gap:0!important;
+  width:1560px!important;height:1560px!important;min-width:1560px!important;min-height:1560px!important;
+  max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;
+  transform:none!important;aspect-ratio:auto!important;box-sizing:border-box!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell{
+  display:flex!important;align-items:center!important;justify-content:center!important;flex:none!important;
+  width:130px!important;height:130px!important;min-width:130px!important;min-height:130px!important;
+  max-width:130px!important;max-height:130px!important;aspect-ratio:auto!important;
+  box-sizing:border-box!important;margin:0!important;
+}
