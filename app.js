@@ -587,7 +587,7 @@ function buildScanword(entries){
     candidates=source.puzzles.map((chosen,index)=>{
       if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||chosen.extras.length!==22)return null;
       const top=chosen.top.map(i=>normalized[i]);
-      if(top.some(entry=>!entry)||top[0].answer.length!==11)return null;
+      if(top.some(entry=>!entry)||top[0].answer.length!==12)return null;
       return {chosen,index,top};
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,candidates};
@@ -620,7 +620,7 @@ function buildScanword(entries){
     if(!addWord(entry,"down",x+1,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
   });
   const mainWord=words[0];
-  if(!mainWord||mainWord.answer.length!==11||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==1||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
+  if(!mainWord||mainWord.answer.length!==12||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==1||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
     throw new Error("Вопрос на 11 букв должен стоять слева от своего вертикального ответа");
   chosen.extras.forEach((extra,index)=>{
     const entry=normalized[extra.index];
@@ -889,7 +889,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-finalfix1";
+      const version="20261106-connected34";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
         fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
         fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
