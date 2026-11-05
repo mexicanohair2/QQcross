@@ -363,3 +363,25 @@ html[data-qq-theme="gray"] body{background:radial-gradient(ellipse at 50% -15%,#
 html[data-qq-theme="burgundy"] body{background:radial-gradient(ellipse at 50% -15%,#3a1b2a 0%,#1d0e16 45%,#0b060a 100%)!important}
 .theme-swatch-gray{background:linear-gradient(145deg,#596273,#252a34 58%,#090b10)!important}
 .theme-swatch-burgundy{background:linear-gradient(145deg,#85445e,#351b29 58%,#10070d)!important}
+
+
+/* QQCross scanword: compact clue labels and intentional filler tiles */
+.scanword-board>.scan-cell.scan-clue .scan-clue-text{
+  display:block;width:100%;max-height:100%;overflow:hidden;
+  font-size:clamp(5px,.9vw,8px);font-weight:800;line-height:1.02;
+  text-align:center;overflow-wrap:anywhere;word-break:normal;
+}
+.scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  font-size:clamp(13px,2vw,23px);white-space:nowrap;
+}
+.scanword-board>.scan-cell.scan-filler{
+  background:linear-gradient(145deg,#27202a,#1b151e)!important;
+  box-shadow:inset 0 0 0 1px #ffffff0b!important;
+  color:#bba8c8!important;
+}
+.scanword-board>.scan-cell.scan-filler span{
+  font-size:clamp(5px,.7vw,8px);line-height:1;opacity:.3;
+}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-filler{
+  background:var(--qq-theme-block)!important;
+}

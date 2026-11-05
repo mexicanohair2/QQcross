@@ -16,7 +16,7 @@ function applyTheme(theme=activeTheme){
 }
 const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
-const AUTH_REDIRECT_URL="https://mexicanohair2.github.io/QQCross/";
+const AUTH_REDIRECT_URL="https://mexicanohair2.github.io/QQcross/";
 let supabaseClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,flowType:"implicit"}}):null;
 function configureSupabase(){
   if(!supabaseClient&&window.supabase?.createClient){
@@ -530,17 +530,29 @@ function getScanwordDictionary(){
   }catch{return []}
 }
 function compactScanwordClue(value){
-  // Never cut a clue mid-phrase: preserving its meaning is more important than
-  // forcing it into one line. The clue tile wraps the complete text.
   return String(value||"").replace(/\s+/g," ").trim();
+}
+function fitScanwordClue(value){
+  const text=compactScanwordClue(value);
+  if(text.length<=22)return text;
+  const words=text.split(" ");
+  let result="";
+  for(const word of words){
+    const next=result?result+" "+word:word;
+    if(next.length>20)break;
+    result=next;
+  }
+  if(result)return result+"…";
+  return text.slice(0,19)+"…";
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
   const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
+  const clueShort=compactScanwordClue(item.clueShort||item.shortClue||clue);
   if(answer.length<1||answer.length>12||!clue)return null;
-  return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  return {answer,clue,clueShort,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
@@ -578,7 +590,7 @@ function buildScanword(entries){
     cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
     usedSources.add(entry.answer);
-    words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
+    words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
   addWord(verticalEntry,"down",0,0,"vertical");
@@ -689,14 +701,15 @@ function renderGame(root){
     const key=y+","+x,word=clueAt.get(key);
     if(word){
       const clue=word.clue;
+      const displayClue=word.isEmoji?clue:fitScanwordClue(word.clueShort||clue);
       const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(wordFlash?" word-complete-flash":"");
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
-    }else cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
+    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"><span>✦</span></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -704,7 +717,23 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-clue]").forEach(b=>{b.onclick=null;b.removeAttribute("title");b.setAttribute("aria-label",b.dataset.clue)});
+  root.querySelectorAll("[data-clue]").forEach(b=>{
+    b.onclick=()=>{
+      const wrap=root.querySelector(".board-wrap");
+      wrap?.querySelector(".clue-popup-backdrop")?.remove();
+      if(!wrap)return;
+      const popup=document.createElement("div");
+      popup.className="clue-popup-backdrop";
+      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОС</div><div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
+      popup.querySelector(".clue-popup-text").textContent=b.dataset.clue||"";
+      popup.querySelector(".clue-popup-length").textContent="Ответ: "+(b.dataset.answerLength||"?")+" букв";
+      const close=()=>popup.remove();
+      popup.querySelector(".clue-popup-close").onclick=close;
+      popup.onclick=event=>{if(event.target===popup)close()};
+      wrap.append(popup);
+    };
+    b.setAttribute("aria-label",b.dataset.clue);
+  });
   let activeDrag=null,dragGhost=null;
   const startDrag=(event,source)=>{
     if(event.button!==undefined&&event.button!==0)return;
