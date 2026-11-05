@@ -336,15 +336,17 @@ function placeAtCell(k,letterIndex,root){
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
-  const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];state.returning=state.returning||{};
+  const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];const correctKeys=[];state.returning=state.returning||{};
   moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
-    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++}
+    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k)}
     else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
   const newlyCompleted=correct?checkWords():[];
-  if(newlyCompleted.length){
-    state.wordFlashKeys=new Set(newlyCompleted.flatMap(w=>w.cells.map(cell=>cell.join(","))));
+  const completedWordKeys=newlyCompleted.flatMap(w=>w.cells.map(cell=>cell.join(",")));
+  const flashKeys=[...new Set([...correctKeys,...completedWordKeys])];
+  if(flashKeys.length){
+    state.wordFlashKeys=new Set(flashKeys);
     clearTimeout(state.wordFlashTimer);
     state.wordFlashTimer=setTimeout(()=>{state.wordFlashKeys=new Set();if(state.screen==="game")renderGame(root)},850);
   }
@@ -566,9 +568,8 @@ function renderGame(root){
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
-      const wordComplete=puzzle.words.some(w=>state.completed.has(w.id)&&w.cells.some(cell=>cell.join(",")===key));
       const wordFlash=state.wordFlashKeys?.has(key);
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(wordComplete?" word-complete":"")+(wordFlash?" word-complete-flash":"");
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(wordFlash?" word-complete-flash":"");
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
   }
