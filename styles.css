@@ -1347,19 +1347,18 @@ html:has(.game-screen),body:has(.game-screen),body:has(.game-screen) #app{
 .game-screen>.game-tools{grid-row:3!important;min-width:0!important;min-height:0!important}
 
 
-/* 102 флага в выборе аватара: компактная прокручиваемая сетка */
+/* Компактная сетка из 10 обычных аватаров */
 .avatar-grid{
-  grid-template-columns:repeat(7,minmax(0,1fr));
-  max-height:270px;
-  overflow-y:auto;
-  overscroll-behavior:contain;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  max-height:none;
+  overflow:visible;
   padding:2px 3px 8px 0;
 }
 .avatar-choice{
   min-width:0;
-  min-height:42px;
+  min-height:48px;
   padding:6px 1px;
-  font-size:24px;
+  font-size:27px;
   line-height:1.2;
 }
 .avatar-choice:focus-visible{
