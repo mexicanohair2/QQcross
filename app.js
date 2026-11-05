@@ -301,13 +301,13 @@ function renderGame(root){
       const key=y+","+x;
       if(x===0&&clueAt.has(key)){
         const w=clueAt.get(key);
-        cells.push('<div class="scan-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
+        cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
       }else if(expected[key]!==undefined){
         const value=state.filled[key]||pending[key]||"";
         const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
-        cells.push('<button type="button" class="scan-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
+        cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
       }else{
-        cells.push('<div class="scan-cell scan-empty" aria-hidden="true"></div>');
+        cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
       }
     }
   }
