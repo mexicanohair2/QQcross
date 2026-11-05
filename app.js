@@ -332,7 +332,16 @@ function placeAtCell(k,letterIndex,root){
   if(state.loupeActive){if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});delete state.feedback[k];state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
+  state.letters.splice(letterIndex,1);
+  if(letter===expected[k]){
+    state.pendingMoves.push({k,l:letter});delete state.feedback[k];
+  }else{
+    state.feedback[k]="wrong";state.returning=state.returning||{};state.returning[k]=letter;
+    state.letters.push(letter);state.playerRacks[state.turn]=state.letters;renderGame(root);
+    setTimeout(()=>{delete state.returning[k];delete state.feedback[k];if(state.screen==="game")renderGame(root)},520);
+    return;
+  }
+  state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];state.returning=state.returning||{};
@@ -410,7 +419,7 @@ function renderGame(root){
         cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
       }else if(expected[key]!==undefined){
         const value=state.filled[key]||pending[key]||state.returning?.[key]||"";
-        const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
+        const cls=(state.filled[key]?"filled feedback-correct":"")+(pending[key]?" pending-cell":"")+(pending[key]&&pending[key]===expected[key]?" feedback-correct":"")+(state.feedback[key]==="wrong"?" wrong":"");
         cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
       }else{
         cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
