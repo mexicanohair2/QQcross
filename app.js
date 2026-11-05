@@ -310,12 +310,12 @@ function applyOnlineMatch(m){
  state.onlineMatchId=m.match_id;state.matchId=m.match_id;state.onlinePlayers=m.players||[];state.onlineVersion=m.state_version;state.partySize=state.onlinePlayers.length;
  state.turn=Math.max(0,state.onlinePlayers.findIndex(p=>p.id===m.current_turn_user_id));
  Object.assign(state,{screen:"game",filled:{...(g.filled||{})},owners:{...(g.owners||{})},feedback:{...(g.feedback||{})},hints:{...(g.hints||{})},
- completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:(match.players||[]).map(p=>Number(p.score)||0),round:g.round||1,seconds:60,
+ completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:(m.players||[]).map(p=>Number(p.score)||0),round:g.round||1,seconds:60,
  rackNeedsRefill:[...(g.rackNeedsRefill||[])],playerRacks:(g.playerRacks||[]).map(x=>[...x]),pendingMoves:(g.pendingMoves||[]).map(x=>({...x})),returning:{...(g.returning||{})},rewardSubmitted:false});
  state.letters=state.playerRacks[state.turn]||[];subscribeOnlineMatch(state.onlineMatchId);if(!alreadyInThisMatch)pushGameHistoryEntry();render();
  if(m.status==="finished")awardOnlineResult();
 }
-async function refreshOnlineMatch(){
+async function refreshOnlineMatch(force=false){
  if(!state.onlineMatchId)return;
  try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
   if((force||data.state_version>state.onlineVersion)&&data.game_state)applyOnlineMatch(data);
