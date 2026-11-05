@@ -446,10 +446,7 @@ function checkWords(){
     persistCurrentMatch("completed");
     const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
     if(cloud){
-      supabaseClient.rpc("award_qqcross_match_result",{points:state.scores}).then(({data,error})=>{
-        if(error){toast("Не удалось сохранить награду на сервере: "+error.message);return}
-        state.profile.coins=data.coins;state.profile.games=data.games;state.profile.points=data.points;save();
-      }).catch(error=>console.warn("QQcross result:",error));
+      toast("Партия завершена. Облачные награды появятся после подключения серверной проверки результата.");
     }else{
       state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();
     }
