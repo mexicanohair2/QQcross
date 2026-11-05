@@ -421,7 +421,7 @@ function buildScanword(entries){
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
       const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/3),0);
-      return fillCapacity>=17?{chosen,index,verticalEntry,across,fillCapacity}:null;
+      return fillCapacity>=10?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,candidates,logicPool};
   }
@@ -463,7 +463,7 @@ function buildScanword(entries){
 
   // Use 17 full logic questions. Every answer is a complete word, never a sliced fragment.
   const rowFills=across.map(entry=>({free:10-entry.answer.length,count:0}));
-  let extraClues=17;
+  let extraClues=10;
   while(extraClues>0){
     const eligible=rowFills.map((row,index)=>({row,index})).filter(({row})=>row.count<Math.floor(row.free/3));
     if(!eligible.length)throw new Error("Не удалось распределить логические вопросы по сетке");
@@ -484,7 +484,7 @@ function buildScanword(entries){
       x+=answerLength+1;
     });
   });
-  if(words.length!==31)throw new Error("Ожидалось 31 полноценный вопрос, получено "+words.length);
+  if(words.length!==24)throw new Error("Ожидалось 24 полноценных вопроса, получено "+words.length);
   if(occupied.size+clueKeys.size!==144)throw new Error("В сетке сканворда остались пустые клетки");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
 }
