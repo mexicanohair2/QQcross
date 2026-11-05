@@ -247,3 +247,83 @@ html[data-qq-theme="white"] .scanword-board>.scan-cell .cell-letter{color:#28232
 
 .friend-pick{cursor:pointer}
 .friend-pick:has(input:checked){border-color:var(--qq-theme-accent,#a899b8);box-shadow:0 0 0 1px var(--qq-theme-accent,#a899b8)}
+
+
+/* QQCross unified dark-purple identity */
+:root{
+  color-scheme:dark;
+  --qq-bg:#090610;--qq-surface:#151020;--qq-surface2:#20172f;
+  --qq-accent:#9270c9;--qq-text:#f1ebfb;--qq-muted:#b9accd;
+}
+html,body{background:#090610!important;color:#f1ebfb!important}
+body{background:radial-gradient(ellipse at 50% -15%,#211532 0%,#100b19 42%,#090610 78%,#050309 100%)!important}
+html[data-qq-theme="purple"]{
+  --qq-theme-page:linear-gradient(155deg,#1c1429 0%,#110c1b 55%,#08060e 100%);
+  --qq-theme-card:linear-gradient(145deg,#211832,#151020);
+  --qq-theme-panel:linear-gradient(145deg,#1b1428,#100c19);
+  --qq-theme-panel-strong:linear-gradient(135deg,#674b91,#44305f);
+  --qq-theme-border:#3b2c50;--qq-theme-accent:#a88bd8;
+  --qq-theme-text:#f1ebfb;--qq-theme-muted:#b9accd;
+  --qq-theme-cell:linear-gradient(145deg,#251b35,#191222);
+  --qq-theme-block:linear-gradient(145deg,#100b18,#090610);
+  --qq-theme-filled:linear-gradient(145deg,#493264,#302044);
+  --qq-theme-pending:linear-gradient(145deg,#3d2a56,#291b3b);
+  --qq-theme-clue:linear-gradient(145deg,#513875,#35234f);
+  --qq-theme-chip:#281d39;--qq-theme-field:#100b18;
+}
+html[data-qq-theme] body,
+html[data-qq-theme] .screen,
+html[data-qq-theme] .game-screen{background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero,
+html[data-qq-theme] .register-card{background:var(--qq-theme-card)!important;border:1px solid var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .nav,html[data-qq-theme] .score-strip,
+html[data-qq-theme] .letter-area,html[data-qq-theme] .items,
+html[data-qq-theme] .coins,html[data-qq-theme] .pill,html[data-qq-theme] .timer{
+  background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important
+}
+html[data-qq-theme] .score-strip span{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .score-strip .active-player{background:var(--qq-theme-panel-strong)!important;outline:1px solid var(--qq-theme-accent)!important}
+html[data-qq-theme] .board-wrap{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .scanword-board>.scan-cell{background:var(--qq-theme-cell)!important;color:#f7f2ff!important}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-empty{background:var(--qq-theme-block)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-clue{background:var(--qq-theme-clue)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.filled{background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.pending-cell{background:var(--qq-theme-pending)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.wrong{background:linear-gradient(145deg,#51263e,#321629)!important;border-color:#a85c83!important}
+html[data-qq-theme] .cell.feedback-correct{background:linear-gradient(145deg,#493264,#302044)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .cell.feedback-wrong{background:linear-gradient(145deg,#51263e,#321629)!important;border-color:#a85c83!important}
+html[data-qq-theme] .clue-number,html[data-qq-theme] .cell-mark{background:var(--qq-theme-chip)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .item,html[data-qq-theme] .btn,html[data-qq-theme] .avatar-choice,
+html[data-qq-theme] .party-option,html[data-qq-theme] .theme-choice{
+  background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important
+}
+html[data-qq-theme] .btn.primary,html[data-qq-theme] .btn.blue,
+html[data-qq-theme] .party-option.selected,html[data-qq-theme] .theme-choice.selected{
+  background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important
+}
+html[data-qq-theme] .input{background:var(--qq-theme-field)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .input::placeholder{color:#897b9c!important}
+html[data-qq-theme] .letter{
+  background:linear-gradient(145deg,#38294e,#241a35)!important;color:#f5efff!important;
+  border:1px solid #6b538c!important;box-shadow:0 3px 0 #171020!important
+}
+html[data-qq-theme] .qq-drag-ghost{
+  background:linear-gradient(145deg,#493464,#2d2042)!important;color:#fff!important;border-color:#a88bd8!important;box-shadow:0 12px 28px #0009,0 4px 0 #171020!important
+}
+html[data-qq-theme] .clue-popup{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-accent)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .clue-popup-close{background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .toast{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .nav button.active{color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,
+html[data-qq-theme] .letter-label,html[data-qq-theme] .game-hint{color:var(--qq-theme-muted)!important}
+.logo,.home-mark,.boot-logo{
+  display:grid;place-items:center;margin-left:auto;margin-right:auto;
+  width:68px;height:68px;border-radius:20px;background:#030207!important;
+  color:#b99bea!important;border:1px solid #4b3868;
+  font-size:27px;font-weight:950;letter-spacing:-2px;
+  box-shadow:0 8px 28px #0009,inset 0 0 0 1px #ffffff08;
+}
+.home-mark{width:76px;height:76px;margin:0 auto 12px;border-radius:23px;font-size:31px}
+.boot-logo{width:74px;height:74px;border-radius:22px}
+.splash h1{color:#f4efff}
+.theme-swatch-purple{background:linear-gradient(145deg,#493464,#211532 60%,#090610)!important}
