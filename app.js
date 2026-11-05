@@ -592,7 +592,7 @@ function renderGame(root){
     const key=y+","+x,word=clueAt.get(key);
     if(word){
       const clue=word.clue;
-      cells.push('<div class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" title="'+esc(clue)+'"><span class="scan-arrow">'+word.arrow+'</span><span class="scan-clue-text">'+esc(clue)+'</span></div>');
+      cells.push('<div class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" title="'+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></div>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
