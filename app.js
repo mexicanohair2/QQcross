@@ -673,7 +673,7 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*10+crosses*4+length*.12+Math.random()*2});
+              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+Math.random()*3});
             }
           }
         }
@@ -684,7 +684,8 @@ function buildScanword(entries){
       const pick=pool[Math.floor(Math.random()*pool.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
-    // Close small residual gaps from an already connected clue tile.
+    // Repair residual gaps only with words that genuinely cross existing letters.
+    // This keeps every added word in the same connected scanword component.
     let closing=true;
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
@@ -694,7 +695,7 @@ function buildScanword(entries){
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
         const key=y+","+x;
         if(occupied.has(key)||clueAt.has(key))continue;
-        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&(occupied.has(yy+","+xx)||clueAt.has(yy+","+xx)));
+        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       for(const anchor of anchors){
@@ -702,19 +703,23 @@ function buildScanword(entries){
         for(let di=0;di<4&&!closing;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
-          const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x,remaining-(anchor.existing?0:1));
-          for(let length=max;length>=1;length--){
-            const pool=normalized.filter(e=>e.answer.length===length&&!used.has(e.answer));
-            if(!pool.length)continue;
-            const cells=[];let valid=true;
+          const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
+          for(let length=max;length>=2;length--){
+            const cells=[];let valid=true,crosses=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
-              if(yy<0||xx<0||yy>=N||xx>=N||occupied.has(key)||clueAt.has(key)){valid=false;break}
+              if(yy<0||xx<0||yy>=N||xx>=N||clueAt.has(key)){valid=false;break}
+              if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            if(!valid)continue;
+            if(!valid||!crosses)continue;
+            const pool=normalized.filter(entry=>entry.answer.length===length&&!used.has(entry.answer)&&cells.every((cell,k)=>{
+              const old=occupied.get(cell.join(","));
+              return old===undefined||old===entry.answer[k];
+            }));
+            if(!pool.length)continue;
             const entry=pool[Math.floor(Math.random()*pool.length)];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,true)){closing=true;break}
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false)){closing=true;break}
           }
         }
       }
