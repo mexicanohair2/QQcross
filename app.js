@@ -743,10 +743,10 @@ async function begin(size=1){
   const playButton=$("#practice");
   if(playButton){playButton.disabled=true;playButton.textContent="Собираем сканворд…"}
   try{
-    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_SCANWORDS?.puzzles?.length){
+    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length){
       await preloadScanwordDictionary();
     }
-    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length||!window.QQCROSS_SCANWORDS?.puzzles?.length){
+    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
     }
     let loaded=false,lastError=null;
@@ -989,23 +989,18 @@ document.addEventListener("visibilitychange",()=>{if(document.visibilityState===
 
 let dictionaryLoadPromise=null;
 function preloadScanwordDictionary(){
-  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length&&window.QQCROSS_SCANWORDS?.puzzles?.length)return Promise.resolve(true);
+  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return Promise.resolve(true);
   if(dictionaryLoadPromise)return dictionaryLoadPromise;
   dictionaryLoadPromise=(async()=>{
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
       const version="20261106-15x15multi1";
-      const [dictionaryResponse,puzzlesResponse]=await Promise.all([
-        fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
-        fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
-      ]);
+      const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
-      if(!puzzlesResponse.ok)throw new Error("Шаблоны: HTTP "+puzzlesResponse.status);
-      const [dictionary,puzzles]=await Promise.all([dictionaryResponse.json(),puzzlesResponse.json()]);
-      if(!Array.isArray(dictionary)||!dictionary.length||!puzzles||!Array.isArray(puzzles.puzzles)||!puzzles.puzzles.length)throw new Error("Некорректные данные сканвордов");
+      const dictionary=await dictionaryResponse.json();
+      if(!Array.isArray(dictionary)||!dictionary.length)throw new Error("Некорректный словарь сканвордов");
       window.QQCROSS_DICTIONARY=dictionary;
-      window.QQCROSS_SCANWORDS=puzzles;
       return true;
     }catch(error){
       console.warn("QQCross data:",error);
