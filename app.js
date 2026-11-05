@@ -585,7 +585,7 @@ function buildScanword(entries){
   }else{
     normalized=entries.map(normalizeScanwordEntry);
     candidates=source.puzzles.map((chosen,index)=>{
-      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||chosen.extras.length!==20)return null;
+      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||(chosen.extras.length<14||chosen.extras.length>15))return null;
       const top=chosen.top.map(i=>normalized[i]);
       if(top.some(entry=>!entry)||top[0].answer.length!==12)return null;
       return {chosen,index,top};
@@ -627,8 +627,8 @@ function buildScanword(entries){
     if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
-  if(words.length!==32)throw new Error("Ожидалось 32 вопроса, получено "+words.length);
-  if(clueKeys.size!==32||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
+  if(words.length!==12+chosen.extras.length)throw new Error("Некорректное число вопросов: "+words.length);
+  if(clueKeys.size!==words.length||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
     throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
 }
