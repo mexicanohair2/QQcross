@@ -534,21 +534,30 @@ function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
   const chosen=source.puzzles[Math.floor(Math.random()*source.puzzles.length)];
-  const W=source.width||12,H=source.height||12;
+  const verticalEntry=normalizeScanwordEntry(entries[chosen.vertical]);
+  if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)
+    throw new Error("Некорректная основа сканворда");
   const words=[],used=new Set(),clueKeys=new Set();
-  chosen.forEach((record,index)=>{
-    const [entryIndex,x,y,dir="across"]=record;
+  const verticalCells=Array.from({length:11},(_,k)=>[k+1,1]);
+  words.push({id:"vertical",answer:verticalEntry.answer,clue:verticalEntry.clue,isEmoji:verticalEntry.emoji,dir:"down",cells:verticalCells,clueCell:[0,1]});
+  clueKeys.add("0,1");verticalCells.forEach(c=>used.add(c.join(",")));
+  chosen.across.forEach((entryIndex,row)=>{
     const entry=normalizeScanwordEntry(entries[entryIndex]);
-    if(!entry)throw new Error("Некорректная запись словаря: "+entryIndex);
-    const vertical=dir==="down";
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
-    words.push({id:"w"+index,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:vertical?"down":"across",cells,clueCell:[y,x]});
-    clueKeys.add(y+","+x);cells.forEach(c=>used.add(c.join(",")));
+    const first=verticalEntry.answer[row];
+    if(!entry||entry.answer.length>11||entry.answer[0]!==first)
+      throw new Error("Буква горизонтального слова не совпадает с вертикальным ответом");
+    const y=row+1;
+    const cells=Array.from({length:entry.answer.length},(_,k)=>[y,k+1]);
+    words.push({id:"w"+(row+1),answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[y,0]});
+    clueKeys.add(y+",0");cells.forEach(c=>used.add(c.join(",")));
   });
-  if(words.length!==35||words[0].answer.length!==11||words[0].dir!=="down")throw new Error("Нарушен шаблон сканворда");
-  const occupied=new Set([...used,...clueKeys]);
-  if(occupied.size!==W*H)throw new Error("В сканворде есть пустые клетки");
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words,used,clueKeys,coverage:1};
+  const occupied=new Map();
+  for(const w of words)w.cells.forEach((c,i)=>{
+    const key=c.join(","),letter=w.answer[i];
+    if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
+    occupied.set(key,letter);
+  });
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used,clueKeys,coverage:1};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
@@ -556,11 +565,12 @@ function makeRandomPuzzle(){
   if(!built){puzzle=null;letterBag=[];return false}
   puzzle=built;
   puzzle.words.forEach(w=>w.cells.forEach((c,i)=>expected[c.join(",")]=w.answer[i]));
-  letterBag=puzzle.words.flatMap(w=>w.answer.split(""));
+  letterBag=Object.values(expected);
   for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
   return true;
 }
 function loadPuzzle(){return makeRandomPuzzle()}
+
 function begin(size=1){
   if(!loadPuzzle()){toast("Не удалось собрать сканворд. Попробуй ещё раз.");return}
   state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
