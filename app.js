@@ -767,7 +767,7 @@ function buildScanword(entries){
     const choices=crossing.length?crossing:open;
     if(!choices.length)continue;
     const placement=choices[Math.floor(Math.random()*choices.length)];
-    addWord(entry,-1,placement.dir,placement.x,placement.y,"random"+i);
+    addWord(entry,-1,placement.dir,placement.x,placement.y,"random-"+entry.answer);
   }
 
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
