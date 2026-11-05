@@ -461,7 +461,7 @@ function buildScanword(entries){
       if(usedSources.has(sourceEntry.answer)||sourceEntry.answer.length<length)continue;
       const from=Math.floor(Math.random()*(sourceEntry.answer.length-length+1));
       const answer=sourceEntry.answer.slice(from,from+length);
-      const clue=sourceEntry.answer.slice(0,from)+"’".repeat(length)+sourceEntry.answer.slice(from+length);
+      const clue="Вставь буквы "+(from+1)+"–"+(from+length)+" слова «"+sourceEntry.answer+"»";
       return {answer,sourceAnswer:sourceEntry.answer,clue,emoji:false};
     }
     return null;
@@ -535,7 +535,7 @@ async function begin(size=1){
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
-    state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+    state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();
   }catch(error){
     console.error("QQCross: single-player start failed",error);
@@ -589,6 +589,7 @@ function renderGame(root){
     if(source.type==="rack"){
       const index=Number(source.element.dataset.letter),letter=state.letters[index];if(!letter)return;
       activeDrag={type:"rack",index,letter};
+      source.element.classList.add("dragging");
     }else{
       const key=source.element.dataset.cell,move=state.pendingMoves.find(m=>m.k===key);if(!move)return;
       state.pendingMoves.splice(state.pendingMoves.indexOf(move),1);
@@ -602,13 +603,13 @@ function renderGame(root){
     document.addEventListener("pointerup",finishDrag,{once:true});
     document.addEventListener("pointercancel",finishDrag,{once:true});
   };
-  const moveGhost=event=>{if(!dragGhost)return;dragGhost.style.left=event.clientX+"px";dragGhost.style.top=event.clientY+"px"};
+  const moveGhost=event=>{if(!dragGhost)return;if(event.cancelable)event.preventDefault();dragGhost.style.left=event.clientX+"px";dragGhost.style.top=event.clientY+"px"};
   const finishDrag=event=>{
     if(!activeDrag)return;
     const target=document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-cell],.hand");
     const drag=activeDrag;activeDrag=null;dragGhost?.remove();dragGhost=null;document.body.classList.remove("qq-dragging");
     document.removeEventListener("pointermove",moveGhost);document.removeEventListener("pointerup",finishDrag);document.removeEventListener("pointercancel",finishDrag);
-    root.querySelectorAll(".drag-source").forEach(el=>el.classList.remove("drag-source"));
+    root.querySelectorAll(".drag-source,.dragging").forEach(el=>el.classList.remove("drag-source","dragging"));
     if(target?.matches("[data-cell]")){
       const key=target.dataset.cell;
       if(drag.type==="rack"){
