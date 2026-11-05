@@ -617,72 +617,88 @@ function getScanwordDictionary(){
     return Array.isArray(saved)?saved:[];
   }catch{return []}
 }
+function compactScanwordClue(value){
+  const raw=String(value||"").replace(/\s+/g," ").trim();
+  if(!raw||/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(raw)||raw.length<=18)return raw;
+  const words=raw.split(" ");let short="";
+  for(const word of words){const next=short?short+" "+word:word;if(next.length>18)break;short=next}
+  return short||raw.slice(0,17)+"…";
+}
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const clue=String(item.emoji||item.flag||item.clueShort||item.clue||item.question||"").trim();
+  const rawClue=String(item.emoji||item.flag||item.clueShort||item.clue||item.question||"").trim();
+  const clue=compactScanwordClue(rawClue);
   if(answer.length<2||answer.length>12||!clue)return null;
   return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
 }
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
-  const chosen=source.puzzles[Math.floor(Math.random()*source.puzzles.length)];
-  const verticalEntry=normalizeScanwordEntry(entries[chosen.vertical]);
-  if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)
-    throw new Error("Некорректная основа сканворда");
+
+  const normalized=entries.map(normalizeScanwordEntry);
+  const byAnswer=new Map();
+  normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
+
+  // Prefer templates whose crossing letters also form extra vertical answers.
+  const candidates=source.puzzles.map((chosen,index)=>{
+    const verticalEntry=normalizeScanwordEntry(entries[chosen.vertical]);
+    if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
+    const across=chosen.across.map(i=>normalizeScanwordEntry(entries[i]));
+    if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
+    const derived=[];
+    for(let x=2;x<12;x++){
+      let answer="";
+      for(const entry of across){if(entry.answer.length<x)break;answer+=entry.answer[x-1]}
+      const match=answer.length>=2?byAnswer.get(answer):null;
+      if(match&&answer!==verticalEntry.answer)derived.push({x,entry:match});
+    }
+    const topExtraXs=new Set((chosen.extras||[]).filter(e=>e.y===0&&e.dir==="down").map(e=>e.x));
+    const uniqueDerived=derived.filter(item=>!topExtraXs.has(item.x));
+    return {chosen,index,verticalEntry,across,derived:uniqueDerived,score:1+uniqueDerived.length+topExtraXs.size};
+  }).filter(Boolean);
+  if(!candidates.length)throw new Error("Не найден подходящий шаблон сканворда");
+  const bestScore=Math.max(...candidates.map(c=>c.score));
+  const pool=candidates.filter(c=>c.score===bestScore);
+  const selected=pool[Math.floor(Math.random()*pool.length)];
+  const {chosen,verticalEntry,across,derived}=selected;
+
   const words=[],occupied=new Map(),clueKeys=new Set();
   const addWord=(entry,index,dir,x,y,id)=>{
-    if(!entry)throw new Error("Некорректное слово в сканворде");
+    if(!entry||!["across","down"].includes(dir))return false;
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
-    if(!vertical&&x+entry.answer.length>=12)throw new Error("Горизонтальное слово выходит за поле");
-    if(vertical&&y+entry.answer.length>=12)throw new Error("Вертикальное слово выходит за поле");
+    if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
     const clueKey=y+","+x;
-    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Клетка вопроса занята");
-    cells.forEach((c,i)=>{
-      const key=c.join(","),letter=entry.answer[i];
-      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
-    });
-    cells.forEach((c,i)=>occupied.set(c.join(","),entry.answer[i]));
+    if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
+    for(let k=0;k<cells.length;k++){
+      const key=cells[k].join(",");
+      if(clueKeys.has(key))return false;
+      if(occupied.has(key)&&occupied.get(key)!==entry.answer[k])return false;
+    }
+    cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
     words.push({id,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
+    return true;
   };
+
+  // The main vertical clue is fixed at the top; all eleven left-edge clues remain fixed.
   addWord(verticalEntry,chosen.vertical,"down",1,0,"vertical");
-  chosen.across.forEach((entryIndex,row)=>{
-    const entry=normalizeScanwordEntry(entries[entryIndex]);
-    if(!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row])
-      throw new Error("Первая буква горизонтального слова не совпадает с вертикальной");
-    // The main across word starts on the shared vertical spine at column 1.
-    const cells=Array.from({length:entry.answer.length},(_,k)=>[row+1,k+1]);
-    cells.forEach((c,i)=>{
-      const key=c.join(","),letter=entry.answer[i];
-      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
-      occupied.set(key,letter);
-    });
-    const clueKey=(row+1)+",0";
-    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Клетка вопроса занята");
-    clueKeys.add(clueKey);
-    words.push({id:"w"+(row+1),answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[row+1,0]});
-  });
-  (chosen.extras||[]).forEach((extra,i)=>{
+  across.forEach((entry,row)=>addWord(entry,chosen.across[row],"across",0,row+1,"w"+(row+1)));
+
+  // Add top-edge questions only where existing crossing letters form a real dictionary word.
+  derived.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
+
+  // Center clues come from a random template and are shuffled for each new game.
+  const extras=[...(chosen.extras||[])];
+  for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
+  extras.forEach((extra,i)=>{
     const entry=normalizeScanwordEntry(entries[extra.index]);
-    if(!entry||!["across","down"].includes(extra.dir))throw new Error("Некорректная дополнительная запись");
-    const vertical=extra.dir==="down";
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[extra.y+1+k,extra.x]:[extra.y,extra.x+1+k]);
-    if((!vertical&&extra.x+entry.answer.length>=12)||(vertical&&extra.y+entry.answer.length>=12))
-      throw new Error("Дополнительное слово выходит за поле");
-    const clueKey=extra.y+","+extra.x;
-    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Дополнительный вопрос пересекает слово");
-    cells.forEach((c,j)=>{
-      const key=c.join(","),letter=entry.answer[j];
-      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт дополнительного слова");
-    });
-    cells.forEach((c,j)=>occupied.set(c.join(","),entry.answer[j]));
-    clueKeys.add(clueKey);
-    words.push({id:"extra"+i,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:extra.dir,cells,clueCell:[extra.y,extra.x]});
+    if(!entry)return;
+    addWord(entry,extra.index,extra.dir,extra.x,extra.y,"extra"+i);
   });
-  const expectedMap={};occupied.forEach((v,k)=>expectedMap[k]=v);
+
+  const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
 function makeRandomPuzzle(){
@@ -725,7 +741,8 @@ function renderGame(root){
     const key=y+","+x,word=clueAt.get(key);
     if(word){
       const clue=word.clue;
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
+      const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
