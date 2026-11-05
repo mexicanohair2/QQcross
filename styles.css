@@ -1432,10 +1432,10 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
   box-shadow:inset 0 1px 2px rgba(255,235,240,.07),0 1px 2px rgba(0,0,0,.22)!important;
 }
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue{
-  background:linear-gradient(145deg,#f0e3e5 0%,#d9c4ca 52%,#cbb1ba 100%)!important;
-  border:1px solid #f7edf0!important;
-  color:#38232c!important;
-  box-shadow:inset 0 1px 3px rgba(255,255,255,.8),0 1px 3px rgba(0,0,0,.22)!important;
+  background:linear-gradient(145deg,#60414b 0%,#513641 55%,#49303a 100%)!important;
+  border:1px solid #98717c!important;
+  color:#f1dfe4!important;
+  box-shadow:inset 0 1px 3px rgba(255,255,255,.08),0 1px 3px rgba(0,0,0,.22)!important;
   padding:4px!important;
   overflow:visible!important;
 }
@@ -1444,7 +1444,7 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
   width:100%!important;
   max-height:none!important;
   height:auto!important;
-  color:#38232c!important;
+  color:#f1dfe4!important;
   font-size:clamp(7px,2.25vw,12px)!important;
   font-weight:700!important;
   line-height:1.12!important;
@@ -1457,7 +1457,7 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
   text-align:center!important;
 }
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji{
-  background:linear-gradient(145deg,#f5e9eb 0%,#dfcbd1 100%)!important;
+  background:linear-gradient(145deg,#674651 0%,#523743 100%)!important;
 }
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji .scan-clue-text{
   font-size:clamp(15px,4.2vw,25px)!important;
