@@ -114,7 +114,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select p.id, p.username, p.avatar
+  select distinct p.id, p.username, p.avatar
   from public.friendships f
   join public.profiles p
     on p.id = case when f.user_id = auth.uid() then f.friend_id else f.user_id end
