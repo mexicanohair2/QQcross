@@ -270,8 +270,7 @@ function renderGame(root){
     const key=y+","+x,clue=clueAt.get(key),letter=letterAt.get(key);
     if(clue){
       const clueText=clue.clue;
-      const clueDirection=clue.dir==="down"?"scan-clue-down":"scan-clue-across";
-      rows.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+clueDirection+' '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-show-clue="'+esc(clue.id)+'" aria-label="Вопрос: '+esc(clueText)+'"><span class="scan-clue-text">'+esc(clueText)+'</span></button>');
+      rows.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-show-clue="'+esc(clue.id)+'" aria-label="Вопрос: '+esc(clueText)+'"><span class="scan-clue-text">'+esc(clueText)+'</span></button>');
     }else if(letter){
       const value=state.filled[key]||pending[key]||"";
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback?.[key]==="wrong"?" wrong":"")+(state.wordFlashKeys?.has(key)?" word-complete-flash":"");
