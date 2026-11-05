@@ -502,36 +502,22 @@ function normalizeScanwordEntry(item){
   return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
 }
 function buildScanword(entries){
-  const W=8,H=12;
-  const candidates=entries.map(normalizeScanwordEntry).filter(e=>e&&e.answer.length===7);
-  if(candidates.length<H){
-    console.warn("Для полностью заполненного поля нужно минимум 12 слов по 7 букв.");
-    return null;
-  }
-  // Каждая строка: одна клетка с вопросом + семь букв ответа.
-  // Так все 96 клеток поля заняты, без пустых промежутков.
-  for(let i=candidates.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1));
-    [candidates[i],candidates[j]]=[candidates[j],candidates[i]];
-  }
-  const selected=[],seen=new Set();
-  for(const entry of candidates){
-    if(seen.has(entry.answer))continue;
-    selected.push(entry);seen.add(entry.answer);
-    if(selected.length===H)break;
-  }
-  if(selected.length!==H)return null;
-  const words=selected.map((entry,y)=>({
-    id:"w"+y,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,
-    dir:"across",
-    cells:Array.from({length:7},(_,k)=>[y,k+1]),
-    clueCell:[y,0]
-  }));
-  const used=new Set(),clueKeys=new Set();
-  words.forEach(w=>{
-    w.cells.forEach(c=>used.add(c.join(",")));
-    clueKeys.add(w.clueCell.join(","));
+  const source=window.QQCROSS_SCANWORDS;
+  if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
+  const chosen=source.puzzles[Math.floor(Math.random()*source.puzzles.length)];
+  const W=source.width||12,H=source.height||12;
+  const words=[],used=new Set(),clueKeys=new Set();
+  chosen.forEach((record,index)=>{
+    const [entryIndex,x,y]=record;
+    const entry=normalizeScanwordEntry(entries[entryIndex]);
+    if(!entry)throw new Error("Некорректная запись словаря: "+entryIndex);
+    const cells=Array.from({length:entry.answer.length},(_,k)=>[y,x+1+k]);
+    words.push({id:"w"+index,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[y,x]});
+    clueKeys.add(y+","+x);cells.forEach(c=>used.add(c.join(",")));
   });
+  if(words.length!==35||words[0].answer.length!==11)throw new Error("Нарушен шаблон сканворда");
+  const occupied=new Set([...used,...clueKeys]);
+  if(occupied.size!==W*H)throw new Error("В сканворде есть пустые клетки");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words,used,clueKeys,coverage:1};
 }
 function makeRandomPuzzle(){
@@ -604,12 +590,17 @@ function renderGame(root){
 
 async function preloadScanwordDictionary(){
   try{
-    const response=await fetch("./data/scanword-dictionary.json",{cache:"no-store"});
-    if(!response.ok)throw new Error("HTTP "+response.status);
-    const data=await response.json();
-    if(!Array.isArray(data))throw new Error("Словарь должен быть массивом");
-    if(data.length)window.QQCROSS_DICTIONARY=data;
-  }catch(error){console.warn("QQcross dictionary:",error)}
+    const [dictionaryResponse,puzzlesResponse]=await Promise.all([
+      fetch("./data/scanword-dictionary.json",{cache:"no-store"}),
+      fetch("./data/scanwords-1000.json",{cache:"no-store"})
+    ]);
+    if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
+    if(!puzzlesResponse.ok)throw new Error("Сканворды: HTTP "+puzzlesResponse.status);
+    const [dictionary,puzzles]=await Promise.all([dictionaryResponse.json(),puzzlesResponse.json()]);
+    if(!Array.isArray(dictionary)||!puzzles||!Array.isArray(puzzles.puzzles))throw new Error("Некорректные данные сканвордов");
+    window.QQCROSS_DICTIONARY=dictionary;
+    window.QQCROSS_SCANWORDS=puzzles;
+  }catch(error){console.warn("QQcross data:",error)}
 }
 
 if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
