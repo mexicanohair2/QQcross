@@ -1616,3 +1616,27 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
 .game-screen>.board-wrap.scanword-wrap{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;overflow:hidden!important;padding:2px!important;box-sizing:border-box!important;touch-action:pan-y!important}
 .game-screen .board-wrap.scanword-wrap .scanword-board{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important;width:min(100%,calc(100dvh - 22dvh))!important;height:auto!important;aspect-ratio:1/1!important;min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;gap:2px!important;box-sizing:border-box!important}
 .game-screen .board-wrap.scanword-wrap .scanword-board>.scan-cell.scan-grid-cell{display:flex!important;flex:none!important;width:auto!important;height:auto!important;min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;aspect-ratio:1/1!important;box-sizing:border-box!important;margin:0!important;padding:2px!important}
+
+
+/* QQcross scanword reference layout: compact in-cell clues and visible direction. */
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue{
+  position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  overflow:hidden!important;padding:2px 2px 6px!important;gap:0!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue .scan-clue-text{
+  display:block!important;width:100%!important;max-height:100%!important;height:auto!important;
+  color:#f1e8ed!important;font-size:clamp(6px,1.7vw,9px)!important;font-weight:750!important;
+  line-height:1.04!important;white-space:normal!important;overflow:hidden!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;text-overflow:clip!important;
+  text-align:center!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue::after{
+  position:absolute!important;right:2px!important;bottom:0!important;
+  font-size:7px!important;line-height:1!important;color:#d5b9c5!important;opacity:.9!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-down::after{content:"▼"!important}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-across::after{content:"▶"!important}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji{padding:1px!important}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  font-size:clamp(15px,4vw,23px)!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important;
+}
