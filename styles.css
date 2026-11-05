@@ -1672,3 +1672,59 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue::after{
   font-size:4px!important;right:2px!important;bottom:1px!important;opacity:.85!important;
 }
+
+
+/* Registration/login: keep the whole form scrollable on short mobile viewports. */
+html,body{height:auto!important;min-height:100%!important;overflow-x:hidden!important;overflow-y:auto!important}
+#app:has(.register-screen){min-height:100dvh!important;display:block!important}
+.register-screen{
+  width:min(100%,520px)!important;
+  min-height:100dvh!important;
+  height:auto!important;
+  margin:0 auto!important;
+  padding:clamp(12px,3vh,28px) 16px max(24px,env(safe-area-inset-bottom))!important;
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  gap:12px!important;
+}
+.register-screen .register-splash{
+  min-height:0!important;
+  height:auto!important;
+  flex:0 0 auto!important;
+  padding:8px 0 4px!important;
+  margin:0!important;
+}
+.register-screen .register-splash .logo{width:54px!important;height:54px!important;margin:0 auto 8px!important}
+.register-screen .register-splash h1{font-size:24px!important;margin:4px 0!important}
+.register-screen .register-splash p{font-size:13px!important;margin:0!important}
+.register-card{
+  width:100%!important;
+  max-width:460px!important;
+  margin:0 auto!important;
+  flex:0 0 auto!important;
+  padding:clamp(14px,4vw,22px)!important;
+}
+.register-card .avatar-grid{margin:8px 0 14px!important}
+.register-card .input{font-size:16px!important;min-height:48px!important}
+.register-card .btn{min-height:46px!important}
+.register-card .auth-message{min-height:18px;margin:10px 0 0;overflow-wrap:anywhere}
+.register-card #authSubmit[aria-busy="true"]{opacity:.82;cursor:progress}
+.register-card #authSubmit[aria-busy="true"]::before{
+  content:"";display:inline-block;width:13px;height:13px;margin-right:9px;
+  border:2px solid currentColor;border-right-color:transparent;border-radius:50%;
+  vertical-align:-2px;animation:qq-auth-spin .65s linear infinite
+}
+@keyframes qq-auth-spin{to{transform:rotate(360deg)}}
+
+/* Newly drawn letters enter from just below the rack and settle within 0.5 s. */
+.game-screen .letter.letter-enter{
+  animation:qq-letter-enter .46s cubic-bezier(.2,.75,.25,1) both;
+}
+@keyframes qq-letter-enter{
+  from{opacity:0;transform:translateY(22px) scale(.92)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  .game-screen .letter.letter-enter{animation:none;opacity:1;transform:none}
+}
