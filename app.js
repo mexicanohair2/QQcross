@@ -35,22 +35,10 @@ const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,select
 let puzzle=null;
 const expected={};
 let letterBag=[];
+let scanwordCandidateCache=null;
 let draggingLetter=false;
 let suppressCellClick=false;
 
-
-function makeRandomPuzzle(){
-  Object.keys(expected).forEach(k=>delete expected[k]);
-  const entries=getScanwordDictionary();
-  const built=buildScanword(entries);
-  if(!built){puzzle=null;letterBag=[];return false}
-  puzzle=built;
-  puzzle.words.forEach(word=>word.cells.forEach((cell,i)=>{expected[cell.join(",")]=word.answer[i]}));
-  letterBag=Object.values(expected);
-  for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
-  return true;
-}
-function loadPuzzle(){return makeRandomPuzzle()}
 
 function defaultItems(){return {magnifier:5,clock:5,trash:5}}
 function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(state.profile))}
@@ -236,7 +224,6 @@ function renderLobby(root){
   $("#back").onclick=()=>{state.screen="";render()};
   root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});
 }
-function begin(size=1){try{if(!loadPuzzle())return}catch(error){console.error("QQcross puzzle generation:",error);toast(error&&error.message?error.message:"Не удалось создать кроссворд. Попробуй ещё раз.");return}state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -494,84 +481,6 @@ async function loadCloudProfile(userId){
   save();watchSocialUpdates();
 }
 
-/* Поле остаётся пустым до загрузки пользовательского словаря. */
-function makeRandomPuzzle(){
-  puzzle={id:"scanword-grid-"+Date.now(),title:"Пустая сетка",w:8,h:12,words:[]};
-  Object.keys(expected).forEach(k=>delete expected[k]);
-  letterBag=[];
-  return true;
-}
-function loadPuzzle(){return makeRandomPuzzle()}
-function renderGame(root){
-  clearInterval(state.interval);
-  if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
-  if(state.rackNeedsRefill&&state.rackNeedsRefill[state.turn]){
-    refillRack(state.turn);state.rackNeedsRefill[state.turn]=false;
-  }
-  state.letters=state.playerRacks[state.turn]||[];
-  state.pendingMoves=state.pendingMoves||[];
-  const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-  const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
-  const cells=[];
-  for(let y=0;y<puzzle.h;y++){
-    for(let x=0;x<puzzle.w;x++){
-      const key=y+","+x,clue=clueAt.get(key);
-      if(clue){
-        cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue.clue)+'" aria-label="Вопрос: '+esc(clue.clue)+'"><span class="scan-clue-text">'+esc(clue.clue)+'</span></button>');
-      }else if(expected[key]!==undefined){
-        const value=state.filled[key]||pending[key]||state.returning?.[key]||"";
-        const cls=(state.filled[key]?"filled feedback-correct":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
-        cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в сканворде">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
-      }else{
-        cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
-      }
-    }
-  }
-  const names=Array.from({length:state.partySize},(_,i)=>i===0?"Ты":"Игрок "+(i+1));
-  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
-  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button></div>'+
-    '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
-    '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{
-    state.selectedLetter=Number(b.dataset.letter);
-    root.querySelectorAll("[data-letter]").forEach(x=>x.classList.toggle("selected",x===b));
-  });
-  root.querySelectorAll("[data-cell]").forEach(cell=>{
-    cell.onclick=()=>{
-      const key=cell.dataset.cell;
-      const pendingMove=state.pendingMoves.find(m=>m.k===key);
-      if(pendingMove){
-        const ix=state.pendingMoves.indexOf(pendingMove);
-        state.letters.push(pendingMove.l);state.pendingMoves.splice(ix,1);
-        state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return;
-      }
-      if(state.selectedLetter<0){toast("Сначала выбери букву снизу");return}
-      const chosen=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,chosen,root);
-    };
-  });
-  $("#exit").onclick=()=>{
-    if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;
-    state.pendingMoves=[];state.screen="";render();
-  };
-  $("#endturn").onclick=()=>finishTurn(root);
-  $("#magnifier").onclick=()=>{
-    if(!useItem("magnifier"))return;
-    const word=puzzle.words.find(w=>w.cells.some(c=>!state.filled[c.join(",")]));
-    const cell=word&&word.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));
-    if(!cell){toast("Нет пустых клеток для подсказки");return}
-    const key=cell.join(","),needed=expected[key],ix=state.letters.indexOf(needed);
-    if(ix<0){toast("Нужная буква сейчас не выпала. Попробуй позже");return}
-    state.letters.splice(ix,1);state.pendingMoves.push({k:key,l:needed});state.playerRacks[state.turn]=state.letters;renderGame(root);
-  };
-  $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
-  $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
-  state.interval=setInterval(()=>{
-    state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;
-    if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}
-  },1000);
-}
-
 function renderRecovery(root){
   root.innerHTML='<div class="screen"><div class="splash"><div class="logo">QQ</div></div><div class="card"><h2>Новый пароль</h2><p class="small muted">Придумай новый пароль для своего аккаунта.</p><input id="newPassword" class="input" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль"><button class="btn primary full" id="saveNewPassword">Сохранить пароль</button><p class="small muted" id="recoveryMessage"></p></div></div>';
   $("#saveNewPassword").onclick=async()=>{
@@ -651,37 +560,42 @@ function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
 
-  const normalized=entries.map(normalizeScanwordEntry);
-  const byAnswer=new Map();
-  normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
-
-  // Prefer templates whose crossing letters also form extra vertical answers.
-  const candidates=source.puzzles.map((chosen,index)=>{
-    const verticalEntry=normalizeScanwordEntry(entries[chosen.vertical]);
-    if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
-    const across=chosen.across.map(i=>normalizeScanwordEntry(entries[i]));
-    if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
-    const derived=[];
-    for(let x=2;x<12;x++){
-      const options=[];
-      for(const entry of byAnswer.values()){
-        if(entry.answer.length>11||entry.answer===verticalEntry.answer)continue;
-        let intersections=0,valid=true;
-        for(let row=0;row<entry.answer.length;row++){
-          const acrossEntry=across[row];
-          if(acrossEntry.answer.length>=x){
-            intersections++;
-            if(acrossEntry.answer[x-1]!==entry.answer[row]){valid=false;break}
+  let normalized,byAnswer,candidates;
+  if(scanwordCandidateCache&&scanwordCandidateCache.entries===entries&&scanwordCandidateCache.source===source){
+    ({normalized,byAnswer,candidates}=scanwordCandidateCache);
+  }else{
+    normalized=entries.map(normalizeScanwordEntry);
+    byAnswer=new Map();
+    normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
+    // Build compatible templates once; subsequent games reuse the prepared data.
+    candidates=source.puzzles.map((chosen,index)=>{
+      const verticalEntry=normalized[chosen.vertical];
+      if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
+      const across=chosen.across.map(i=>normalized[i]);
+      if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
+      const derived=[];
+      for(let x=2;x<12;x++){
+        const options=[];
+        for(const entry of byAnswer.values()){
+          if(entry.answer.length>11||entry.answer===verticalEntry.answer)continue;
+          let intersections=0,valid=true;
+          for(let row=0;row<entry.answer.length;row++){
+            const acrossEntry=across[row];
+            if(acrossEntry.answer.length>=x){
+              intersections++;
+              if(acrossEntry.answer[x-1]!==entry.answer[row]){valid=false;break}
+            }
           }
+          if(valid&&intersections>0)options.push(entry);
         }
-        if(valid&&intersections>0)options.push(entry);
+        if(options.length)derived.push({x,options});
       }
-      if(options.length)derived.push({x,options});
-    }
-    const topExtraXs=new Set((chosen.extras||[]).filter(e=>e.y===0&&e.dir==="down").map(e=>e.x));
-    const uniqueDerived=derived.filter(item=>!topExtraXs.has(item.x));
-    return {chosen,index,verticalEntry,across,derived:uniqueDerived,score:1+uniqueDerived.length+topExtraXs.size};
-  }).filter(Boolean);
+      const topExtraXs=new Set((chosen.extras||[]).filter(e=>e.y===0&&e.dir==="down").map(e=>e.x));
+      const uniqueDerived=derived.filter(item=>!topExtraXs.has(item.x));
+      return {chosen,index,verticalEntry,across,derived:uniqueDerived,score:1+uniqueDerived.length+topExtraXs.size};
+    }).filter(Boolean);
+    scanwordCandidateCache={entries,source,normalized,byAnswer,candidates};
+  }
   if(!candidates.length)throw new Error("Не найден подходящий шаблон сканворда");
   const bestScore=Math.max(...candidates.map(c=>c.score));
   const pool=candidates.filter(c=>c.score===bestScore);
