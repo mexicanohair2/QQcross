@@ -360,9 +360,9 @@ function ensureWordLetter(player=state.turn){
     const otherIndex=racks.findIndex((r,i)=>i!==player&&Array.isArray(r)&&r.includes(needed));
     if(otherIndex>=0){
       const other=racks[otherIndex],neededIndex=other.indexOf(needed);
-      const displaced=rack.length>=7?rack.pop():null;
-      other.splice(neededIndex,1,displaced===null?other[neededIndex]:displaced);
-      rack.push(needed);
+      const neededTile=other.splice(neededIndex,1)[0];
+      if(rack.length>=7)other.push(rack.pop());
+      rack.push(neededTile);
     }else if(rack.length){
       letterBag.push(rack[rack.length-1]);
       rack[rack.length-1]=needed;
