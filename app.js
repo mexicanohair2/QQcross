@@ -514,6 +514,7 @@ function buildScanword(entries){
     let crossings=0;
     for(let k=0;k<entry.answer.length;k++){
       const px=x+dx*k,py=y+dy*k,old=grid[py][px],letter=entry.answer[k];
+      if(clueOccupied.has(py+","+px))return false;
       if(old!==null&&old!==letter)return false;
       if(old===letter)crossings++;
       const before=dir==="across"?grid[py-1]?.[px]:grid[py]?.[px-1];
@@ -527,7 +528,9 @@ function buildScanword(entries){
     return true;
   }
   if(!candidates.length)return null;
-  const first=candidates.shift();
+  const firstIndex=candidates.findIndex(e=>e.answer.length<=7);
+  if(firstIndex<0)return null;
+  const first=candidates.splice(firstIndex,1)[0];
   if(!tryPlace(first,1,Math.max(0,Math.floor((H-first.answer.length)/2)), "across",true))return null;
   for(const entry of candidates){
     let options=[];
