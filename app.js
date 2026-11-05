@@ -465,6 +465,12 @@ function buildScanword(entries){
     }
     return null;
   };
+  // Give the top row real scanword clues instead of leaving it visually empty.
+  // The vertical clue occupies column 1; these short across clues fill the remaining row.
+  for(const x of [2,5,8]){
+    const entry=makeFragment(2);
+    if(entry)addWord(entry,"across",x,0,"top-fill-"+x);
+  }
   // Use the guaranteed free strip at the right of each main row. Odd-width
   // strips get one two-letter fragment; the rest are one-letter fragments.
   for(let row=0;row<11&&words.length<34;row++){
