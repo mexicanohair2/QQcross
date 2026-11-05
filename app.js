@@ -557,24 +557,23 @@ function buildScanword(entries){
   }else{
     normalized=entries.map(normalizeScanwordEntry);
     candidates=source.puzzles.map((chosen,index)=>{
-      const verticalEntry=normalized[chosen.vertical];
-      if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
-      const across=chosen.across.map(i=>normalized[i]);
-      if(across.some((entry,row)=>!entry||entry.answer.length>7||entry.answer[0]!==verticalEntry.answer[row]))return null;
-      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/3),0);
-      return fillCapacity===18?{chosen,index,verticalEntry,across,fillCapacity}:null;
+      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||chosen.extras.length!==22)return null;
+      const top=chosen.top.map(i=>normalized[i]);
+      if(top.some(entry=>!entry)||top[0].answer.length!==11)return null;
+      return {chosen,index,top};
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,candidates};
   }
-  if(!candidates.length)throw new Error("Не найден шаблон для сканворда на 34 вопроса");
+  if(!candidates.length)throw new Error("Не найден шаблон сканворда с 12 вопросами в верхнем ряду");
   const selected=candidates[Math.floor(Math.random()*candidates.length)];
-  const {chosen,verticalEntry,across}=selected;
+  const {chosen,top}=selected;
   const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
   const addWord=(entry,dir,x,y,id)=>{
     if(!entry||usedSources.has(entry.answer))return false;
     const vertical=dir==="down";
+    if(!vertical&&x+entry.answer.length>=13)return false;
+    if(vertical&&y+entry.answer.length>=13)return false;
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x+1]:[y,x+1+k]);
-    if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
     const clueKey=y+","+x;
     if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
     for(let k=0;k<cells.length;k++){
@@ -587,51 +586,22 @@ function buildScanword(entries){
     words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
-  // Главный ответ всегда занимает 11 клеток вертикально; вопрос находится слева сверху.
-  addWord(verticalEntry,"down",0,0,"vertical");
-  const mainWord=words.find(w=>w.id==="vertical");
-  if(!mainWord||mainWord.cells.length!==11||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1)||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==0)
-    throw new Error("Главное слово из 11 букв не поместилось в левую часть сетки");
-  across.forEach((entry,row)=>addWord(entry,"across",0,row+1,"w"+(row+1)));
-
-  // All 1,695 entries share one shuffled pool: original vocabulary and the 500 new logic clues.
-  const available=normalized.filter(Boolean);
-  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-  const topTaken=new Set();
-  const topAnswers=["Я","ЮГ","ЯК","ЩИ"];
-  const topStarts=[1,3,6,9],topMaxLengths=[1,2,2,2];
-  const takeTop=(answer,slot)=>{
-    const fits=entry=>entry&&!usedSources.has(entry.answer)&&!topTaken.has(entry.answer)&&entry.answer.length<=topMaxLengths[slot];
-    // Prefer the four intended logic clues. Older cached dictionaries may lack
-    // the logic flag, so exact answers remain eligible when their clue exists.
-    let index=available.findIndex(entry=>fits(entry)&&entry.answer===answer);
-    if(index<0)index=available.findIndex(entry=>fits(entry)&&entry.logic&&entry.answer.length<=2);
-    // Last-resort compatibility with an older local dictionary: use any
-    // distinct short answer rather than blocking the whole game at startup.
-    if(index<0)index=available.findIndex(entry=>fits(entry)&&entry.answer.length<=2);
-    if(index<0)return null;
-    const entry=available.splice(index,1)[0];
-    topTaken.add(entry.answer);
-    return entry;
-  };
-  const topEntries=topAnswers.map((answer,index)=>takeTop(answer,index));
-  if(topEntries.some(entry=>!entry))throw new Error("В словаре недостаточно четырёх коротких вопросов для верхнего ряда. Обнови данные игры.");
-  topEntries.forEach((entry,index)=>{
-    if(!addWord(entry,"across",topStarts[index],0,"top-"+index))throw new Error("Не удалось заполнить верхнюю строку: конфликт клеток");
+  // Все 12 клетки верхнего ряда — вопросы. Их ответы идут вниз.
+  top.forEach((entry,x)=>{
+    if(!addWord(entry,"down",x,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
   });
-
-  // The generated template already contains 18 prevalidated, distinct
-  // filler clues with exact coordinates. Use them as authored instead of
-  // rebuilding a random row layout at runtime.
-  if(!Array.isArray(chosen.extras)||chosen.extras.length!==18)throw new Error("Шаблон повреждён: ожидалось 18 дополнительных вопросов");
+  const mainWord=words[0];
+  if(!mainWord||mainWord.answer.length!==11||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==0||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
+    throw new Error("Вопрос на 11 букв должен стоять слева от своего вертикального ответа");
   chosen.extras.forEach((extra,index)=>{
     const entry=normalized[extra.index];
     if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
   if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
-  if(occupied.size+clueKeys.size!==133)throw new Error("Неверная заполненность сетки: "+(occupied.size+clueKeys.size)+" из 133 рабочих клеток");
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
+  if(clueKeys.size!==34||Array.from({length:12},(_,x)=>clueKeys.has("0,"+x)).some(v=>!v))
+    throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
