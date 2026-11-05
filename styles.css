@@ -244,3 +244,6 @@ html[data-qq-theme="white"] .scanword-board>.scan-cell .cell-letter{color:#28232
 .friend-pick input{width:20px;height:20px;accent-color:var(--qq-theme-accent,#a899b8)}
 .friend-pick .avatar{flex:0 0 38px;width:38px;height:38px}
 .nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+
+.friend-pick{cursor:pointer}
+.friend-pick:has(input:checked){border-color:var(--qq-theme-accent,#a899b8);box-shadow:0 0 0 1px var(--qq-theme-accent,#a899b8)}
