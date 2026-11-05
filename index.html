@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08060f">
 <meta name="description" content="QQcross — играй в сканворды">
 <link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="./styles.css?v=20261105-clean-engine-2">
+<link rel="stylesheet" href="./styles.css?v=20261105-loader-timeout-fix">
 <title>QQcross</title>
 </head>
 <body>
@@ -20,44 +20,53 @@
   }
   window.addEventListener("error",function(e){showBootError(e.message+" ("+(e.filename||"")+(e.lineno?":"+e.lineno:"")+")")});
   window.addEventListener("unhandledrejection",function(e){var r=e.reason;showBootError(r&&r.message?r.message:String(r||"Ошибка запуска"))});
-  setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},8000);
+  setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},15000);
 })();
 </script>
-<script type="module">
-(async function(){
-  var appVersion="20261105-clean-engine-2";
+<script>
+(function(){
+  var urls=[
+    "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
+    "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
+  ];
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v="+appVersion;
+    app.src="./app.js?v=20261105-loader-timeout-fix";
     app.dataset.qqApp="true";
+    app.onload=function(){};
+    app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
     document.body.appendChild(app);
   }
-  function loadUmd(index){
-    var urls=[
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
-      "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
-    ];
+  function load(index){
     if(index>=urls.length){
       window.QQ_SUPABASE_LOAD_ERROR=true;
       startApp();
       return;
     }
     var script=document.createElement("script");
+    var settled=false;
+    var timeout=setTimeout(function(){
+      if(settled)return;
+      settled=true;
+      script.remove();
+      load(index+1);
+    },3500);
     script.src=urls[index];
     script.onload=function(){
+      if(settled)return;
+      settled=true;clearTimeout(timeout);
       if(window.supabase&&typeof window.supabase.createClient==="function")startApp();
-      else loadUmd(index+1);
+      else load(index+1);
     };
-    script.onerror=function(){loadUmd(index+1)};
+    script.onerror=function(){
+      if(settled)return;
+      settled=true;clearTimeout(timeout);
+      load(index+1);
+    };
     document.head.appendChild(script);
   }
-  try{
-    var module=await import("https://esm.sh/@supabase/supabase-js@2");
-    if(typeof module.createClient!=="function")throw new Error("Supabase createClient export missing");
-    window.supabase={createClient:module.createClient};
-    startApp();
-  }catch(error){loadUmd(0)}
+  load(0);
 })();
 </script>
 </body>
