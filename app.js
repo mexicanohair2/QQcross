@@ -4,14 +4,14 @@ const $=s=>document.querySelector(s);
 const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
 const MATCHES_KEY="qqcross_local_matches_v1";
-const THEME_PRESETS={purple:"Тёмно-фиолетовый"};
+const THEME_PRESETS={gray:"Тёмно-серый",purple:"Тёмно-фиолетовый",burgundy:"Тёмно-бордовый"};
 let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return THEME_PRESETS[saved]?saved:"purple"}catch{return "purple"}})();
 function applyTheme(theme=activeTheme){
   activeTheme=THEME_PRESETS[theme]?theme:"purple";
   document.documentElement.dataset.qqTheme=activeTheme;
   try{localStorage.setItem(THEME_KEY,activeTheme)}catch{}
   const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.setAttribute("content",({purple:"#090610"})[activeTheme]||"#090610");
+  if(meta)meta.setAttribute("content",({gray:"#0b0d12",purple:"#090610",burgundy:"#10070d"})[activeTheme]||"#090610");
 }
 const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
@@ -182,7 +182,7 @@ async function watchSocialUpdates(){
 function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
 function profile(){return `<h2>Профиль</h2><div class="card row"><div class="avatar big">${AVATARS[state.profile.avatar]}</div><div><h3>${esc(state.profile.username)}</h3><span class="muted small">Игрок QQCross</span></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
 function settings(){
-  const themes=[["purple","Тёмно-фиолетовый","Единая тёмная палитра QQCross"]];
+  const themes=[["gray","Тёмно-серый","Графитовые оттенки"],["purple","Тёмно-фиолетовый","Глубокие фиолетовые оттенки"],["burgundy","Тёмно-бордовый","Тёмные винные оттенки"]];
   return `<h2>Настройки</h2>
     <section class="card settings-card">
       <span class="pill">Персонализация</span>
