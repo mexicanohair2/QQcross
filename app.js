@@ -617,7 +617,7 @@ function buildScanword(entries){
   };
   // Все 12 клетки верхнего ряда — вопросы. Их ответы идут вниз.
   top.forEach((entry,x)=>{
-    if(!addWord(entry,"down",x,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
+    if(!addWord(entry,"down",x+1,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
   });
   const mainWord=words[0];
   if(!mainWord||mainWord.answer.length!==11||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==1||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
