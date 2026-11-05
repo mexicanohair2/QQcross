@@ -403,7 +403,6 @@ function normalizeScanwordEntry(item){
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
-
   let normalized,byAnswer,candidates;
   if(scanwordCandidateCache&&scanwordCandidateCache.entries===entries&&scanwordCandidateCache.source===source){
     ({normalized,byAnswer,candidates}=scanwordCandidateCache);
@@ -411,77 +410,23 @@ function buildScanword(entries){
     normalized=entries.map(normalizeScanwordEntry);
     byAnswer=new Map();
     normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
-
-    // Index letters by position. This avoids scanning the full dictionary for
-    // every column of every one of the 1000 templates.
-    const byLength=Array.from({length:12},()=>[]);
-    const positionIndex=Array.from({length:12},()=>new Map());
-    for(const entry of byAnswer.values()){
-      const length=entry.answer.length;
-      if(length>11)continue;
-      byLength[length].push(entry);
-      for(let pos=0;pos<length;pos++){
-        const letter=entry.answer[pos];
-        let bucket=positionIndex[pos].get(letter);
-        if(!bucket){bucket=[];positionIndex[pos].set(letter,bucket)}
-        bucket.push(entry);
-      }
-    }
-
     candidates=source.puzzles.map((chosen,index)=>{
       const verticalEntry=normalized[chosen.vertical];
       if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
-      const existing=new Set([verticalEntry.answer,...across.map(entry=>entry.answer)]);
-      const derived=[];
-      for(let x=2;x<12;x++){
-        const options=[];
-        for(let length=2;length<=11;length++){
-          const constraints=[];
-          for(let row=0;row<length;row++){
-            const rowEntry=across[row];
-            if(rowEntry.answer.length>=x)constraints.push({pos:row,letter:rowEntry.answer[x-1]});
-          }
-          if(!constraints.length)continue;
-          const buckets=constraints.map(c=>positionIndex[c.pos].get(c.letter)||[]);
-          if(buckets.some(bucket=>!bucket.length))continue;
-          buckets.sort((a,b)=>a.length-b.length);
-          for(const entry of buckets[0]){
-            if(entry.answer.length!==length||existing.has(entry.answer))continue;
-            if(constraints.every(c=>entry.answer[c.pos]===c.letter))options.push(entry);
-          }
-        }
-        if(options.length)derived.push({x,options});
-      }
-      const topExtraXs=new Set((chosen.extras||[]).filter(e=>e.y===0&&e.dir==="down").map(e=>e.x));
-      const uniqueDerived=derived.filter(item=>!topExtraXs.has(item.x));
-      return {chosen,index,verticalEntry,across,derived:uniqueDerived,score:1+uniqueDerived.length+topExtraXs.size};
+      // Reserve enough trailing row space for 22 additional in-cell clues.
+      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((11-entry.answer.length)/2),0);
+      return fillCapacity>=22?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,byAnswer,candidates};
   }
-  if(!candidates.length)throw new Error("Не найден подходящий шаблон сканворда");
-  const bestScore=Math.max(...candidates.map(c=>c.score));
-  const pool=candidates.filter(c=>c.score===bestScore);
-  const selected=pool[Math.floor(Math.random()*pool.length)];
-  const {chosen,verticalEntry,across,derived}=selected;
-  const topColumns=[...derived].sort((a,b)=>{
-    const aMin=Math.min(...a.options.map(entry=>entry.answer.length));
-    const bMin=Math.min(...b.options.map(entry=>entry.answer.length));
-    return aMin-bMin||(Math.random()-.5);
-  }).slice(0,2);
-  const topWords=topColumns.map(({x,options})=>{
-    const minLength=Math.min(...options.map(entry=>entry.answer.length));
-    const compactOptions=options.filter(entry=>entry.answer.length<=Math.max(4,minLength));
-    const pool=compactOptions.length?compactOptions:options;
-    return {x,entry:pool[Math.floor(Math.random()*pool.length)]};
-  });
-
+  if(!candidates.length)throw new Error("Не найден шаблон для 34 вопросов");
+  const selected=candidates[Math.floor(Math.random()*candidates.length)];
+  const {chosen,verticalEntry,across}=selected;
   const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
-  const addWord=(entry,index,dir,x,y,id)=>{
-    if(!entry||!["across","down"].includes(dir))return false;
-    const sourceAnswer=entry.sourceAnswer||entry.answer;
-    if(usedSources.has(sourceAnswer))return false;
+  const addWord=(entry,dir,x,y,id)=>{
+    if(!entry||usedSources.has(entry.sourceAnswer||entry.answer))return false;
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
     if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
@@ -489,96 +434,48 @@ function buildScanword(entries){
     if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
     for(let k=0;k<cells.length;k++){
       const key=cells[k].join(",");
-      if(clueKeys.has(key))return false;
-      if(occupied.has(key)&&occupied.get(key)!==entry.answer[k])return false;
+      if(clueKeys.has(key)||(occupied.has(key)&&occupied.get(key)!==entry.answer[k]))return false;
     }
     cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
-    usedSources.add(sourceAnswer);
-    words.push({id,answer:entry.answer,sourceAnswer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
+    usedSources.add(entry.sourceAnswer||entry.answer);
+    words.push({id,answer:entry.answer,sourceAnswer:entry.sourceAnswer||entry.answer,clue:entry.clue,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
+  addWord(verticalEntry,"down",1,0,"vertical");
+  across.forEach((entry,row)=>addWord(entry,"across",0,row+1,"w"+(row+1)));
 
-  addWord(verticalEntry,chosen.vertical,"down",1,0,"vertical");
-  across.forEach((entry,row)=>addWord(entry,chosen.across[row],"across",0,row+1,"w"+(row+1)));
-  topWords.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
-
-  // Place template extras. Their original coordinates are only a fallback:
-  // the engine first searches for a legal crossing elsewhere on the board.
-  const extras=[...(chosen.extras||[])];
-  for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
-  extras.length=0;
-  const canPlace=(entry,dir,x,y,requireIntersection=true)=>{
-    const vertical=dir==="down";
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
-    if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return null;
-    const clueKey=y+","+x;
-    if(x<1||y<1||clueKeys.has(clueKey)||occupied.has(clueKey))return null;
-    let intersections=0;
-    for(let k=0;k<cells.length;k++){
-      const key=cells[k].join(",");
-      if(clueKeys.has(key))return null;
-      if(occupied.has(key)){if(occupied.get(key)!==entry.answer[k])return null;intersections++}
-    }
-    return intersections||!requireIntersection?{x,y,dir,intersections}:null;
-  };
-  extras.forEach((extra,i)=>{
-    if(words.length>=34)return;
-    const entry=normalizeScanwordEntry(entries[extra.index]);
-    if(!entry||usedSources.has(entry.answer))return;
-    const placements=[];
-    for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
-      for(let y=1;y<12;y++)for(let x=1;x<12;x++){
-        const placement=canPlace(entry,dir,x,y);
-        if(placement)placements.push(placement);
-      }
-    }
-    if(placements.length){
-      const placement=placements[Math.floor(Math.random()*placements.length)];
-      addWord(entry,extra.index,placement.dir,placement.x,placement.y,"extra"+i);
-    }else{
-      addWord(entry,extra.index,extra.dir,extra.x,extra.y,"extra"+i);
-    }
-  });
-
-  // Fill the remaining spaces. The search is exhaustive but bounded to one
-  // pass over the dictionary; it stops as soon as the board has 34 clues.
-  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length>=2&&entry.answer.length<=10&&!usedSources.has(entry.answer));
+  const fillerPool=[...byAnswer.values()].filter(entry=>!entry.emoji&&entry.answer.length>=2&&entry.answer.length<=12);
   for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
-  for(const sourceEntry of fillerPool){
-    if(words.length>=34)break;
-    const variants=[];
-    if(sourceEntry.emoji){
-      variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
-    }else{
-      const maxMissing=Math.min(4,sourceEntry.answer.length);
-      const missing=1+Math.floor(Math.random()*maxMissing);
-      const from=Math.floor(Math.random()*(sourceEntry.answer.length-missing+1));
-      variants.push({...sourceEntry,answer:sourceEntry.answer.slice(from,from+missing),clue:sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing),sourceAnswer:sourceEntry.answer,isMasked:true});
-      variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
-      if(Math.random()<.5)variants.reverse();
+  let fillerIndex=0;
+  const makeFragment=(length)=>{
+    while(fillerIndex<fillerPool.length){
+      const sourceEntry=fillerPool[fillerIndex++];
+      if(usedSources.has(sourceEntry.answer)||sourceEntry.answer.length<length)continue;
+      const from=Math.floor(Math.random()*(sourceEntry.answer.length-length+1));
+      const answer=sourceEntry.answer.slice(from,from+length);
+      const clue=sourceEntry.answer.slice(0,from)+"’".repeat(length)+sourceEntry.answer.slice(from+length);
+      return {answer,sourceAnswer:sourceEntry.answer,clue,emoji:false};
     }
-    for(const entry of variants){
-      const crossing=[],open=[];
-      for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
-        for(let y=1;y<12;y++)for(let x=1;x<12;x++){
-          const placement=canPlace(entry,dir,x,y,false);
-          if(!placement)continue;
-          if(placement.intersections)crossing.push(placement);
-          else if(open.length<2)open.push(placement);
-        }
-      }
-      const choices=crossing.length?crossing:open;
-      if(!choices.length)continue;
-      const placement=choices[Math.floor(Math.random()*choices.length)];
-      if(addWord(entry,-1,placement.dir,placement.x,placement.y,"fill-"+sourceEntry.answer))break;
+    return null;
+  };
+  // Use the guaranteed free strip at the right of each main row. Odd-width
+  // strips get one two-letter fragment; the rest are one-letter fragments.
+  for(let row=0;row<11&&words.length<34;row++){
+    let free=11-across[row].answer.length;
+    let x=across[row].answer.length+1;
+    if(free>=3&&free%2===1&&words.length<34){
+      const entry=makeFragment(2);
+      if(entry&&addWord(entry,"across",x,row+1,"fill-"+entry.sourceAnswer)){x+=3;free-=3}
+    }
+    while(free>=2&&words.length<34){
+      const entry=makeFragment(1);
+      if(!entry)break;
+      if(addWord(entry,"across",x,row+1,"fill-"+entry.sourceAnswer)){x+=2;free-=2}
+      else break;
     }
   }
-
-  const uniqueAnswers=new Set(words.map(word=>word.sourceAnswer||word.answer));
-  if(uniqueAnswers.size!==words.length)throw new Error("В сканворде обнаружены повторяющиеся исходные слова");
   if(words.length!==34)throw new Error("Не удалось собрать сканворд из 34 вопросов");
-  const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
 function makeRandomPuzzle(){
