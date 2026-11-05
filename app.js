@@ -623,7 +623,7 @@ function buildScanword(entries){
       for(const e of normalized){
         if(e.answer===first.answer||e.answer.length<3)continue;
         for(let p=0;p<Math.min(7,e.answer.length);p++){
-          if(e.answer[p]===letter)seedChoices.push({entry:e,x,y:firstY-p-1});
+          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N)seedChoices.push({entry:e,x,y:firstY-p-1});
         }
       }
     }
