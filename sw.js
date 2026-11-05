@@ -1,5 +1,5 @@
-const CACHE_NAME="qqcross-20261105-solo-start-fix";
-const CORE=["./","./index.html","./manifest.json","./styles.css?v=20261105-solo-start-fix","./app.js?v=20261105-solo-start-fix","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
+const CACHE_NAME="qqcross-20261105-clean-engine";
+const CORE=["./","./index.html","./manifest.json","./styles.css?v=20261105-clean-engine","./app.js?v=20261105-clean-engine","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("qqcross-")&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",event=>{
