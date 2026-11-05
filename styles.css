@@ -1511,3 +1511,13 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
   45%{background:linear-gradient(145deg,#48d895,#1c8055);box-shadow:0 0 0 5px rgba(83,235,160,.28);transform:scale(1.06)}
   100%{background:linear-gradient(145deg,#287653,#174b36);box-shadow:0 0 0 0 rgba(83,235,160,0);transform:scale(1)}
 }
+
+/* Temporary green pulse: cells return to their normal filled color afterwards. */
+.game-screen .scanword-board>.scan-cell.cell.word-complete-flash{
+  animation:qq-word-complete-pulse .8s ease-out both!important;
+}
+@keyframes qq-word-complete-pulse{
+  0%{background:linear-gradient(145deg,#42c987,#176b48)!important;border-color:#8af0b8!important;box-shadow:0 0 0 0 rgba(83,235,160,.8);transform:scale(1)}
+  45%{background:linear-gradient(145deg,#48d895,#1c8055)!important;border-color:#a2f6c7!important;box-shadow:0 0 0 5px rgba(83,235,160,.28);transform:scale(1.06)}
+  100%{background:linear-gradient(145deg,#76505e 0%,#553743 100%)!important;border-color:#b18b96!important;box-shadow:0 0 0 0 rgba(83,235,160,0);transform:scale(1)}
+}
