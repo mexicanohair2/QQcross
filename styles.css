@@ -1405,3 +1405,17 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
 .game-screen .scan-cell.scan-clue.scan-clue-emoji{padding:1px!important;gap:0!important;justify-content:center!important;background:linear-gradient(145deg,#51404a,#392d35)!important}
 .game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-arrow{display:none!important}
 .game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{font-size:clamp(17px,4.5vw,27px)!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important}
+
+
+/* Clue text must wrap naturally; remove decorative direction arrows. */
+.game-screen .scan-cell .scan-arrow{display:none!important}
+.game-screen .scan-cell.scan-clue{padding:3px!important;gap:0!important;justify-content:center!important}
+.game-screen .scan-cell.scan-clue .scan-clue-text{
+  display:block!important;width:100%!important;max-height:100%!important;
+  white-space:normal!important;overflow:visible!important;overflow-wrap:anywhere!important;
+  word-break:normal!important;text-overflow:clip!important;-webkit-line-clamp:unset!important;
+  line-height:1.08!important;text-align:center!important;font-size:clamp(7px,2.1vw,12px)!important;
+}
+.game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  font-size:clamp(16px,4.4vw,25px)!important;white-space:nowrap!important;
+}
