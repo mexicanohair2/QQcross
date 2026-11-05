@@ -235,7 +235,7 @@ function puzzleSnapshot(){
 }
 function serializeOnlineState(){
  return {filled:{...state.filled},owners:{...state.owners},feedback:{...state.feedback},hints:{...state.hints},completed:[...(state.completed||[])],
- scores:state.scores,playerScores:[...(state.playerScores||[])],turn:state.turn,round:state.round,seconds:60,
+ scores:state.scores,playerScores:[...(state.playerScores||[])],turn:state.turn,round:state.round,seconds:Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000)),turnDeadlineAt:state.turnDeadlineAt||Date.now()+((state.round||1)<=1?90000:60000),
  rackNeedsRefill:[...(state.rackNeedsRefill||[])],playerRacks:(state.playerRacks||[]).map(r=>[...r]),
  pendingMoves:(state.pendingMoves||[]).map(m=>({...m})),returning:{...(state.returning||{})},letterBag:[...letterBag]};
 }
@@ -266,7 +266,7 @@ async function startOnlineMatch(){
   const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
-  state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=60;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
+  state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
   const {data:version,error:initError}=await supabaseClient.rpc("init_qqcross_match_state",{target_match_id:state.onlineMatchId,initial_state:serializeOnlineState()});if(initError)throw initError;
   state.onlineVersion=version;clearInterval(partyRefreshTimer);state.pendingMatchId=null;state.screen="game";subscribeOnlineMatch(state.onlineMatchId);pushGameHistoryEntry();render();
  }catch(e){toast(e.message||"Не удалось начать партию");if(b){b.disabled=false;b.textContent="Начать партию"}}
@@ -310,7 +310,7 @@ function applyOnlineMatch(m){
  state.onlineMatchId=m.match_id;state.matchId=m.match_id;state.onlinePlayers=m.players||[];state.onlineVersion=m.state_version;state.partySize=state.onlinePlayers.length;
  state.turn=Math.max(0,state.onlinePlayers.findIndex(p=>p.id===m.current_turn_user_id));
  Object.assign(state,{screen:"game",filled:{...(g.filled||{})},owners:{...(g.owners||{})},feedback:{...(g.feedback||{})},hints:{...(g.hints||{})},
- completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:(m.players||[]).map(p=>Number(p.score)||0),round:g.round||1,seconds:60,
+ completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:(m.players||[]).map(p=>Number(p.score)||0),round:g.round||1,seconds:Math.max(0,Math.ceil(((g.turnDeadlineAt||Date.now()+((g.round||1)<=1?90000:60000))-Date.now())/1000)),turnDeadlineAt:g.turnDeadlineAt||Date.now()+((g.round||1)<=1?90000:60000),
  rackNeedsRefill:[...(g.rackNeedsRefill||[])],playerRacks:(g.playerRacks||[]).map(x=>[...x]),pendingMoves:(g.pendingMoves||[]).map(x=>({...x})),returning:{...(g.returning||{})},rewardSubmitted:false});
  state.letters=state.playerRacks[state.turn]||[];subscribeOnlineMatch(state.onlineMatchId);if(!alreadyInThisMatch)pushGameHistoryEntry();render();
  if(m.status==="finished")awardOnlineResult();
@@ -330,7 +330,8 @@ async function awardOnlineResult(){
 }
 async function saveOnlineTurn(pointsEarned,finished){
  const nextTurn=finished?state.turn:(state.turn+1)%state.partySize,nextUser=finished?null:state.onlinePlayers[nextTurn]?.id;
- state.turn=nextTurn;state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn]||[];
+ if(!finished&&nextTurn===0)state.round=(state.round||1)+1;
+ state.turn=nextTurn;state.seconds=(state.round||1)<=1?90:60;state.turnDeadlineAt=Date.now()+state.seconds*1000;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn]||[];
  try{const nextState=serializeOnlineState();nextState.feedback={};const {data,error}=await supabaseClient.rpc("submit_qqcross_match_turn",{target_match_id:state.onlineMatchId,expected_version:state.onlineVersion,next_state:nextState,points_earned:pointsEarned,next_user_id:nextUser,is_finished:finished});if(error)throw error;
   state.onlineVersion=data.state_version;if(finished){state.screen="";await awardOnlineResult()}else renderGame($("#app"));
  }catch(e){toast(e.message||"Не удалось сохранить ход");await refreshOnlineMatch(true)}
@@ -384,7 +385,7 @@ async function finishTurn(root,timeout=false){
   if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},520)}return}
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
-  state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
+  state.seconds=(state.round||1)<=1?90:60;state.turnDeadlineAt=Date.now()+state.seconds*1000;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
   if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},520)}
 
 }
@@ -665,7 +666,7 @@ async function begin(size=1){
     }
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
-    state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
+    state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
   }catch(error){
@@ -795,7 +796,7 @@ function renderGame(root){
   };
   $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
-  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
+  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
 }
 
 
