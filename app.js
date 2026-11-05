@@ -426,7 +426,7 @@ function buildScanword(entries){
   }
   if(!candidates.length)throw new Error("Не найден шаблон для сканворда на 34 вопроса");
   const selected=candidates[Math.floor(Math.random()*candidates.length)];
-  const {verticalEntry,across}=selected;
+  const {chosen,verticalEntry,across}=selected;
   const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
   const addWord=(entry,dir,x,y,id)=>{
     if(!entry||usedSources.has(entry.answer))return false;
@@ -474,27 +474,14 @@ function buildScanword(entries){
     if(!addWord(entry,"across",topStarts[index],0,"top-"+index))throw new Error("Не удалось заполнить верхнюю строку: конфликт клеток");
   });
 
-  // Fill the remaining 18 clue slots from the complete mixed dictionary.
-  // Every answer is a whole word; no chopped fragments are generated.
-  const takeExact=(length)=>{
-    const index=available.findIndex(entry=>entry.answer.length===length&&!usedSources.has(entry.answer));
-    if(index<0)return null;
-    return available.splice(index,1)[0];
-  };
-  const rowFills=across.map(entry=>({free:10-entry.answer.length,count:Math.floor((10-entry.answer.length)/3)}));
-  if(rowFills.reduce((sum,row)=>sum+row.count,0)!==18)throw new Error("Шаблон не вмещает ровно 18 дополнительных вопросов");
-  rowFills.forEach((row,index)=>{
-    if(!row.count)return;
-    const lengths=Array(row.count).fill(2);
-    let spare=row.free-row.count*3;
-    lengths[lengths.length-1]+=spare;
-    let x=across[index].answer.length+2;
-    lengths.forEach((answerLength,n)=>{
-      const entry=takeExact(answerLength);
-      if(!entry||!addWord(entry,"across",x,index+1,"extra-"+index+"-"+n))
-        throw new Error("В общем словаре не найдено целое слово длиной "+answerLength);
-      x+=answerLength+1;
-    });
+  // The generated template already contains 18 prevalidated, distinct
+  // filler clues with exact coordinates. Use them as authored instead of
+  // rebuilding a random row layout at runtime.
+  if(!Array.isArray(chosen.extras)||chosen.extras.length!==18)throw new Error("Шаблон повреждён: ожидалось 18 дополнительных вопросов");
+  chosen.extras.forEach((extra,index)=>{
+    const entry=normalized[extra.index];
+    if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
+      throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
   if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
   if(occupied.size+clueKeys.size!==133)throw new Error("Неверная заполненность сетки: "+(occupied.size+clueKeys.size)+" из 133 рабочих клеток");
