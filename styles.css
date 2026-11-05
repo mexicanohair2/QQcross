@@ -1640,3 +1640,29 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji .scan-clue-text{
   font-size:clamp(15px,4vw,23px)!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important;
 }
+
+
+/* Final sizing: the 12x12 scanword occupies 85% of the available screen area. */
+.game-screen>.board-wrap.scanword-wrap{
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+  max-width:100%!important;max-height:100%!important;overflow:hidden!important;
+  padding:0!important;box-sizing:border-box!important;touch-action:pan-y!important;
+}
+.game-screen .board-wrap.scanword-wrap .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+  width:min(85vw,85dvh)!important;height:min(85vw,85dvh)!important;
+  min-width:0!important;min-height:0!important;max-width:85vw!important;max-height:85dvh!important;
+  aspect-ratio:1/1!important;gap:2px!important;margin:auto!important;padding:0!important;
+  box-sizing:border-box!important;transform:none!important;
+}
+.game-screen .board-wrap.scanword-wrap .scanword-board>.scan-cell.scan-grid-cell{
+  display:flex!important;flex:none!important;width:auto!important;height:auto!important;
+  min-width:0!important;min-height:0!important;max-width:none!important;max-height:none!important;
+  aspect-ratio:1/1!important;margin:0!important;padding:2px!important;box-sizing:border-box!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue .scan-clue-text{
+  font-size:clamp(6px,2.2vw,11px)!important;line-height:1.05!important;
+}
