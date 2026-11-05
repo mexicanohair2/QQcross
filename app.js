@@ -540,8 +540,8 @@ function buildScanword(entries){
     }
   });
 
-  // Fill to exactly 34 questions using a bounded number of placement checks.
-  // The previous 80-pass exhaustive search could freeze phones for tens of seconds.
+  // Fill the remaining spaces. The search is exhaustive but bounded to one
+  // pass over the dictionary; it stops as soon as the board has 34 clues.
   const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length>=2&&entry.answer.length<=10&&!usedSources.has(entry.answer));
   for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
   for(const sourceEntry of fillerPool){
@@ -553,24 +553,19 @@ function buildScanword(entries){
       const maxMissing=Math.min(4,sourceEntry.answer.length);
       const missing=1+Math.floor(Math.random()*maxMissing);
       const from=Math.floor(Math.random()*(sourceEntry.answer.length-missing+1));
-      variants.push({
-        ...sourceEntry,
-        answer:sourceEntry.answer.slice(from,from+missing),
-        clue:sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing),
-        sourceAnswer:sourceEntry.answer,isMasked:true
-      });
+      variants.push({...sourceEntry,answer:sourceEntry.answer.slice(from,from+missing),clue:sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing),sourceAnswer:sourceEntry.answer,isMasked:true});
       variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
       if(Math.random()<.5)variants.reverse();
     }
     for(const entry of variants){
       const crossing=[],open=[];
-      for(let attempt=0;attempt<24;attempt++){
-        const dir=Math.random()<.5?"across":"down";
-        const x=1+Math.floor(Math.random()*10),y=1+Math.floor(Math.random()*10);
-        const placement=canPlace(entry,dir,x,y,false);
-        if(!placement)continue;
-        if(placement.intersections)crossing.push(placement);else open.push(placement);
-        if(crossing.length>=3)break;
+      for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
+        for(let y=1;y<12;y++)for(let x=1;x<12;x++){
+          const placement=canPlace(entry,dir,x,y,false);
+          if(!placement)continue;
+          if(placement.intersections)crossing.push(placement);
+          else if(open.length<2)open.push(placement);
+        }
       }
       const choices=crossing.length?crossing:open;
       if(!choices.length)continue;
