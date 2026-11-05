@@ -599,9 +599,9 @@ function buildScanword(entries){
   const addWord=(entry,dir,x,y,id)=>{
     if(!entry||usedSources.has(entry.answer))return false;
     const vertical=dir==="down";
+    const isTop=id.startsWith("top-");
     if(!vertical&&x+entry.answer.length>=13)return false;
     if(vertical&&(y+entry.answer.length>=13||(!isTop&&x>=12)))return false;
-    const isTop=id.startsWith("top-");
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,isTop?x:x+1]:[y,x+1+k]);
     const clueKey=y+","+x;
     if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
