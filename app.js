@@ -178,7 +178,7 @@ function settings(){
     </section>
     `;
 }
-function wireContent(){const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>toast("Одиночный сканворд подключим после загрузки словаря.");const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
+function wireContent(){const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){
   root.innerHTML=`<div class="screen">
     <div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div>
@@ -485,6 +485,136 @@ async function initAuth(){
   }
   if(timedOut)authTask.then(()=>render()).catch(()=>{});
 }
+
+/* ===== Scanword engine v1: dictionary-driven layout ===== */
+function getScanwordDictionary(){
+  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return window.QQCROSS_DICTIONARY;
+  try{
+    const saved=JSON.parse(localStorage.getItem("qqcross_dictionary_v1")||"[]");
+    return Array.isArray(saved)?saved:[];
+  }catch{return []}
+}
+function normalizeScanwordEntry(item){
+  if(!item||typeof item!=="object")return null;
+  const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
+  const clue=String(item.emoji||item.flag||item.clue||item.question||"").trim();
+  if(answer.length<2||answer.length>12||!clue)return null;
+  return {answer,clue,emoji:/\p{Extended_Pictographic}/u.test(clue)};
+}
+function buildScanword(entries){
+  const W=8,H=12,grid=Array.from({length:H},()=>Array(W).fill(null)),placed=[];
+  const candidates=entries.map(normalizeScanwordEntry).filter(Boolean);
+  for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
+  function tryPlace(entry,x,y,dir,first=false){
+    const dx=dir==="across"?1:0,dy=dir==="down"?1:0;
+    const ex=x+dx*(entry.answer.length-1),ey=y+dy*(entry.answer.length-1);
+    const cx=x-dx,cy=y-dy;
+    if(x<0||y<0||ex>=W||ey>=H||cx<0||cy<0)return false;
+    if(grid[cy][cx]!==null)return false;
+    let crossings=0;
+    for(let k=0;k<entry.answer.length;k++){
+      const px=x+dx*k,py=y+dy*k,old=grid[py][px],letter=entry.answer[k];
+      if(old!==null&&old!==letter)return false;
+      if(old===letter)crossings++;
+      const before=dir==="across"?grid[py-1]?.[px]:grid[py]?.[px-1];
+      const after=dir==="across"?grid[py+1]?.[px]:grid[py]?.[px+1];
+      if(old===null&&(before!==null&&before!==undefined||after!==null&&after!==undefined))return false;
+    }
+    if(!first&&!crossings)return false;
+    for(let k=0;k<entry.answer.length;k++)grid[y+dy*k][x+dx*k]=entry.answer[k];
+    placed.push({id:"w"+placed.length,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells:Array.from({length:entry.answer.length},(_,k)=>[y+dy*k,x+dx*k]),clueCell:[cy,cx],arrow:dir==="across"?"➡️":"⬇️"});
+    return true;
+  }
+  if(!candidates.length)return null;
+  const first=candidates.shift();
+  if(!tryPlace(first,1,Math.max(0,Math.floor((H-first.answer.length)/2)), "across",true))return null;
+  for(const entry of candidates){
+    let options=[];
+    for(const word of placed)for(let a=0;a<word.answer.length;a++)for(let b=0;b<entry.answer.length;b++){
+      if(word.answer[a]!==entry.answer[b])continue;
+      const [wy,wx]=word.cells[a];
+      const dir=word.dir==="across"?"down":"across";
+      const x=dir==="across"?wx-b:wx,y=dir==="down"?wy-b:wy;
+      options.push({x,y,dir});
+    }
+    for(let n=options.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[options[n],options[j]]=[options[j],options[n]]}
+    let done=false;
+    for(const o of options){if(tryPlace(entry,o.x,o.y,o.dir)){done=true;break}}
+    if(!done)continue;
+  }
+  if(placed.length<1)return null;
+  const used=new Set();placed.forEach(w=>w.cells.forEach(c=>used.add(c.join(","))));
+  const clueKeys=new Set(placed.map(w=>w.clueCell.join(",")));
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words:placed,used,clueKeys};
+}
+function makeRandomPuzzle(){
+  Object.keys(expected).forEach(k=>delete expected[k]);
+  const built=buildScanword(getScanwordDictionary());
+  if(!built){puzzle=null;letterBag=[];return false}
+  puzzle=built;
+  puzzle.words.forEach(w=>w.cells.forEach((c,i)=>expected[c.join(",")]=w.answer[i]));
+  letterBag=puzzle.words.flatMap(w=>w.answer.split(""));
+  for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
+  return true;
+}
+function loadPuzzle(){return makeRandomPuzzle()}
+function begin(size=1){
+  if(!loadPuzzle()){toast("Словарь ещё не загружен. Как только добавим слова и подсказки, сканворд станет доступен.");return}
+  state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
+  state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
+  state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));
+  state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.pendingMoves=[];render();
+}
+function renderGame(root){
+  clearInterval(state.interval);
+  if(!puzzle||!puzzle.words.length){state.screen="";render();toast("Словарь ещё не загружен.");return}
+  if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
+  if(state.rackNeedsRefill?.[state.turn]){refillRack(state.turn);state.rackNeedsRefill[state.turn]=false}
+  state.letters=state.playerRacks[state.turn]||[];
+  state.pendingMoves=state.pendingMoves||[];
+  const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
+  const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
+  const cells=[];
+  for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
+    const key=y+","+x,word=clueAt.get(key);
+    if(word){
+      const clue=word.clue;
+      cells.push('<div class="scan-cell scan-grid-cell scan-clue" title="'+esc(clue)+'"><span class="scan-arrow">'+word.arrow+'</span><span class="scan-clue-text">'+esc(clue)+'</span></div>');
+    }else if(expected[key]!==undefined){
+      const value=state.filled[key]||pending[key]||"";
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
+      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
+    }else cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
+  }
+  const names=Array.from({length:state.partySize},(_,i)=>i===0?"Ты":"Игрок "+(i+1));
+  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button></div>'+
+    '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
+    '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
+  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{state.selectedLetter=Number(b.dataset.letter);root.querySelectorAll("[data-letter]").forEach(x=>x.classList.toggle("selected",x===b))});
+  root.querySelectorAll("[data-cell]").forEach(cell=>cell.onclick=()=>{
+    const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
+    if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return}
+    if(state.selectedLetter<0){toast("Сначала выбери букву снизу");return}
+    const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
+  });
+  $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
+  $("#endturn").onclick=()=>finishTurn(root);
+  $("#magnifier").onclick=()=>{
+    if(!useItem("magnifier"))return;
+    const word=puzzle.words.find(w=>w.cells.some(c=>!state.filled[c.join(",")]));
+    const cell=word&&word.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));
+    if(!cell){toast("Нет пустых клеток для подсказки");return}
+    const key=cell.join(","),needed=expected[key],ix=state.letters.indexOf(needed);
+    if(ix<0){toast("Нужная буква сейчас не выпала. Попробуй позже");return}
+    state.letters.splice(ix,1);state.pendingMoves.push({k:key,l:needed});state.playerRacks[state.turn]=state.letters;renderGame(root);
+  };
+  $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
+  $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
+  state.interval=setInterval(()=>{state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
+}
+
 if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
 applyTheme(activeTheme);
 initAuth();
