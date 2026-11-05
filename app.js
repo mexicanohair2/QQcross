@@ -404,7 +404,7 @@ function normalizeScanwordEntry(item){
   const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   if(answer.length<2||answer.length>12||!clue)return null;
-  return {answer,clue,emoji:/[\\u{1F1E6}-\\u{1F1FF}\\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
