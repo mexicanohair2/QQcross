@@ -497,7 +497,7 @@ function getScanwordDictionary(){
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const clue=String(item.emoji||item.flag||item.clue||item.question||"").trim();
+  const clue=String(item.emoji||item.flag||item.clueShort||item.clue||item.question||"").trim();
   if(answer.length<2||answer.length>12||!clue)return null;
   return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
 }
