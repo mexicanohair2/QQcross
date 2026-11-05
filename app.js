@@ -354,7 +354,7 @@ function pictureUrl(emoji){
 }
 function placeAtCell(k,letterIndex,root){
   if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
-  if(state.loupeActive){if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");return}
+  if(state.loupeActive){toast("Нажми на клетку, чтобы открыть букву");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
   state.pendingMoves.push({k,l:letter});delete state.feedback[k];
@@ -703,9 +703,9 @@ function renderGame(root){
       const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
     }else if(expected[key]!==undefined){
-      const value=state.filled[key]||pending[key]||"";
+      const value=state.filled[key]||pending[key]||state.hints?.[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.hints?.[key]?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"><span>✦</span></div>');
   }
@@ -780,19 +780,25 @@ function renderGame(root){
       if(activeDrag)return;
       const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
       if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      if(state.loupeActive){
+        if(state.hints?.[key]){toast("Эта буква уже открыта");return}
+        if(!useItem("magnifier")){state.loupeActive=false;return}
+        state.hints=state.hints||{};state.hints[key]=expected[key];state.loupeActive=false;
+        renderGame(root);toast("Буква открыта");return;
+      }
       if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };
   });
     $("#endturn").onclick=()=>finishTurn(root);
   $("#magnifier").onclick=()=>{
-    if(!useItem("magnifier"))return;
-    const word=puzzle.words.find(w=>w.cells.some(c=>!state.filled[c.join(",")]));
-    const cell=word&&word.cells.find(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(",")));
-    if(!cell){toast("Нет пустых клеток для подсказки");return}
-    const key=cell.join(","),needed=expected[key],ix=state.letters.indexOf(needed);
-    if(ix<0){toast("Нужная буква сейчас не выпала. Попробуй позже");return}
-    state.letters.splice(ix,1);state.pendingMoves.push({k:key,l:needed});state.playerRacks[state.turn]=state.letters;renderGame(root);
+    if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
+    if(state.profile.items.magnifier<=0){toast("Лупы закончились — загляни в магазин");return}
+    const hasTarget=puzzle.words.some(w=>w.cells.some(c=>!state.filled[c.join(",")]&&!state.pendingMoves.some(m=>m.k===c.join(","))&&!state.hints?.[c.join(",")]));
+    if(!hasTarget){toast("Все доступные буквы уже открыты");return}
+    state.loupeActive=!state.loupeActive;
+    toast(state.loupeActive?"Нажми на любую пустую клетку с буквой":"Выбор клетки отменён");
+    root.querySelector("#magnifier")?.classList.toggle("active",state.loupeActive);
   };
   $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
