@@ -618,23 +618,14 @@ function getScanwordDictionary(){
   }catch{return []}
 }
 function compactScanwordClue(value){
-  const raw=String(value||"").replace(/\s+/g," ").trim();
-  if(!raw||/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(raw))return raw;
-  // A clue tile is only one scanword cell: keep the label short and let CSS wrap it neatly.
-  const words=raw.split(" ");let short="";
-  for(const word of words){
-    const next=short?short+" "+word:word;
-    if(next.length>14)break;
-    short=next;
-  }
-  if(short)return short;
-  const first=words[0]||raw;
-  return first.length>13?first.slice(0,12)+"…":first;
+  // Never cut a clue mid-phrase: preserving its meaning is more important than
+  // forcing it into one line. The clue tile wraps the complete text.
+  return String(value||"").replace(/\s+/g," ").trim();
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const rawClue=String(item.emoji||item.flag||item.clueShort||item.clue||item.question||"").trim();
+  const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   if(answer.length<2||answer.length>12||!clue)return null;
   return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
@@ -738,6 +729,7 @@ function buildScanword(entries){
     return intersections||!requireIntersection?{x,y,dir,intersections}:null;
   };
   extras.forEach((extra,i)=>{
+    if(words.length>=35)return;
     const entry=normalizeScanwordEntry(entries[extra.index]);
     if(!entry||words.some(word=>word.answer===entry.answer))return;
     const placements=[];
@@ -757,12 +749,10 @@ function buildScanword(entries){
 
   // Top up the center with short, valid dictionary entries when a template
   // leaves too many empty areas. Every placement is checked against crossings.
-  const targetCenterClues=8;
   const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length<=6);
   for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
   for(const entry of fillerPool){
-    const centerCount=words.filter(word=>word.clueCell[0]>0&&word.clueCell[1]>0).length;
-    if(centerCount>=targetCenterClues)break;
+    if(words.length>=35)break;
     if(words.some(word=>word.answer===entry.answer))continue;
     const crossing=[],open=[];
     for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
@@ -777,6 +767,9 @@ function buildScanword(entries){
     addWord(entry,-1,placement.dir,placement.x,placement.y,"random-"+entry.answer);
   }
 
+  if(words.length!==35)throw new Error("Не удалось собрать сканворд ровно из 35 вопросов (получено: "+words.length+")");
+  const uniqueAnswers=new Set(words.map(word=>word.answer));
+  if(uniqueAnswers.size!==35)throw new Error("В сканворде обнаружены повторяющиеся ответы");
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
