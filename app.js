@@ -689,13 +689,42 @@ function buildScanword(entries){
   // Add top-edge questions only where existing crossing letters form a real dictionary word.
   derived.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
 
-  // Center clues come from a random template and are shuffled for each new game.
+  // Center clues are re-positioned randomly on every new board.
   const extras=[...(chosen.extras||[])];
   for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
+  const canPlace=(entry,dir,x,y)=>{
+    const vertical=dir==="down";
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
+    if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return null;
+    const clueKey=y+","+x;
+    if(x<1||y<1||clueKeys.has(clueKey)||occupied.has(clueKey))return null;
+    let intersections=0;
+    for(let k=0;k<cells.length;k++){
+      const key=cells[k].join(",");
+      if(clueKeys.has(key))return null;
+      if(occupied.has(key)){
+        if(occupied.get(key)!==entry.answer[k])return null;
+        intersections++;
+      }
+    }
+    return intersections?{x,y,dir,intersections}:null;
+  };
   extras.forEach((extra,i)=>{
     const entry=normalizeScanwordEntry(entries[extra.index]);
-    if(!entry)return;
-    addWord(entry,extra.index,extra.dir,extra.x,extra.y,"extra"+i);
+    if(!entry||words.some(word=>word.answer===entry.answer))return;
+    const placements=[];
+    for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
+      for(let y=1;y<12;y++)for(let x=1;x<12;x++){
+        const placement=canPlace(entry,dir,x,y);
+        if(placement)placements.push(placement);
+      }
+    }
+    if(placements.length){
+      const placement=placements[Math.floor(Math.random()*placements.length)];
+      addWord(entry,extra.index,placement.dir,placement.x,placement.y,"extra"+i);
+    }else{
+      addWord(entry,extra.index,extra.dir,extra.x,extra.y,"extra"+i);
+    }
   });
 
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
