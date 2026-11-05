@@ -404,36 +404,33 @@ function normalizeScanwordEntry(item){
   const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   if(answer.length<2||answer.length>12||!clue)return null;
-  return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
+  return {answer,clue,emoji:/[\\u{1F1E6}-\\u{1F1FF}\\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
-  let normalized,byAnswer,candidates;
+  let normalized,candidates,logicPool;
   if(scanwordCandidateCache&&scanwordCandidateCache.entries===entries&&scanwordCandidateCache.source===source){
-    ({normalized,byAnswer,candidates}=scanwordCandidateCache);
+    ({normalized,candidates,logicPool}=scanwordCandidateCache);
   }else{
     normalized=entries.map(normalizeScanwordEntry);
-    byAnswer=new Map();
-    normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
+    logicPool=normalized.filter(entry=>entry&&entry.logic);
     candidates=source.puzzles.map((chosen,index)=>{
       const verticalEntry=normalized[chosen.vertical];
       if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
-      // Reserve enough trailing row space for 22 additional in-cell clues.
-      if(across.some(entry=>entry.answer.length===9))return null;
-      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/2),0);
+      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/3),0);
       return fillCapacity>=17?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
-    scanwordCandidateCache={entries,source,normalized,byAnswer,candidates};
+    scanwordCandidateCache={entries,source,normalized,candidates,logicPool};
   }
-  if(!candidates.length)throw new Error("Не найден шаблон для 34 вопросов");
+  if(!candidates.length)throw new Error("Не найден шаблон для полноценного сканворда");
   const selected=candidates[Math.floor(Math.random()*candidates.length)];
-  const {chosen,verticalEntry,across}=selected;
+  const {verticalEntry,across}=selected;
   const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
   const addWord=(entry,dir,x,y,id)=>{
-    if(!entry||usedSources.has(entry.sourceAnswer||entry.answer))return false;
+    if(!entry||usedSources.has(entry.answer))return false;
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
     if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
@@ -445,59 +442,49 @@ function buildScanword(entries){
     }
     cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
-    usedSources.add(entry.sourceAnswer||entry.answer);
-    words.push({id,answer:entry.answer,sourceAnswer:entry.sourceAnswer||entry.answer,clue:entry.clue,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
+    usedSources.add(entry.answer);
+    words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
   addWord(verticalEntry,"down",0,0,"vertical");
   across.forEach((entry,row)=>addWord(entry,"across",1,row+1,"w"+(row+1)));
 
-  const fillerPool=[...byAnswer.values()].filter(entry=>!entry.emoji&&entry.answer.length>=2&&entry.answer.length<=12);
-  for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
-  let fillerIndex=0;
-  const makeFragment=(length)=>{
-    while(fillerIndex<fillerPool.length){
-      const sourceEntry=fillerPool[fillerIndex++];
-      if(usedSources.has(sourceEntry.answer)||sourceEntry.answer.length<length)continue;
-      const from=Math.floor(Math.random()*(sourceEntry.answer.length-length+1));
-      const answer=sourceEntry.answer.slice(from,from+length);
-      const clue="Вставь буквы "+(from+1)+"–"+(from+length)+" слова «"+sourceEntry.answer+"»";
-      return {answer,sourceAnswer:sourceEntry.answer,clue,emoji:false};
-    }
-    return null;
+  const available=logicPool.slice();
+  for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
+  const takeLogic=(length)=>{
+    const index=available.findIndex(entry=>entry.answer.length===length&&!usedSources.has(entry.answer));
+    if(index<0)return null;
+    return available.splice(index,1)[0];
   };
-  // Fill every cell of the top row with scanword clues and their answer cells.
-  // Column 0 is the vertical clue; the remaining 11 cells form five short words.
-  for(const x of [1,3,5,7]){
-    const entry=makeFragment(1);
-    if(entry)addWord(entry,"across",x,0,"top-fill-"+x);
-  }
-  const topPair=makeFragment(2);
-  if(topPair)addWord(topPair,"across",9,0,"top-fill-9");
-  // Distribute exactly 17 filler clues across the remaining row space.
-  // Each row is partitioned into clue+answer groups, so every board cell is used.
+  // The top row contains two complete clues, with real answers of four and five letters.
+  const topA=takeLogic(4),topB=takeLogic(5);
+  if(!topA||!topB||!addWord(topA,"across",1,0,"logic-top-1")||!addWord(topB,"across",6,0,"logic-top-2"))
+    throw new Error("Не найдены логические вопросы для верхней строки");
+
+  // Use 17 full logic questions. Every answer is a complete word, never a sliced fragment.
   const rowFills=across.map(entry=>({free:10-entry.answer.length,count:0}));
-  rowFills.forEach(row=>{if(row.free>=2)row.count=1});
-  let extraClues=17-rowFills.reduce((sum,row)=>sum+row.count,0);
+  let extraClues=17;
   while(extraClues>0){
-    const eligible=rowFills.map((row,index)=>({row,index})).filter(({row})=>row.count<Math.floor(row.free/2));
-    if(!eligible.length)throw new Error("Не удалось распределить вопросы по всей сетке");
+    const eligible=rowFills.map((row,index)=>({row,index})).filter(({row})=>row.count<Math.floor(row.free/3));
+    if(!eligible.length)throw new Error("Не удалось распределить логические вопросы по сетке");
     const pick=eligible[Math.floor(Math.random()*eligible.length)];
     pick.row.count++;extraClues--;
   }
   rowFills.forEach((row,index)=>{
     if(!row.count)return;
     const lengths=Array(row.count).fill(2);
-    let spare=row.free-row.count*2;
-    while(spare>0){lengths[lengths.length-1]++;spare--}
+    let spare=row.free-row.count*3;
+    let part=0;
+    while(spare>0){lengths[part%lengths.length]++;part++;spare--}
     let x=across[index].answer.length+2;
-    lengths.forEach((cells,part)=>{
-      const entry=makeFragment(cells-1);
-      if(!entry||!addWord(entry,"across",x,index+1,"fill-"+index+"-"+part))throw new Error("Не удалось заполнить ряд сканворда");
-      x+=cells;
+    lengths.forEach((answerLength,n)=>{
+      const entry=takeLogic(answerLength);
+      if(!entry||!addWord(entry,"across",x,index+1,"logic-"+index+"-"+n))
+        throw new Error("Не найден полноценный логический ответ длиной "+answerLength);
+      x+=answerLength+1;
     });
   });
-  if(words.length!==34)throw new Error("Не удалось собрать сканворд из 34 вопросов");
+  if(words.length!==31)throw new Error("Ожидалось 31 полноценный вопрос, получено "+words.length);
   if(occupied.size+clueKeys.size!==144)throw new Error("В сетке сканворда остались пустые клетки");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
 }
