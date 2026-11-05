@@ -693,22 +693,25 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
+  const wordEnds=new Map();
+  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1];if(!last)return;const k=last.join(",");const dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs)});
   const cells=[];
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
-    const key=y+","+x,word=clueAt.get(key);
+    const key=y+","+x,word=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
     if(word){
       const clue=word.clue;
       const displayClue=word.isEmoji?clue:fitScanwordClue(word.clueShort||clue);
       const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"'+position+'><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
+      const endClass=(wordEnds.get(key)||[]).map(dir=>"answer-end-"+dir).join(" ");
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(endClass?" "+endClass:"");
       const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
-      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+letterMarkup+'</button>');
-    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"><span>✦</span></div>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове"'+position+'>'+letterMarkup+'</button>');
+    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'><span>✦</span></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -889,7 +892,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-connected34";
+      const version="20261106-gridrepair1";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
         fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
         fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
