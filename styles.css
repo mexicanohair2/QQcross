@@ -1666,3 +1666,9 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
 .game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue .scan-clue-text{
   font-size:clamp(6px,2.2vw,11px)!important;line-height:1.05!important;
 }
+
+
+/* Smaller scanword direction arrows. */
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue::after{
+  font-size:4px!important;right:2px!important;bottom:1px!important;opacity:.85!important;
+}
