@@ -10,7 +10,7 @@
 <title>QQcross</title>
 </head>
 <body>
-<div id="app"><div class="boot-splash"><div class="boot-logo">QQ</div></div></div>
+<div id="app"><div class="boot-splash"><div class="boot-logo">QQ</div><p>Загрузка игры…</p></div></div>
 <script>
 (function(){
   function showBootError(message){
@@ -23,7 +23,7 @@
   setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},8000);
 })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./app.js?v=20261105-solo-start-fix"></script>
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./app.js?v=20261105-load-fix"></script>
 </body>
 </html>
