@@ -10,6 +10,6 @@ self.addEventListener("fetch",event=>{
   return;
  }
  if(CORE.some(path=>new URL(path,self.location.href).href===url.href)||url.pathname.endsWith(".js")||url.pathname.endsWith(".css")){
-  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok){const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy))}return response}));
+  event.respondWith(caches.match(request).then(cached=>cached||fetch(request).then(response=>{if(response.ok){const copy=response.clone();caches.open(CACHE_NAME).then(cache=>cache.put(request,copy))}return response})));
  }
 });
