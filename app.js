@@ -484,18 +484,17 @@ function renderGame(root){
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-  const clueAt=new Map(puzzle.words.map(w=>[w.cells[0][0]+",0",w]));
+  const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
   const cells=[];
   for(let y=0;y<puzzle.h;y++){
     for(let x=0;x<puzzle.w;x++){
-      const key=y+","+x;
-      if(x===0&&clueAt.has(key)){
-        const w=clueAt.get(key);
-        cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
+      const key=y+","+x,clue=clueAt.get(key);
+      if(clue){
+        cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue.clue)+'" aria-label="Вопрос: '+esc(clue.clue)+'"><span class="scan-clue-text">'+esc(clue.clue)+'</span></button>');
       }else if(expected[key]!==undefined){
         const value=state.filled[key]||pending[key]||state.returning?.[key]||"";
         const cls=(state.filled[key]?"filled feedback-correct":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
-        cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
+        cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в сканворде">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
       }else{
         cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
       }
