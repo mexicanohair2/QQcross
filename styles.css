@@ -80,7 +80,7 @@ label{display:block;margin-top:10px}
 
 
 /* QQcross personalization: calm gradient themes */
-.nav{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+.nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
 .nav button{font-size:10px!important;white-space:nowrap!important}
 .theme-list{display:grid;gap:10px;margin-top:14px}
 .theme-choice{width:100%;display:grid;grid-template-columns:54px minmax(0,1fr) 24px;align-items:center;gap:12px;padding:11px;border:1px solid var(--qq-theme-border,#51475c);border-radius:14px;background:var(--qq-theme-card,linear-gradient(145deg,#30283a,#24202d));color:var(--qq-theme-text,#f1edf4);text-align:left}
@@ -225,3 +225,17 @@ body.qq-dragging,body.qq-dragging *{user-select:none!important;-webkit-user-sele
 body.qq-dragging{cursor:grabbing}
 .scanword-board>.scan-cell.cell.drop-hover{outline:2px solid #f7d9e5;outline-offset:-2px}
 @media(prefers-reduced-motion:reduce){.letter.letter-enter{animation:none}}
+
+/* Repair pass: scanword cells respect selected theme and navigation fits six tabs */
+html[data-qq-theme] .scanword-board>.scan-cell.cell{background:var(--qq-theme-cell)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.filled{background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.pending-cell{background:var(--qq-theme-pending)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.cell.wrong{background:linear-gradient(145deg,#8a4054,#542431)!important;border-color:#ff9aaa!important}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-clue{background:var(--qq-theme-clue)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-empty{background:var(--qq-theme-block)!important}
+html[data-qq-theme] .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(7px,1.15vw,12px);overflow-wrap:anywhere;word-break:normal}
+html[data-qq-theme="blue"]{--qq-theme-page:linear-gradient(155deg,#1b2d40,#111d2b 60%,#0b131d);--qq-theme-card:linear-gradient(145deg,#243a50,#192b3c);--qq-theme-panel:linear-gradient(145deg,#1e3449,#142638);--qq-theme-panel-strong:linear-gradient(135deg,#537b9e,#365b7c);--qq-theme-border:#38566f;--qq-theme-accent:#8db9dd;--qq-theme-text:#edf5fb;--qq-theme-muted:#b4c9d9;--qq-theme-cell:linear-gradient(145deg,#29445c,#1d3348);--qq-theme-block:linear-gradient(145deg,#101c28,#0b141e);--qq-theme-filled:linear-gradient(145deg,#426e83,#2d5368);--qq-theme-pending:linear-gradient(145deg,#3a5b7a,#29445e);--qq-theme-clue:linear-gradient(145deg,#355a78,#24445f);--qq-theme-chip:#20394e;--qq-theme-field:#101c28}
+html[data-qq-theme="green"]{--qq-theme-page:linear-gradient(155deg,#20372e,#14251e 60%,#0c1712);--qq-theme-card:linear-gradient(145deg,#2c473a,#1d3429);--qq-theme-panel:linear-gradient(145deg,#243e32,#172b22);--qq-theme-panel-strong:linear-gradient(135deg,#668a70,#41674c);--qq-theme-border:#3e6049;--qq-theme-accent:#a5c6a7;--qq-theme-text:#edf5ed;--qq-theme-muted:#b7cbb8;--qq-theme-cell:linear-gradient(145deg,#345343,#243c30);--qq-theme-block:linear-gradient(145deg,#142219,#0d1711);--qq-theme-filled:linear-gradient(145deg,#547e5b,#365a3d);--qq-theme-pending:linear-gradient(145deg,#45674c,#2e4935);--qq-theme-clue:linear-gradient(145deg,#466d50,#2e4d38);--qq-theme-chip:#284331;--qq-theme-field:#142219}
+html[data-qq-theme="white"]{--qq-theme-page:linear-gradient(155deg,#f5f3f2,#e7e6e4 60%,#dcdad8);--qq-theme-card:linear-gradient(145deg,#fff,#eeecea);--qq-theme-panel:linear-gradient(145deg,#f3f1ef,#e3e0dd);--qq-theme-panel-strong:linear-gradient(135deg,#8d7e79,#6e625e);--qq-theme-border:#c8c2bf;--qq-theme-accent:#75635d;--qq-theme-text:#282321;--qq-theme-muted:#655d59;--qq-theme-cell:linear-gradient(145deg,#fff,#e9e5e2);--qq-theme-block:linear-gradient(145deg,#d9d5d2,#cbc6c2);--qq-theme-filled:linear-gradient(145deg,#b4cbb9,#91ad98);--qq-theme-pending:linear-gradient(145deg,#d2bec4,#bca3aa);--qq-theme-clue:linear-gradient(145deg,#d8c7cc,#c2aab2);--qq-theme-chip:#e4dedb;--qq-theme-field:#fff}
+html[data-qq-theme="white"] .scanword-board>.scan-cell{color:#282321}
+html[data-qq-theme="white"] .scanword-board>.scan-cell .cell-letter{color:#282321}
