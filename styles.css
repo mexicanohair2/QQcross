@@ -1365,3 +1365,55 @@ html:has(.game-screen),body:has(.game-screen),body:has(.game-screen) #app{
   outline:2px solid #c5a7ff;
   outline-offset:2px;
 }
+
+
+/* QQcross theme extensions */
+html[data-qq-theme="burgundy"]{
+  --qq-theme-page:linear-gradient(155deg,#241016 0%,#190b11 58%,#10080c 100%);
+  --qq-theme-card:linear-gradient(145deg,#3b1724,#211018);
+  --qq-theme-panel:linear-gradient(145deg,#321521,#1d0e15);
+  --qq-theme-panel-strong:linear-gradient(135deg,#8d2948,#58172f);
+  --qq-theme-border:#663047;--qq-theme-accent:#c45b7b;--qq-theme-text:#fff1f5;--qq-theme-muted:#c9a8b4;
+}
+html[data-qq-theme="black"]{
+  --qq-theme-page:linear-gradient(155deg,#202124,#151618 60%,#101112);
+  --qq-theme-card:linear-gradient(145deg,#303236,#202225);
+  --qq-theme-panel:linear-gradient(145deg,#292b2f,#1c1e21);
+  --qq-theme-panel-strong:linear-gradient(135deg,#62666d,#41444a);
+  --qq-theme-border:#484b50;--qq-theme-accent:#aeb3bb;--qq-theme-text:#f4f5f6;--qq-theme-muted:#b6bac1;
+}
+html[data-qq-theme="blue"]{
+  --qq-theme-page:linear-gradient(155deg,#101c32,#0b1424 60%,#080f1b);
+  --qq-theme-card:linear-gradient(145deg,#1b3151,#101f36);
+  --qq-theme-panel:linear-gradient(145deg,#172a46,#101b2d);
+  --qq-theme-panel-strong:linear-gradient(135deg,#3977bd,#214e86);
+  --qq-theme-border:#31547e;--qq-theme-accent:#69a9f0;--qq-theme-text:#eff6ff;--qq-theme-muted:#a9bfdc;
+}
+html[data-qq-theme="green"]{
+  --qq-theme-page:linear-gradient(155deg,#14271e,#0d1b14 60%,#09120d);
+  --qq-theme-card:linear-gradient(145deg,#203d2d,#14271c);
+  --qq-theme-panel:linear-gradient(145deg,#1b3426,#112218);
+  --qq-theme-panel-strong:linear-gradient(135deg,#3f9162,#286441);
+  --qq-theme-border:#356348;--qq-theme-accent:#70c58e;--qq-theme-text:#effff3;--qq-theme-muted:#adceb7;
+}
+html[data-qq-theme="white"]{
+  color-scheme:light;
+  --qq-theme-page:linear-gradient(155deg,#f4f5f7,#e6e9ee);
+  --qq-theme-card:linear-gradient(145deg,#ffffff,#edf0f4);
+  --qq-theme-panel:linear-gradient(145deg,#f8f9fb,#e9edf2);
+  --qq-theme-panel-strong:linear-gradient(135deg,#d9dee6,#c4ccd7);
+  --qq-theme-border:#c8ced8;--qq-theme-accent:#596779;--qq-theme-text:#202631;--qq-theme-muted:#626d7c;
+}
+.theme-swatch-burgundy{background:linear-gradient(145deg,#9c3152,#431326 58%,#1b0b11)}
+.theme-swatch-black{background:linear-gradient(145deg,#777b82,#35383d 58%,#17191c)}
+.theme-swatch-blue{background:linear-gradient(145deg,#5595d8,#214b7b 58%,#102039)}
+.theme-swatch-green{background:linear-gradient(145deg,#68b985,#285e3d 58%,#102719)}
+.theme-swatch-white{background:linear-gradient(145deg,#ffffff,#d9dee6 58%,#aeb7c4)}
+html[data-qq-theme="white"] .card,html[data-qq-theme="white"] .notice,
+html[data-qq-theme="white"] .btn,html[data-qq-theme="white"] .input{color:#202631}
+html[data-qq-theme="white"] .nav{background:#f7f8fa;border-color:#c8ced8}
+html[data-qq-theme="white"] .muted,html[data-qq-theme="white"] .small{color:#626d7c}
+.splash{padding:42px 12px 30px}
+.splash .logo{width:auto;height:auto;margin:0 auto;border:0;border-radius:0;background:none;box-shadow:none;color:#a92d50;font-size:58px;letter-spacing:5px;text-shadow:0 0 28px #9f244955;animation:qqPulse 1.8s ease-in-out infinite}
+@keyframes qqPulse{0%,100%{transform:scale(1);opacity:.78}50%{transform:scale(1.13);opacity:1}}
+.play-options{display:grid;gap:10px;margin:12px 0}
