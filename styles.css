@@ -510,3 +510,11 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-down{box-
 html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-across.answer-end-down{box-shadow:inset -2px 0 0 #5c9fc8,inset 0 -2px 0 #5c9fc8!important}
 
 html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:repeating-linear-gradient(135deg,#dce7ee,#dce7ee 4px,#d3e0e8 4px,#d3e0e8 8px)!important;border:1px solid #c2d3df!important}
+
+
+/* Clean scanword cells: remove unrequested glints and star decorations. */
+.scanword-board>.scan-cell.scan-filler span{display:none!important}
+.scanword-board>.scan-cell.scan-filler{box-shadow:none!important}
+.scanword-board>.scan-cell.scan-clue{box-shadow:none!important}
+.scanword-board>.scan-cell.scan-clue:active{transform:none!important;filter:none!important}
+@media(hover:hover){.scanword-board>.scan-cell.scan-clue:hover{filter:none!important;outline:none!important}}
