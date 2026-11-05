@@ -703,10 +703,12 @@ function renderGame(root){
       const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
     }else if(expected[key]!==undefined){
-      const value=state.filled[key]||pending[key]||state.hints?.[key]||"";
+      const value=state.filled[key]||pending[key]||"";
+      const hint=state.hints?.[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.hints?.[key]?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
-      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
+      const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
+      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+letterMarkup+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"><span>✦</span></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":"Игрок "+(i+1)));
@@ -778,14 +780,21 @@ function renderGame(root){
     cell.addEventListener("pointerdown",e=>{if(state.pendingMoves.some(m=>m.k===cell.dataset.cell))startDrag(e,{type:"pending",element:cell})});
     cell.onclick=()=>{
       if(activeDrag)return;
-      const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
-      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      const key=cell.dataset.cell;
       if(state.loupeActive){
-        if(state.hints?.[key]){toast("Эта буква уже открыта");return}
+        if(expected[key]===undefined){toast("Выбери клетку с буквой ответа");return}
+        if(state.filled[key]||state.pendingMoves.some(m=>m.k===key)){toast("Эта клетка уже заполнена");return}
+        if(state.hints?.[key]){toast("Подсказка для этой буквы уже открыта");return}
         if(!useItem("magnifier")){state.loupeActive=false;return}
-        state.hints=state.hints||{};state.hints[key]=expected[key];state.loupeActive=false;
-        renderGame(root);toast("Буква открыта");return;
+        state.hints=state.hints||{};
+        state.hints[key]=expected[key];
+        state.loupeActive=false;
+        renderGame(root);
+        toast("Правильная буква подсвечена");
+        return;
       }
+      const existing=state.pendingMoves.find(m=>m.k===key);
+      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
       if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };

@@ -445,4 +445,13 @@ html[data-qq-theme] .scanword-board>.scan-cell.scan-filler{
 @media(prefers-reduced-motion:reduce){.scanword-board>.scan-cell.cell.correct,.scanword-board>.scan-cell.cell.wrong,.scanword-board>.scan-cell.cell .cell-letter{animation:none!important}.scanword-board>.scan-cell.scan-clue{transition:none!important}}
 
 /* Opened letters from the magnifier remain visible as hints. */
-.scanword-board>.scan-cell.hinted-cell{background:linear-gradient(145deg,#66533a,#493a2a)!important;box-shadow:inset 0 0 0 2px #d8b875!important;color:#ffe4a8!important}
+.scanword-board>.scan-cell.hinted-cell{
+  background:linear-gradient(145deg,#5b4a35aa,#40332388)!important;
+  box-shadow:inset 0 0 0 1.5px #d8b87599!important;
+}
+.scanword-board>.scan-cell.hinted-cell .hint-letter{
+  display:block;opacity:.52;color:#ffe4a8!important;
+  font-size:inherit;font-weight:900;line-height:1;
+  text-shadow:0 1px 4px #000b,0 0 8px #ffe4a855;
+  pointer-events:none;user-select:none;
+}
