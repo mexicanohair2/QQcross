@@ -331,7 +331,7 @@ async function awardOnlineResult(){
 async function saveOnlineTurn(pointsEarned,finished){
  const nextTurn=finished?state.turn:(state.turn+1)%state.partySize,nextUser=finished?null:state.onlinePlayers[nextTurn]?.id;
  state.turn=nextTurn;state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn]||[];
- try{const {data,error}=await supabaseClient.rpc("submit_qqcross_match_turn",{target_match_id:state.onlineMatchId,expected_version:state.onlineVersion,next_state:serializeOnlineState(),points_earned:pointsEarned,next_user_id:nextUser,is_finished:finished});if(error)throw error;
+ try{const nextState=serializeOnlineState();nextState.feedback={};const {data,error}=await supabaseClient.rpc("submit_qqcross_match_turn",{target_match_id:state.onlineMatchId,expected_version:state.onlineVersion,next_state:nextState,points_earned:pointsEarned,next_user_id:nextUser,is_finished:finished});if(error)throw error;
   state.onlineVersion=data.state_version;if(finished){state.screen="";await awardOnlineResult()}else renderGame($("#app"));
  }catch(e){toast(e.message||"Не удалось сохранить ход");await refreshOnlineMatch(true)}
 }
@@ -381,7 +381,7 @@ async function finishTurn(root,timeout=false){
   if(state.screen!=="game"){render();return}
   if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
   state.rackNeedsRefill[state.turn]=true;
-  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);return}
+  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},520)}return}
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
