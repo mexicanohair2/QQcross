@@ -528,3 +528,6 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:re
 .clue-popup-options{display:flex;flex-direction:column;gap:8px;margin:12px 0}
 .clue-popup-choice,.clue-popup-back{width:100%;border:1px solid var(--qq-theme-border,#777);border-radius:10px;padding:10px 12px;background:var(--qq-theme-panel,#222);color:var(--qq-theme-text,#fff);font:inherit;font-size:13px;font-weight:700;text-align:left}
 .clue-popup-back{margin-top:12px;text-align:center}
+
+/* 15 by 15 board dimensions */
+.scanword-board{grid-template-columns:repeat(15,minmax(0,1fr))!important;grid-template-rows:repeat(15,minmax(0,1fr))!important}
