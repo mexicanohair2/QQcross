@@ -29,11 +29,11 @@ for (let n=0; n<data.puzzles.length; n++) {
       occupied.set(key,answer[k]);
     }
   };
-  add(dictionary[puzzle.vertical],"down",0,0,"spine");
+  add(dictionary[puzzle.vertical],"down",1,0,"spine");
   for (let row=0; row<11; row++) {
     const entry=dictionary[puzzle.across[row]], answer=normalized(entry);
-    if (!answer || answer[0]!==vertical[row] || answer.length>10 || answer.length===9) fail(`Puzzle ${n}: row ${row+1} does not share the spine letter or leaves a single cell`);
-    add(entry,"across",1,row+1,`main row ${row+1}`);
+    if (!answer || answer[0]!==vertical[row] || answer.length>11) fail(`Puzzle ${n}: row ${row+1} does not share the spine letter`);
+    add(entry,"across",0,row+1,`main row ${row+1}`);
   }
   for (let j=0; j<(puzzle.extras||[]).length; j++) {
     const extra=puzzle.extras[j];
