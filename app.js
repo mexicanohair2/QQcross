@@ -182,7 +182,22 @@ function settings(){
     </section>
     `;
 }
-function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
+function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
+  const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
+  if(state.profile.coins<cost){toast("Не хватает монет");return}
+  if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
+    b.disabled=true;
+    try{
+      const {data,error}=await supabaseClient.rpc("purchase_qqcross_items",{item_type:item,quantity:qty});
+      if(error)throw error;
+      state.profile.coins=data.coins;
+      await loadCloudProfile(state.profile.id);
+      render();toast("Куплено: "+qty+" шт.");
+    }catch(error){toast(error.message||"Покупка не прошла");b.disabled=false}
+  }else{
+    state.profile.coins-=cost;state.profile.items[item]+=qty;save();render();toast("Куплено: "+qty+" шт.");
+  }
+});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){
   root.innerHTML=`<div class="screen">
     <div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div>
@@ -364,7 +379,17 @@ function finishTurn(root,timeout=false){
 
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);while(rack.length<7&&letterBag.length)rack.push(...drawLetters(Math.min(7-rack.length,letterBag.length)));}
-function useItem(key){if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}state.profile.items[key]--;save();return true}
+function useItem(key){
+  if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}
+  state.profile.items[key]--;save();
+  if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
+    supabaseClient.rpc("use_qqcross_item",{item_type:key}).then(({data,error})=>{
+      if(error){state.profile.items[key]++;save();toast("Не удалось списать предмет: "+(error.message||"ошибка"));if(state.screen==="game")render()}
+      else{state.profile.items[key]=data;save();const el=document.querySelector("#"+key);if(el){const strong=el.querySelector("strong");if(strong)strong.textContent=(key==="magnifier"?"🔎 ":key==="clock"?"⏱ ":"🗑️ ")+data}}
+    }).catch(error=>{console.warn("QQcross inventory:",error)});
+  }
+  return true;
+}
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
   if(expected[k]===undefined)return;
@@ -392,12 +417,31 @@ function checkWords(){
   });
   if(state.completed.size===puzzle.words.length){
     persistCurrentMatch("completed");
-    state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();state.screen="";
+    const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
+    if(cloud){
+      supabaseClient.rpc("award_qqcross_match_result",{points:state.scores}).then(({data,error})=>{
+        if(error){toast("Не удалось сохранить награду на сервере: "+error.message);return}
+        state.profile.coins=data.coins;state.profile.games=data.games;state.profile.points=data.points;save();
+      }).catch(error=>console.warn("QQcross result:",error));
+    }else{
+      state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();
+    }
+    state.screen="";
     setTimeout(()=>{render();toast("Партия завершена!")},500);
   }
   return newlyCompleted;
 }
-async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();watchSocialUpdates();}
+async function loadCloudProfile(userId){
+  const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
+  if(error)throw error;
+  const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
+  if(inventoryError)throw inventoryError;
+  let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
+  const items=defaultItems();
+  (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
+  state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
+  save();watchSocialUpdates();
+}
 
 /* Поле остаётся пустым до загрузки пользовательского словаря. */
 function makeRandomPuzzle(){
