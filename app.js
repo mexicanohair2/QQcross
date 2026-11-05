@@ -619,6 +619,16 @@ function renderGame(root){
   state.interval=setInterval(()=>{state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
 }
 
+async function preloadScanwordDictionary(){
+  try{
+    const response=await fetch("./data/scanword-dictionary.json",{cache:"no-store"});
+    if(!response.ok)throw new Error("HTTP "+response.status);
+    const data=await response.json();
+    if(!Array.isArray(data))throw new Error("Словарь должен быть массивом");
+    if(data.length)window.QQCROSS_DICTIONARY=data;
+  }catch(error){console.warn("QQcross dictionary:",error)}
+}
+
 if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
 applyTheme(activeTheme);
 initAuth();
