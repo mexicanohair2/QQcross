@@ -562,8 +562,10 @@ function compactScanwordClue(value){
 function fitScanwordClue(value){
   const text=compactScanwordClue(value);
   const words=text.split(" ").filter(Boolean);
-  if(words.length<=2&&text.length<=22)return text;
-  return words.slice(0,2).join(" ");
+  if(words.length<=3&&text.length<=25)return text;
+  const selected=words.slice(0,2);
+  if(selected.length===2&&/^(и|или|для|на|в|из|по|от|с|к|о|об|под|при)$/i.test(selected[1])&&words[2])return words.slice(0,3).join(" ");
+  return selected.join(" ");
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
@@ -599,7 +601,8 @@ function buildScanword(entries){
     const vertical=dir==="down";
     if(!vertical&&x+entry.answer.length>=13)return false;
     if(vertical&&y+entry.answer.length>=13)return false;
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x+1]:[y,x+1+k]);
+    const isTop=id.startsWith("top-");
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,isTop?x:x+1]:[y,x+1+k]);
     const clueKey=y+","+x;
     if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
     for(let k=0;k<cells.length;k++){
@@ -617,7 +620,7 @@ function buildScanword(entries){
     if(!addWord(entry,"down",x,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
   });
   const mainWord=words[0];
-  if(!mainWord||mainWord.answer.length!==11||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==0||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
+  if(!mainWord||mainWord.answer.length!==11||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==1||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
     throw new Error("Вопрос на 11 букв должен стоять слева от своего вертикального ответа");
   chosen.extras.forEach((extra,index)=>{
     const entry=normalized[extra.index];
@@ -625,7 +628,7 @@ function buildScanword(entries){
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
   if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
-  if(clueKeys.size!==34||Array.from({length:12},(_,x)=>clueKeys.has("0,"+x)).some(v=>!v))
+  if(clueKeys.size!==34||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
     throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
 }
@@ -886,7 +889,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-rack-light";
+      const version="20261106-finalfix1";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
         fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
         fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
