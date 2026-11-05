@@ -679,9 +679,12 @@ function buildScanword(entries){
     if(!addWord(choice.entry,choice.dir,choice.x,choice.y,"auto-"+round))break;
   }
   if(words.length<12+chosen.extras.length)throw new Error("Некорректное число вопросов: "+words.length);
-  if(clueKeys.size!==words.length||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
+  if(clueKeys.size!==words.length||Array.from({length:12},(_,x)=>!clueKeys.has("0,"+(x+1))).some(Boolean))
     throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
+  for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
+  const filledCells=occupied.size+clueKeys.size;
+  if(filledCells!==169)throw new Error("Сканворд не заполнен полностью: "+filledCells+" из 169 клеток");
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
@@ -711,7 +714,7 @@ async function begin(size=1){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
     }
     let loaded=false,lastError=null;
-    for(let attempt=0;attempt<5&&!loaded;attempt++){
+    for(let attempt=0;attempt<24&&!loaded;attempt++){
       try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQCross: puzzle start failed",error)}
     }
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
