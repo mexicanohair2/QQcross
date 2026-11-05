@@ -16,6 +16,7 @@ const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
 const supabaseClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
 let authMode="signup";
+let socialChannel=null;
 const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null};
 let puzzle=null;
 const expected={};
@@ -54,7 +55,72 @@ $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password
 function renderShell(root){const tabs=["Главная","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${AVATARS[state.profile.avatar]}</div><div><b>@${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
 function content(){if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
 function home(){return `<section class="card hero"><span class="pill">Макет игрового поля</span><h2>Схема сетки.<br>Основа QQcross.</h2><button class="btn primary full" id="createParty">Создать партию</button></section><section class="card row between"><div><b>Пустая сетка</b></div><span class="pill">8 × 12</span></section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока @${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отказаться</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b></div>`}<h3 class="section-title">Начать игру</h3><div class="card row between"><div><b>Одиночная игра</b></div><button class="btn blue" id="practice">Играть</button></div>`}
-function friends(){return `<h2>Друзья</h2><div class="card"><input class="input" id="friendName" placeholder="Имя игрока"><button class="btn primary full" id="addFriend">Добавить друга</button><button class="btn full" id="addTestBot">🤖 Добавить тестового бота @QQcrossBot</button></div><h3 class="section-title">Мои друзья</h3>${(state.profile.friends||[]).length?state.profile.friends.map(n=>`<div class="card row between"><b>@${esc(n)}</b><button class="btn inviteFriend" data-name="${esc(n)}">Пригласить</button></div>`).join(""):`<p class="muted">Список пока пуст.</p>`}`}
+function friends(){return `
+  <h2>Друзья</h2>
+  <div class="card">
+    <label class="small muted" for="friendName">Найти игрока по нику</label>
+    <input class="input" id="friendName" maxlength="16" placeholder="Например, Mex">
+    <button class="btn primary full" id="searchFriends">Найти игрока</button>
+    <div id="friendSearchResults"></div>
+  </div>
+  <h3 class="section-title">Входящие заявки</h3>
+  <div id="incomingFriendRequests"><p class="muted small">Загрузка…</p></div>
+  <h3 class="section-title">Мои друзья</h3>
+  <div id="friendsList"><p class="muted small">Загрузка…</p></div>
+`}
+
+async function searchFriends(){
+  const input=$("#friendName"),out=$("#friendSearchResults");
+  const q=input?.value.trim()||"";
+  if(q.length<2){out.innerHTML='<p class="small muted">Введи хотя бы 2 символа.</p>';return}
+  if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){
+    out.innerHTML='<p class="small muted">Поиск доступен после входа в аккаунт.</p>';return;
+  }
+  out.innerHTML='<p class="small muted">Ищем игрока…</p>';
+  const {data,error}=await supabaseClient.rpc("search_qqcross_players",{search_text:q});
+  if(error){out.innerHTML='<p class="small muted">Поиск пока не подключён. Нужно применить миграции Supabase.</p>';console.error(error);return}
+  if(!data?.length){out.innerHTML='<p class="small muted">Игрок не найден.</p>';return}
+  out.innerHTML=data.map(p=>`<div class="card row between"><div class="row"><div class="avatar">${AVATARS[p.avatar]||"🏳️"}</div><b>@${esc(p.username)}</b></div><button class="btn send-friend-request" data-username="${esc(p.username)}">Добавить</button></div>`).join("");
+  out.querySelectorAll(".send-friend-request").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;b.textContent="Отправка…";
+    const {error}=await supabaseClient.rpc("send_qqcross_friend_request",{target_username:b.dataset.username});
+    if(error){toast(error.message||"Не удалось отправить заявку");b.disabled=false;b.textContent="Добавить";return}
+    b.textContent="Отправлено";toast("Заявка отправлена");loadSocialData();
+  });
+}
+
+async function loadSocialData(){
+  const incoming=$("#incomingFriendRequests"),list=$("#friendsList");
+  if(!incoming||!list)return;
+  if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){
+    incoming.innerHTML='<p class="muted small">Войди в аккаунт, чтобы получать заявки.</p>';
+    list.innerHTML='<p class="muted small">У гостевого профиля нет облачного списка друзей.</p>';return;
+  }
+  const [fr,ir]=await Promise.all([
+    supabaseClient.rpc("list_qqcross_friends"),
+    supabaseClient.rpc("list_qqcross_incoming_friend_requests")
+  ]);
+  if(fr.error||ir.error){
+    incoming.innerHTML='<p class="muted small">Не удалось загрузить друзей. Проверь, применены ли SQL-миграции Supabase.</p>';
+    list.innerHTML="";console.error(fr.error||ir.error);return;
+  }
+  list.innerHTML=fr.data?.length?fr.data.map(p=>`<div class="card row"><div class="avatar">${AVATARS[p.avatar]||"🏳️"}</div><b>@${esc(p.username)}</b></div>`).join(""):'<p class="muted small">Пока нет друзей.</p>';
+  incoming.innerHTML=ir.data?.length?ir.data.map(p=>`<div class="card"><div class="row"><div class="avatar">${AVATARS[p.avatar]||"🏳️"}</div><b>@${esc(p.username)} хочет добавить тебя в друзья</b></div><div class="grid2"><button class="btn primary respond-friend" data-id="${p.request_id}" data-accept="true">Принять</button><button class="btn respond-friend" data-id="${p.request_id}" data-accept="false">Отклонить</button></div></div>`).join(""):'<p class="muted small">Новых заявок нет.</p>';
+  incoming.querySelectorAll(".respond-friend").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    const {error}=await supabaseClient.rpc("respond_qqcross_friend_request",{request_id:b.dataset.id,accept_request:b.dataset.accept==="true"});
+    if(error){toast(error.message||"Не удалось обработать заявку");b.disabled=false;return}
+    toast(b.dataset.accept==="true"?"Теперь вы друзья":"Заявка отклонена");loadSocialData();
+  });
+}
+
+async function watchSocialUpdates(){
+  if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")||socialChannel)return;
+  socialChannel=supabaseClient.channel("qqcross-social-"+state.profile.id)
+    .on("postgres_changes",{event:"*",schema:"public",table:"friend_requests",filter:"receiver_id=eq."+state.profile.id},()=>{
+      if(state.tab==="Друзья")loadSocialData();else toast("У тебя новая заявка в друзья");
+    }).subscribe();
+}
 function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
 function profile(){return `<h2>Профиль</h2><div class="card row"><div class="avatar big">${AVATARS[state.profile.avatar]}</div><div><h3>@${esc(state.profile.username)}</h3><span class="muted small">Игрок QQcross</span></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
 function settings(){
@@ -72,7 +138,7 @@ function settings(){
     </section>
     `;
 }
-function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const af=$("#addFriend");if(af)af.onclick=()=>{const n=$("#friendName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Проверь имя игрока");return}if(n.toLowerCase()===state.profile.username.toLowerCase()){toast("Нельзя добавить самого себя");return}if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Добавлено в демо-список")};const bot=$("#addTestBot");if(bot)bot.onclick=()=>{const n="QQcrossBot";if(!state.profile.friends.includes(n))state.profile.friends.push(n);save();render();toast("Тестовый бот добавлен в друзья")};document.querySelectorAll(".inviteFriend").forEach(b=>b.onclick=()=>{if(b.dataset.name.toLowerCase()==="qqcrossbot"){state.invite={from:"QQcrossBot 🤖",size:2,bot:true};state.screen="";state.tab="Главная";render();toast("Бот получил приглашение (демо)")}else openInvite(b.dataset.name)});document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
+function wireContent(){const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=()=>{const qty=+b.dataset.qty,cost=qty===5?100:200;if(state.profile.coins<cost){toast("Не хватает монет");return}state.profile.coins-=cost;state.profile.items[b.dataset.item]+=qty;save();render();toast(`Куплено: ${qty} шт.`)});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){root.innerHTML=`<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div><h2>Новая партия</h2><div class="card"><b>Сколько игроков будет в партии?</b><div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div><label class="small muted">Кого пригласить?</label><input id="inviteName" class="input" placeholder="Username друга"><button class="btn primary full" id="sendInvite">Отправить приглашение</button></div><div class="card"><button class="btn full" id="demoInvite">Показать входящее приглашение (демо)</button></div>`;$("#back").onclick=()=>{state.screen="";render()};root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});$("#sendInvite").onclick=()=>{const n=$("#inviteName").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(n)){toast("Введи username друга");return}openInvite(n)};$("#demoInvite").onclick=()=>{state.invite={from:"friend_demo",size:state.partySize};state.screen="";state.tab="Главная";render()}}
 function openInvite(name){state.invite={from:name,size:state.partySize};state.screen="";state.tab="Главная";render();toast("Демо-приглашение создано")}
 function begin(size=1){try{if(!loadPuzzle())return}catch(error){console.error("QQcross puzzle generation:",error);toast(error&&error.message?error.message:"Не удалось создать кроссворд. Попробуй ещё раз.");return}state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.pendingMoves=[];render()}
@@ -263,7 +329,7 @@ function checkWords(){
     setTimeout(()=>{render();toast("Партия завершена!")},500);
   }
 }
-async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();}
+async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();watchSocialUpdates();}
 
 /* Поле остаётся пустым до загрузки пользовательского словаря. */
 function makeRandomPuzzle(){
