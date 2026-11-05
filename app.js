@@ -627,7 +627,41 @@ function buildScanword(entries){
     if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
-  if(words.length!==12+chosen.extras.length)throw new Error("Некорректное число вопросов: "+words.length);
+
+  // Add more crossing answers into unused areas of the board.
+  for(let round=0;round<18;round++){
+    const options=[];
+    for(let y=0;y<13;y++)for(let x=0;x<13;x++){
+      const clueKey=y+","+x;
+      if(clueKeys.has(clueKey)||occupied.has(clueKey))continue;
+      for(const dir of ["across","down"]){
+        const vertical=dir==="down",sx=x+1,sy=vertical?y+1:y;
+        const maxLength=vertical?13-sy:13-sx;
+        if(sx>=13||sy>=13)continue;
+        for(let i=0;i<normalized.length;i++){
+          const entry=normalized[i];
+          if(!entry||usedSources.has(entry.answer)||entry.answer.length>maxLength)continue;
+          let crosses=0,newCells=0,valid=true;
+          for(let k=0;k<entry.answer.length;k++){
+            const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k,key=yy+","+xx;
+            if(clueKeys.has(key)){valid=false;break}
+            const old=occupied.get(key);
+            if(old!==undefined&&old!==entry.answer[k]){valid=false;break}
+            if(old!==undefined)crosses++;else newCells++;
+          }
+          if(valid&&crosses>0){
+            options.push({entry,dir,x,y,score:newCells*10+crosses*3+entry.answer.length*.15+Math.random()*2});
+          }
+        }
+      }
+    }
+    if(!options.length)break;
+    options.sort((a,b)=>b.score-a.score);
+    const pool=options.slice(0,Math.min(12,options.length));
+    const choice=pool[Math.floor(Math.random()*pool.length)];
+    if(!addWord(choice.entry,choice.dir,choice.x,choice.y,"auto-"+round))break;
+  }
+  if(words.length<12+chosen.extras.length)throw new Error("Некорректное число вопросов: "+words.length);
   if(clueKeys.size!==words.length||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
     throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
@@ -892,7 +926,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-gridrepair1";
+      const version="20261106-densefill1";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
         fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
         fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
