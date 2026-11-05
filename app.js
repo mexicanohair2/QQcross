@@ -33,6 +33,8 @@ let puzzle=null;
 const expected={};
 let letterBag=[];
 let scanwordCandidateCache=null;
+let preparedScanword=null;
+let scanwordPreparing=false;
 let draggingLetter=false;
 let suppressCellClick=false;
 
@@ -577,7 +579,7 @@ function normalizeScanwordEntry(item){
   return {answer,clue,clueShort,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
-  const N=15,TOTAL=N*N;
+  const N=9,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   const byLength=new Map();
   normalized.forEach(entry=>{
@@ -612,7 +614,7 @@ function buildScanword(entries){
       return true;
     };
     // Two crossing seed words create the first connected component.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=8);
     if(!firstPool.length)return null;
     const first=firstPool[Math.floor(Math.random()*firstPool.length)];
     const firstY=7,firstX=0;
@@ -634,7 +636,7 @@ function buildScanword(entries){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
+    for(let round=0;round<110&&occupied.size+clueAt.size<TOTAL;round++){
       const options=[];
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
         const clueKey=y+","+x,at=clueAt.get(clueKey)||[];
@@ -711,7 +713,7 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<80;attempt++){
+  for(let attempt=0;attempt<14;attempt++){
     const result=buildAttempt();
     if(result&&result.coverage>bestCoverage){bestCoverage=result.coverage;best=result}
     if(result?.coverage===TOTAL)break;
@@ -722,10 +724,23 @@ function buildScanword(entries){
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
+function clonePreparedScanword(source){
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),coverage:source.coverage};
+}
+function prepareNextScanword(){
+  if(scanwordPreparing||preparedScanword||!getScanwordDictionary().length)return;
+  scanwordPreparing=true;
+  setTimeout(()=>{
+    try{preparedScanword=buildScanword(getScanwordDictionary())}
+    catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error)}
+    finally{scanwordPreparing=false}
+  },40);
+}
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
-  const built=buildScanword(getScanwordDictionary());
-  if(!built){puzzle=null;letterBag=[];return false}
+  const built=preparedScanword?clonePreparedScanword(preparedScanword):buildScanword(getScanwordDictionary());
+  preparedScanword=null;
+  if(!built){puzzle=null;letterBag=[];prepareNextScanword();return false}
   puzzle=built;
   puzzle.words.forEach(w=>w.cells.forEach((c,i)=>{
     const key=c.join(","),letter=w.answer[i];
@@ -734,6 +749,7 @@ function makeRandomPuzzle(){
   }));
   letterBag=Object.values(expected);
   for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
+  prepareNextScanword();
   return true;
 }
 function loadPuzzle(){return makeRandomPuzzle()}
@@ -995,12 +1011,13 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-15x15multi4";
+      const version="20261106-9x9-prewarm1";
       const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       const dictionary=await dictionaryResponse.json();
       if(!Array.isArray(dictionary)||!dictionary.length)throw new Error("Некорректный словарь сканвордов");
       window.QQCROSS_DICTIONARY=dictionary;
+      prepareNextScanword();
       return true;
     }catch(error){
       console.warn("QQCross data:",error);
