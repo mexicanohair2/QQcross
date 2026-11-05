@@ -418,9 +418,9 @@ function buildScanword(entries){
       const verticalEntry=normalized[chosen.vertical];
       if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
       const across=chosen.across.map(i=>normalized[i]);
-      if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
+      if(across.some((entry,row)=>!entry||entry.answer.length>7||entry.answer[0]!==verticalEntry.answer[row]))return null;
       const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/3),0);
-      return fillCapacity>=18?{chosen,index,verticalEntry,across,fillCapacity}:null;
+      return fillCapacity===18?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,candidates};
   }
@@ -431,7 +431,7 @@ function buildScanword(entries){
   const addWord=(entry,dir,x,y,id)=>{
     if(!entry||usedSources.has(entry.answer))return false;
     const vertical=dir==="down";
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x+1]:[y,x+1+k]);
     if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
     const clueKey=y+","+x;
     if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
@@ -446,14 +446,14 @@ function buildScanword(entries){
     return true;
   };
   addWord(verticalEntry,"down",0,0,"vertical");
-  across.forEach((entry,row)=>addWord(entry,"across",1,row+1,"w"+(row+1)));
+  across.forEach((entry,row)=>addWord(entry,"across",0,row+1,"w"+(row+1)));
 
   // All 1,695 entries share one shuffled pool: original vocabulary and the 500 new logic clues.
   const available=normalized.filter(Boolean);
   for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
   const topTaken=new Set();
   const topAnswers=["Я","ЮГ","ЯК","ЩИ"];
-  const topStarts=[1,3,6,9],topMaxLengths=[10,8,5,2];
+  const topStarts=[1,3,6,9],topMaxLengths=[1,2,2,2];
   const takeTop=(answer,slot)=>{
     const fits=entry=>entry&&!usedSources.has(entry.answer)&&!topTaken.has(entry.answer)&&entry.answer.length<=topMaxLengths[slot];
     // Prefer the four intended logic clues. Older cached dictionaries may lack
@@ -497,7 +497,7 @@ function buildScanword(entries){
     });
   });
   if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
-  if(occupied.size+clueKeys.size!==144)throw new Error("В сетке сканворда остались пустые клетки");
+  if(occupied.size+clueKeys.size!==133)throw new Error("Неверная заполненность сетки: "+(occupied.size+clueKeys.size)+" из 133 рабочих клеток");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
 }
 function makeRandomPuzzle(){
