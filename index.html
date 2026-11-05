@@ -23,7 +23,32 @@
   setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},8000);
 })();
 </script>
-<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="./app.js?v=20261105-turn-start-refill"></script>
+<script>
+(function(){
+  var appVersion="20261105-auth-scroll-signup-fix";
+  function startApp(){
+    var app=document.createElement("script");
+    app.src="./app.js?v="+appVersion;
+    document.body.appendChild(app);
+  }
+  function loadSupabase(index){
+    var sources=[
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+      "https://unpkg.com/@supabase/supabase-js@2"
+    ];
+    if(index>=sources.length){
+      window.QQ_SUPABASE_LOAD_ERROR=true;
+      startApp();
+      return;
+    }
+    var script=document.createElement("script");
+    script.src=sources[index];
+    script.onload=startApp;
+    script.onerror=function(){loadSupabase(index+1)};
+    document.head.appendChild(script);
+  }
+  loadSupabase(0);
+})();
+</script>
 </body>
 </html>
