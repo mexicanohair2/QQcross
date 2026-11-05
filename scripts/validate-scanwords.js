@@ -41,19 +41,11 @@ for (let n=0; n<data.puzzles.length; n++) {
   for (let j=0;j<topAnswers.length;j++)
     add(dictionary.find(item=>normalized(item)===topAnswers[j]),"across",topStarts[j],0,`top clue ${j+1}`);
   let extraCount=0;
-  for (let row=0;row<11;row++) {
-    const length=normalized(dictionary[puzzle.across[row]]).length;
-    const count=Math.floor((10-length)/3), spare=10-length-count*3;
-    const lengths=Array(count).fill(2);
-    if (count) lengths[count-1]+=spare;
-    let x=length+2;
-    for (let j=0;j<lengths.length;j++) {
-      const answerLength=lengths[j];
-      const entry=dictionary.find(item=>normalized(item).length===answerLength && !usedAnswers.has(normalized(item)));
-      if (!entry) { fail(`Puzzle ${n}: no unused ${answerLength}-letter filler`); continue; }
-      add(entry,"across",x,row+1,`extra ${extraCount+1}`);
-      extraCount++; x+=answerLength+1;
-    }
+  if (!Array.isArray(puzzle.extras) || puzzle.extras.length!==18) fail(`Puzzle ${n}: expected 18 prebuilt filler clues`);
+  for (let j=0;j<(puzzle.extras||[]).length;j++) {
+    const extra=puzzle.extras[j];
+    add(dictionary[extra.index],extra.dir,extra.x,extra.y,`extra ${j+1}`);
+    extraCount++;
   }
   if (extraCount!==18 || usedAnswers.size!==34) fail(`Puzzle ${n}: expected 34 clues, found ${usedAnswers.size}`);
   for (const key of clues) if (occupied.has(key)) fail(`Puzzle ${n}: clue cell overlaps an answer at ${key}`);
