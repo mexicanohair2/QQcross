@@ -586,7 +586,11 @@ function buildScanword(entries){
     words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
+  // Главный ответ всегда занимает 11 клеток вертикально; вопрос находится слева сверху.
   addWord(verticalEntry,"down",0,0,"vertical");
+  const mainWord=words.find(w=>w.id==="vertical");
+  if(!mainWord||mainWord.cells.length!==11||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1)||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==0)
+    throw new Error("Главное слово из 11 букв не поместилось в левую часть сетки");
   across.forEach((entry,row)=>addWord(entry,"across",0,row+1,"w"+(row+1)));
 
   // All 1,695 entries share one shuffled pool: original vocabulary and the 500 new logic clues.
