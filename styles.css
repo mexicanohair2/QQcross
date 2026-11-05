@@ -239,3 +239,8 @@ html[data-qq-theme="green"]{--qq-theme-page:linear-gradient(155deg,#20372e,#1425
 html[data-qq-theme="white"]{--qq-theme-page:linear-gradient(155deg,#f5f3f2,#e7e6e4 60%,#dcdad8);--qq-theme-card:linear-gradient(145deg,#fff,#eeecea);--qq-theme-panel:linear-gradient(145deg,#f3f1ef,#e3e0dd);--qq-theme-panel-strong:linear-gradient(135deg,#8d7e79,#6e625e);--qq-theme-border:#c8c2bf;--qq-theme-accent:#75635d;--qq-theme-text:#282321;--qq-theme-muted:#655d59;--qq-theme-cell:linear-gradient(145deg,#fff,#e9e5e2);--qq-theme-block:linear-gradient(145deg,#d9d5d2,#cbc6c2);--qq-theme-filled:linear-gradient(145deg,#b4cbb9,#91ad98);--qq-theme-pending:linear-gradient(145deg,#d2bec4,#bca3aa);--qq-theme-clue:linear-gradient(145deg,#d8c7cc,#c2aab2);--qq-theme-chip:#e4dedb;--qq-theme-field:#fff}
 html[data-qq-theme="white"] .scanword-board>.scan-cell{color:#282321}
 html[data-qq-theme="white"] .scanword-board>.scan-cell .cell-letter{color:#282321}
+
+.friend-pick{display:flex;align-items:center;gap:10px;padding:10px;margin:6px 0;border:1px solid var(--qq-theme-border,#51475c);border-radius:12px;background:var(--qq-theme-card,linear-gradient(145deg,#30283a,#24202d))}
+.friend-pick input{width:20px;height:20px;accent-color:var(--qq-theme-accent,#a899b8)}
+.friend-pick .avatar{flex:0 0 38px;width:38px;height:38px}
+.nav{grid-template-columns:repeat(6,minmax(0,1fr))!important}
