@@ -1328,10 +1328,10 @@ html:has(.game-screen),body:has(.game-screen),body:has(.game-screen) #app{
 }
 .game-screen .scanword-board{
   display:grid!important;
-  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
   grid-template-rows:repeat(12,minmax(0,1fr))!important;
   grid-auto-flow:row!important;gap:0!important;
-  width:min(100%,calc((100dvh - 18dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px)*2/3))!important;
+  width:min(100%,calc(100dvh - 18dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 8px))!important;
   height:calc(100% - 8px)!important;
   min-width:0!important;min-height:0!important;max-width:100%!important;max-height:100%!important;
   aspect-ratio:auto!important;box-sizing:border-box!important;margin:0!important;padding:0!important;
@@ -1481,3 +1481,6 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
 .game-screen .scanword-board .scan-arrow{
   display:none!important;
 }
+
+/* Scanword 12x12 board overrides and tappable full clues. */
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue{appearance:none;-webkit-appearance:none;cursor:pointer;font-family:inherit}
