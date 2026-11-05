@@ -697,7 +697,7 @@ function buildScanword(entries){
     }
     cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
-    words.push({id,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
+    words.push({id,answer:entry.answer,sourceAnswer:entry.sourceAnswer||entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
 
@@ -747,28 +747,72 @@ function buildScanword(entries){
     }
   });
 
-  // Top up the center with short, valid dictionary entries when a template
-  // leaves too many empty areas. Every placement is checked against crossings.
-  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length<=6);
-  for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
-  for(const entry of fillerPool){
-    if(words.length>=35)break;
-    if(words.some(word=>word.answer===entry.answer))continue;
-    const crossing=[],open=[];
-    for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
-      for(let y=1;y<12;y++)for(let x=1;x<12;x++){
-        const placement=canPlace(entry,dir,x,y,false);
-        if(placement)(placement.intersections?crossing:open).push(placement);
+  // Fill the center with masked-word clues. Apostrophes represent missing
+  // consecutive letters; e.g. А''УЗ asks for РБ. The missing fragment,
+  // not the whole source word, occupies the answer cells.
+  const baseWords=words.slice();
+  const baseOccupied=new Map(occupied);
+  const baseClueKeys=new Set(clueKeys);
+  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length>=2);
+  let bestFill=null;
+  for(let attempt=0;attempt<80;attempt++){
+    words.splice(0,words.length,...baseWords);
+    occupied.clear();baseOccupied.forEach((v,k)=>occupied.set(k,v));
+    clueKeys.clear();baseClueKeys.forEach(k=>clueKeys.add(k));
+    const usedSources=new Set(words.map(word=>word.sourceAnswer||word.answer));
+    const shuffled=[...fillerPool];
+    for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
+    for(const sourceEntry of shuffled){
+      if(words.length>=35)break;
+      if(usedSources.has(sourceEntry.answer))continue;
+      const variants=[];
+      if(sourceEntry.emoji){
+        variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer});
+      }else{
+        const maxMissing=Math.min(6,sourceEntry.answer.length-1);
+        for(let missing=1;missing<=maxMissing;missing++){
+          for(let from=0;from+missing<=sourceEntry.answer.length;from++){
+            const answer=sourceEntry.answer.slice(from,from+missing);
+            const pattern=sourceEntry.answer.slice(0,from)+"'".repeat(missing)+sourceEntry.answer.slice(from+missing);
+            variants.push({answer,clue:pattern,emoji:false,sourceAnswer:sourceEntry.answer});
+          }
+        }
       }
+      for(let i=variants.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[variants[i],variants[j]]=[variants[j],variants[i]]}
+      let placed=false;
+      for(const entry of variants){
+        const crossing=[],open=[];
+        for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
+          for(let y=1;y<12;y++)for(let x=1;x<12;x++){
+            const placement=canPlace(entry,dir,x,y,false);
+            if(placement)(placement.intersections?crossing:open).push(placement);
+          }
+        }
+        const choices=crossing.length?crossing:open;
+        if(!choices.length)continue;
+        const placement=choices[Math.floor(Math.random()*choices.length)];
+        if(addWord(entry,-1,placement.dir,placement.x,placement.y,"masked-"+sourceEntry.answer)){
+          usedSources.add(sourceEntry.answer);
+          placed=true;
+          break;
+        }
+      }
+      if(placed&&words.length>=35)break;
     }
-    const choices=crossing.length?crossing:open;
-    if(!choices.length)continue;
-    const placement=choices[Math.floor(Math.random()*choices.length)];
-    addWord(entry,-1,placement.dir,placement.x,placement.y,"random-"+entry.answer);
+    if(!bestFill||words.length>bestFill.length){
+      bestFill={length:words.length,words:words.slice(),occupied:new Map(occupied),clues:new Set(clueKeys)};
+    }
+    if(words.length>=35)break;
+  }
+  if(words.length<35&&bestFill){
+    words.splice(0,words.length,...bestFill.words);
+    occupied.clear();bestFill.occupied.forEach((v,k)=>occupied.set(k,v));
+    clueKeys.clear();bestFill.clues.forEach(k=>clueKeys.add(k));
   }
 
-  const uniqueAnswers=new Set(words.map(word=>word.answer));
-  if(uniqueAnswers.size!==words.length)throw new Error("В сканворде обнаружены повторяющиеся ответы");
+  const uniqueAnswers=new Set(words.map(word=>word.sourceAnswer||word.answer));
+  if(uniqueAnswers.size!==words.length)throw new Error("В сканворде обнаружены повторяющиеся исходные слова");
+  if(words.length!==35)throw new Error("Не удалось собрать сканворд из 35 вопросов");
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
