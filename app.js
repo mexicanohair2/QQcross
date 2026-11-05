@@ -341,7 +341,13 @@ function finishTurn(root,timeout=false){
     if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++}
     else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
   });
-  state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;if(correct)checkWords();
+  state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
+  const newlyCompleted=correct?checkWords():[];
+  if(newlyCompleted.length){
+    state.wordFlashKeys=new Set(newlyCompleted.flatMap(w=>w.cells.map(cell=>cell.join(","))));
+    clearTimeout(state.wordFlashTimer);
+    state.wordFlashTimer=setTimeout(()=>{state.wordFlashKeys=new Set();if(state.screen==="game")renderGame(root)},850);
+  }
   if(state.screen!=="game"){render();return}
   if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
   state.rackNeedsRefill[state.turn]=true;
@@ -372,15 +378,17 @@ function place(k,root){
   }
 }
 function checkWords(){
+  const newlyCompleted=[];
   puzzle.words.forEach(w=>{
     if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){
-      state.completed.add(w.id);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
+      state.completed.add(w.id);newlyCompleted.push(w);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
   if(state.completed.size===puzzle.words.length){
     state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();state.screen="";
     setTimeout(()=>{render();toast("Партия завершена!")},500);
   }
+  return newlyCompleted;
 }
 async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();watchSocialUpdates();}
 
@@ -558,7 +566,9 @@ function renderGame(root){
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
+      const wordComplete=puzzle.words.some(w=>state.completed.has(w.id)&&w.cells.some(cell=>cell.join(",")===key));
+      const wordFlash=state.wordFlashKeys?.has(key);
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(wordComplete?" word-complete":"")+(wordFlash?" word-complete-flash":"");
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
   }
