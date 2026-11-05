@@ -10,7 +10,7 @@ function applyTheme(theme=activeTheme){
   document.documentElement.dataset.qqTheme=activeTheme;
   try{localStorage.setItem(THEME_KEY,activeTheme)}catch{}
   const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.setAttribute("content",activeTheme==="burgundy"?"#211419":activeTheme==="black"?"#111111":"#211a2c");
+  if(meta)meta.setAttribute("content",({burgundy:"#241016",black:"#202124",blue:"#101c32",green:"#14271e",white:"#f4f5f7"})[activeTheme]||"#211a2c");
 }
 const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
