@@ -406,7 +406,7 @@ function renderGame(root){
       const key=y+","+x;
       if(x===0&&clueAt.has(key)){
         const w=clueAt.get(key);
-        cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-arrow">➜</span><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
+        cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
       }else if(expected[key]!==undefined){
         const value=state.filled[key]||pending[key]||"";
         const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
@@ -502,54 +502,63 @@ function normalizeScanwordEntry(item){
   return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
 }
 function buildScanword(entries){
-  const W=8,H=12,grid=Array.from({length:H},()=>Array(W).fill(null)),placed=[],clueOccupied=new Set();
+  const W=8,H=12;
   const candidates=entries.map(normalizeScanwordEntry).filter(Boolean);
-  for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
-  function tryPlace(entry,x,y,dir,first=false){
-    const dx=dir==="across"?1:0,dy=dir==="down"?1:0;
-    const ex=x+dx*(entry.answer.length-1),ey=y+dy*(entry.answer.length-1);
-    const cx=x-dx,cy=y-dy;
-    if(x<0||y<0||ex>=W||ey>=H||cx<0||cy<0)return false;
-    if(grid[cy][cx]!==null||clueOccupied.has(cy+","+cx))return false;
-    let crossings=0;
-    for(let k=0;k<entry.answer.length;k++){
-      const px=x+dx*k,py=y+dy*k,old=grid[py][px],letter=entry.answer[k];
-      if(clueOccupied.has(py+","+px))return false;
-      if(old!==null&&old!==letter)return false;
-      if(old===letter)crossings++;
-      const before=dir==="across"?grid[py-1]?.[px]:grid[py]?.[px-1];
-      const after=dir==="across"?grid[py+1]?.[px]:grid[py]?.[px+1];
-      if(old===null&&(before!==null&&before!==undefined||after!==null&&after!==undefined))return false;
-    }
-    if(!first&&!crossings)return false;
-    for(let k=0;k<entry.answer.length;k++)grid[y+dy*k][x+dx*k]=entry.answer[k];
-    clueOccupied.add(cy+","+cx);
-    placed.push({id:"w"+placed.length,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells:Array.from({length:entry.answer.length},(_,k)=>[y+dy*k,x+dx*k]),clueCell:[cy,cx],arrow:dir==="across"?"➡️":"⬇️"});
-    return true;
-  }
   if(!candidates.length)return null;
-  const firstIndex=candidates.findIndex(e=>e.answer.length<=7);
-  if(firstIndex<0)return null;
-  const first=candidates.splice(firstIndex,1)[0];
-  if(!tryPlace(first,1,Math.max(0,Math.floor((H-first.answer.length)/2)), "across",true))return null;
-  for(const entry of candidates){
-    let options=[];
-    for(const word of placed)for(let a=0;a<word.answer.length;a++)for(let b=0;b<entry.answer.length;b++){
-      if(word.answer[a]!==entry.answer[b])continue;
-      const [wy,wx]=word.cells[a];
-      const dir=word.dir==="across"?"down":"across";
-      const x=dir==="across"?wx-b:wx,y=dir==="down"?wy-b:wy;
-      options.push({x,y,dir});
+  let best=null,bestScore=-1;
+  // Несколько независимых раскладок: сохраняем ту, в которой занято больше всего клеток.
+  for(let attempt=0;attempt<180;attempt++){
+    const grid=Array.from({length:H},()=>Array(W).fill(null));
+    const placed=[],clueOccupied=new Set();
+    const pool=candidates.slice();
+    for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}
+    function tryPlace(entry,x,y,dir,first=false){
+      const dx=dir==="across"?1:0,dy=dir==="down"?1:0;
+      const ex=x+dx*(entry.answer.length-1),ey=y+dy*(entry.answer.length-1);
+      const cx=x-dx,cy=y-dy;
+      if(x<0||y<0||ex>=W||ey>=H||cx<0||cy<0)return false;
+      if(grid[cy][cx]!==null||clueOccupied.has(cy+","+cx))return false;
+      let crossings=0;
+      for(let k=0;k<entry.answer.length;k++){
+        const px=x+dx*k,py=y+dy*k,old=grid[py][px],letter=entry.answer[k];
+        if(clueOccupied.has(py+","+px))return false;
+        if(old!==null&&old!==letter)return false;
+        if(old===letter)crossings++;
+        const before=dir==="across"?grid[py-1]?.[px]:grid[py]?.[px-1];
+        const after=dir==="across"?grid[py+1]?.[px]:grid[py]?.[px+1];
+        if(old===null&&(before!==null&&before!==undefined||after!==null&&after!==undefined))return false;
+      }
+      if(!first&&!crossings)return false;
+      for(let k=0;k<entry.answer.length;k++)grid[y+dy*k][x+dx*k]=entry.answer[k];
+      clueOccupied.add(cy+","+cx);
+      placed.push({id:"w"+placed.length,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,
+        cells:Array.from({length:entry.answer.length},(_,k)=>[y+dy*k,x+dx*k]),clueCell:[cy,cx]});
+      return true;
     }
-    for(let n=options.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[options[n],options[j]]=[options[j],options[n]]}
-    let done=false;
-    for(const o of options){if(tryPlace(entry,o.x,o.y,o.dir)){done=true;break}}
-    if(!done)continue;
+    const firstIndex=pool.findIndex(e=>e.answer.length<=7);
+    if(firstIndex<0)continue;
+    const first=pool.splice(firstIndex,1)[0];
+    if(!tryPlace(first,1,Math.max(0,Math.floor((H-first.answer.length)/2)),"across",true))continue;
+    for(const entry of pool){
+      const options=[];
+      for(const word of placed)for(let a=0;a<word.answer.length;a++)for(let b=0;b<entry.answer.length;b++){
+        if(word.answer[a]!==entry.answer[b])continue;
+        const [wy,wx]=word.cells[a],dir=word.dir==="across"?"down":"across";
+        options.push({x:dir==="across"?wx-b:wx,y:dir==="down"?wy-b:wy,dir});
+      }
+      for(let n=options.length-1;n>0;n--){const j=Math.floor(Math.random()*(n+1));[options[n],options[j]]=[options[j],options[n]]}
+      for(const o of options)if(tryPlace(entry,o.x,o.y,o.dir))break;
+    }
+    const used=new Set();placed.forEach(w=>w.cells.forEach(c=>used.add(c.join(","))));
+    const clueKeys=new Set(placed.map(w=>w.clueCell.join(",")));
+    const score=used.size+clueKeys.size;
+    if(score>bestScore){
+      bestScore=score;
+      best={id:"scanword-"+Date.now()+"-"+attempt,title:"Сканворд",w:W,h:H,words:placed,used,clueKeys,coverage:score/(W*H)};
+      if(score===W*H)break;
+    }
   }
-  if(placed.length<1)return null;
-  const used=new Set();placed.forEach(w=>w.cells.forEach(c=>used.add(c.join(","))));
-  const clueKeys=new Set(placed.map(w=>w.clueCell.join(",")));
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words:placed,used,clueKeys};
+  return best;
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
