@@ -537,39 +537,76 @@ function buildScanword(entries){
   const verticalEntry=normalizeScanwordEntry(entries[chosen.vertical]);
   if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)
     throw new Error("Некорректная основа сканворда");
-  const words=[],used=new Set(),clueKeys=new Set();
-  const verticalCells=Array.from({length:11},(_,k)=>[k+1,1]);
-  words.push({id:"vertical",answer:verticalEntry.answer,clue:verticalEntry.clue,isEmoji:verticalEntry.emoji,dir:"down",cells:verticalCells,clueCell:[0,1]});
-  clueKeys.add("0,1");verticalCells.forEach(c=>used.add(c.join(",")));
+  const words=[],occupied=new Map(),clueKeys=new Set();
+  const addWord=(entry,index,dir,x,y,id)=>{
+    if(!entry)throw new Error("Некорректное слово в сканворде");
+    const vertical=dir==="down";
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
+    if(!vertical&&x+entry.answer.length>=12)throw new Error("Горизонтальное слово выходит за поле");
+    if(vertical&&y+entry.answer.length>=12)throw new Error("Вертикальное слово выходит за поле");
+    const clueKey=y+","+x;
+    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Клетка вопроса занята");
+    cells.forEach((c,i)=>{
+      const key=c.join(","),letter=entry.answer[i];
+      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
+    });
+    cells.forEach((c,i)=>occupied.set(c.join(","),entry.answer[i]));
+    clueKeys.add(clueKey);
+    words.push({id,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
+  };
+  addWord(verticalEntry,chosen.vertical,"down",1,0,"vertical");
   chosen.across.forEach((entryIndex,row)=>{
     const entry=normalizeScanwordEntry(entries[entryIndex]);
-    const first=verticalEntry.answer[row];
-    if(!entry||entry.answer.length>11||entry.answer[0]!==first)
-      throw new Error("Буква горизонтального слова не совпадает с вертикальным ответом");
-    const y=row+1;
-    const cells=Array.from({length:entry.answer.length},(_,k)=>[y,k+1]);
-    words.push({id:"w"+(row+1),answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[y,0]});
-    clueKeys.add(y+",0");cells.forEach(c=>used.add(c.join(",")));
+    if(!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row])
+      throw new Error("Первая буква горизонтального слова не совпадает с вертикальной");
+    // The main across word starts on the shared vertical spine at column 1.
+    const cells=Array.from({length:entry.answer.length},(_,k)=>[row+1,k+1]);
+    cells.forEach((c,i)=>{
+      const key=c.join(","),letter=entry.answer[i];
+      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
+      occupied.set(key,letter);
+    });
+    const clueKey=(row+1)+",0";
+    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Клетка вопроса занята");
+    clueKeys.add(clueKey);
+    words.push({id:"w"+(row+1),answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[row+1,0]});
   });
-  const occupied=new Map();
-  for(const w of words)w.cells.forEach((c,i)=>{
-    const key=c.join(","),letter=w.answer[i];
-    if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт букв в сканворде");
-    occupied.set(key,letter);
+  (chosen.extras||[]).forEach((extra,i)=>{
+    const entry=normalizeScanwordEntry(entries[extra.index]);
+    if(!entry||!["across","down"].includes(extra.dir))throw new Error("Некорректная дополнительная запись");
+    const vertical=extra.dir==="down";
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[extra.y+1+k,extra.x]:[extra.y,extra.x+1+k]);
+    if((!vertical&&extra.x+entry.answer.length>=12)||(vertical&&extra.y+entry.answer.length>=12))
+      throw new Error("Дополнительное слово выходит за поле");
+    const clueKey=extra.y+","+extra.x;
+    if(clueKeys.has(clueKey)||occupied.has(clueKey))throw new Error("Дополнительный вопрос пересекает слово");
+    cells.forEach((c,j)=>{
+      const key=c.join(","),letter=entry.answer[j];
+      if(occupied.has(key)&&occupied.get(key)!==letter)throw new Error("Конфликт дополнительного слова");
+    });
+    cells.forEach((c,j)=>occupied.set(c.join(","),entry.answer[j]));
+    clueKeys.add(clueKey);
+    words.push({id:"extra"+i,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:extra.dir,cells,clueCell:[extra.y,extra.x]});
   });
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used,clueKeys,coverage:1};
+  const expectedMap={};occupied.forEach((v,k)=>expectedMap[k]=v);
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
   const built=buildScanword(getScanwordDictionary());
   if(!built){puzzle=null;letterBag=[];return false}
   puzzle=built;
-  puzzle.words.forEach(w=>w.cells.forEach((c,i)=>expected[c.join(",")]=w.answer[i]));
+  puzzle.words.forEach(w=>w.cells.forEach((c,i)=>{
+    const key=c.join(","),letter=w.answer[i];
+    if(expected[key]!==undefined&&expected[key]!==letter)throw new Error("Конфликт букв в ответах");
+    expected[key]=letter;
+  }));
   letterBag=Object.values(expected);
   for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
   return true;
 }
 function loadPuzzle(){return makeRandomPuzzle()}
+
 
 function begin(size=1){
   if(!loadPuzzle()){toast("Не удалось собрать сканворд. Попробуй ещё раз.");return}
@@ -758,6 +795,6 @@ async function preloadScanwordDictionary(){
   }catch(error){console.warn("QQcross data:",error)}
 }
 
-if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("QQcross offline mode:",error)));
 applyTheme(activeTheme);
 preloadScanwordDictionary().finally(()=>initAuth());
