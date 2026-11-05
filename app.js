@@ -474,23 +474,32 @@ function buildScanword(entries){
   }
   const topPair=makeFragment(2);
   if(topPair)addWord(topPair,"across",9,0,"top-fill-9");
-  // Fill every remaining row from the main answer to the right edge.
-  for(let row=0;row<11&&words.length<34;row++){
-    let free=10-across[row].answer.length;
-    let x=across[row].answer.length+2;
-    if(free>=3&&free%2===1&&words.length<34){
-      const entry=makeFragment(2);
-      if(entry&&addWord(entry,"across",x,row+1,"fill-"+entry.sourceAnswer)){x+=3;free-=3}
-    }
-    while(free>=2&&words.length<34){
-      const entry=makeFragment(1);
-      if(!entry)break;
-      if(addWord(entry,"across",x,row+1,"fill-"+entry.sourceAnswer)){x+=2;free-=2}
-      else break;
-    }
+  // Distribute exactly 17 filler clues across the remaining row space.
+  // Each row is partitioned into clue+answer groups, so every board cell is used.
+  const rowFills=across.map(entry=>({free:10-entry.answer.length,count:0}));
+  rowFills.forEach(row=>{if(row.free>=2)row.count=1});
+  let extraClues=17-rowFills.reduce((sum,row)=>sum+row.count,0);
+  while(extraClues>0){
+    const eligible=rowFills.map((row,index)=>({row,index})).filter(({row})=>row.count<Math.floor(row.free/2));
+    if(!eligible.length)throw new Error("Не удалось распределить вопросы по всей сетке");
+    const pick=eligible[Math.floor(Math.random()*eligible.length)];
+    pick.row.count++;extraClues--;
   }
+  rowFills.forEach((row,index)=>{
+    if(!row.count)return;
+    const lengths=Array(row.count).fill(2);
+    let spare=row.free-row.count*2;
+    while(spare>0){lengths[lengths.length-1]++;spare--}
+    let x=across[index].answer.length+2;
+    lengths.forEach((cells,part)=>{
+      const entry=makeFragment(cells-1);
+      if(!entry||!addWord(entry,"across",x,index+1,"fill-"+index+"-"+part))throw new Error("Не удалось заполнить ряд сканворда");
+      x+=cells;
+    });
+  });
   if(words.length!==34)throw new Error("Не удалось собрать сканворд из 34 вопросов");
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
+  if(occupied.size+clueKeys.size!==144)throw new Error("В сетке сканворда остались пустые клетки");
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
