@@ -1,4 +1,4 @@
-const CACHE_NAME="qqcross-20261105-qqcross-brand-1";
+const CACHE_NAME="qqcross-20261105-board85-toprow-1";
 const CORE=["./","./index.html","./manifest.json","./styles.css?v=20261105-qqcross-brand-1","./app.js?v=20261105-qqcross-brand-1","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("qqcross-")&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
