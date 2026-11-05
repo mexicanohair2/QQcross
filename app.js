@@ -648,10 +648,20 @@ function buildScanword(entries){
     if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
     const derived=[];
     for(let x=2;x<12;x++){
-      let answer="";
-      for(const entry of across){if(entry.answer.length<x)break;answer+=entry.answer[x-1]}
-      const match=answer.length>=2?byAnswer.get(answer):null;
-      if(match&&answer!==verticalEntry.answer)derived.push({x,entry:match});
+      const options=[];
+      for(const entry of byAnswer.values()){
+        if(entry.answer.length>11||entry.answer===verticalEntry.answer)continue;
+        let intersections=0,valid=true;
+        for(let row=0;row<entry.answer.length;row++){
+          const acrossEntry=across[row];
+          if(acrossEntry.answer.length>=x){
+            intersections++;
+            if(acrossEntry.answer[x-1]!==entry.answer[row]){valid=false;break}
+          }
+        }
+        if(valid&&intersections>0)options.push(entry);
+      }
+      if(options.length)derived.push({x,options});
     }
     const topExtraXs=new Set((chosen.extras||[]).filter(e=>e.y===0&&e.dir==="down").map(e=>e.x));
     const uniqueDerived=derived.filter(item=>!topExtraXs.has(item.x));
@@ -662,6 +672,7 @@ function buildScanword(entries){
   const pool=candidates.filter(c=>c.score===bestScore);
   const selected=pool[Math.floor(Math.random()*pool.length)];
   const {chosen,verticalEntry,across,derived}=selected;
+  const topWords=derived.map(({x,options})=>({x,entry:options[Math.floor(Math.random()*options.length)]}));
 
   const words=[],occupied=new Map(),clueKeys=new Set();
   const addWord=(entry,index,dir,x,y,id)=>{
@@ -687,7 +698,7 @@ function buildScanword(entries){
   across.forEach((entry,row)=>addWord(entry,chosen.across[row],"across",0,row+1,"w"+(row+1)));
 
   // Add top-edge questions only where existing crossing letters form a real dictionary word.
-  derived.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
+  topWords.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
 
   // Center clues are re-positioned randomly on every new board.
   const extras=[...(chosen.extras||[])];
