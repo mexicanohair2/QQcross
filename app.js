@@ -672,7 +672,17 @@ function buildScanword(entries){
   const pool=candidates.filter(c=>c.score===bestScore);
   const selected=pool[Math.floor(Math.random()*pool.length)];
   const {chosen,verticalEntry,across,derived}=selected;
-  const topWords=derived.map(({x,options})=>({x,entry:options[Math.floor(Math.random()*options.length)]}));
+  const topColumns=[...derived].sort((a,b)=>{
+    const aMin=Math.min(...a.options.map(entry=>entry.answer.length));
+    const bMin=Math.min(...b.options.map(entry=>entry.answer.length));
+    return aMin-bMin||(Math.random()-.5);
+  }).slice(0,6);
+  const topWords=topColumns.map(({x,options})=>{
+    const minLength=Math.min(...options.map(entry=>entry.answer.length));
+    const compactOptions=options.filter(entry=>entry.answer.length<=Math.max(4,minLength));
+    const pool=compactOptions.length?compactOptions:options;
+    return {x,entry:pool[Math.floor(Math.random()*pool.length)]};
+  });
 
   const words=[],occupied=new Map(),clueKeys=new Set();
   const addWord=(entry,index,dir,x,y,id)=>{
