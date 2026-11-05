@@ -1,13 +1,3 @@
-
-/* Fit all scanword cells to the available board area while preserving square geometry. */
-function enforceSquareScanword(){document.querySelectorAll(".game-screen .scanword-board").forEach(board=>{
- const set=(p,v)=>board.style.setProperty(p,v,"important");
- set("display","grid");set("grid-template-columns","repeat(12,minmax(0,1fr))");set("grid-template-rows","repeat(12,minmax(0,1fr))");set("width","min(100%, calc(100dvh - 22dvh))");set("height","auto");set("aspect-ratio","1 / 1");set("min-width","0");set("min-height","0");set("max-width","100%");set("max-height","100%");set("gap","2px");set("transform","none");
- const wrap=board.parentElement;wrap.style.setProperty("overflow","hidden","important");wrap.style.setProperty("touch-action","pan-y","important");
- board.querySelectorAll(":scope > .scan-cell").forEach(cell=>{["width","height","min-width","min-height","max-width","max-height"].forEach(p=>cell.style.setProperty(p,"auto","important"));cell.style.setProperty("flex","none","important");cell.style.setProperty("aspect-ratio","1 / 1","important");cell.style.setProperty("box-sizing","border-box","important");cell.style.setProperty("margin","0","important");});
-});}
-const squareScanwordObserver=new MutationObserver(()=>enforceSquareScanword());squareScanwordObserver.observe(document.documentElement,{childList:true,subtree:true});
-
 const AVATARS=["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉","🐲"];
 const NAMES=["Котик","Енот","Собачка","Лев","Тигр","Скунс","Клоун","Змея","Красный дракон","Оранжевый дракон"];
 const $=s=>document.querySelector(s);
