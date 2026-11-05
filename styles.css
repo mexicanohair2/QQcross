@@ -1419,3 +1419,65 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
 .game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
   font-size:clamp(16px,4.4vw,25px)!important;white-space:nowrap!important;
 }
+
+
+/* Final scanword polish: calm burgundy gradients, clear clue tiles, no arrows. */
+.game-screen .scanword-board{
+  gap:3px!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell{
+  border:1px solid #74505d!important;
+  border-radius:5px!important;
+  background:linear-gradient(145deg,#3b2931 0%,#291c23 100%)!important;
+  box-shadow:inset 0 1px 2px rgba(255,235,240,.07),0 1px 2px rgba(0,0,0,.22)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue{
+  background:linear-gradient(145deg,#f0e3e5 0%,#d9c4ca 52%,#cbb1ba 100%)!important;
+  border:1px solid #f7edf0!important;
+  color:#38232c!important;
+  box-shadow:inset 0 1px 3px rgba(255,255,255,.8),0 1px 3px rgba(0,0,0,.22)!important;
+  padding:4px!important;
+  overflow:visible!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue .scan-clue-text{
+  display:block!important;
+  width:100%!important;
+  max-height:none!important;
+  height:auto!important;
+  color:#38232c!important;
+  font-size:clamp(7px,2.25vw,12px)!important;
+  font-weight:700!important;
+  line-height:1.12!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  text-overflow:clip!important;
+  -webkit-line-clamp:unset!important;
+  text-align:center!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji{
+  background:linear-gradient(145deg,#f5e9eb 0%,#dfcbd1 100%)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  font-size:clamp(15px,4.2vw,25px)!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.cell{
+  background:linear-gradient(145deg,#49313b 0%,#30212a 100%)!important;
+  border-color:#80606b!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.cell.filled{
+  background:linear-gradient(145deg,#76505e 0%,#553743 100%)!important;
+  border-color:#b18b96!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell.cell.pending-cell{
+  background:linear-gradient(145deg,#8b6672 0%,#684653 100%)!important;
+  border:2px solid #e4c2cb!important;
+}
+.game-screen .scan-cell .scan-arrow,
+.game-screen .scanword-board .scan-arrow{
+  display:none!important;
+}
