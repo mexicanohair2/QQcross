@@ -411,7 +411,7 @@ function renderGame(root){
         cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
       }else if(expected[key]!==undefined){
         const value=state.filled[key]||pending[key]||state.returning?.[key]||"";
-        const cls=(state.filled[key]?"filled feedback-correct":"")+(pending[key]?" pending-cell":"")+(pending[key]&&pending[key]===expected[key]?" feedback-correct":"")+(state.feedback[key]==="wrong"?" wrong":"");
+        const cls=(state.filled[key]?"filled feedback-correct":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
         cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
       }else{
         cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
