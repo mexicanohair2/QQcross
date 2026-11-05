@@ -270,7 +270,8 @@ function renderGame(root){
     const key=y+","+x,clue=clueAt.get(key),letter=letterAt.get(key);
     if(clue){
       const clueText=clue.clue;
-      rows.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-show-clue="'+esc(clue.id)+'" aria-label="Вопрос: '+esc(clueText)+'"><span class="scan-clue-text">'+esc(clueText)+'</span></button>');
+      const clueDirection=clue.dir==="down"?"scan-clue-down":"scan-clue-across";
+      rows.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+clueDirection+' '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-show-clue="'+esc(clue.id)+'" aria-label="Вопрос: '+esc(clueText)+'"><span class="scan-clue-text">'+esc(clueText)+'</span></button>');
     }else if(letter){
       const value=state.filled[key]||pending[key]||"";
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback?.[key]==="wrong"?" wrong":"")+(state.wordFlashKeys?.has(key)?" word-complete-flash":"");
@@ -619,10 +620,17 @@ function getScanwordDictionary(){
 }
 function compactScanwordClue(value){
   const raw=String(value||"").replace(/\s+/g," ").trim();
-  if(!raw||/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(raw)||raw.length<=18)return raw;
+  if(!raw||/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(raw))return raw;
+  // A clue tile is only one scanword cell: keep the label short and let CSS wrap it neatly.
   const words=raw.split(" ");let short="";
-  for(const word of words){const next=short?short+" "+word:word;if(next.length>18)break;short=next}
-  return short||raw.slice(0,17)+"…";
+  for(const word of words){
+    const next=short?short+" "+word:word;
+    if(next.length>14)break;
+    short=next;
+  }
+  if(short)return short;
+  const first=words[0]||raw;
+  return first.length>13?first.slice(0,12)+"…":first;
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
