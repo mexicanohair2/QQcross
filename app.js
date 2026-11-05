@@ -16,7 +16,13 @@ function applyTheme(theme=activeTheme){
 const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
 const AUTH_REDIRECT_URL="https://mexicanohair2.github.io/QQcross/";
-const supabaseClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,flowType:"implicit"}}):null;
+let supabaseClient=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,flowType:"implicit"}}):null;
+function configureSupabase(){
+  if(!supabaseClient&&window.supabase?.createClient){
+    supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{autoRefreshToken:true,persistSession:true,detectSessionInUrl:true,flowType:"implicit"}});
+    if(authStarted)initAuth();
+  }
+}
 let authMode="signup";
 let authNotice="";
 let authRecoveryMode=false;
@@ -722,6 +728,8 @@ function preloadScanwordDictionary(){
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("QQcross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
+window.QQ_SUPABASE_READY=configureSupabase;
+configureSupabase();
 function startAuthOnce(){if(authStarted)return;authStarted=true;initAuth()}
 const dictionaryReady=preloadScanwordDictionary();
 Promise.race([dictionaryReady,new Promise(resolve=>setTimeout(resolve,3500))]).finally(startAuthOnce);
