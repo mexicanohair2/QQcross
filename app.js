@@ -507,7 +507,7 @@ function buildScanword(entries){
   // the engine first searches for a legal crossing elsewhere on the board.
   const extras=[...(chosen.extras||[])];
   for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
-  extras.length=Math.min(extras.length,5);
+  extras.length=0;
   const canPlace=(entry,dir,x,y,requireIntersection=true)=>{
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
