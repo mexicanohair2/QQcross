@@ -27,7 +27,7 @@ let authMode="signup";
 let authNotice="";
 let authRecoveryMode=false;
 let socialChannel=null;
-const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null,playMenuOpen:false};
+const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null,playMenuOpen:false,matchInvites:[],myOnlineMatches:[],selectedInviteIds:[],pendingMatchId:null,onlineMatchId:null,onlinePlayers:[],onlineVersion:0,onlineFinished:false,rewardSubmitted:false};
 let puzzle=null;
 const expected={};
 let letterBag=[];
@@ -67,7 +67,8 @@ $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password
 }
 function renderShell(root){const tabs=["Главная","История","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","◷","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${AVATARS[state.profile.avatar]||"🐱"}</div><div><b>${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
 function content(){if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
-function home(){return `<section class="card hero home-hero"><div class="home-mark">QQ</div><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="${state.playMenuOpen}">Играть</button>${state.playMenuOpen?`<div class="play-options"><button class="btn full" id="practice">Играть одному</button><button class="btn full" id="createParty">Играть с друзьями</button></div>`:""}</section><h3 class="section-title">Входящие приглашения</h3>${state.invite?`<div class="notice"><b>Приглашение в партию</b><p class="small muted">От игрока ${esc(state.invite.from)} · ${state.invite.size} участника(ов)</p><div class="grid2"><button class="btn primary" id="acceptInvite">Согласиться</button><button class="btn" id="rejectInvite">Отклонить</button></div></div>`:`<div class="notice"><b>Пока нет приглашений</b></div>`}</section>`}
+function home(){return '<section class="card hero home-hero"><div class="home-mark">QQ</div><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice">Играть одному</button><button class="btn full" id="createParty">Играть с друзьями</button></div>':'')+'</section><h3 class="section-title">Приглашения в партии</h3><div id="matchInvites"><p class="small muted">Загрузка…</p></div><h3 class="section-title">Мои онлайн-партии</h3><div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>'}
+
 function friends(){return `
   <h2>Друзья</h2>
   <div class="card">
@@ -191,7 +192,7 @@ function settings(){
     </section>
     `;
 }
-function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
+function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
   if(state.profile.coins<cost){toast("Не хватает монет");return}
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
@@ -208,18 +209,125 @@ function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle")
   }
 });const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){
-  root.innerHTML=`<div class="screen">
-    <div class="top"><button class="btn" id="back">← Назад</button><div class="coins">🪙 ${state.profile.coins}</div></div>
-    <h2>Новая партия</h2>
-    <div class="card">
-      <b>Сколько игроков будет в партии?</b>
-      <div class="party-options">${[2,3,4].map(n=>`<button class="party-option ${state.partySize===n?"selected":""}" data-size="${n}">${n}</button>`).join("")}</div>
-      <p class="small muted">Настоящие приглашения и общее лобби подключаются через Supabase. Демонстрационные приглашения отключены, чтобы не показывать фальшивые заявки.</p>
-    </div>
-  </div>`;
-  $("#back").onclick=()=>{state.screen="";render()};
-  root.querySelectorAll("[data-size]").forEach(b=>b.onclick=()=>{state.partySize=+b.dataset.size;renderLobby(root)});
+ if(state.pendingMatchId){
+  root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
+  $("#back").onclick=()=>{state.pendingMatchId=null;render()};$("#refreshParty").onclick=refreshPartyLobby;$("#startOnlineMatch").onclick=startOnlineMatch;refreshPartyLobby();return;
+ }
+ root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Новая онлайн-партия</h2><div class="card"><b>Выбери друзей</b><p class="small muted">От 1 до 3 друзей.</p><div id="lobbyFriends">Загружаем…</div><button class="btn primary full" id="createOnlineMatch">Создать партию и пригласить</button></div></div>';
+ $("#back").onclick=()=>{state.screen="";render()};$("#createOnlineMatch").onclick=createOnlineMatch;loadLobbyFriends();
 }
+async function loadLobbyFriends(){
+ const out=$("#lobbyFriends");if(!out)return;
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){out.textContent="Для онлайн-игры войди в аккаунт.";return}
+ try{
+  const {data,error}=await supabaseClient.rpc("list_qqcross_friends");if(error)throw error;
+  if(!data?.length){out.textContent="Сначала добавь друзей во вкладке «Друзья».";return}
+  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b></label>').join("");
+ }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
+}
+function puzzleSnapshot(){
+ return {puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]}))},expected:{...expected},letterBag:[...letterBag]};
+}
+function serializeOnlineState(){
+ return {filled:{...state.filled},owners:{...state.owners},feedback:{...state.feedback},hints:{...state.hints},completed:[...(state.completed||[])],
+ scores:state.scores,playerScores:[...(state.playerScores||[])],turn:state.turn,round:state.round,seconds:60,
+ rackNeedsRefill:[...(state.rackNeedsRefill||[])],playerRacks:(state.playerRacks||[]).map(r=>[...r]),
+ pendingMoves:(state.pendingMoves||[]).map(m=>({...m})),returning:{...(state.returning||{})},letterBag:[...letterBag]};
+}
+async function createOnlineMatch(){
+ const button=$("#createOnlineMatch"),ids=Array.from(document.querySelectorAll("#lobbyFriends input:checked")).map(x=>x.value);
+ if(!ids.length||ids.length>3){toast("Выбери от 1 до 3 друзей");return}
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Войди в аккаунт");return}
+ button.disabled=true;button.textContent="Создаём…";
+ try{
+  if(!window.QQCROSS_DICTIONARY?.length||!window.QQCROSS_SCANWORDS?.puzzles?.length)await preloadScanwordDictionary();
+  if(!loadPuzzle())throw new Error("Не удалось собрать сканворд");
+  const {data,error}=await supabaseClient.rpc("create_qqcross_match",{invited_user_ids:ids,puzzle_data:puzzleSnapshot()});
+  if(error)throw error;state.pendingMatchId=data;renderLobby($("#app"));
+ }catch(e){toast(e.message||"Не удалось создать партию");button.disabled=false;button.textContent="Создать партию и пригласить"}
+}
+async function refreshPartyLobby(){
+ if(!state.pendingMatchId)return;const out=$("#partyStatus");if(!out)return;
+ try{
+  const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
+  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
+  const b=$("#startOnlineMatch");if(b)b.disabled=data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;
+ }catch(e){out.textContent=e.message||"Ошибка"}
+}
+async function startOnlineMatch(){
+ const b=$("#startOnlineMatch");if(b){b.disabled=true;b.textContent="Запускаем…"}
+ try{
+  const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
+  const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
+  Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
+  state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
+  state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=60;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
+  const {data:version,error:initError}=await supabaseClient.rpc("init_qqcross_match_state",{target_match_id:state.onlineMatchId,initial_state:serializeOnlineState()});if(initError)throw initError;
+  state.onlineVersion=version;state.pendingMatchId=null;state.screen="game";subscribeOnlineMatch(state.onlineMatchId);pushGameHistoryEntry();render();
+ }catch(e){toast(e.message||"Не удалось начать партию");if(b){b.disabled=false;b.textContent="Начать партию"}}
+}
+async function loadMatchInbox(){
+ const invites=$("#matchInvites"),matches=$("#myOnlineMatches");
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){if(invites)invites.textContent="Войди в аккаунт, чтобы получать приглашения.";if(matches)matches.textContent="Онлайн-игра доступна после входа.";return}
+ try{
+  const [ir,mr]=await Promise.all([supabaseClient.rpc("list_qqcross_match_invites"),supabaseClient.rpc("list_qqcross_my_matches")]);
+  if(ir.error)throw ir.error;if(mr.error)throw mr.error;
+  if(invites)invites.innerHTML=ir.data?.length?ir.data.map(x=>'<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>').join(""):'<p class="small muted">Новых приглашений нет.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":"Идёт партия")+'</p><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});if(error)throw error;await loadMatchInbox();toast("Приглашение принято")}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
+  document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});if(error)throw error;await loadMatchInbox()}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
+  document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
+ }catch(e){if(invites)invites.textContent=e.message||"Не удалось загрузить приглашения"}
+}
+async function openOnlineMatch(id){
+ try{
+  const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:id});if(error)throw error;
+  if(data.status==="waiting"){toast("Создатель ещё не запустил партию");return}
+  if(!data.game_state)throw new Error("Состояние партии ещё не готово");
+  applyOnlineMatch(data);
+ }catch(e){toast(e.message||"Не удалось открыть партию")}
+}
+let onlineChannel=null;
+function subscribeOnlineMatch(id){
+ if(!supabaseClient||!id)return;
+ if(onlineChannel)supabaseClient.removeChannel(onlineChannel).catch(()=>{});
+ onlineChannel=supabaseClient.channel("qqcross-match-"+id)
+  .on("postgres_changes",{event:"UPDATE",schema:"public",table:"matches",filter:"id=eq."+id},()=>refreshOnlineMatch())
+  .subscribe();
+}
+function applyOnlineMatch(m){
+ const s=m.puzzle_snapshot,g=m.game_state;
+ puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
+ Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(g.letterBag||s.letterBag||[])];
+ state.onlineMatchId=m.match_id;state.matchId=m.match_id;state.onlinePlayers=m.players||[];state.onlineVersion=m.state_version;state.partySize=state.onlinePlayers.length;
+ state.turn=Math.max(0,state.onlinePlayers.findIndex(p=>p.id===m.current_turn_user_id));
+ Object.assign(state,{screen:"game",filled:{...(g.filled||{})},owners:{...(g.owners||{})},feedback:{...(g.feedback||{})},hints:{...(g.hints||{})},
+ completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:[...(g.playerScores||[])],round:g.round||1,seconds:60,
+ rackNeedsRefill:[...(g.rackNeedsRefill||[])],playerRacks:(g.playerRacks||[]).map(x=>[...x]),pendingMoves:(g.pendingMoves||[]).map(x=>({...x})),returning:{...(g.returning||{})},rewardSubmitted:false});
+ state.letters=state.playerRacks[state.turn]||[];subscribeOnlineMatch(state.onlineMatchId);render();
+ if(m.status==="finished")awardOnlineResult();
+}
+async function refreshOnlineMatch(){
+ if(!state.onlineMatchId)return;
+ try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
+  if(data.state_version>state.onlineVersion&&data.game_state)applyOnlineMatch(data);
+  else if(data.status==="finished"&&!state.rewardSubmitted)awardOnlineResult();
+ }catch(e){console.warn("QQCross online refresh:",e)}
+}
+async function awardOnlineResult(){
+ if(state.rewardSubmitted||!state.onlineMatchId)return;state.rewardSubmitted=true;
+ try{const {data,error}=await supabaseClient.rpc("award_qqcross_match_result",{points:state.scores,match_id:String(state.onlineMatchId)});if(error)throw error;
+  state.profile.coins=Number(data.coins)||state.profile.coins;state.profile.games=Number(data.games)||state.profile.games;state.profile.wins=Number(data.wins)||state.profile.wins;state.profile.points=Number(data.points)||state.profile.points;save();state.screen="";render();toast("Партия завершена · награда начислена");
+ }catch(e){state.rewardSubmitted=false;toast(e.message||"Не удалось начислить награду")}
+}
+async function saveOnlineTurn(pointsEarned,finished){
+ const nextTurn=finished?state.turn:(state.turn+1)%state.partySize,nextUser=finished?null:state.onlinePlayers[nextTurn]?.id;
+ state.turn=nextTurn;state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn]||[];
+ try{const {data,error}=await supabaseClient.rpc("submit_qqcross_match_turn",{target_match_id:state.onlineMatchId,expected_version:state.onlineVersion,next_state:serializeOnlineState(),points_earned:pointsEarned,next_user_id:nextUser,is_finished:finished});if(error)throw error;
+  state.onlineVersion=data.state_version;if(finished){state.screen="";await awardOnlineResult()}else renderGame($("#app"));
+ }catch(e){toast(e.message||"Не удалось сохранить ход");await refreshOnlineMatch()}
+}
+
 function drawLetters(n){
   const out=[];
   for(let i=0;i<n&&letterBag.length;i++){
@@ -242,7 +350,8 @@ function placeAtCell(k,letterIndex,root){
   state.pendingMoves.push({k,l:letter});delete state.feedback[k];
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
-function finishTurn(root,timeout=false){
+async function finishTurn(root,timeout=false){
+  if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];const correctKeys=[];state.returning=state.returning||{};
   moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
     if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k)}
@@ -263,6 +372,7 @@ function finishTurn(root,timeout=false){
   if(state.screen!=="game"){render();return}
   if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
   state.rackNeedsRefill[state.turn]=true;
+  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);return}
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
@@ -306,7 +416,8 @@ function checkWords(){
       state.completed.add(w.id);newlyCompleted.push(w);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
-  if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
+  if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
+  else if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
     state.rewardSubmitted=true;
     persistCurrentMatch("completed");
     const cloud=!!(supabaseClient&&state.profile?.id&&!String(state.profile.id).startsWith("local-"));
@@ -524,7 +635,7 @@ async function begin(size=1){
   if(playButton){playButton.disabled=true;playButton.textContent="Собираем сканворд…"}
   try{
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_SCANWORDS?.puzzles?.length){
-      await Promise.race([preloadScanwordDictionary(),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Загрузка сканворда превысила 13 секунд. Попробуй ещё раз.")),13000))]);
+      await preloadScanwordDictionary();
     }
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length||!window.QQCROSS_SCANWORDS?.puzzles?.length){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
@@ -535,7 +646,7 @@ async function begin(size=1){
     }
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
-    state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
+    state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
   }catch(error){
@@ -559,6 +670,7 @@ function renderGame(root){
     }
   }
   state.letters=state.playerRacks[state.turn]||[];
+  const onlineIsMyTurn=!state.onlineMatchId||state.onlinePlayers[state.turn]?.id===state.profile?.id;
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
@@ -576,7 +688,7 @@ function renderGame(root){
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
   }
-  const names=Array.from({length:state.partySize},(_,i)=>i===0?"Ты":"Игрок "+(i+1));
+  const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><span class="small muted">Свайпни от края экрана назад — прогресс сохранится</span></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
@@ -647,7 +759,7 @@ function renderGame(root){
   };
   $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);renderGame(root)};
-  state.interval=setInterval(()=>{state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
+  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds--;const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},1000);
 }
 
 
