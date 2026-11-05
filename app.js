@@ -708,7 +708,13 @@ function buildScanword(entries){
               cells.push([yy,xx]);
             }
             if(!valid||!crosses)continue;
-            const pool=normalized.filter(entry=>entry.answer.length===length&&!used.has(entry.answer)&&cells.every((cell,k)=>{
+            const positions=byLength.get(length);if(!positions)continue;
+            const possible=new Set();
+            cells.forEach((cell,k)=>{
+              const old=occupied.get(cell.join(","));
+              if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
+            });
+            const pool=[...possible].filter(entry=>!used.has(entry.answer)&&cells.every((cell,k)=>{
               const old=occupied.get(cell.join(","));
               return old===undefined||old===entry.answer[k];
             }));
