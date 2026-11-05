@@ -335,10 +335,10 @@ function placeAtCell(k,letterIndex,root){
   state.pendingMoves.push({k,l:letter});delete state.feedback[k];state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
-  const moves=state.pendingMoves||[];let correct=0,incorrect=0;
+  const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];state.returning=state.returning||{};
   moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
     if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++}
-    else{state.feedback[m.k]="wrong";state.letters.push(m.l);incorrect++}
+    else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;if(correct)checkWords();
   if(state.screen!=="game"){render();return}
@@ -408,7 +408,7 @@ function renderGame(root){
         const w=clueAt.get(key);
         cells.push('<div class="scan-cell scan-grid-cell scan-clue" aria-label="'+esc(w.clue)+'"><span class="scan-clue-text">'+esc(w.clue)+'</span></div>');
       }else if(expected[key]!==undefined){
-        const value=state.filled[key]||pending[key]||"";
+        const value=state.filled[key]||pending[key]||state.returning?.[key]||"";
         const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
         cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(x)+' в слове '+(y+1)+'">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
       }else{
