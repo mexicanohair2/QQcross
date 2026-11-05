@@ -256,7 +256,11 @@ function renderGame(root){
   clearInterval(state.interval);
   if(!puzzle||!puzzle.words?.length){root.innerHTML='<div class="screen"><div class="card">Сканворд загружается…</div></div>';return}
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
-  
+  if(state.rackNeedsRefill?.[state.turn]){
+    const added=refillRack(state.turn);
+    state.rackNewIndices=added.map((_,i)=>state.playerRacks[state.turn].length-added.length+i);
+    state.rackNeedsRefill[state.turn]=false;
+  }
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
