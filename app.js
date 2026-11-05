@@ -502,7 +502,7 @@ function normalizeScanwordEntry(item){
   return {answer,clue,emoji:/\p{Extended_Pictographic}/u.test(clue)};
 }
 function buildScanword(entries){
-  const W=8,H=12,grid=Array.from({length:H},()=>Array(W).fill(null)),placed=[];
+  const W=8,H=12,grid=Array.from({length:H},()=>Array(W).fill(null)),placed=[],clueOccupied=new Set();
   const candidates=entries.map(normalizeScanwordEntry).filter(Boolean);
   for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
   function tryPlace(entry,x,y,dir,first=false){
@@ -510,7 +510,7 @@ function buildScanword(entries){
     const ex=x+dx*(entry.answer.length-1),ey=y+dy*(entry.answer.length-1);
     const cx=x-dx,cy=y-dy;
     if(x<0||y<0||ex>=W||ey>=H||cx<0||cy<0)return false;
-    if(grid[cy][cx]!==null)return false;
+    if(grid[cy][cx]!==null||clueOccupied.has(cy+","+cx))return false;
     let crossings=0;
     for(let k=0;k<entry.answer.length;k++){
       const px=x+dx*k,py=y+dy*k,old=grid[py][px],letter=entry.answer[k];
@@ -522,6 +522,7 @@ function buildScanword(entries){
     }
     if(!first&&!crossings)return false;
     for(let k=0;k<entry.answer.length;k++)grid[y+dy*k][x+dx*k]=entry.answer[k];
+    clueOccupied.add(cy+","+cx);
     placed.push({id:"w"+placed.length,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells:Array.from({length:entry.answer.length},(_,k)=>[y+dy*k,x+dx*k]),clueCell:[cy,cx],arrow:dir==="across"?"➡️":"⬇️"});
     return true;
   }
