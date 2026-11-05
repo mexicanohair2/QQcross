@@ -1521,3 +1521,30 @@ body.qq-dragging,body.qq-dragging *{cursor:grabbing!important;user-select:none!i
   45%{background:linear-gradient(145deg,#48d895,#1c8055)!important;border-color:#a2f6c7!important;box-shadow:0 0 0 5px rgba(83,235,160,.28);transform:scale(1.06)}
   100%{background:linear-gradient(145deg,#76505e 0%,#553743 100%)!important;border-color:#b18b96!important;box-shadow:0 0 0 0 rgba(83,235,160,0);transform:scale(1)}
 }
+
+/* Restore the original fixed 130px scanword cells. */
+.game-screen .scanword-wrap{
+  display:block!important;
+  width:100%!important;height:100%!important;min-width:0!important;min-height:0!important;
+  max-width:100%!important;max-height:100%!important;
+  margin:0!important;padding:6px!important;overflow:auto!important;
+  box-sizing:border-box!important;touch-action:pan-x pan-y!important;
+  -webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;
+}
+.game-screen .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(12,130px)!important;
+  grid-template-rows:repeat(12,130px)!important;
+  gap:0!important;
+  width:1560px!important;height:1560px!important;
+  min-width:1560px!important;min-height:1560px!important;
+  max-width:none!important;max-height:none!important;
+  aspect-ratio:auto!important;margin:0!important;padding:0!important;
+  transform:none!important;box-sizing:border-box!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-grid-cell{
+  width:130px!important;height:130px!important;
+  min-width:130px!important;min-height:130px!important;
+  max-width:130px!important;max-height:130px!important;
+  aspect-ratio:auto!important;box-sizing:border-box!important;
+}
