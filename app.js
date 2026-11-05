@@ -760,21 +760,22 @@ function buildScanword(entries){
     occupied.clear();baseOccupied.forEach((v,k)=>occupied.set(k,v));
     clueKeys.clear();baseClueKeys.forEach(k=>clueKeys.add(k));
     const usedSources=new Set(words.map(word=>word.sourceAnswer||word.answer));
+    let maskedCount=0;
     const shuffled=[...fillerPool];
     for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
     for(const sourceEntry of shuffled){
       if(words.length>=35)break;
       if(usedSources.has(sourceEntry.answer))continue;
       const variants=[];
-      if(sourceEntry.emoji){
-        variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer});
+      if(sourceEntry.emoji||maskedCount>=3){
+        variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
       }else{
         const maxMissing=Math.min(6,sourceEntry.answer.length-1);
         for(let missing=1;missing<=maxMissing;missing++){
           for(let from=0;from+missing<=sourceEntry.answer.length;from++){
             const answer=sourceEntry.answer.slice(from,from+missing);
-            const pattern=sourceEntry.answer.slice(0,from)+"'".repeat(missing)+sourceEntry.answer.slice(from+missing);
-            variants.push({answer,clue:pattern,emoji:false,sourceAnswer:sourceEntry.answer});
+            const pattern=sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing);
+            variants.push({answer,clue:pattern,emoji:false,sourceAnswer:sourceEntry.answer,isMasked:true});
           }
         }
       }
@@ -793,6 +794,7 @@ function buildScanword(entries){
         const placement=choices[Math.floor(Math.random()*choices.length)];
         if(addWord(entry,-1,placement.dir,placement.x,placement.y,"masked-"+sourceEntry.answer)){
           usedSources.add(sourceEntry.answer);
+          if(entry.isMasked)maskedCount++;
           placed=true;
           break;
         }
