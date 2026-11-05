@@ -245,7 +245,7 @@ async function createOnlineMatch(){
  if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Войди в аккаунт");return}
  button.disabled=true;button.textContent="Создаём…";
  try{
-  if(!window.QQCROSS_DICTIONARY?.length||!window.QQCROSS_SCANWORDS?.puzzles?.length)await preloadScanwordDictionary();
+  if(!window.QQCROSS_DICTIONARY?.length)await preloadScanwordDictionary();
   if(!loadPuzzle())throw new Error("Не удалось собрать сканворд");
   const {data,error}=await supabaseClient.rpc("create_qqcross_match",{invited_user_ids:ids,puzzle_data:puzzleSnapshot()});
   if(error)throw error;state.pendingMatchId=data;renderLobby($("#app"));
