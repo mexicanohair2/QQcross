@@ -1,32 +1,15 @@
 
-/* Keep scanword cells square and responsive like the reference. */
+/* Reference proportions: responsive square cells, never fixed pixel tiles. */
 function enforceSquareScanword(){
-  document.querySelectorAll(".game-screen .scanword-board").forEach(board=>{
-    board.style.setProperty("display","grid","important");
-    board.style.setProperty("grid-template-columns","repeat(12,minmax(0,1fr))","important");
-    board.style.setProperty("grid-template-rows","repeat(12,minmax(0,1fr))","important");
-    board.style.setProperty("width","min(100%, calc(100dvh - 18dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 16px))","important");
-    board.style.setProperty("height","auto","important");
-    board.style.setProperty("aspect-ratio","1 / 1","important");
-    board.style.setProperty("min-width","0","important");
-    board.style.setProperty("min-height","0","important");
-    board.style.setProperty("max-width","100%","important");
-    board.style.setProperty("max-height","none","important");
-    board.style.setProperty("gap","2px","important");
-    board.style.setProperty("transform","none","important");
-    board.parentElement.style.setProperty("overflow","auto","important");
-    board.parentElement.style.setProperty("touch-action","pan-x pan-y","important");
-    board.querySelectorAll(":scope > .scan-cell").forEach(cell=>{
-      ["width","height","min-width","min-height","max-width","max-height"].forEach(prop=>cell.style.setProperty(prop,"auto","important"));
-      cell.style.setProperty("flex","none","important");
-      cell.style.setProperty("aspect-ratio","1 / 1","important");
-      cell.style.setProperty("box-sizing","border-box","important");
-      cell.style.setProperty("margin","0","important");
-    });
-  });
+ document.querySelectorAll(".game-screen .scanword-board").forEach(board=>{
+  const set=(p,v)=>board.style.setProperty(p,v,"important");
+  set("display","grid");set("grid-template-columns","repeat(12,minmax(0,1fr))");set("grid-template-rows","repeat(12,minmax(0,1fr))");
+  set("width","min(100%, calc(100dvh - 30dvh))");set("height","auto");set("aspect-ratio","1 / 1");set("min-width","0");set("min-height","0");set("max-width","100%");set("max-height","none");set("gap","2px");set("transform","none");
+  const wrap=board.parentElement;wrap.style.setProperty("overflow","auto","important");wrap.style.setProperty("touch-action","pan-x pan-y","important");
+  board.querySelectorAll(":scope > .scan-cell").forEach(cell=>{["width","height","min-width","min-height","max-width","max-height"].forEach(p=>cell.style.setProperty(p,"auto","important"));cell.style.setProperty("flex","none","important");cell.style.setProperty("aspect-ratio","1 / 1","important");cell.style.setProperty("box-sizing","border-box","important");cell.style.setProperty("margin","0","important");});
+ });
 }
-const squareScanwordObserver=new MutationObserver(()=>enforceSquareScanword());
-squareScanwordObserver.observe(document.documentElement,{childList:true,subtree:true});
+const squareScanwordObserver=new MutationObserver(()=>enforceSquareScanword());squareScanwordObserver.observe(document.documentElement,{childList:true,subtree:true});
 
 const AVATARS=["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉","🐲"];
 const NAMES=["Котик","Енот","Собачка","Лев","Тигр","Скунс","Клоун","Змея","Красный дракон","Оранжевый дракон"];
