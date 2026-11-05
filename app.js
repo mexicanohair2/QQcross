@@ -171,6 +171,10 @@ async function watchSocialUpdates(){
     .on("postgres_changes",{event:"*",schema:"public",table:"friendships",filter:"user_id=eq."+state.profile.id},()=>{
       if(state.tab==="Друзья")loadSocialData();
     })
+    .on("postgres_changes",{event:"*",schema:"public",table:"match_players",filter:"user_id=eq."+state.profile.id},()=>{
+      if(state.tab==="Главная")loadMatchInbox();
+      if(state.screen==="lobby"&&state.pendingMatchId)refreshPartyLobby();
+    })
     .subscribe((status)=>{
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("QQCross social realtime:",status);
     });
@@ -344,6 +348,7 @@ function pictureUrl(emoji){
   return "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/"+code+".png";
 }
 function placeAtCell(k,letterIndex,root){
+  if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
   if(state.loupeActive){if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
@@ -381,6 +386,7 @@ async function finishTurn(root,timeout=false){
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);const count=Math.min(Math.max(0,7-rack.length),letterBag.length);if(!count)return [];const added=drawLetters(count);rack.push(...added);return added;}
 function useItem(key){
+  if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return false}
   if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}
   state.profile.items[key]--;save();
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
