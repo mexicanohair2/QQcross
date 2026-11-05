@@ -566,14 +566,57 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{state.selectedLetter=Number(b.dataset.letter);root.querySelectorAll("[data-letter]").forEach(x=>x.classList.toggle("selected",x===b))});
   root.querySelectorAll("[data-clue]").forEach(b=>{b.onclick=null;b.removeAttribute("title");b.setAttribute("aria-label",b.dataset.clue)});
-  root.querySelectorAll("[data-cell]").forEach(cell=>cell.onclick=()=>{
-    const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
-    if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return}
-    if(state.selectedLetter<0){toast("Сначала выбери букву снизу");return}
-    const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
+  let activeDrag=null,dragGhost=null;
+  const startDrag=(event,source)=>{
+    if(event.button!==undefined&&event.button!==0)return;
+    event.preventDefault();
+    if(source.type==="rack"){
+      const index=Number(source.element.dataset.letter),letter=state.letters[index];if(!letter)return;
+      activeDrag={type:"rack",index,letter};
+    }else{
+      const key=source.element.dataset.cell,move=state.pendingMoves.find(m=>m.k===key);if(!move)return;
+      state.pendingMoves.splice(state.pendingMoves.indexOf(move),1);
+      activeDrag={type:"pending",key,letter:move.l};
+      source.element.classList.add("drag-source");
+    }
+    dragGhost=document.createElement("div");dragGhost.className="qq-drag-ghost";dragGhost.textContent=activeDrag.letter;
+    document.body.append(dragGhost);moveGhost(event);
+    document.body.classList.add("qq-dragging");
+  };
+  const moveGhost=event=>{if(!dragGhost)return;dragGhost.style.left=event.clientX+"px";dragGhost.style.top=event.clientY+"px"};
+  const finishDrag=event=>{
+    if(!activeDrag)return;
+    const target=document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-cell],.hand");
+    const drag=activeDrag;activeDrag=null;dragGhost?.remove();dragGhost=null;document.body.classList.remove("qq-dragging");
+    root.querySelectorAll(".drag-source").forEach(el=>el.classList.remove("drag-source"));
+    if(target?.matches("[data-cell]")){
+      const key=target.dataset.cell;
+      if(drag.type==="rack"){
+        if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key))placeAtCell(key,drag.index,root);
+      }else if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key)){
+        state.pendingMoves.push({k:key,l:drag.letter});state.playerRacks[state.turn]=state.letters;renderGame(root);
+      }else{state.pendingMoves.push({k:drag.key,l:drag.letter});renderGame(root)}
+    }else if(target?.matches(".hand")||drag.type==="pending"){
+      if(drag.type==="pending"){state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
+    }else if(drag.type==="pending"){
+      state.pendingMoves.push({k:drag.key,l:drag.letter});renderGame(root);
+    }
+  };
+  root.querySelectorAll("[data-letter]").forEach(b=>b.addEventListener("pointerdown",e=>startDrag(e,{type:"rack",element:b})));
+  root.querySelectorAll("[data-cell]").forEach(cell=>{
+    cell.addEventListener("pointerdown",e=>{if(state.pendingMoves.some(m=>m.k===cell.dataset.cell))startDrag(e,{type:"pending",element:cell})});
+    cell.onclick=()=>{
+      if(activeDrag)return;
+      const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
+      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
+      const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
+    };
   });
+  document.addEventListener("pointermove",moveGhost,{passive:false});
+  document.addEventListener("pointerup",finishDrag,{once:true});
+  document.addEventListener("pointercancel",finishDrag,{once:true});
   $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
   $("#magnifier").onclick=()=>{
