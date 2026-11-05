@@ -1036,4 +1036,7 @@ async function preloadScanwordDictionary(){
 
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("QQcross offline mode:",error)));
 applyTheme(activeTheme);
-preloadScanwordDictionary().finally(()=>initAuth());
+let authStarted=false;
+function startAuthOnce(){if(authStarted)return;authStarted=true;initAuth()}
+const dictionaryReady=preloadScanwordDictionary();
+Promise.race([dictionaryReady,new Promise(resolve=>setTimeout(resolve,3500))]).finally(startAuthOnce);
