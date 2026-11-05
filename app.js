@@ -332,16 +332,8 @@ function placeAtCell(k,letterIndex,root){
   if(state.loupeActive){if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.letters.splice(letterIndex,1);
-  if(letter===expected[k]){
-    state.pendingMoves.push({k,l:letter});delete state.feedback[k];
-  }else{
-    state.feedback[k]="wrong";state.returning=state.returning||{};state.returning[k]=letter;
-    state.letters.push(letter);state.playerRacks[state.turn]=state.letters;renderGame(root);
-    setTimeout(()=>{delete state.returning[k];delete state.feedback[k];if(state.screen==="game")renderGame(root)},520);
-    return;
-  }
-  state.playerRacks[state.turn]=state.letters;renderGame(root);
+  state.pendingMoves.push({k,l:letter});delete state.feedback[k];
+  state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 function finishTurn(root,timeout=false){
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];state.returning=state.returning||{};
