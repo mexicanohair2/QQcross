@@ -508,14 +508,15 @@ function buildScanword(entries){
   const W=source.width||12,H=source.height||12;
   const words=[],used=new Set(),clueKeys=new Set();
   chosen.forEach((record,index)=>{
-    const [entryIndex,x,y]=record;
+    const [entryIndex,x,y,dir="across"]=record;
     const entry=normalizeScanwordEntry(entries[entryIndex]);
     if(!entry)throw new Error("Некорректная запись словаря: "+entryIndex);
-    const cells=Array.from({length:entry.answer.length},(_,k)=>[y,x+1+k]);
-    words.push({id:"w"+index,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:"across",cells,clueCell:[y,x]});
+    const vertical=dir==="down";
+    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
+    words.push({id:"w"+index,answer:entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir:vertical?"down":"across",cells,clueCell:[y,x]});
     clueKeys.add(y+","+x);cells.forEach(c=>used.add(c.join(",")));
   });
-  if(words.length!==35||words[0].answer.length!==11)throw new Error("Нарушен шаблон сканворда");
+  if(words.length!==35||words[0].answer.length!==11||words[0].dir!=="down")throw new Error("Нарушен шаблон сканворда");
   const occupied=new Set([...used,...clueKeys]);
   if(occupied.size!==W*H)throw new Error("В сканворде есть пустые клетки");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words,used,clueKeys,coverage:1};
@@ -566,7 +567,7 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{state.selectedLetter=Number(b.dataset.letter);root.querySelectorAll("[data-letter]").forEach(x=>x.classList.toggle("selected",x===b))});
-  root.querySelectorAll("[data-clue]").forEach(b=>b.onclick=()=>alert(b.dataset.clue));
+  root.querySelectorAll("[data-clue]").forEach(b=>{b.onclick=null;b.removeAttribute("title");b.setAttribute("aria-label",b.dataset.clue)});
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.onclick=()=>{
     const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
     if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return}
