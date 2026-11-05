@@ -203,3 +203,25 @@ body{background:radial-gradient(ellipse at 50% -12%,#50303d 0%,#281923 38%,#130d
 @media(max-width:420px){.game-screen{gap:5px;padding-left:5px;padding-right:5px}.score-strip{padding:3px;gap:3px}.score-strip span{min-width:48px;font-size:10px;padding:6px 3px}.scanword-board{width:min(85vw,calc(100dvh - 190px))!important;height:min(85vw,calc(100dvh - 190px))!important}.scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(5px,1.8vw,8px)}.letter-area{padding:5px;gap:4px}.items{gap:3px;padding:4px}.item{font-size:10px;padding:7px 2px}}
 @media(max-height:620px){.game-screen{gap:3px}.scanword-board{width:min(85vw,calc(100dvh - 165px))!important;height:min(85vw,calc(100dvh - 165px))!important}.game-tools{gap:4px}.letter-area{padding:4px 7px}.letter{height:34px;min-height:34px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* QQCross letter rack motion and finger-follow drag */
+.letter.letter-enter{animation:qq-letter-appear .46s cubic-bezier(.2,.85,.25,1.25) both}
+@keyframes qq-letter-appear{
+  0%{opacity:0;transform:translateY(22px) scale(.72) rotate(-8deg);filter:blur(3px)}
+  65%{opacity:1;transform:translateY(-4px) scale(1.08) rotate(2deg);filter:blur(0)}
+  100%{opacity:1;transform:translateY(0) scale(1) rotate(0)}
+}
+.letter.dragging{opacity:.28;transform:scale(.92)}
+.qq-drag-ghost{
+  position:fixed;left:0;top:0;z-index:99999;pointer-events:none!important;
+  display:grid;place-items:center;width:clamp(42px,11vw,54px);height:clamp(50px,13vw,60px);
+  margin:0;border:1px solid #fff8;border-radius:11px;
+  background:linear-gradient(145deg,#fff5fa,#d9bdca);color:#38232d;
+  box-shadow:0 12px 28px #0008,0 4px 0 #94707f;font-size:25px;font-weight:900;
+  transform:translate(-50%,-58%) scale(1.08);will-change:left,top;
+}
+body.qq-dragging,body.qq-dragging *{user-select:none!important;-webkit-user-select:none!important}
+body.qq-dragging{cursor:grabbing}
+.scanword-board>.scan-cell.cell.drop-hover{outline:2px solid #f7d9e5;outline-offset:-2px}
+@media(prefers-reduced-motion:reduce){.letter.letter-enter{animation:none}}
