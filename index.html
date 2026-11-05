@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#08060f">
 <meta name="description" content="QQcross — играй в сканворды">
 <link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="./styles.css?v=20261105-loader-timeout-fix">
+<link rel="stylesheet" href="./styles.css?v=20261105-gradient-responsive-1">
 <title>QQcross</title>
 </head>
 <body>
@@ -20,7 +20,7 @@
   }
   window.addEventListener("error",function(e){showBootError(e.message+" ("+(e.filename||"")+(e.lineno?":"+e.lineno:"")+")")});
   window.addEventListener("unhandledrejection",function(e){var r=e.reason;showBootError(r&&r.message?r.message:String(r||"Ошибка запуска"))});
-  setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},15000);
+  setTimeout(function(){showBootError("Игра не завершила запуск за 15 секунд. Возможно, не загрузился один из файлов.")},15000);
 })();
 </script>
 <script>
@@ -32,7 +32,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261105-loader-timeout-fix";
+    app.src="./app.js?v=20261105-gradient-responsive-1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
