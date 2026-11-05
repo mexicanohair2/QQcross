@@ -1,5 +1,5 @@
-const CACHE_NAME="qqcross-shell-v8";
-const CORE=["./","./index.html","./manifest.json","./styles.css?v=20261105-scanword-v6","./app.js?v=20261105-scanword-v6","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
+const CACHE_NAME="qqcross-shell-130px";
+const CORE=["./","./index.html","./manifest.json","./styles.css?v=20261105-scanword-130px","./app.js?v=20261105-scanword-v6","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("qqcross-shell-")&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",event=>{
