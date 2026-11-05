@@ -331,7 +331,7 @@ function renderGame(root){
         state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return;
       }
       if(state.selectedLetter<0){toast("Сначала выбери букву снизу");return}
-      placeAtCell(key,state.selectedLetter,root);state.selectedLetter=-1;
+      const chosen=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,chosen,root);
     };
   });
   $("#exit").onclick=()=>{
