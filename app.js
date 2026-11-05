@@ -552,7 +552,7 @@ function renderGame(root){
     const key=y+","+x,word=clueAt.get(key);
     if(word){
       const clue=word.clue;
-      cells.push('<div class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" title="'+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></div>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"><span class="scan-clue-text">'+esc(clue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"");
@@ -566,6 +566,7 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>{state.selectedLetter=Number(b.dataset.letter);root.querySelectorAll("[data-letter]").forEach(x=>x.classList.toggle("selected",x===b))});
+  root.querySelectorAll("[data-clue]").forEach(b=>b.onclick=()=>alert(b.dataset.clue));
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.onclick=()=>{
     const key=cell.dataset.cell,existing=state.pendingMoves.find(m=>m.k===key);
     if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;state.selectedLetter=-1;renderGame(root);return}
