@@ -672,6 +672,41 @@ function buildScanword(entries){
       const pick=pool[Math.floor(Math.random()*pool.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
+    // Close small residual gaps from an already connected clue tile.
+    let closing=true;
+    while(closing&&occupied.size+clueAt.size<TOTAL){
+      closing=false;
+      const remaining=TOTAL-occupied.size-clueAt.size;
+      const anchors=[];
+      clueAt.forEach((list,key)=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const key=y+","+x;
+        if(occupied.has(key)||clueAt.has(key))continue;
+        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&(occupied.has(yy+","+xx)||clueAt.has(yy+","+xx)));
+        if(adjacent)anchors.push({y,x,existing:false,list:[]});
+      }
+      for(const anchor of anchors){
+        if(closing)break;
+        for(let di=0;di<4&&!closing;di++){
+          const dir=dirs[di];
+          if(anchor.list.some(w=>w.dir===dir.name))continue;
+          const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x,remaining-(anchor.existing?0:1));
+          for(let length=max;length>=1;length--){
+            const pool=normalized.filter(e=>e.answer.length===length&&!used.has(e.answer));
+            if(!pool.length)continue;
+            const cells=[];let valid=true;
+            for(let k=1;k<=length;k++){
+              const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
+              if(yy<0||xx<0||yy>=N||xx>=N||occupied.has(key)||clueAt.has(key)){valid=false;break}
+              cells.push([yy,xx]);
+            }
+            if(!valid)continue;
+            const entry=pool[Math.floor(Math.random()*pool.length)];
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,true)){closing=true;break}
+          }
+        }
+      }
+    }
     const coverage=occupied.size+clueAt.size;
     return {coverage,occupied,clueAt,words};
   };
