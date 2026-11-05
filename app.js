@@ -30,15 +30,18 @@ let suppressCellClick=false;
 
 
 function makeRandomPuzzle(){
-  puzzle={id:"scanword-grid-"+Date.now(),title:"Пустая сетка",w:8,h:12,words:[]};
   Object.keys(expected).forEach(k=>delete expected[k]);
+  const entries=getScanwordDictionary();
+  const built=buildScanword(entries);
+  if(!built){puzzle=null;letterBag=[];return false}
+  puzzle=built;
+  puzzle.words.forEach(word=>word.cells.forEach((cell,i)=>{expected[cell.join(",")]=word.answer[i]}));
+  letterBag=Object.values(expected);
+  for(let i=letterBag.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[letterBag[i],letterBag[j]]=[letterBag[j],letterBag[i]]}
   return true;
 }
-function loadPuzzle(){
-  makeRandomPuzzle();
-  letterBag=[];
-  return true;
-}
+function loadPuzzle(){return makeRandomPuzzle()}
+
 function defaultItems(){return {magnifier:5,clock:5,trash:5}}
 function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(state.profile))}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
@@ -241,26 +244,38 @@ function pictureUrl(emoji){
 }
 function renderGame(root){
   clearInterval(state.interval);
+  if(!puzzle||!puzzle.words?.length){root.innerHTML='<div class="screen"><div class="card">Сканворд загружается…</div></div>';return}
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
   if(state.rackNeedsRefill&&state.rackNeedsRefill[state.turn]){refillRack(state.turn);state.rackNeedsRefill[state.turn]=false;}
   state.letters=state.playerRacks[state.turn]||[];
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-
-  const boardH=12,boardW=8;
+  const clueAt=new Map(),letterAt=new Map();
+  puzzle.words.forEach(word=>{
+    clueAt.set(word.clueCell.join(","),word);
+    word.cells.forEach((cell,i)=>letterAt.set(cell.join(","),{word,letter:word.answer[i]}));
+  });
   const rows=[];
-  for(let y=0;y<boardH;y++){
-    for(let x=0;x<boardW;x++){
-      rows.push('<div class="scan-cell scan-grid-cell" aria-hidden="true"></div>');
+  for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
+    const key=y+","+x,clue=clueAt.get(key),letter=letterAt.get(key);
+    if(clue){
+      const clueText=clue.clue;
+      rows.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(clue.isEmoji?'scan-clue-emoji':'')+'" data-show-clue="'+esc(clue.id)+'" aria-label="Вопрос: '+esc(clueText)+'"><span class="scan-clue-text">'+esc(clueText)+'</span></button>');
+    }else if(letter){
+      const value=state.filled[key]||pending[key]||"";
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback?.[key]==="wrong"?" wrong":"")+(state.wordFlashKeys?.has(key)?" word-complete-flash":"");
+      rows.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в ответе">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':state.hints?.[key]?'<span class="phantom-letter">'+esc(state.hints[key])+'</span>':'')+'</button>');
+    }else{
+      rows.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"></div>');
     }
   }
   const names=Array.from({length:state.partySize},(_,i)=>i===0?'Ты':'Игрок '+(i+1));
-  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+n+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen"><div class="top"><button class="btn" id="exit">← Выйти</button><button class="btn" id="refresh-page" type="button">↻ Обновить</button></div>'+
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+rows.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div>'+
-    '<p class="game-hint">Перетащи буквы в пустые клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
+    '<p class="game-hint">Перетащи буквы в клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
   // Старые панели со списком вопросов больше не используются.
   root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
   // Подсказки сканворда отображаются прямо в клетках; отдельные всплывающие вопросы не нужны.
