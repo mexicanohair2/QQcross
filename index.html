@@ -23,31 +23,41 @@
   setTimeout(function(){showBootError("Игра не завершила запуск за 8 секунд. Возможно, не загрузился один из файлов.")},8000);
 })();
 </script>
-<script>
-(function(){
-  var appVersion="20261105-auth-scroll-signup-fix";
+<script type="module">
+(async function(){
+  var appVersion="20261105-auth-module-loader";
   function startApp(){
+    if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
     app.src="./app.js?v="+appVersion;
+    app.dataset.qqApp="true";
     document.body.appendChild(app);
   }
-  function loadSupabase(index){
-    var sources=[
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
-      "https://unpkg.com/@supabase/supabase-js@2"
+  function loadUmd(index){
+    var urls=[
+      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
+      "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
     ];
-    if(index>=sources.length){
+    if(index>=urls.length){
       window.QQ_SUPABASE_LOAD_ERROR=true;
       startApp();
       return;
     }
     var script=document.createElement("script");
-    script.src=sources[index];
-    script.onload=startApp;
-    script.onerror=function(){loadSupabase(index+1)};
+    script.src=urls[index];
+    script.onload=function(){
+      if(window.supabase&&typeof window.supabase.createClient==="function")startApp();
+      else loadUmd(index+1);
+    };
+    script.onerror=function(){loadUmd(index+1)};
     document.head.appendChild(script);
   }
-  loadSupabase(0);
+  try{
+    var module=await import("https://esm.sh/@supabase/supabase-js@2");
+    if(typeof module.createClient!=="function")throw new Error("Supabase createClient export missing");
+    window.supabase={createClient:module.createClient};
+    startApp();
+  }catch(error){loadUmd(0)}
 })();
 </script>
 </body>
