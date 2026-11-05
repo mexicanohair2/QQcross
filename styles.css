@@ -1365,3 +1365,38 @@ html:has(.game-screen),body:has(.game-screen),body:has(.game-screen) #app{
   outline:2px solid #c5a7ff;
   outline-offset:2px;
 }
+
+
+/* QQcross main visual foundation */
+:root{--qq-accent:#8b304b;--qq-accent-2:#541d31;--qq-bg:#171216;--qq-panel:#211a20;--qq-line:#49313c}
+html[data-qq-theme="burgundy"]{color-scheme:dark;--qq-accent:#a33252;--qq-accent-2:#641e36;--qq-bg:#160d12;--qq-panel:#24151d;--qq-line:#593343}
+html[data-qq-theme="black"]{color-scheme:dark;--qq-accent:#737b89;--qq-accent-2:#424954;--qq-bg:#171a20;--qq-panel:#22262e;--qq-line:#3c424d}
+html[data-qq-theme="blue"]{color-scheme:dark;--qq-accent:#3479bd;--qq-accent-2:#204d7b;--qq-bg:#0e1926;--qq-panel:#17283a;--qq-line:#2b4967}
+html[data-qq-theme="green"]{color-scheme:dark;--qq-accent:#398665;--qq-accent-2:#245a45;--qq-bg:#101d18;--qq-panel:#1b2c24;--qq-line:#355747}
+html[data-qq-theme="white"]{color-scheme:light;--qq-accent:#526b88;--qq-accent-2:#344b68;--qq-bg:#f1f3f6;--qq-panel:#fff;--qq-line:#d6dce4;--text:#202733;--muted:#647080}
+html[data-qq-theme] body{background:var(--qq-bg);color:var(--text)}
+html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero{background:var(--qq-panel);border-color:var(--qq-line);box-shadow:0 8px 24px #0002}
+html[data-qq-theme] .btn{background:var(--qq-panel);border-color:var(--qq-line);color:var(--text)}
+html[data-qq-theme] .btn.primary{background:linear-gradient(135deg,var(--qq-accent),var(--qq-accent-2));border-color:var(--qq-accent);color:#fff}
+html[data-qq-theme] .input{background:var(--qq-panel);border-color:var(--qq-line);color:var(--text)}
+html[data-qq-theme] .nav{background:color-mix(in srgb,var(--qq-bg) 92%,transparent);border-color:var(--qq-line)}
+html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:#e8edf3;color:#344b68;border-color:#cbd5e1}
+.theme-list{display:grid;grid-template-columns:1fr;gap:9px}
+.theme-choice{display:flex;align-items:center;gap:12px;width:100%;padding:12px;border:1px solid var(--qq-line);border-radius:13px;background:var(--qq-panel);color:var(--text);text-align:left}
+.theme-choice.selected{outline:2px solid var(--qq-accent);border-color:var(--qq-accent)}
+.theme-swatch{width:34px;height:34px;flex:0 0 34px;border-radius:10px;border:1px solid #7775}
+.theme-swatch-burgundy{background:linear-gradient(135deg,#a33252,#32121f)}
+.theme-swatch-black{background:linear-gradient(135deg,#737b89,#171a20)}
+.theme-swatch-blue{background:linear-gradient(135deg,#3479bd,#0e1926)}
+.theme-swatch-green{background:linear-gradient(135deg,#398665,#101d18)}
+.theme-swatch-white{background:linear-gradient(135deg,#fff,#dce2e9)}
+.theme-copy{flex:1}.theme-check{font-weight:900;color:var(--qq-accent)}
+.home-hero{text-align:center;padding:28px 20px}
+.home-mark{width:66px;height:66px;margin:0 auto 10px;display:grid;place-items:center;border-radius:20px;background:linear-gradient(145deg,#a33252,#541d31);color:#fff;font-size:25px;font-weight:900;animation:qq-pulse 2.1s ease-in-out infinite}
+.home-hero h2{margin:10px 0 4px}
+.play-options{display:grid;gap:8px;margin-top:12px}
+.boot-splash{position:fixed;inset:0;display:grid;place-items:center;background:#050505;z-index:9999}
+.boot-logo{color:#a32649;font:900 clamp(56px,16vw,92px)/1 system-ui,sans-serif;letter-spacing:-.08em;animation:qq-pulse 1.8s ease-in-out infinite}
+@keyframes qq-pulse{0%,100%{transform:scale(.96);opacity:.82;text-shadow:0 0 12px #a3264933}50%{transform:scale(1.04);opacity:1;text-shadow:0 0 30px #a3264977}}
+.register-splash{padding:12px 0 20px}
+.register-splash .logo{width:58px;height:58px;background:linear-gradient(145deg,#a33252,#541d31);box-shadow:0 0 24px #a3264933;animation:qq-pulse 1.8s ease-in-out infinite}
