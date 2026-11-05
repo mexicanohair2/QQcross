@@ -499,7 +499,7 @@ function normalizeScanwordEntry(item){
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
   const clue=String(item.emoji||item.flag||item.clue||item.question||"").trim();
   if(answer.length<2||answer.length>12||!clue)return null;
-  return {answer,clue,emoji:/\p{Extended_Pictographic}/u.test(clue)};
+  return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue)};
 }
 function buildScanword(entries){
   const W=8,H=12,grid=Array.from({length:H},()=>Array(W).fill(null)),placed=[],clueOccupied=new Set();
