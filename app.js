@@ -852,23 +852,29 @@ function makeRandomPuzzle(){
 function loadPuzzle(){return makeRandomPuzzle()}
 
 
-function begin(size=1){
-  let loaded=false,lastError=null;
-  for(let attempt=0;attempt<5&&!loaded;attempt++){
-    try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQcross: puzzle start failed",error)}
-  }
-  if(!loaded){
-    toast(lastError&&lastError.message?lastError.message:"Не удалось собрать сканворд. Попробуй ещё раз.");
-    return;
-  }
+async function begin(size=1){
+  const playButton=$("#practice");
+  if(playButton){playButton.disabled=true;playButton.textContent="Собираем сканворд…"}
   try{
+    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_SCANWORDS?.puzzles?.length){
+      await preloadScanwordDictionary();
+    }
+    if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length||!window.QQCROSS_SCANWORDS?.puzzles?.length){
+      throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
+    }
+    let loaded=false,lastError=null;
+    for(let attempt=0;attempt<5&&!loaded;attempt++){
+      try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQcross: puzzle start failed",error)}
+    }
+    if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();
   }catch(error){
-    console.error("QQcross: game initialization failed",error);
-    state.screen="";toast("Не удалось запустить игру: "+(error&&error.message?error.message:"неизвестная ошибка"));render();
+    console.error("QQcross: single-player start failed",error);
+    toast(error&&error.message?error.message:"Не удалось запустить игру. Попробуй ещё раз.");
+    if(playButton){playButton.disabled=false;playButton.textContent="Играть одному"}
   }
 }
 function renderGame(root){
