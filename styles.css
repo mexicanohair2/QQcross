@@ -385,3 +385,24 @@ html[data-qq-theme="burgundy"] body{background:radial-gradient(ellipse at 50% -1
 html[data-qq-theme] .scanword-board>.scan-cell.scan-filler{
   background:var(--qq-theme-block)!important;
 }
+
+
+/* Slightly enlarge the scanword tiles so clue text has more room */
+@media(min-width:421px){
+  .scanword-board{
+    width:min(91vw,calc(100dvh - 205px),860px)!important;
+    height:min(91vw,calc(100dvh - 205px),860px)!important;
+  }
+}
+@media(max-width:420px){
+  .scanword-board{
+    width:min(91vw,calc(100dvh - 190px))!important;
+    height:min(91vw,calc(100dvh - 190px))!important;
+  }
+}
+@media(max-height:620px){
+  .scanword-board{
+    width:min(91vw,calc(100dvh - 150px))!important;
+    height:min(91vw,calc(100dvh - 150px))!important;
+  }
+}
