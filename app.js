@@ -4,9 +4,9 @@ const $=s=>document.querySelector(s);
 const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
 const THEME_PRESETS={burgundy:"Глубокий бордовый",black:"Тёмно-серый",blue:"Синий",green:"Зелёный",white:"Белый"};
-let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return THEME_PRESETS[saved]?saved:"purple"}catch{return "purple"}})();
+let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return THEME_PRESETS[saved]?saved:"burgundy"}catch{return "burgundy"}})();
 function applyTheme(theme=activeTheme){
-  activeTheme=THEME_PRESETS[theme]?theme:"purple";
+  activeTheme=THEME_PRESETS[theme]?theme:"burgundy";
   document.documentElement.dataset.qqTheme=activeTheme;
   try{localStorage.setItem(THEME_KEY,activeTheme)}catch{}
   const meta=document.querySelector('meta[name="theme-color"]');
