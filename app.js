@@ -836,12 +836,23 @@ function loadPuzzle(){return makeRandomPuzzle()}
 
 
 function begin(size=1){
-  if(!loadPuzzle()){toast("Не удалось собрать сканворд. Попробуй ещё раз.");return}
-  state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
-  state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
-  state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));
-  state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
-  pushGameHistoryEntry();render();
+  let loaded=false,lastError=null;
+  for(let attempt=0;attempt<5&&!loaded;attempt++){
+    try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQcross: puzzle start failed",error)}
+  }
+  if(!loaded){
+    toast(lastError&&lastError.message?lastError.message:"Не удалось собрать сканворд. Попробуй ещё раз.");
+    return;
+  }
+  try{
+    state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
+    state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
+    state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+    pushGameHistoryEntry();render();
+  }catch(error){
+    console.error("QQcross: game initialization failed",error);
+    state.screen="";toast("Не удалось запустить игру: "+(error&&error.message?error.message:"неизвестная ошибка"));render();
+  }
 }
 function renderGame(root){
   clearInterval(state.interval);
