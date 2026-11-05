@@ -579,7 +579,7 @@ function normalizeScanwordEntry(item){
   return {answer,clue,clueShort,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
-  const N=9,TOTAL=N*N;
+  const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   const byLength=new Map();
   normalized.forEach(entry=>{
@@ -594,7 +594,15 @@ function buildScanword(entries){
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
   let bestCoverage=0,best=null;
   const buildAttempt=()=>{
-    const occupied=new Map(),clueAt=new Map(),used=new Set(),words=[];
+    const occupied=new Map(),clueAt=new Map(),used=new Set(),words=[],frontier=new Set();
+    const addFrontier=(y,x)=>{
+      for(const dir of dirs)for(let step=1;step<=12;step++){
+        const ay=y-dir.dy*step,ax=x-dir.dx*step;
+        if(ay<0||ax<0||ay>=N||ax>=N)break;
+        const key=ay+","+ax;
+        if(!occupied.has(key))frontier.add(key);
+      }
+    };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
       if(!entry||used.has(entry.answer)||at.length>=4||at.some(w=>w.dir===dir.name)||occupied.has(key))return false;
@@ -610,14 +618,16 @@ function buildScanword(entries){
       if(words.length&&!crosses&&!allowSeed)return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
-      at.push(word);clueAt.set(key,at);used.add(entry.answer);words.push(word);
+      at.push(word);clueAt.set(key,at);frontier.add(key);
+      cells.forEach(cell=>addFrontier(cell[0],cell[1]));
+      used.add(entry.answer);words.push(word);
       return true;
     };
     // Two crossing seed words create the first connected component.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=8);
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
     if(!firstPool.length)return null;
     const first=firstPool[Math.floor(Math.random()*firstPool.length)];
-    const firstY=7,firstX=0;
+    const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     const seedChoices=[];
     for(let cross=0;cross<first.answer.length;cross++){
@@ -636,10 +646,10 @@ function buildScanword(entries){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<110&&occupied.size+clueAt.size<TOTAL;round++){
+    for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
       const options=[];
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-        const clueKey=y+","+x,at=clueAt.get(clueKey)||[];
+      for(const clueKey of frontier){
+        const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
         if(occupied.has(clueKey)||at.length>=4)continue;
         for(let di=0;di<4;di++){
           const dir=dirs[di];
@@ -713,7 +723,7 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<14;attempt++){
+  for(let attempt=0;attempt<40;attempt++){
     const result=buildAttempt();
     if(result&&result.coverage>bestCoverage){bestCoverage=result.coverage;best=result}
     if(result?.coverage===TOTAL)break;
@@ -1011,7 +1021,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-9x9-prewarm1";
+      const version="20261106-15x15-varied2";
       const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       const dictionary=await dictionaryResponse.json();
