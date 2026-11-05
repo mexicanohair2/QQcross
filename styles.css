@@ -496,3 +496,15 @@ html[data-qq-theme="light"] .btn.primary,html[data-qq-theme="light"] .btn.blue,h
 
 html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:linear-gradient(145deg,#e7eff5,#dce7ee)!important;border-color:#d2e0e9!important;box-shadow:inset 0 0 0 1px #ffffff70!important}
 html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler span{display:none!important}
+
+
+/* Grid repair: lock every tile to its intended coordinate; keep arrows above clue text. */
+.scanword-board>.scan-cell{grid-column:auto;grid-row:auto}
+.scanword-board>.scan-cell.scan-clue::after{z-index:3!important;opacity:.9!important;font-size:clamp(10px,1.35vw,15px)!important;text-shadow:0 1px 2px #0008!important}
+.scanword-board>.scan-cell.scan-clue .scan-clue-text{z-index:2!important;padding:0 1px 9px!important;box-sizing:border-box!important}
+.scanword-board>.scan-cell.cell.answer-end-across{box-shadow:inset -2px 0 0 var(--qq-theme-accent,#9ab)!important}
+.scanword-board>.scan-cell.cell.answer-end-down{box-shadow:inset 0 -2px 0 var(--qq-theme-accent,#9ab)!important}
+.scanword-board>.scan-cell.cell.answer-end-across.answer-end-down{box-shadow:inset -2px 0 0 var(--qq-theme-accent,#9ab),inset 0 -2px 0 var(--qq-theme-accent,#9ab)!important}
+html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-across{box-shadow:inset -2px 0 0 #5c9fc8!important}
+html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-down{box-shadow:inset 0 -2px 0 #5c9fc8!important}
+html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-across.answer-end-down{box-shadow:inset -2px 0 0 #5c9fc8,inset 0 -2px 0 #5c9fc8!important}
