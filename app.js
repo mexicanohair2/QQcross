@@ -562,12 +562,7 @@ function compactScanwordClue(value){
   return String(value||"").replace(/\s+/g," ").trim();
 }
 function fitScanwordClue(value){
-  const text=compactScanwordClue(value);
-  const words=text.split(" ").filter(Boolean);
-  if(words.length<=3&&text.length<=25)return text;
-  const selected=words.slice(0,2);
-  if(selected.length===2&&/^(и|или|для|на|в|из|по|от|с|к|о|об|под|при)$/i.test(selected[1])&&words[2])return words.slice(0,3).join(" ");
-  return selected.join(" ");
+  return compactScanwordClue(value);
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
@@ -823,7 +818,8 @@ function renderGame(root){
       const arrows=wordsAt.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'">'+({right:"→",left:"←",down:"↓",up:"↑"}[w.dir])+'</span>').join("");
       const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
       const single=wordsAt.length===1?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+'" data-clue-cell="'+key+'" title="'+esc(wordsAt.length+" вопрос"+(wordsAt.length===1?"": "а"))+'" aria-label="'+esc(wordsAt.length+" вопрос"+(wordsAt.length===1?"": "а"))+'"'+position+'><span class="scan-clue-text">'+esc(single)+'</span>'+arrows+label+'</button>');
+      const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+'" data-clue-cell="'+key+'" title="'+esc(fullClueTitle)+'" aria-label="'+esc(fullClueTitle)+'"'+position+'><span class="scan-clue-text">'+esc(single)+'</span>'+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
