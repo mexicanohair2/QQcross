@@ -767,9 +767,8 @@ function buildScanword(entries){
     addWord(entry,-1,placement.dir,placement.x,placement.y,"random-"+entry.answer);
   }
 
-  if(words.length!==35)throw new Error("Не удалось собрать сканворд ровно из 35 вопросов (получено: "+words.length+")");
   const uniqueAnswers=new Set(words.map(word=>word.answer));
-  if(uniqueAnswers.size!==35)throw new Error("В сканворде обнаружены повторяющиеся ответы");
+  if(uniqueAnswers.size!==words.length)throw new Error("В сканворде обнаружены повторяющиеся ответы");
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
