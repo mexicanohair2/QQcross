@@ -403,29 +403,28 @@ function normalizeScanwordEntry(item){
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
   const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
-  if(answer.length<2||answer.length>12||!clue)return null;
-  return {answer,clue,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  if(answer.length<1||answer.length>12||!clue)return null;
+  return {answer,clue,emoji:/[\\u{1F1E6}-\\u{1F1FF}\\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const source=window.QQCROSS_SCANWORDS;
   if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
-  let normalized,candidates,logicPool;
+  let normalized,candidates;
   if(scanwordCandidateCache&&scanwordCandidateCache.entries===entries&&scanwordCandidateCache.source===source){
-    ({normalized,candidates,logicPool}=scanwordCandidateCache);
+    ({normalized,candidates}=scanwordCandidateCache);
   }else{
     normalized=entries.map(normalizeScanwordEntry);
-    logicPool=normalized.filter(entry=>entry&&entry.logic);
     candidates=source.puzzles.map((chosen,index)=>{
       const verticalEntry=normalized[chosen.vertical];
       if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
       const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/3),0);
-      return fillCapacity>=10?{chosen,index,verticalEntry,across,fillCapacity}:null;
+      return fillCapacity>=18?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
-    scanwordCandidateCache={entries,source,normalized,candidates,logicPool};
+    scanwordCandidateCache={entries,source,normalized,candidates};
   }
-  if(!candidates.length)throw new Error("Не найден шаблон для полноценного сканворда");
+  if(!candidates.length)throw new Error("Не найден шаблон для сканворда на 34 вопроса");
   const selected=candidates[Math.floor(Math.random()*candidates.length)];
   const {verticalEntry,across}=selected;
   const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
@@ -449,42 +448,45 @@ function buildScanword(entries){
   addWord(verticalEntry,"down",0,0,"vertical");
   across.forEach((entry,row)=>addWord(entry,"across",1,row+1,"w"+(row+1)));
 
-  const available=logicPool.slice();
+  // All 1,695 entries share one shuffled pool: original vocabulary and the 500 new logic clues.
+  const available=normalized.filter(Boolean);
   for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-  const takeLogic=(length)=>{
+  const takeTop=(answer)=>{
+    const index=available.findIndex(entry=>entry.logic&&entry.answer===answer);
+    if(index<0)return null;
+    return available.splice(index,1)[0];
+  };
+  const topAnswers=["Я","ЮГ","ЯК","ЩИ"];
+  const topEntries=topAnswers.map(takeTop);
+  if(topEntries.some(entry=>!entry))throw new Error("Не найдены четыре коротких вопроса для верхнего ряда");
+  topEntries.forEach((entry,index)=>{
+    const x=[1,3,6,9][index];
+    if(!addWord(entry,"across",x,0,"top-"+index))throw new Error("Не удалось заполнить верхнюю строку");
+  });
+
+  // Fill the remaining 18 clue slots from the complete mixed dictionary.
+  // Every answer is a whole word; no chopped fragments are generated.
+  const takeExact=(length)=>{
     const index=available.findIndex(entry=>entry.answer.length===length&&!usedSources.has(entry.answer));
     if(index<0)return null;
     return available.splice(index,1)[0];
   };
-  // The top row contains two complete clues, with real answers of four and five letters.
-  const topA=takeLogic(4),topB=takeLogic(5);
-  if(!topA||!topB||!addWord(topA,"across",1,0,"logic-top-1")||!addWord(topB,"across",6,0,"logic-top-2"))
-    throw new Error("Не найдены логические вопросы для верхней строки");
-
-  // Use 17 full logic questions. Every answer is a complete word, never a sliced fragment.
-  const rowFills=across.map(entry=>({free:10-entry.answer.length,count:0}));
-  let extraClues=10;
-  while(extraClues>0){
-    const eligible=rowFills.map((row,index)=>({row,index})).filter(({row})=>row.count<Math.floor(row.free/3));
-    if(!eligible.length)throw new Error("Не удалось распределить логические вопросы по сетке");
-    const pick=eligible[Math.floor(Math.random()*eligible.length)];
-    pick.row.count++;extraClues--;
-  }
+  const rowFills=across.map(entry=>({free:10-entry.answer.length,count:Math.floor((10-entry.answer.length)/3)}));
+  if(rowFills.reduce((sum,row)=>sum+row.count,0)!==18)throw new Error("Шаблон не вмещает ровно 18 дополнительных вопросов");
   rowFills.forEach((row,index)=>{
     if(!row.count)return;
     const lengths=Array(row.count).fill(2);
     let spare=row.free-row.count*3;
-    let part=0;
-    while(spare>0){lengths[part%lengths.length]++;part++;spare--}
+    lengths[lengths.length-1]+=spare;
     let x=across[index].answer.length+2;
     lengths.forEach((answerLength,n)=>{
-      const entry=takeLogic(answerLength);
-      if(!entry||!addWord(entry,"across",x,index+1,"logic-"+index+"-"+n))
-        throw new Error("Не найден полноценный логический ответ длиной "+answerLength);
+      const entry=takeExact(answerLength);
+      if(!entry||!addWord(entry,"across",x,index+1,"extra-"+index+"-"+n))
+        throw new Error("В общем словаре не найдено целое слово длиной "+answerLength);
       x+=answerLength+1;
     });
   });
-  if(words.length!==24)throw new Error("Ожидалось 24 полноценных вопроса, получено "+words.length);
+  if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
   if(occupied.size+clueKeys.size!==144)throw new Error("В сетке сканворда остались пустые клетки");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/144};
 }
