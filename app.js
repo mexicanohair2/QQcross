@@ -215,7 +215,7 @@ function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle")
 function renderLobby(root){
  if(state.pendingMatchId){
   root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
-  $("#back").onclick=()=>{state.pendingMatchId=null;render()};$("#refreshParty").onclick=refreshPartyLobby;$("#startOnlineMatch").onclick=startOnlineMatch;refreshPartyLobby();return;
+  $("#back").onclick=()=>{clearInterval(partyRefreshTimer);state.pendingMatchId=null;render()};$("#refreshParty").onclick=refreshPartyLobby;$("#startOnlineMatch").onclick=startOnlineMatch;clearInterval(partyRefreshTimer);partyRefreshTimer=setInterval(refreshPartyLobby,5000);refreshPartyLobby();return;
  }
  root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Новая онлайн-партия</h2><div class="card"><b>Выбери друзей</b><p class="small muted">От 1 до 3 друзей.</p><div id="lobbyFriends">Загружаем…</div><button class="btn primary full" id="createOnlineMatch">Создать партию и пригласить</button></div></div>';
  $("#back").onclick=()=>{state.screen="";render()};$("#createOnlineMatch").onclick=createOnlineMatch;loadLobbyFriends();
@@ -255,7 +255,7 @@ async function refreshPartyLobby(){
  try{
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
   out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
-  const b=$("#startOnlineMatch");if(b)b.disabled=data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;
+  const b=$("#startOnlineMatch");if(b){b.disabled=data.host_id!==state.profile.id||data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;if(data.host_id!==state.profile.id)b.hidden=true;}
  }catch(e){out.textContent=e.message||"Ошибка"}
 }
 async function startOnlineMatch(){
@@ -267,7 +267,7 @@ async function startOnlineMatch(){
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
   state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=60;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
   const {data:version,error:initError}=await supabaseClient.rpc("init_qqcross_match_state",{target_match_id:state.onlineMatchId,initial_state:serializeOnlineState()});if(initError)throw initError;
-  state.onlineVersion=version;state.pendingMatchId=null;state.screen="game";subscribeOnlineMatch(state.onlineMatchId);pushGameHistoryEntry();render();
+  state.onlineVersion=version;clearInterval(partyRefreshTimer);state.pendingMatchId=null;state.screen="game";subscribeOnlineMatch(state.onlineMatchId);pushGameHistoryEntry();render();
  }catch(e){toast(e.message||"Не удалось начать партию");if(b){b.disabled=false;b.textContent="Начать партию"}}
 }
 async function loadMatchInbox(){
@@ -277,7 +277,7 @@ async function loadMatchInbox(){
   const [ir,mr]=await Promise.all([supabaseClient.rpc("list_qqcross_match_invites"),supabaseClient.rpc("list_qqcross_my_matches")]);
   if(ir.error)throw ir.error;if(mr.error)throw mr.error;
   if(invites)invites.innerHTML=ir.data?.length?ir.data.map(x=>'<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>').join(""):'<p class="small muted">Новых приглашений нет.</p>';
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":"Идёт партия")+'</p><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});if(error)throw error;await loadMatchInbox();toast("Приглашение принято")}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});if(error)throw error;await loadMatchInbox()}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
@@ -286,12 +286,13 @@ async function loadMatchInbox(){
 async function openOnlineMatch(id){
  try{
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:id});if(error)throw error;
-  if(data.status==="waiting"){toast("Создатель ещё не запустил партию");return}
+  if(data.status==="waiting"){if(data.host_id===state.profile.id){state.pendingMatchId=id;state.screen="lobby";renderLobby($("#app"))}else toast("Создатель ещё не запустил партию");return}
   if(!data.game_state)throw new Error("Состояние партии ещё не готово");
   applyOnlineMatch(data);
  }catch(e){toast(e.message||"Не удалось открыть партию")}
 }
 let onlineChannel=null;
+let partyRefreshTimer=null;
 function subscribeOnlineMatch(id){
  if(!supabaseClient||!id)return;
  if(onlineChannel)supabaseClient.removeChannel(onlineChannel).catch(()=>{});
