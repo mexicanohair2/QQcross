@@ -411,26 +411,46 @@ function buildScanword(entries){
     normalized=entries.map(normalizeScanwordEntry);
     byAnswer=new Map();
     normalized.forEach(entry=>{if(entry&&!byAnswer.has(entry.answer))byAnswer.set(entry.answer,entry)});
-    // Build compatible templates once; subsequent games reuse the prepared data.
+
+    // Index letters by position. This avoids scanning the full dictionary for
+    // every column of every one of the 1000 templates.
+    const byLength=Array.from({length:12},()=>[]);
+    const positionIndex=Array.from({length:12},()=>new Map());
+    for(const entry of byAnswer.values()){
+      const length=entry.answer.length;
+      if(length>11)continue;
+      byLength[length].push(entry);
+      for(let pos=0;pos<length;pos++){
+        const letter=entry.answer[pos];
+        let bucket=positionIndex[pos].get(letter);
+        if(!bucket){bucket=[];positionIndex[pos].set(letter,bucket)}
+        bucket.push(entry);
+      }
+    }
+
     candidates=source.puzzles.map((chosen,index)=>{
       const verticalEntry=normalized[chosen.vertical];
       if(!verticalEntry||verticalEntry.answer.length!==11||!Array.isArray(chosen.across)||chosen.across.length!==11)return null;
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
+      const existing=new Set([verticalEntry.answer,...across.map(entry=>entry.answer)]);
       const derived=[];
       for(let x=2;x<12;x++){
         const options=[];
-        for(const entry of byAnswer.values()){
-          if(entry.answer.length>11||entry.answer===verticalEntry.answer)continue;
-          let intersections=0,valid=true;
-          for(let row=0;row<entry.answer.length;row++){
-            const acrossEntry=across[row];
-            if(acrossEntry.answer.length>=x){
-              intersections++;
-              if(acrossEntry.answer[x-1]!==entry.answer[row]){valid=false;break}
-            }
+        for(let length=2;length<=11;length++){
+          const constraints=[];
+          for(let row=0;row<length;row++){
+            const rowEntry=across[row];
+            if(rowEntry.answer.length>=x)constraints.push({pos:row,letter:rowEntry.answer[x-1]});
           }
-          if(valid&&intersections>0)options.push(entry);
+          if(!constraints.length)continue;
+          const buckets=constraints.map(c=>positionIndex[c.pos].get(c.letter)||[]);
+          if(buckets.some(bucket=>!bucket.length))continue;
+          buckets.sort((a,b)=>a.length-b.length);
+          for(const entry of buckets[0]){
+            if(entry.answer.length!==length||existing.has(entry.answer))continue;
+            if(constraints.every(c=>entry.answer[c.pos]===c.letter))options.push(entry);
+          }
         }
         if(options.length)derived.push({x,options});
       }
@@ -457,9 +477,11 @@ function buildScanword(entries){
     return {x,entry:pool[Math.floor(Math.random()*pool.length)]};
   });
 
-  const words=[],occupied=new Map(),clueKeys=new Set();
+  const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
   const addWord=(entry,index,dir,x,y,id)=>{
     if(!entry||!["across","down"].includes(dir))return false;
+    const sourceAnswer=entry.sourceAnswer||entry.answer;
+    if(usedSources.has(sourceAnswer))return false;
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
     if((!vertical&&x+entry.answer.length>=12)||(vertical&&y+entry.answer.length>=12))return false;
@@ -472,18 +494,17 @@ function buildScanword(entries){
     }
     cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
     clueKeys.add(clueKey);
-    words.push({id,answer:entry.answer,sourceAnswer:entry.sourceAnswer||entry.answer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
+    usedSources.add(sourceAnswer);
+    words.push({id,answer:entry.answer,sourceAnswer,clue:entry.clue,isEmoji:entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
 
-  // The main vertical clue is fixed at the top; all eleven left-edge clues remain fixed.
   addWord(verticalEntry,chosen.vertical,"down",1,0,"vertical");
   across.forEach((entry,row)=>addWord(entry,chosen.across[row],"across",0,row+1,"w"+(row+1)));
-
-  // Add top-edge questions only where existing crossing letters form a real dictionary word.
   topWords.forEach(({x,entry})=>addWord(entry,-1,"down",x,0,"top-"+x));
 
-  // Center clues are re-positioned randomly on every new board.
+  // Place template extras. Their original coordinates are only a fallback:
+  // the engine first searches for a legal crossing elsewhere on the board.
   const extras=[...(chosen.extras||[])];
   for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
   const canPlace=(entry,dir,x,y,requireIntersection=true)=>{
@@ -496,17 +517,14 @@ function buildScanword(entries){
     for(let k=0;k<cells.length;k++){
       const key=cells[k].join(",");
       if(clueKeys.has(key))return null;
-      if(occupied.has(key)){
-        if(occupied.get(key)!==entry.answer[k])return null;
-        intersections++;
-      }
+      if(occupied.has(key)){if(occupied.get(key)!==entry.answer[k])return null;intersections++}
     }
     return intersections||!requireIntersection?{x,y,dir,intersections}:null;
   };
   extras.forEach((extra,i)=>{
     if(words.length>=34)return;
     const entry=normalizeScanwordEntry(entries[extra.index]);
-    if(!entry||words.some(word=>word.answer===entry.answer))return;
+    if(!entry||usedSources.has(entry.answer))return;
     const placements=[];
     for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
       for(let y=1;y<12;y++)for(let x=1;x<12;x++){
@@ -522,69 +540,43 @@ function buildScanword(entries){
     }
   });
 
-  // Fill the center with masked-word clues. Apostrophes represent missing
-  // consecutive letters; e.g. А''УЗ asks for РБ. The missing fragment,
-  // not the whole source word, occupies the answer cells.
-  const baseWords=words.slice();
-  const baseOccupied=new Map(occupied);
-  const baseClueKeys=new Set(clueKeys);
-  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length>=2);
-  let bestFill=null;
-  for(let attempt=0;attempt<80;attempt++){
-    words.splice(0,words.length,...baseWords);
-    occupied.clear();baseOccupied.forEach((v,k)=>occupied.set(k,v));
-    clueKeys.clear();baseClueKeys.forEach(k=>clueKeys.add(k));
-    const usedSources=new Set(words.map(word=>word.sourceAnswer||word.answer));
-    let maskedCount=0;
-    const shuffled=[...fillerPool];
-    for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
-    for(const sourceEntry of shuffled){
-      if(words.length>=34)break;
-      if(usedSources.has(sourceEntry.answer))continue;
-      const variants=[];
-      if(sourceEntry.emoji||maskedCount>=3){
-        variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
-      }else{
-        const maxMissing=Math.min(6,sourceEntry.answer.length-1);
-        for(let missing=1;missing<=maxMissing;missing++){
-          for(let from=0;from+missing<=sourceEntry.answer.length;from++){
-            const answer=sourceEntry.answer.slice(from,from+missing);
-            const pattern=sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing);
-            variants.push({answer,clue:pattern,emoji:false,sourceAnswer:sourceEntry.answer,isMasked:true});
-          }
-        }
-      }
-      for(let i=variants.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[variants[i],variants[j]]=[variants[j],variants[i]]}
-      let placed=false;
-      for(const entry of variants){
-        const crossing=[],open=[];
-        for(const dir of (Math.random()<.5?["across","down"]:["down","across"])){
-          for(let y=1;y<12;y++)for(let x=1;x<12;x++){
-            const placement=canPlace(entry,dir,x,y,false);
-            if(placement)(placement.intersections?crossing:open).push(placement);
-          }
-        }
-        const choices=crossing.length?crossing:open;
-        if(!choices.length)continue;
-        const placement=choices[Math.floor(Math.random()*choices.length)];
-        if(addWord(entry,-1,placement.dir,placement.x,placement.y,"masked-"+sourceEntry.answer)){
-          usedSources.add(sourceEntry.answer);
-          if(entry.isMasked)maskedCount++;
-          placed=true;
-          break;
-        }
-      }
-      if(placed&&words.length>=34)break;
-    }
-    if(!bestFill||words.length>bestFill.length){
-      bestFill={length:words.length,words:words.slice(),occupied:new Map(occupied),clues:new Set(clueKeys)};
-    }
+  // Fill to exactly 34 questions using a bounded number of placement checks.
+  // The previous 80-pass exhaustive search could freeze phones for tens of seconds.
+  const fillerPool=[...byAnswer.values()].filter(entry=>entry.answer.length>=2&&entry.answer.length<=10&&!usedSources.has(entry.answer));
+  for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
+  for(const sourceEntry of fillerPool){
     if(words.length>=34)break;
-  }
-  if(words.length<35&&bestFill){
-    words.splice(0,words.length,...bestFill.words);
-    occupied.clear();bestFill.occupied.forEach((v,k)=>occupied.set(k,v));
-    clueKeys.clear();bestFill.clues.forEach(k=>clueKeys.add(k));
+    const variants=[];
+    if(sourceEntry.emoji){
+      variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
+    }else{
+      const maxMissing=Math.min(4,sourceEntry.answer.length);
+      const missing=1+Math.floor(Math.random()*maxMissing);
+      const from=Math.floor(Math.random()*(sourceEntry.answer.length-missing+1));
+      variants.push({
+        ...sourceEntry,
+        answer:sourceEntry.answer.slice(from,from+missing),
+        clue:sourceEntry.answer.slice(0,from)+"’".repeat(missing)+sourceEntry.answer.slice(from+missing),
+        sourceAnswer:sourceEntry.answer,isMasked:true
+      });
+      variants.push({...sourceEntry,sourceAnswer:sourceEntry.answer,isMasked:false});
+      if(Math.random()<.5)variants.reverse();
+    }
+    for(const entry of variants){
+      const crossing=[],open=[];
+      for(let attempt=0;attempt<24;attempt++){
+        const dir=Math.random()<.5?"across":"down";
+        const x=1+Math.floor(Math.random()*10),y=1+Math.floor(Math.random()*10);
+        const placement=canPlace(entry,dir,x,y,false);
+        if(!placement)continue;
+        if(placement.intersections)crossing.push(placement);else open.push(placement);
+        if(crossing.length>=3)break;
+      }
+      const choices=crossing.length?crossing:open;
+      if(!choices.length)continue;
+      const placement=choices[Math.floor(Math.random()*choices.length)];
+      if(addWord(entry,-1,placement.dir,placement.x,placement.y,"fill-"+sourceEntry.answer))break;
+    }
   }
 
   const uniqueAnswers=new Set(words.map(word=>word.sourceAnswer||word.answer));
