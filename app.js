@@ -628,8 +628,19 @@ function buildScanword(entries){
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
 
-  // Add more crossing answers into unused areas of the board.
-  for(let round=0;round<18;round++){
+  // Индексируем ответы по длине, позиции и букве пересечения.
+  const byLength=new Map();
+  normalized.forEach(entry=>{
+    if(!entry||entry.answer.length<2||usedSources.has(entry.answer))return;
+    let positions=byLength.get(entry.answer.length);
+    if(!positions){positions=Array.from({length:entry.answer.length},()=>new Map());byLength.set(entry.answer.length,positions)}
+    for(let p=0;p<entry.answer.length;p++){
+      const letter=entry.answer[p],bucket=positions[p].get(letter)||[];
+      bucket.push(entry);positions[p].set(letter,bucket);
+    }
+  });
+  // Добавляем пересекающиеся ответы, пока поле не заполнено или не осталось размещений.
+  for(let round=0;round<145&&occupied.size+clueKeys.size<169;round++){
     const options=[];
     for(let y=0;y<13;y++)for(let x=0;x<13;x++){
       const clueKey=y+","+x;
@@ -638,19 +649,25 @@ function buildScanword(entries){
         const vertical=dir==="down",sx=x+1,sy=vertical?y+1:y;
         const maxLength=vertical?13-sy:13-sx;
         if(sx>=13||sy>=13)continue;
-        for(let i=0;i<normalized.length;i++){
-          const entry=normalized[i];
-          if(!entry||usedSources.has(entry.answer)||entry.answer.length>maxLength)continue;
-          let crosses=0,newCells=0,valid=true;
-          for(let k=0;k<entry.answer.length;k++){
-            const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k,key=yy+","+xx;
-            if(clueKeys.has(key)){valid=false;break}
-            const old=occupied.get(key);
-            if(old!==undefined&&old!==entry.answer[k]){valid=false;break}
-            if(old!==undefined)crosses++;else newCells++;
+        for(let length=2;length<=Math.min(12,maxLength);length++){
+          const positions=byLength.get(length);if(!positions)continue;
+          const possible=new Set();
+          for(let k=0;k<length;k++){
+            const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k;
+            const old=occupied.get(yy+","+xx);if(old===undefined)continue;
+            for(const entry of positions[k].get(old)||[])possible.add(entry);
           }
-          if(valid&&crosses>0){
-            options.push({entry,dir,x,y,score:newCells*10+crosses*3+entry.answer.length*.15+Math.random()*2});
+          for(const entry of possible){
+            if(usedSources.has(entry.answer))continue;
+            let crosses=0,newCells=0,valid=true;
+            for(let k=0;k<length;k++){
+              const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k,key=yy+","+xx;
+              if(clueKeys.has(key)){valid=false;break}
+              const old=occupied.get(key);
+              if(old!==undefined&&old!==entry.answer[k]){valid=false;break}
+              if(old!==undefined)crosses++;else newCells++;
+            }
+            if(valid&&crosses>0)options.push({entry,dir,x,y,score:newCells*10+crosses*3+length*.15+Math.random()*2});
           }
         }
       }
@@ -745,7 +762,7 @@ function renderGame(root){
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(endClass?" "+endClass:"");
       const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове"'+position+'>'+letterMarkup+'</button>');
-    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'><span>✦</span></div>');
+    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
