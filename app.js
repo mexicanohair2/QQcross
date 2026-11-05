@@ -422,8 +422,9 @@ function buildScanword(entries){
       const across=chosen.across.map(i=>normalized[i]);
       if(across.some((entry,row)=>!entry||entry.answer.length>11||entry.answer[0]!==verticalEntry.answer[row]))return null;
       // Reserve enough trailing row space for 22 additional in-cell clues.
-      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((11-entry.answer.length)/2),0);
-      return fillCapacity>=22?{chosen,index,verticalEntry,across,fillCapacity}:null;
+      if(across.some(entry=>entry.answer.length===9))return null;
+      const fillCapacity=across.reduce((total,entry)=>total+Math.floor((10-entry.answer.length)/2),0);
+      return fillCapacity>=17?{chosen,index,verticalEntry,across,fillCapacity}:null;
     }).filter(Boolean);
     scanwordCandidateCache={entries,source,normalized,byAnswer,candidates};
   }
@@ -448,8 +449,8 @@ function buildScanword(entries){
     words.push({id,answer:entry.answer,sourceAnswer:entry.sourceAnswer||entry.answer,clue:entry.clue,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
     return true;
   };
-  addWord(verticalEntry,"down",1,0,"vertical");
-  across.forEach((entry,row)=>addWord(entry,"across",0,row+1,"w"+(row+1)));
+  addWord(verticalEntry,"down",0,0,"vertical");
+  across.forEach((entry,row)=>addWord(entry,"across",1,row+1,"w"+(row+1)));
 
   const fillerPool=[...byAnswer.values()].filter(entry=>!entry.emoji&&entry.answer.length>=2&&entry.answer.length<=12);
   for(let i=fillerPool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[fillerPool[i],fillerPool[j]]=[fillerPool[j],fillerPool[i]]}
@@ -465,17 +466,18 @@ function buildScanword(entries){
     }
     return null;
   };
-  // Give the top row real scanword clues instead of leaving it visually empty.
-  // The vertical clue occupies column 1; these short across clues fill the remaining row.
-  for(const x of [2,5,8]){
-    const entry=makeFragment(2);
+  // Fill every cell of the top row with scanword clues and their answer cells.
+  // Column 0 is the vertical clue; the remaining 11 cells form five short words.
+  for(const x of [1,3,5,7]){
+    const entry=makeFragment(1);
     if(entry)addWord(entry,"across",x,0,"top-fill-"+x);
   }
-  // Use the guaranteed free strip at the right of each main row. Odd-width
-  // strips get one two-letter fragment; the rest are one-letter fragments.
+  const topPair=makeFragment(2);
+  if(topPair)addWord(topPair,"across",9,0,"top-fill-9");
+  // Fill every remaining row from the main answer to the right edge.
   for(let row=0;row<11&&words.length<34;row++){
-    let free=11-across[row].answer.length;
-    let x=across[row].answer.length+1;
+    let free=10-across[row].answer.length;
+    let x=across[row].answer.length+2;
     if(free>=3&&free%2===1&&words.length<34){
       const entry=makeFragment(2);
       if(entry&&addWord(entry,"across",x,row+1,"fill-"+entry.sourceAnswer)){x+=3;free-=3}
