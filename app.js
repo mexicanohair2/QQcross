@@ -286,9 +286,19 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div>'+
     '<p class="game-hint">Перетащи буквы в клетки. ✓ проверяет расстановку и передаёт ход.</p></div></div>';
-  // Старые панели со списком вопросов больше не используются.
+  // Текст вопроса остаётся в клетке; касание открывает крупную, полностью читаемую карточку.
+  root.querySelectorAll("[data-show-clue]").forEach(tile=>tile.addEventListener("click",()=>{
+    const word=puzzle.words.find(w=>String(w.id)===tile.dataset.showClue);
+    if(!word)return;
+    const modal=document.createElement("div");
+    modal.className="qq-clue-modal";
+    modal.innerHTML='<section class="qq-clue-dialog" role="dialog" aria-modal="true" aria-label="Вопрос сканворда"><div class="qq-clue-caption">ВОПРОС</div><p class="qq-clue-full">'+esc(word.clue)+'</p><div class="qq-clue-length">Ответ: '+word.answer.length+' букв</div><button type="button" class="btn primary qq-clue-close">Понятно</button></section>';
+    root.append(modal);
+    const close=()=>modal.remove();
+    modal.querySelector(".qq-clue-close").onclick=close;
+    modal.addEventListener("click",e=>{if(e.target===modal)close()});
+  }));
   root.querySelectorAll(".questions,.clue-panel,.clue-list-readable,.clue-heading,.clue-title,.clue-row").forEach(el=>el.remove());
-  // Подсказки сканворда отображаются прямо в клетках; отдельные всплывающие вопросы не нужны.
   root.querySelectorAll("[data-cell]").forEach(cell=>cell.addEventListener("click",()=>{if(!state.loupeActive)return;const k=cell.dataset.cell;if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k))return;if(!useItem("magnifier")){state.loupeActive=false;return}state.hints[k]=expected[k];state.loupeActive=false;renderGame(root);toast("Буква подсвечена. Поставь её настоящей буквой позже.");}));
   let dragIndex=-1,dragPointer=-1,dragButton=null,dragGhost=null,hoverCell=null,hoverClue=null,dragFromCell=null;
   const clearDrag=()=>{
@@ -400,7 +410,7 @@ function finishTurn(root,timeout=false){
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
   const newlyCompleted=correct?checkWords():[];
   const refilled=refillRack(state.turn);
-  state.rackNewIndices=refilled.map((_,i)=>state.playerRacks[state.turn].length-refilled.length+i);
+  state.rackNewIndices=state.partySize===1?refilled.map((_,i)=>state.playerRacks[state.turn].length-refilled.length+i):[];
   if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")renderGame(root)},520);}
   const completedWordKeys=newlyCompleted.flatMap(w=>w.cells.map(cell=>cell.join(",")));
   const flashKeys=[...new Set([...correctKeys,...completedWordKeys])];
