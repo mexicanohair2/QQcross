@@ -469,7 +469,7 @@ function buildScanword(entries){
     const aMin=Math.min(...a.options.map(entry=>entry.answer.length));
     const bMin=Math.min(...b.options.map(entry=>entry.answer.length));
     return aMin-bMin||(Math.random()-.5);
-  }).slice(0,6);
+  }).slice(0,2);
   const topWords=topColumns.map(({x,options})=>{
     const minLength=Math.min(...options.map(entry=>entry.answer.length));
     const compactOptions=options.filter(entry=>entry.answer.length<=Math.max(4,minLength));
@@ -507,6 +507,7 @@ function buildScanword(entries){
   // the engine first searches for a legal crossing elsewhere on the board.
   const extras=[...(chosen.extras||[])];
   for(let i=extras.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[extras[i],extras[j]]=[extras[j],extras[i]]}
+  extras.length=Math.min(extras.length,5);
   const canPlace=(entry,dir,x,y,requireIntersection=true)=>{
     const vertical=dir==="down";
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,x]:[y,x+1+k]);
