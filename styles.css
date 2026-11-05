@@ -518,3 +518,13 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:re
 .scanword-board>.scan-cell.scan-clue{box-shadow:none!important}
 .scanword-board>.scan-cell.scan-clue:active{transform:none!important;filter:none!important}
 @media(hover:hover){.scanword-board>.scan-cell.scan-clue:hover{filter:none!important;outline:none!important}}
+
+/* Multi-direction scanword clue cells */
+.scanword-board>.scan-cell.scan-clue{position:relative;overflow:hidden}
+.scanword-board>.scan-cell.scan-clue .scan-arrow{position:absolute;z-index:3;display:grid;place-items:center;width:34%;height:34%;font-size:clamp(8px,1.2vw,13px);font-weight:950;line-height:1;color:currentColor;pointer-events:none}
+.scan-arrow-right{right:1px;bottom:0}.scan-arrow-left{left:1px;bottom:0}.scan-arrow-down{right:1px;top:0}.scan-arrow-up{left:1px;top:0}
+.scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-clue-text{display:none}
+.scanword-board>.scan-cell.scan-clue .scan-clue-count{position:absolute;z-index:4;left:50%;top:50%;transform:translate(-50%,-50%);display:grid;place-items:center;width:38%;height:38%;border-radius:50%;font-size:clamp(6px,.8vw,9px);font-weight:900;background:var(--qq-theme-chip,#ddd);color:var(--qq-theme-text,#222)}
+.clue-popup-options{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.clue-popup-choice,.clue-popup-back{width:100%;border:1px solid var(--qq-theme-border,#777);border-radius:10px;padding:10px 12px;background:var(--qq-theme-panel,#222);color:var(--qq-theme-text,#fff);font:inherit;font-size:13px;font-weight:700;text-align:left}
+.clue-popup-back{margin-top:12px;text-align:center}
