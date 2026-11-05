@@ -563,7 +563,7 @@ function makeRandomPuzzle(){
 }
 function loadPuzzle(){return makeRandomPuzzle()}
 function begin(size=1){
-  if(!loadPuzzle()){toast("Словарь ещё не загружен. Как только добавим слова и подсказки, сканворд станет доступен.");return}
+  if(!loadPuzzle()){toast("Не удалось собрать сканворд. Попробуй ещё раз.");return}
   state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
   state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
   state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));
@@ -571,7 +571,7 @@ function begin(size=1){
 }
 function renderGame(root){
   clearInterval(state.interval);
-  if(!puzzle||!puzzle.words.length){state.screen="";render();toast("Словарь ещё не загружен.");return}
+  if(!puzzle||!puzzle.words.length){state.screen="";render();toast("Не удалось собрать сканворд.");return}
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
   if(state.rackNeedsRefill?.[state.turn]){refillRack(state.turn);state.rackNeedsRefill[state.turn]=false}
   state.letters=state.playerRacks[state.turn]||[];
