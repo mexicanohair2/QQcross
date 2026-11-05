@@ -585,7 +585,7 @@ function buildScanword(entries){
   }else{
     normalized=entries.map(normalizeScanwordEntry);
     candidates=source.puzzles.map((chosen,index)=>{
-      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||chosen.extras.length!==22)return null;
+      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||chosen.extras.length!==21)return null;
       const top=chosen.top.map(i=>normalized[i]);
       if(top.some(entry=>!entry)||top[0].answer.length!==12)return null;
       return {chosen,index,top};
@@ -600,7 +600,7 @@ function buildScanword(entries){
     if(!entry||usedSources.has(entry.answer))return false;
     const vertical=dir==="down";
     if(!vertical&&x+entry.answer.length>=13)return false;
-    if(vertical&&y+entry.answer.length>=13)return false;
+    if(vertical&&(y+entry.answer.length>=13||(!isTop&&x>=12)))return false;
     const isTop=id.startsWith("top-");
     const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,isTop?x:x+1]:[y,x+1+k]);
     const clueKey=y+","+x;
@@ -627,8 +627,8 @@ function buildScanword(entries){
     if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
       throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
   });
-  if(words.length!==34)throw new Error("Ожидалось 34 вопроса, получено "+words.length);
-  if(clueKeys.size!==34||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
+  if(words.length!==33)throw new Error("Ожидалось 33 вопроса, получено "+words.length);
+  if(clueKeys.size!==33||Array.from({length:12},(_,x)=>clueKeys.has("0,"+(x+1))).some(v=>!v))
     throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:(occupied.size+clueKeys.size)/169};
 }
