@@ -35,7 +35,7 @@ label{display:block;margin-top:10px}
 .avatar-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 16px}
 .avatar-choice{padding:10px 4px;border-radius:12px;border:1px solid #4a365f;background:#211832;font-size:25px}
 .avatar-choice.selected,.party-option.selected{border:2px solid #c5a7ff;background:#49316a}
-.nav{position:fixed;z-index:30;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,620px);display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:8px 8px max(8px,env(safe-area-inset-bottom));background:#100b19ed;backdrop-filter:blur(16px);border-top:1px solid #49345f}
+.nav{position:fixed;z-index:30;bottom:0;left:50%;transform:translateX(-50%);width:min(100%,620px);display:grid;grid-template-columns:repeat(6,minmax(0,1fr));padding:8px 8px max(8px,env(safe-area-inset-bottom));background:#100b19ed;backdrop-filter:blur(16px);border-top:1px solid #49345f}
 .nav button{background:none;border:0;color:#aa9bbd;padding:7px 2px;font-size:11px}.nav button.active{color:#d6bcff}.ni{display:block;font-size:20px;margin-bottom:3px}
 .party-options{display:flex;gap:10px;margin:14px 0}.party-option{width:48px;height:46px;border-radius:12px;border:1px solid #60447d;background:#211832;color:white;font-size:18px;font-weight:800}
 .shop-buy{margin-top:14px}.shop-buy .btn{font-size:13px;padding:10px 6px}
