@@ -1417,3 +1417,6 @@ html[data-qq-theme="white"] .muted,html[data-qq-theme="white"] .small{color:#626
 .splash .logo{width:auto;height:auto;margin:0 auto;border:0;border-radius:0;background:none;box-shadow:none;color:#a92d50;font-size:58px;letter-spacing:5px;text-shadow:0 0 28px #9f244955;animation:qqPulse 1.8s ease-in-out infinite}
 @keyframes qqPulse{0%,100%{transform:scale(1);opacity:.78}50%{transform:scale(1.13);opacity:1}}
 .play-options{display:grid;gap:10px;margin:12px 0}
+
+#app>.splash{min-height:100svh;display:grid;place-content:center;background:#050505;padding:24px;margin:0}
+#app>.splash .logo{color:#a92d50;font-size:64px;letter-spacing:6px}
