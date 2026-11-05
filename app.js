@@ -753,7 +753,7 @@ function renderGame(root){
       const clue=word.clue;
       const displayClue=word.isEmoji?clue:fitScanwordClue(word.clueShort||clue);
       const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(clue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(clue)+'" aria-label="Вопрос: '+esc(clue)+'"'+position+'><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(displayClue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(displayClue)+'" aria-label="Вопрос: '+esc(displayClue)+'"'+position+'><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
