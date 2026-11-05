@@ -1,5 +1,5 @@
-const AVATARS=["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉","🐲"];
-const NAMES=["Котик","Енот","Собачка","Лев","Тигр","Скунс","Клоун","Змея","Красный дракон","Оранжевый дракон"];
+const FLAG_CODES=["AD","AE","AF","AG","AL","AM","AO","AR","AT","AU","AZ","BA","BB","BD","BE","BF","BG","BH","BI","BJ","BN","BO","BR","BS","BT","BW","BY","BZ","CA","CD","CF","CG","CH","CI","CL","CM","CN","CO","CR","CU","CY","CZ","DE","DK","DM","DO","DZ","EC","EE","EG","ES","ET","FI","FJ","FM","FR","GA","GB","GD","GE","GH","GM","GN","GR","GT","HK","HN","HR","HT","HU","ID","IE","IL","IN","IQ","IR","IS","IT","JM","JO","JP","KE","KG","KH","KI","KM","KN","KR","KW","KZ","LA","LB","NL","NO","NZ","PL","PT","RO","RU","SE","UA","US"];
+const AVATARS=FLAG_CODES.map(code=>String.fromCodePoint(...Array.from(code,ch=>127397+ch.charCodeAt(0))));
 const $=s=>document.querySelector(s);
 const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
@@ -39,9 +39,16 @@ function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(s
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function render(){clearInterval(state.interval);const root=$("#app");if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}renderShell(root)}
-function renderRegister(root){root.innerHTML=`<div class="screen"><div class="splash"><div class="logo">QQ</div><h1>QQcross</h1></div><div class="card"><div class="grid2"><button class="btn ${authMode==="signup"?"primary":""}" id="showSignup">Регистрация</button><button class="btn ${authMode==="login"?"primary":""}" id="showLogin">Войти</button></div><h2>${authMode==="signup"?"Создать аккаунт":"Войти в аккаунт"}</h2>${authMode==="signup"?`<label class="small muted">Имя игрока (3–16 символов)</label><input id="username" class="input" maxlength="16" placeholder="Например, wordmaster" autocomplete="username"><h3>Выбери аватарку</h3><div class="avatar-grid">${AVATARS.map((a,i)=>`<button class="avatar-choice ${i===state.selectedAvatar?"selected":""}" data-avatar="${i}">${a}</button>`).join("")}</div>`: ""}<label class="small muted">Электронная почта</label><input id="email" class="input" type="email" placeholder="name@example.com" autocomplete="email"><label class="small muted">Пароль (минимум 8 символов)</label><input id="password" class="input" type="password" placeholder="Пароль" autocomplete="${authMode==="signup"?"new-password":"current-password"}"><button class="btn primary full" id="authSubmit">${authMode==="signup"?"Создать аккаунт":"Войти"}</button><button class="btn full" type="button" id="guestPlay">Играть без регистрации</button><p class="small muted" id="authMessage"></p>${authMode==="signup"?'':""}</div></div>`;
+function renderRegister(root){root.innerHTML=`<div class="screen"><div class="splash"><div class="logo">QQ</div><h1>QQcross</h1></div><div class="card"><div class="grid2"><button class="btn ${authMode==="signup"?"primary":""}" id="showSignup">Регистрация</button><button class="btn ${authMode==="login"?"primary":""}" id="showLogin">Войти</button></div><h2>${authMode==="signup"?"Создать аккаунт":"Войти в аккаунт"}</h2>${authMode==="signup"?`<label class="small muted">Имя игрока (3–16 символов)</label><input id="username" class="input" maxlength="16" placeholder="Например, wordmaster" autocomplete="username"><h3>Выбери аватарку</h3><div class="avatar-grid">${AVATARS.map((a,i)=>`<button type="button" class="avatar-choice ${i===state.selectedAvatar?"selected":""}" data-avatar="${i}" aria-label="Флаг ${FLAG_CODES[i]}" aria-pressed="${i===state.selectedAvatar}">${a}</button>`).join("")}</div>`: ""}<label class="small muted">Электронная почта</label><input id="email" class="input" type="email" placeholder="name@example.com" autocomplete="email"><label class="small muted">Пароль (минимум 8 символов)</label><input id="password" class="input" type="password" placeholder="Пароль" autocomplete="${authMode==="signup"?"new-password":"current-password"}"><button class="btn primary full" id="authSubmit">${authMode==="signup"?"Создать аккаунт":"Войти"}</button><button class="btn full" type="button" id="guestPlay">Играть без регистрации</button><p class="small muted" id="authMessage"></p>${authMode==="signup"?'':""}</div></div>`;
 $("#showSignup").onclick=()=>{authMode="signup";renderRegister(root)};$("#showLogin").onclick=()=>{authMode="login";renderRegister(root)};$("#guestPlay").onclick=()=>{const username="Игрок"+String(Date.now()).slice(-4);state.profile={id:"local-"+Date.now(),username,avatar:state.selectedAvatar,coins:0,wins:0,games:0,points:0,items:defaultItems(),friends:[]};save();render();toast("Ты вошёл в гостевом режиме")};
-root.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{state.selectedAvatar=+b.dataset.avatar;renderRegister(root)});
+root.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{
+  state.selectedAvatar=Number(b.dataset.avatar);
+  root.querySelectorAll("[data-avatar]").forEach(x=>{
+    const selected=Number(x.dataset.avatar)===state.selectedAvatar;
+    x.classList.toggle("selected",selected);
+    x.setAttribute("aria-pressed",String(selected));
+  });
+});
 $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password=$("#password").value;const msg=$("#authMessage");if(!supabaseClient){msg.textContent="Не загрузился сервис авторизации. Проверь интернет и обнови страницу.";return}if(!email||!password){msg.textContent="Введи почту и пароль.";return}if(password.length<8){msg.textContent="Пароль должен быть не короче 8 символов.";return}const btn=$("#authSubmit");btn.disabled=true;btn.textContent="Подожди…";try{if(authMode==="signup"){const username=$("#username").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(username)){msg.textContent="Имя: 3–16 символов, латиница, цифры или _";btn.disabled=false;btn.textContent="Создать аккаунт";return}const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{username,avatar:state.selectedAvatar},emailRedirectTo:"https://mexicanohair2.github.io/QQcross/"}});if(error)throw error;if(data.session){await loadCloudProfile(data.user.id);render()}else{msg.textContent="Аккаунт создан. Проверь почту и подтверди адрес, затем открой «Войти».";authMode="login";btn.disabled=false;btn.textContent="Войти";}}else{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;await loadCloudProfile(data.user.id);render()}}catch(e){msg.textContent=e.message||"Не удалось выполнить вход.";btn.disabled=false;btn.textContent=authMode==="signup"?"Создать аккаунт":"Войти"}};
 }
 function renderShell(root){const tabs=["Главная","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${AVATARS[state.profile.avatar]}</div><div><b>@${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
@@ -258,33 +265,14 @@ function checkWords(){
 }
 async function loadCloudProfile(userId){const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").eq("id",userId).single();if(error)throw error;let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}const same=saved&&saved.id===data.id;state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:same?(saved.coins||0):0,wins:data.wins||0,games:data.games||0,points:data.points||0,items:same&&saved.items?{...defaultItems(),...saved.items}:defaultItems(),friends:same&&Array.isArray(saved.friends)?saved.friends:[]};save();}
 
-/* QQcross playable scanword module */
-const STARTER_SCANWORDS=[
-  ["АРБУЗ","Полосатая ягода с красной мякотью"],
-  ["БЕРЕГ","Край реки или моря"],
-  ["ВОРОНА","Чёрная птица с карканьем"],
-  ["ГИТАРА","Струнный музыкальный инструмент"],
-  ["ДЕРЕВО","Растение с корнями и кроной"],
-  ["ЗЕБРА","Полосатое животное Африки"],
-  ["ИГРУШКА","Предмет для детской игры"],
-  ["КАРТИНА","Изображение на холсте"],
-  ["ЛИМОН","Жёлтый кислый цитрус"],
-  ["МОРКОВЬ","Оранжевый корнеплод"],
-  ["ПАЛЬТО","Верхняя одежда на холод"],
-  ["РАКЕТА","Летательный аппарат"]
-];
+/* Поле остаётся пустым до загрузки пользовательского словаря. */
 function makeRandomPuzzle(){
-  const words=STARTER_SCANWORDS.map((item,i)=>({
-    id:"w"+(i+1),answer:item[0],clue:item[1],
-    cells:Array.from(item[0],(_,x)=>[i,x+1])
-  }));
-  puzzle={id:"qqcross-starter-scanword-1",title:"Первый сканворд",w:8,h:12,words};
+  puzzle={id:"scanword-grid-"+Date.now(),title:"Пустая сетка",w:8,h:12,words:[]};
   Object.keys(expected).forEach(k=>delete expected[k]);
-  words.forEach(w=>w.cells.forEach((cell,i)=>expected[cell.join(",")]=w.answer[i]));
-  letterBag=words.flatMap(w=>Array.from(w.answer));
+  letterBag=[];
   return true;
 }
-function loadPuzzle(){makeRandomPuzzle();return true}
+function loadPuzzle(){return makeRandomPuzzle()}
 function renderGame(root){
   clearInterval(state.interval);
   if(!state.playerRacks)state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));
