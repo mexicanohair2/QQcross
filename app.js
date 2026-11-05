@@ -631,4 +631,4 @@ async function preloadScanwordDictionary(){
 
 if("serviceWorker"in navigator)navigator.serviceWorker.getRegistrations().then(registrations=>registrations.forEach(registration=>registration.unregister())).catch(()=>{});
 applyTheme(activeTheme);
-initAuth();
+preloadScanwordDictionary().finally(()=>initAuth());
