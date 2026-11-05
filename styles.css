@@ -432,3 +432,14 @@ html[data-qq-theme] .scanword-board>.scan-cell.scan-filler{
 @media(hover:hover){
   .scanword-board>.scan-cell.scan-clue:hover{filter:brightness(1.15);outline:1px solid #ffffff55;outline-offset:-2px}
 }
+
+/* Короткая обратная связь при проверке каждой буквы */
+.scanword-board>.scan-cell.cell.correct{background:linear-gradient(145deg,#285b43,#173b2d)!important;border-color:#75d6a0!important;box-shadow:0 0 0 1px #75d6a055,0 0 12px #43c98266!important;animation:qq-correct-flash .52s ease-out both}
+.scanword-board>.scan-cell.cell.wrong{animation:qq-wrong-flash .52s ease-out both}
+.scanword-board>.scan-cell.cell .cell-letter{animation:qq-letter-pop .18s ease-out both}
+.scanword-board>.scan-cell.scan-clue{transition:transform .16s ease,filter .16s ease,background .16s ease}
+.scanword-board>.scan-cell.scan-clue:active{transform:scale(.94);filter:brightness(1.25)}
+@keyframes qq-correct-flash{0%{filter:brightness(1.8);transform:scale(.92)}45%{filter:brightness(1.35);transform:scale(1.04)}100%{filter:brightness(1);transform:scale(1)}}
+@keyframes qq-wrong-flash{0%{filter:brightness(1.7);transform:translateX(0)}18%{transform:translateX(-2px)}36%{transform:translateX(2px)}54%{transform:translateX(-1px)}100%{filter:brightness(1);transform:translateX(0)}}
+@keyframes qq-letter-pop{0%{opacity:0;transform:scale(.55)}75%{opacity:1;transform:scale(1.12)}100%{opacity:1;transform:scale(1)}}
+@media(prefers-reduced-motion:reduce){.scanword-board>.scan-cell.cell.correct,.scanword-board>.scan-cell.cell.wrong,.scanword-board>.scan-cell.cell .cell-letter{animation:none!important}.scanword-board>.scan-cell.scan-clue{transition:none!important}}

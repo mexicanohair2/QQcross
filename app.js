@@ -363,7 +363,7 @@ async function finishTurn(root,timeout=false){
   if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];const correctKeys=[];state.returning=state.returning||{};
   moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
-    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k)}
+    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k)}
     else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
@@ -385,7 +385,7 @@ async function finishTurn(root,timeout=false){
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn];renderGame(root);
-  if(incorrect){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});if(state.screen==="game")renderGame(root)},520)}
+  if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},520)}
 
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);const count=Math.min(Math.max(0,7-rack.length),letterBag.length);if(!count)return [];const added=drawLetters(count);rack.push(...added);return added;}
@@ -534,16 +534,9 @@ function compactScanwordClue(value){
 }
 function fitScanwordClue(value){
   const text=compactScanwordClue(value);
-  if(text.length<=22)return text;
-  const words=text.split(" ");
-  let result="";
-  for(const word of words){
-    const next=result?result+" "+word:word;
-    if(next.length>20)break;
-    result=next;
-  }
-  if(result)return result+"…";
-  return text.slice(0,19)+"…";
+  const words=text.split(" ").filter(Boolean);
+  if(words.length<=2&&text.length<=22)return text;
+  return words.slice(0,2).join(" ");
 }
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
@@ -707,7 +700,7 @@ function renderGame(root){
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(wordFlash?" word-complete-flash":"");
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"");
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове">'+(value?'<span class="cell-letter">'+esc(value)+'</span>':'')+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"><span>✦</span></div>');
   }
