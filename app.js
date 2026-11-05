@@ -637,7 +637,7 @@ async function begin(size=1){
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
-    state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
+    state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();
   }catch(error){
     console.error("QQcross: single-player start failed",error);
@@ -818,19 +818,30 @@ window.addEventListener("popstate",()=>{
 window.addEventListener("pagehide",()=>persistCurrentMatch());
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")persistCurrentMatch()});
 
-async function preloadScanwordDictionary(){
-  try{
-    const [dictionaryResponse,puzzlesResponse]=await Promise.all([
-      fetch("./data/scanword-dictionary.json",{cache:"no-store"}),
-      fetch("./data/scanwords-1000.json",{cache:"no-store"})
-    ]);
-    if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
-    if(!puzzlesResponse.ok)throw new Error("Сканворды: HTTP "+puzzlesResponse.status);
-    const [dictionary,puzzles]=await Promise.all([dictionaryResponse.json(),puzzlesResponse.json()]);
-    if(!Array.isArray(dictionary)||!puzzles||!Array.isArray(puzzles.puzzles))throw new Error("Некорректные данные сканвордов");
-    window.QQCROSS_DICTIONARY=dictionary;
-    window.QQCROSS_SCANWORDS=puzzles;
-  }catch(error){console.warn("QQcross data:",error)}
+let dictionaryLoadPromise=null;
+function preloadScanwordDictionary(){
+  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length&&window.QQCROSS_SCANWORDS?.puzzles?.length)return Promise.resolve(true);
+  if(dictionaryLoadPromise)return dictionaryLoadPromise;
+  dictionaryLoadPromise=(async()=>{
+    try{
+      const [dictionaryResponse,puzzlesResponse]=await Promise.all([
+        fetch("./data/scanword-dictionary.json"),
+        fetch("./data/scanwords-1000.json")
+      ]);
+      if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
+      if(!puzzlesResponse.ok)throw new Error("Шаблоны: HTTP "+puzzlesResponse.status);
+      const [dictionary,puzzles]=await Promise.all([dictionaryResponse.json(),puzzlesResponse.json()]);
+      if(!Array.isArray(dictionary)||!dictionary.length||!puzzles||!Array.isArray(puzzles.puzzles)||!puzzles.puzzles.length)throw new Error("Некорректные данные сканвордов");
+      window.QQCROSS_DICTIONARY=dictionary;
+      window.QQCROSS_SCANWORDS=puzzles;
+      return true;
+    }catch(error){
+      console.warn("QQcross data:",error);
+      dictionaryLoadPromise=null;
+      return false;
+    }
+  })();
+  return dictionaryLoadPromise;
 }
 
 if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js",{scope:"./"}).catch(error=>console.warn("QQcross offline mode:",error)));
