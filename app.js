@@ -451,17 +451,27 @@ function buildScanword(entries){
   // All 1,695 entries share one shuffled pool: original vocabulary and the 500 new logic clues.
   const available=normalized.filter(Boolean);
   for(let i=available.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[available[i],available[j]]=[available[j],available[i]]}
-  const takeTop=(answer)=>{
-    const index=available.findIndex(entry=>entry.logic&&entry.answer===answer);
-    if(index<0)return null;
-    return available.splice(index,1)[0];
-  };
+  const topTaken=new Set();
   const topAnswers=["Я","ЮГ","ЯК","ЩИ"];
-  const topEntries=topAnswers.map(takeTop);
-  if(topEntries.some(entry=>!entry))throw new Error("Не найдены четыре коротких вопроса для верхнего ряда");
+  const topStarts=[1,3,6,9],topMaxLengths=[10,8,5,2];
+  const takeTop=(answer,slot)=>{
+    const fits=entry=>entry&&!usedSources.has(entry.answer)&&!topTaken.has(entry.answer)&&entry.answer.length<=topMaxLengths[slot];
+    // Prefer the four intended logic clues. Older cached dictionaries may lack
+    // the logic flag, so exact answers remain eligible when their clue exists.
+    let index=available.findIndex(entry=>fits(entry)&&entry.answer===answer);
+    if(index<0)index=available.findIndex(entry=>fits(entry)&&entry.logic&&entry.answer.length<=2);
+    // Last-resort compatibility with an older local dictionary: use any
+    // distinct short answer rather than blocking the whole game at startup.
+    if(index<0)index=available.findIndex(entry=>fits(entry)&&entry.answer.length<=2);
+    if(index<0)return null;
+    const entry=available.splice(index,1)[0];
+    topTaken.add(entry.answer);
+    return entry;
+  };
+  const topEntries=topAnswers.map((answer,index)=>takeTop(answer,index));
+  if(topEntries.some(entry=>!entry))throw new Error("В словаре недостаточно четырёх коротких вопросов для верхнего ряда. Обнови данные игры.");
   topEntries.forEach((entry,index)=>{
-    const x=[1,3,6,9][index];
-    if(!addWord(entry,"across",x,0,"top-"+index))throw new Error("Не удалось заполнить верхнюю строку");
+    if(!addWord(entry,"across",topStarts[index],0,"top-"+index))throw new Error("Не удалось заполнить верхнюю строку: конфликт клеток");
   });
 
   // Fill the remaining 18 clue slots from the complete mixed dictionary.
