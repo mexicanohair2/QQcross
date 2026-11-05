@@ -211,7 +211,7 @@ function wireContent(){rootMatchHistoryBindings();const toggle=$("#play-toggle")
   }else{
     state.profile.coins-=cost;state.profile.items[item]+=qty;save();render();toast("Куплено: "+qty+" шт.");
   }
-});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
+});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){
  if(state.pendingMatchId){
   root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
@@ -292,6 +292,7 @@ async function openOnlineMatch(id){
  }catch(e){toast(e.message||"Не удалось открыть партию")}
 }
 let onlineChannel=null;
+let onlineChannelId=null;
 let partyRefreshTimer=null;
 function subscribeOnlineMatch(id){
  if(!supabaseClient||!id)return;
@@ -301,6 +302,7 @@ function subscribeOnlineMatch(id){
   .subscribe();
 }
 function applyOnlineMatch(m){
+ const alreadyInThisMatch=state.onlineMatchId===m.match_id&&state.screen==="game";
  const s=m.puzzle_snapshot,g=m.game_state;
  puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
  Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(g.letterBag||s.letterBag||[])];
@@ -309,13 +311,13 @@ function applyOnlineMatch(m){
  Object.assign(state,{screen:"game",filled:{...(g.filled||{})},owners:{...(g.owners||{})},feedback:{...(g.feedback||{})},hints:{...(g.hints||{})},
  completed:new Set(g.completed||[]),scores:g.scores||0,playerScores:[...(g.playerScores||[])],round:g.round||1,seconds:60,
  rackNeedsRefill:[...(g.rackNeedsRefill||[])],playerRacks:(g.playerRacks||[]).map(x=>[...x]),pendingMoves:(g.pendingMoves||[]).map(x=>({...x})),returning:{...(g.returning||{})},rewardSubmitted:false});
- state.letters=state.playerRacks[state.turn]||[];subscribeOnlineMatch(state.onlineMatchId);render();
+ state.letters=state.playerRacks[state.turn]||[];subscribeOnlineMatch(state.onlineMatchId);if(!alreadyInThisMatch)pushGameHistoryEntry();render();
  if(m.status==="finished")awardOnlineResult();
 }
 async function refreshOnlineMatch(){
  if(!state.onlineMatchId)return;
  try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
-  if(data.state_version>state.onlineVersion&&data.game_state)applyOnlineMatch(data);
+  if((force||data.state_version>state.onlineVersion)&&data.game_state)applyOnlineMatch(data);
   else if(data.status==="finished"&&!state.rewardSubmitted)awardOnlineResult();
  }catch(e){console.warn("QQCross online refresh:",e)}
 }
@@ -330,7 +332,7 @@ async function saveOnlineTurn(pointsEarned,finished){
  state.turn=nextTurn;state.seconds=60;state.selectedLetter=-1;state.letters=state.playerRacks[state.turn]||[];
  try{const {data,error}=await supabaseClient.rpc("submit_qqcross_match_turn",{target_match_id:state.onlineMatchId,expected_version:state.onlineVersion,next_state:serializeOnlineState(),points_earned:pointsEarned,next_user_id:nextUser,is_finished:finished});if(error)throw error;
   state.onlineVersion=data.state_version;if(finished){state.screen="";await awardOnlineResult()}else renderGame($("#app"));
- }catch(e){toast(e.message||"Не удалось сохранить ход");await refreshOnlineMatch()}
+ }catch(e){toast(e.message||"Не удалось сохранить ход");await refreshOnlineMatch(true)}
 }
 
 function drawLetters(n){
