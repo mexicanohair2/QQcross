@@ -578,7 +578,7 @@ function buildScanword(entries){
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
-    const words=entry.clue.split(/\\s+/).filter(Boolean).length;
+    const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
     if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
     if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
