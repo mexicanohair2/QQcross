@@ -1747,3 +1747,24 @@ html,body{height:auto!important;min-height:100%!important;overflow-x:hidden!impo
 .qq-clue-full{font-size:clamp(21px,5vw,28px)!important;font-weight:750!important;line-height:1.35!important;overflow-wrap:anywhere!important;margin:22px 0!important}
 .qq-clue-length{font-size:14px!important;color:var(--qq-theme-muted,#b7adbf)!important;margin:0 0 20px!important}
 .qq-clue-close{width:100%!important;min-height:48px!important}
+
+
+/* HARD OVERRIDE: older fullscreen game rules must not lock the auth page. */
+html:has(.register-screen),body:has(.register-screen),body:has(.register-screen) #app{
+ width:100%!important;height:auto!important;min-height:100%!important;max-height:none!important;
+ overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior-y:auto!important;
+ position:static!important;touch-action:pan-y!important;
+}
+body:has(.register-screen){display:block!important}
+body:has(.register-screen) #app{display:block!important}
+.register-screen{
+ display:flex!important;position:relative!important;width:min(100%,520px)!important;
+ height:auto!important;min-height:100dvh!important;max-height:none!important;
+ overflow:visible!important;touch-action:pan-y!important;
+ padding-bottom:max(40px,env(safe-area-inset-bottom))!important;
+}
+.register-screen .register-card{
+ display:block!important;position:relative!important;height:auto!important;
+ min-height:0!important;max-height:none!important;overflow:visible!important;flex-shrink:0!important;
+}
+.register-screen input,.register-screen button,.register-screen label{touch-action:pan-y!important}
