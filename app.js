@@ -729,7 +729,7 @@ function buildScanword(entries){
     return intersections||!requireIntersection?{x,y,dir,intersections}:null;
   };
   extras.forEach((extra,i)=>{
-    if(words.length>=35)return;
+    if(words.length>=34)return;
     const entry=normalizeScanwordEntry(entries[extra.index]);
     if(!entry||words.some(word=>word.answer===entry.answer))return;
     const placements=[];
@@ -764,7 +764,7 @@ function buildScanword(entries){
     const shuffled=[...fillerPool];
     for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]]}
     for(const sourceEntry of shuffled){
-      if(words.length>=35)break;
+      if(words.length>=34)break;
       if(usedSources.has(sourceEntry.answer))continue;
       const variants=[];
       if(sourceEntry.emoji||maskedCount>=3){
@@ -799,12 +799,12 @@ function buildScanword(entries){
           break;
         }
       }
-      if(placed&&words.length>=35)break;
+      if(placed&&words.length>=34)break;
     }
     if(!bestFill||words.length>bestFill.length){
       bestFill={length:words.length,words:words.slice(),occupied:new Map(occupied),clues:new Set(clueKeys)};
     }
-    if(words.length>=35)break;
+    if(words.length>=34)break;
   }
   if(words.length<35&&bestFill){
     words.splice(0,words.length,...bestFill.words);
@@ -814,7 +814,7 @@ function buildScanword(entries){
 
   const uniqueAnswers=new Set(words.map(word=>word.sourceAnswer||word.answer));
   if(uniqueAnswers.size!==words.length)throw new Error("В сканворде обнаружены повторяющиеся исходные слова");
-  if(words.length!==35)throw new Error("Не удалось собрать сканворд из 35 вопросов");
+  if(words.length!==34)throw new Error("Не удалось собрать сканворд из 34 вопросов");
   const expectedMap={};occupied.forEach((value,key)=>expectedMap[key]=value);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:12,h:12,words,used:new Set(occupied.keys()),clueKeys,coverage:occupied.size/144};
 }
