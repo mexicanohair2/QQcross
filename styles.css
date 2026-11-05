@@ -1400,3 +1400,8 @@ html[data-qq-theme="white"] .coins,html[data-qq-theme="white"] .pill{background:
 @keyframes qq-pulse{0%,100%{transform:scale(.96);opacity:.82;text-shadow:0 0 12px #a3264933}50%{transform:scale(1.04);opacity:1;text-shadow:0 0 30px #a3264977}}
 .register-splash{padding:12px 0 20px}
 .register-splash .logo{width:58px;height:58px;background:linear-gradient(145deg,#a33252,#541d31);box-shadow:0 0 24px #a3264933;animation:qq-pulse 1.8s ease-in-out infinite}
+
+/* Scanword clue tiles: flags and short visual hints */
+.game-screen .scan-cell.scan-clue.scan-clue-emoji{padding:1px!important;gap:0!important;justify-content:center!important;background:linear-gradient(145deg,#51404a,#392d35)!important}
+.game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-arrow{display:none!important}
+.game-screen .scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{font-size:clamp(17px,4.5vw,27px)!important;line-height:1!important;white-space:nowrap!important;overflow:visible!important}
