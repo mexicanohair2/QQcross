@@ -1,3 +1,4 @@
+/* QQCross release themes4: graphite, purple, burgundy */
 const AVATARS=["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉","🐲"];
 const NAMES=["Котик","Енот","Собачка","Лев","Тигр","Скунс","Клоун","Змея","Красный дракон","Оранжевый дракон"];
 const $=s=>document.querySelector(s);
