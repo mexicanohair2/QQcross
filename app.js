@@ -65,6 +65,8 @@ function friends(){return `
   </div>
   <h3 class="section-title">Входящие заявки</h3>
   <div id="incomingFriendRequests"><p class="muted small">Загрузка…</p></div>
+  <h3 class="section-title">Отправленные заявки</h3>
+  <div id="outgoingFriendRequests"><p class="muted small">Загрузка…</p></div>
   <h3 class="section-title">Мои друзья</h3>
   <div id="friendsList"><p class="muted small">Загрузка…</p></div>
 `}
@@ -72,46 +74,75 @@ function friends(){return `
 async function searchFriends(){
   const input=$("#friendName"),out=$("#friendSearchResults");
   const q=input?.value.trim()||"";
+  if(!out)return;
   if(q.length<2){out.innerHTML='<p class="small muted">Введи хотя бы 2 символа.</p>';return}
   if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){
     out.innerHTML='<p class="small muted">Поиск доступен после входа в аккаунт.</p>';return;
   }
   out.innerHTML='<p class="small muted">Ищем игрока…</p>';
-  const {data,error}=await supabaseClient.rpc("search_qqcross_players",{search_text:q});
-  if(error){out.innerHTML='<p class="small muted">Поиск пока не подключён. Нужно применить миграции Supabase.</p>';console.error(error);return}
-  if(!data?.length){out.innerHTML='<p class="small muted">Игрок не найден.</p>';return}
-  out.innerHTML=data.map(p=>`<div class="card row between"><div class="row"><div class="avatar">${AVATARS[p.avatar]||"🐱"}</div><b>${esc(p.username)}</b></div><button class="btn send-friend-request" data-username="${esc(p.username)}">Добавить</button></div>`).join("");
-  out.querySelectorAll(".send-friend-request").forEach(b=>b.onclick=async()=>{
-    b.disabled=true;b.textContent="Отправка…";
-    const {error}=await supabaseClient.rpc("send_qqcross_friend_request",{target_username:b.dataset.username});
-    if(error){toast(error.message||"Не удалось отправить заявку");b.disabled=false;b.textContent="Добавить";return}
-    b.textContent="Отправлено";toast("Заявка отправлена");loadSocialData();
-  });
+  try{
+    const {data,error}=await supabaseClient.rpc("search_qqcross_players_with_status",{search_text:q});
+    if(error)throw error;
+    if(!data?.length){out.innerHTML='<p class="small muted">Игрок не найден.</p>';return}
+    out.innerHTML=data.map(p=>{
+      const status=p.relation_status||"none";
+      const label=status==="friends"?"Уже друзья":status==="outgoing"?"Заявка отправлена":status==="incoming"?"У него есть заявка — проверь входящие":"Добавить";
+      const disabled=status!=="none";
+      return '<div class="card row between"><div class="row"><div class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</div><b>'+esc(p.username)+'</b></div><button class="btn '+(disabled?"":"primary")+' send-friend-request" data-username="'+esc(p.username)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+    }).join("");
+    out.querySelectorAll(".send-friend-request:not(:disabled)").forEach(b=>b.onclick=async()=>{
+      b.disabled=true;b.textContent="Отправка…";
+      try{
+        const {error}=await supabaseClient.rpc("send_qqcross_friend_request",{target_username:b.dataset.username});
+        if(error)throw error;
+        b.textContent="Заявка отправлена";toast("Заявка отправлена");
+        await searchFriends();await loadSocialData();
+      }catch(e){toast(e.message||"Не удалось отправить заявку");b.disabled=false;b.textContent="Добавить"}
+    });
+  }catch(e){
+    console.error("QQcross friend search:",e);
+    out.innerHTML='<p class="small muted">Не удалось выполнить поиск. Проверь подключение базы данных.</p>';
+  }
 }
 
 async function loadSocialData(){
-  const incoming=$("#incomingFriendRequests"),list=$("#friendsList");
+  const incoming=$("#incomingFriendRequests"),list=$("#friendsList"),outgoing=$("#outgoingFriendRequests");
   if(!incoming||!list)return;
   if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){
     incoming.innerHTML='<p class="muted small">Войди в аккаунт, чтобы получать заявки.</p>';
+    if(outgoing)outgoing.innerHTML='<p class="muted small">Доступно после входа в аккаунт.</p>';
     list.innerHTML='<p class="muted small">У гостевого профиля нет облачного списка друзей.</p>';return;
   }
-  const [fr,ir]=await Promise.all([
-    supabaseClient.rpc("list_qqcross_friends"),
-    supabaseClient.rpc("list_qqcross_incoming_friend_requests")
-  ]);
-  if(fr.error||ir.error){
-    incoming.innerHTML='<p class="muted small">Не удалось загрузить друзей. Проверь, применены ли SQL-миграции Supabase.</p>';
-    list.innerHTML="";console.error(fr.error||ir.error);return;
+  incoming.innerHTML='<p class="muted small">Загружаем…</p>';
+  list.innerHTML='<p class="muted small">Загружаем…</p>';
+  try{
+    const calls=[
+      supabaseClient.rpc("list_qqcross_friends"),
+      supabaseClient.rpc("list_qqcross_incoming_friend_requests"),
+      supabaseClient.rpc("list_qqcross_outgoing_friend_requests")
+    ];
+    const [fr,ir,orq]=await Promise.all(calls);
+    if(fr.error)throw fr.error;
+    if(ir.error)throw ir.error;
+    if(orq.error)throw orq.error;
+    list.innerHTML=fr.data?.length?fr.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+'</b></div>').join(""):'<p class="muted small">Пока нет друзей.</p>';
+    incoming.innerHTML=ir.data?.length?ir.data.map(p=>'<div class="card"><div class="row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+' хочет добавить тебя в друзья</b></div><div class="grid2"><button class="btn primary respond-friend" data-id="'+esc(p.request_id)+'" data-accept="true">Принять</button><button class="btn respond-friend" data-id="'+esc(p.request_id)+'" data-accept="false">Отклонить</button></div></div>').join(""):'<p class="muted small">Новых заявок нет.</p>';
+    if(outgoing)outgoing.innerHTML=orq.data?.length?orq.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><div class="grow"><b>'+esc(p.username)+'</b><div class="small muted">Ожидает ответа</div></div><span class="pill">Отправлено</span></div>').join(""):'<p class="muted small">Нет ожидающих заявок.</p>';
+    incoming.querySelectorAll(".respond-friend").forEach(b=>b.onclick=async()=>{
+      b.disabled=true;
+      try{
+        const {error}=await supabaseClient.rpc("respond_qqcross_friend_request",{request_id:b.dataset.id,accept_request:b.dataset.accept==="true"});
+        if(error)throw error;
+        toast(b.dataset.accept==="true"?"Теперь вы друзья":"Заявка отклонена");
+        await loadSocialData();
+      }catch(e){toast(e.message||"Не удалось обработать заявку");b.disabled=false}
+    });
+  }catch(e){
+    console.error("QQcross social data:",e);
+    incoming.innerHTML='<p class="muted small">Не удалось загрузить заявки. Проверь, применены ли миграции Supabase.</p>';
+    if(outgoing)outgoing.innerHTML="";
+    list.innerHTML="";
   }
-  list.innerHTML=fr.data?.length?fr.data.map(p=>`<div class="card row"><div class="avatar">${AVATARS[p.avatar]||"🏳️"}</div><b>${esc(p.username)}</b></div>`).join(""):'<p class="muted small">Пока нет друзей.</p>';
-  incoming.innerHTML=ir.data?.length?ir.data.map(p=>`<div class="card"><div class="row"><div class="avatar">${AVATARS[p.avatar]||"🏳️"}</div><b>${esc(p.username)} хочет добавить тебя в друзья</b></div><div class="grid2"><button class="btn primary respond-friend" data-id="${p.request_id}" data-accept="true">Принять</button><button class="btn respond-friend" data-id="${p.request_id}" data-accept="false">Отклонить</button></div></div>`).join(""):'<p class="muted small">Новых заявок нет.</p>';
-  incoming.querySelectorAll(".respond-friend").forEach(b=>b.onclick=async()=>{
-    b.disabled=true;
-    const {error}=await supabaseClient.rpc("respond_qqcross_friend_request",{request_id:b.dataset.id,accept_request:b.dataset.accept==="true"});
-    if(error){toast(error.message||"Не удалось обработать заявку");b.disabled=false;return}
-    toast(b.dataset.accept==="true"?"Теперь вы друзья":"Заявка отклонена");loadSocialData();
-  });
 }
 
 async function watchSocialUpdates(){
@@ -123,7 +154,12 @@ async function watchSocialUpdates(){
     .on("postgres_changes",{event:"*",schema:"public",table:"friend_requests",filter:"sender_id=eq."+state.profile.id},()=>{
       if(state.tab==="Друзья")loadSocialData();
     })
-    .subscribe();
+    .on("postgres_changes",{event:"*",schema:"public",table:"friendships",filter:"user_id=eq."+state.profile.id},()=>{
+      if(state.tab==="Друзья")loadSocialData();
+    })
+    .subscribe((status)=>{
+      if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("QQcross social realtime:",status);
+    });
 }
 function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
 function profile(){return `<h2>Профиль</h2><div class="card row"><div class="avatar big">${AVATARS[state.profile.avatar]}</div><div><h3>${esc(state.profile.username)}</h3><span class="muted small">Игрок QQcross</span></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
