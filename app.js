@@ -583,12 +583,16 @@ function renderGame(root){
     dragGhost=document.createElement("div");dragGhost.className="qq-drag-ghost";dragGhost.textContent=activeDrag.letter;
     document.body.append(dragGhost);moveGhost(event);
     document.body.classList.add("qq-dragging");
+    document.addEventListener("pointermove",moveGhost,{passive:false});
+    document.addEventListener("pointerup",finishDrag,{once:true});
+    document.addEventListener("pointercancel",finishDrag,{once:true});
   };
   const moveGhost=event=>{if(!dragGhost)return;dragGhost.style.left=event.clientX+"px";dragGhost.style.top=event.clientY+"px"};
   const finishDrag=event=>{
     if(!activeDrag)return;
     const target=document.elementFromPoint(event.clientX,event.clientY)?.closest("[data-cell],.hand");
     const drag=activeDrag;activeDrag=null;dragGhost?.remove();dragGhost=null;document.body.classList.remove("qq-dragging");
+    document.removeEventListener("pointermove",moveGhost);document.removeEventListener("pointerup",finishDrag);document.removeEventListener("pointercancel",finishDrag);
     root.querySelectorAll(".drag-source").forEach(el=>el.classList.remove("drag-source"));
     if(target?.matches("[data-cell]")){
       const key=target.dataset.cell;
@@ -614,9 +618,6 @@ function renderGame(root){
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };
   });
-  document.addEventListener("pointermove",moveGhost,{passive:false});
-  document.addEventListener("pointerup",finishDrag,{once:true});
-  document.addEventListener("pointercancel",finishDrag,{once:true});
   $("#exit").onclick=()=>{if(state.pendingMoves.length&&!confirm("Незавершённые буквы этого хода будут потеряны. Выйти?"))return;state.pendingMoves=[];state.screen="";render()};
   $("#endturn").onclick=()=>finishTurn(root);
   $("#magnifier").onclick=()=>{
