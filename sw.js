@@ -1,5 +1,5 @@
-const CACHE_NAME="qqcross-20261106-cluefill2";
-const CORE=["./","./index.html","./manifest.json","./icon.svg","./styles.css?v=20261106-cluefill2","./app.js?v=20261106-cluefill2","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
+const CACHE_NAME="qqcross-20261106-perfectgrid1";
+const CORE=["./","./index.html","./manifest.json","./icon.svg","./styles.css?v=20261106-perfectgrid1","./app.js?v=20261106-perfectgrid1","./data/scanword-dictionary.json","./data/scanwords-1000.json"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("qqcross-")&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",event=>{
