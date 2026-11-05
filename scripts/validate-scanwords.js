@@ -2,8 +2,8 @@ const fs = require("node:fs");
 const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
 const data = JSON.parse(fs.readFileSync("data/scanwords-1000.json", "utf8"));
 const fail = message => { console.error("SCANWORD DATA ERROR:", message); process.exitCode = 1; };
-if (!Array.isArray(dictionary) || !Array.isArray(data.puzzles) || data.version !== 4) {
-  fail("Unexpected dictionary or scanword data format"); process.exit();
+if (!Array.isArray(dictionary) || !Array.isArray(data.puzzles) || data.version !== 5) {
+  fail("Unexpected dictionary or scanword data format (expected dictionary array and template version 5)"); process.exit();
 }
 if (data.puzzles.length !== 1000) fail(`Expected 1000 puzzles, found ${data.puzzles.length}`);
 const normalized = item => String(item?.answer || item?.word || "").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
