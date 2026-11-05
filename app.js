@@ -306,16 +306,31 @@ function checkWords(){
       state.completed.add(w.id);newlyCompleted.push(w);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
-  if(state.completed.size===puzzle.words.length){
+  if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
+    state.rewardSubmitted=true;
     persistCurrentMatch("completed");
-    const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
-    if(cloud){
-      toast("Партия завершена. Облачные награды появятся после подключения серверной проверки результата.");
-    }else{
-      state.profile.games++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();
-    }
+    const cloud=!!(supabaseClient&&state.profile?.id&&!String(state.profile.id).startsWith("local-"));
     state.screen="";
-    setTimeout(()=>{render();toast("Партия завершена!")},500);
+    setTimeout(async()=>{
+      if(cloud){
+        try{
+          const {data,error}=await supabaseClient.rpc("award_qqcross_match_result",{points:state.scores,match_id:String(state.matchId||("match-"+Date.now()))});
+          if(error)throw error;
+          state.profile.coins=Number(data.coins)||0;
+          state.profile.games=Number(data.games)||state.profile.games;
+          state.profile.wins=Number(data.wins)||state.profile.wins;
+          state.profile.points=Number(data.points)||state.profile.points;
+          save();
+          toast("Награда получена: +"+(Number(data.reward)||0)+" монет");
+        }catch(error){
+          state.rewardSubmitted=false;
+          toast("Не удалось начислить награду: "+(error.message||"ошибка сервера"));
+        }
+      }else{
+        state.profile.games++;state.profile.wins++;state.profile.points+=state.scores;state.profile.coins+=Math.max(10,state.scores);save();
+      }
+      render();toast("Сканворд завершён!");
+    },100);
   }
   return newlyCompleted;
 }
@@ -509,7 +524,7 @@ async function begin(size=1){
   if(playButton){playButton.disabled=true;playButton.textContent="Собираем сканворд…"}
   try{
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_SCANWORDS?.puzzles?.length){
-      await preloadScanwordDictionary();
+      await Promise.race([preloadScanwordDictionary(),new Promise((_,reject)=>setTimeout(()=>reject(new Error("Загрузка сканворда превысила 13 секунд. Попробуй ещё раз.")),13000))]);
     }
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length||!window.QQCROSS_SCANWORDS?.puzzles?.length){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
@@ -520,7 +535,7 @@ async function begin(size=1){
     }
     if(!loaded)throw lastError||new Error("Не удалось собрать сканворд из 34 вопросов. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
-    state.completed=new Set();state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
+    state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=60;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
   }catch(error){
@@ -708,10 +723,13 @@ function preloadScanwordDictionary(){
   if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length&&window.QQCROSS_SCANWORDS?.puzzles?.length)return Promise.resolve(true);
   if(dictionaryLoadPromise)return dictionaryLoadPromise;
   dictionaryLoadPromise=(async()=>{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),12000);
     try{
+      const version="20261105-repair1";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
-        fetch("./data/scanword-dictionary.json"),
-        fetch("./data/scanwords-1000.json")
+        fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
+        fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
       ]);
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       if(!puzzlesResponse.ok)throw new Error("Шаблоны: HTTP "+puzzlesResponse.status);
@@ -723,8 +741,9 @@ function preloadScanwordDictionary(){
     }catch(error){
       console.warn("QQCross data:",error);
       dictionaryLoadPromise=null;
-      return false;
-    }
+      if(error?.name==="AbortError")throw new Error("Загрузка сканвордов заняла больше 12 секунд. Проверь интернет и попробуй ещё раз.");
+      throw error;
+    }finally{clearTimeout(timeout)}
   })();
   return dictionaryLoadPromise;
 }
