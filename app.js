@@ -577,61 +577,11 @@ function normalizeScanwordEntry(item){
   return {answer,clue,clueShort,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
-  const source=window.QQCROSS_SCANWORDS;
-  if(!source||!Array.isArray(source.puzzles)||!source.puzzles.length)return null;
-  let normalized,candidates;
-  if(scanwordCandidateCache&&scanwordCandidateCache.entries===entries&&scanwordCandidateCache.source===source){
-    ({normalized,candidates}=scanwordCandidateCache);
-  }else{
-    normalized=entries.map(normalizeScanwordEntry);
-    candidates=source.puzzles.map((chosen,index)=>{
-      if(!Array.isArray(chosen.top)||chosen.top.length!==12||!Array.isArray(chosen.extras)||(chosen.extras.length<14||chosen.extras.length>15))return null;
-      const top=chosen.top.map(i=>normalized[i]);
-      if(top.some(entry=>!entry)||top[0].answer.length!==12)return null;
-      return {chosen,index,top};
-    }).filter(Boolean);
-    scanwordCandidateCache={entries,source,normalized,candidates};
-  }
-  if(!candidates.length)throw new Error("Не найден шаблон сканворда с 12 вопросами в верхнем ряду");
-  const selected=candidates[Math.floor(Math.random()*candidates.length)];
-  const {chosen,top}=selected;
-  const words=[],occupied=new Map(),clueKeys=new Set(),usedSources=new Set();
-  const addWord=(entry,dir,x,y,id)=>{
-    const topClue=String(id||"").startsWith("top-");
-    if(!entry||usedSources.has(entry.answer))return false;
-    const vertical=dir==="down";
-    if(!vertical&&x+entry.answer.length>=13)return false;
-    if(vertical&&(y+entry.answer.length>=13||(!topClue&&x>=12)))return false;
-    const cells=Array.from({length:entry.answer.length},(_,k)=>vertical?[y+1+k,topClue?x:x+1]:[y,x+1+k]);
-    const clueKey=y+","+x;
-    if(clueKeys.has(clueKey)||occupied.has(clueKey))return false;
-    for(let k=0;k<cells.length;k++){
-      const key=cells[k].join(",");
-      if(clueKeys.has(key)||(occupied.has(key)&&occupied.get(key)!==entry.answer[k]))return false;
-    }
-    cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
-    clueKeys.add(clueKey);
-    usedSources.add(entry.answer);
-    words.push({id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:!!entry.emoji,dir,cells,clueCell:[y,x]});
-    return true;
-  };
-  // Все 12 клетки верхнего ряда — вопросы. Их ответы идут вниз.
-  top.forEach((entry,x)=>{
-    if(!addWord(entry,"down",x+1,0,"top-"+x))throw new Error("Конфликт верхнего вопроса №"+(x+1));
-  });
-  const mainWord=words[0];
-  if(!mainWord||mainWord.answer.length!==12||mainWord.clueCell[0]!==0||mainWord.clueCell[1]!==1||mainWord.cells.some((cell,index)=>cell[0]!==index+1||cell[1]!==1))
-    throw new Error("Вопрос на 11 букв должен стоять слева от своего вертикального ответа");
-  chosen.extras.forEach((extra,index)=>{
-    const entry=normalized[extra.index];
-    if(!entry||!addWord(entry,extra.dir,extra.x,extra.y,"extra-"+index))
-      throw new Error("Ошибка размещения дополнительного вопроса №"+(index+1));
-  });
-
-  // Индексируем ответы по длине, позиции и букве пересечения.
+  const N=15,TOTAL=N*N;
+  const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   const byLength=new Map();
   normalized.forEach(entry=>{
-    if(!entry||entry.answer.length<2||usedSources.has(entry.answer))return;
+    if(entry.answer.length<2)return;
     let positions=byLength.get(entry.answer.length);
     if(!positions){positions=Array.from({length:entry.answer.length},()=>new Map());byLength.set(entry.answer.length,positions)}
     for(let p=0;p<entry.answer.length;p++){
@@ -639,52 +589,103 @@ function buildScanword(entries){
       bucket.push(entry);positions[p].set(letter,bucket);
     }
   });
-  // Добавляем пересекающиеся ответы, пока поле не заполнено или не осталось размещений.
-  for(let round=0;round<145&&occupied.size+clueKeys.size<169;round++){
-    const options=[];
-    for(let y=0;y<13;y++)for(let x=0;x<13;x++){
-      const clueKey=y+","+x;
-      if(clueKeys.has(clueKey)||occupied.has(clueKey))continue;
-      for(const dir of ["across","down"]){
-        const vertical=dir==="down",sx=x+1,sy=vertical?y+1:y;
-        const maxLength=vertical?13-sy:13-sx;
-        if(sx>=13||sy>=13)continue;
-        for(let length=2;length<=Math.min(12,maxLength);length++){
-          const positions=byLength.get(length);if(!positions)continue;
-          const possible=new Set();
-          for(let k=0;k<length;k++){
-            const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k;
-            const old=occupied.get(yy+","+xx);if(old===undefined)continue;
-            for(const entry of positions[k].get(old)||[])possible.add(entry);
-          }
-          for(const entry of possible){
-            if(usedSources.has(entry.answer))continue;
-            let crosses=0,newCells=0,valid=true;
-            for(let k=0;k<length;k++){
-              const yy=vertical?sy+k:sy,xx=vertical?sx:sx+k,key=yy+","+xx;
-              if(clueKeys.has(key)){valid=false;break}
-              const old=occupied.get(key);
-              if(old!==undefined&&old!==entry.answer[k]){valid=false;break}
-              if(old!==undefined)crosses++;else newCells++;
-            }
-            if(valid&&crosses>0)options.push({entry,dir,x,y,score:newCells*10+crosses*3+length*.15+Math.random()*2});
-          }
+  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
+  let bestCoverage=0,best=null;
+  const buildAttempt=()=>{
+    const occupied=new Map(),clueAt=new Map(),used=new Set(),words=[];
+    const addWord=(entry,y,x,dirIndex,id,allowSeed=false)=>{
+      const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
+      if(!entry||used.has(entry.answer)||at.length>=4||at.some(w=>w.dir===dir.name)||occupied.has(key))return false;
+      const cells=[];
+      for(let k=1;k<=entry.answer.length;k++){
+        const yy=y+dir.dy*k,xx=x+dir.dx*k;
+        if(yy<0||xx<0||yy>=N||xx>=N)return false;
+        const cellKey=yy+","+xx,old=occupied.get(cellKey);
+        if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
+        cells.push([yy,xx]);
+      }
+      const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
+      if(words.length&&!crosses&&!allowSeed)return false;
+      cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
+      const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
+      at.push(word);clueAt.set(key,at);used.add(entry.answer);words.push(word);
+      return true;
+    };
+    // Two crossing seed words create the first connected component.
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
+    if(!firstPool.length)return null;
+    const first=firstPool[Math.floor(Math.random()*firstPool.length)];
+    const firstY=7,firstX=0;
+    if(!addWord(first,firstY,firstX,0,"w0",true))return null;
+    const seedChoices=[];
+    for(let cross=0;cross<first.answer.length;cross++){
+      const x=firstX+cross+1,letter=first.answer[cross];
+      for(const e of normalized){
+        if(e.answer===first.answer||e.answer.length<3)continue;
+        for(let p=0;p<Math.min(7,e.answer.length);p++){
+          if(e.answer[p]===letter)seedChoices.push({entry:e,x,y:firstY-p-1});
         }
       }
     }
-    if(!options.length)break;
-    options.sort((a,b)=>b.score-a.score);
-    const pool=options.slice(0,Math.min(12,options.length));
-    const choice=pool[Math.floor(Math.random()*pool.length)];
-    if(!addWord(choice.entry,choice.dir,choice.x,choice.y,"auto-"+round))break;
+    if(!seedChoices.length)return null;
+    let seeded=false;
+    for(let n=0;n<Math.min(80,seedChoices.length);n++){
+      const choice=seedChoices[Math.floor(Math.random()*seedChoices.length)];
+      if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
+    }
+    if(!seeded)return null;
+    for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
+      const options=[];
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const clueKey=y+","+x,at=clueAt.get(clueKey)||[];
+        if(occupied.has(clueKey)||at.length>=4)continue;
+        for(let di=0;di<4;di++){
+          const dir=dirs[di];
+          if(at.some(w=>w.dir===dir.name))continue;
+          const max=dir.dy>0?N-1-y:dir.dy<0?y:dir.dx>0?N-1-x:x;
+          for(let length=2;length<=Math.min(12,max);length++){
+            const positions=byLength.get(length);if(!positions)continue;
+            const possible=new Set();let availableCrosses=0;
+            for(let p=0;p<length;p++){
+              const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),old=occupied.get(yy+","+xx);
+              if(old===undefined)continue;
+              availableCrosses++;
+              for(const entry of positions[p].get(old)||[])possible.add(entry);
+            }
+            if(!availableCrosses)continue;
+            for(const entry of possible){
+              if(used.has(entry.answer))continue;
+              let valid=true,newCells=0,crosses=0;
+              for(let p=0;p<length;p++){
+                const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
+                if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
+                if(old===undefined)newCells++;else crosses++;
+              }
+              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*10+crosses*4+length*.12+Math.random()*2});
+            }
+          }
+        }
+      }
+      if(!options.length)break;
+      options.sort((a,b)=>b.score-a.score);
+      const pool=options.slice(0,Math.min(18,options.length));
+      const pick=pool[Math.floor(Math.random()*pool.length)];
+      if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
+    }
+    const coverage=occupied.size+clueAt.size;
+    return {coverage,occupied,clueAt,words};
+  };
+  // Randomized restarts avoid the dead ends of a single greedy fill.
+  for(let attempt=0;attempt<80;attempt++){
+    const result=buildAttempt();
+    if(result&&result.coverage>bestCoverage){bestCoverage=result.coverage;best=result}
+    if(result?.coverage===TOTAL)break;
   }
-  if(words.length<12+chosen.extras.length)throw new Error("Некорректное число вопросов: "+words.length);
-  if(clueKeys.size!==words.length||Array.from({length:12},(_,x)=>!clueKeys.has("0,"+(x+1))).some(Boolean))
-    throw new Error("Верхний ряд должен состоять из 12 отдельных вопросов");
+  if(!best||bestCoverage!==TOTAL)throw new Error("Не удалось собрать полностью заполненный сканворд 15×15 (лучший результат: "+bestCoverage+"/225). Повтори генерацию.");
+  const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
-  const filledCells=occupied.size+clueKeys.size;
-  if(filledCells!==169)throw new Error("Сканворд не заполнен полностью: "+filledCells+" из 169 клеток");
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:13,h:13,words,used:new Set(occupied.keys()),clueKeys,coverage:1};
+  if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
@@ -746,17 +747,17 @@ function renderGame(root){
   const onlineIsMyTurn=!state.onlineMatchId||state.onlinePlayers[state.turn]?.id===state.profile?.id;
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
-  const clueAt=new Map(puzzle.words.map(w=>[w.clueCell.join(","),w]));
+  const clueAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list)});
   const wordEnds=new Map();
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1];if(!last)return;const k=last.join(",");const dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs)});
   const cells=[];
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
-    const key=y+","+x,word=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
-    if(word){
-      const clue=word.clue;
-      const displayClue=word.isEmoji?clue:fitScanwordClue(word.clueShort||clue);
-      const directionClass=word.dir==="down"?"scan-clue-down":"scan-clue-across";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+directionClass+' '+(word.isEmoji?'scan-clue-emoji':'')+'" data-clue="'+esc(displayClue)+'" data-answer-length="'+word.answer.length+'" title="'+esc(displayClue)+'" aria-label="Вопрос: '+esc(displayClue)+'"'+position+'><span class="scan-clue-text">'+esc(displayClue)+'</span></button>');
+    const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
+    if(wordsAt){
+      const arrows=wordsAt.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'">'+({right:"→",left:"←",down:"↓",up:"↑"}[w.dir])+'</span>').join("");
+      const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
+      const single=wordsAt.length===1?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+'" data-clue-cell="'+key+'" title="'+esc(wordsAt.length+" вопрос"+(wordsAt.length===1?"": "а"))+'" aria-label="'+esc(wordsAt.length+" вопрос"+(wordsAt.length===1?"": "а"))+'"'+position+'><span class="scan-clue-text">'+esc(single)+'</span>'+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
@@ -773,22 +774,35 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-clue]").forEach(b=>{
-    b.onclick=()=>{
-      const wrap=root.querySelector(".board-wrap");
-      wrap?.querySelector(".clue-popup-backdrop")?.remove();
-      if(!wrap)return;
-      const popup=document.createElement("div");
-      popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОС</div><div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
-      popup.querySelector(".clue-popup-text").textContent=b.dataset.clue||"";
-      popup.querySelector(".clue-popup-length").textContent="Ответ: "+(b.dataset.answerLength||"?")+" букв";
+  root.querySelectorAll("[data-clue-cell]").forEach(button=>{
+    button.onclick=()=>{
+      const wrap=root.querySelector(".board-wrap");if(!wrap)return;
+      wrap.querySelector(".clue-popup-backdrop")?.remove();
+      const wordsAt=clueAt.get(button.dataset.clueCell)||[];
+      if(!wordsAt.length)return;
+      const popup=document.createElement("div");popup.className="clue-popup-backdrop";
+      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
+      const options=popup.querySelector(".clue-popup-options");
       const close=()=>popup.remove();
+      const showQuestion=word=>{
+        options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
+        options.querySelector(".clue-popup-text").textContent=word.clue;
+        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+word.answer.length+" букв";
+        options.querySelector(".clue-popup-back").onclick=()=>showChoices();
+      };
+      const showChoices=()=>{
+        if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
+        options.innerHTML="";
+        wordsAt.forEach(word=>{
+          const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
+          choice.textContent=({right:"→ Вправо",left:"← Влево",down:"↓ Вниз",up:"↑ Вверх"}[word.dir])+" · "+fitScanwordClue(word.clueShort||word.clue);
+          choice.onclick=()=>showQuestion(word);options.append(choice);
+        });
+      };
       popup.querySelector(".clue-popup-close").onclick=close;
       popup.onclick=event=>{if(event.target===popup)close()};
-      wrap.append(popup);
+      showChoices();wrap.append(popup);
     };
-    b.setAttribute("aria-label",b.dataset.clue);
   });
   let activeDrag=null,dragGhost=null;
   const startDrag=(event,source)=>{
@@ -946,7 +960,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-densefill1";
+      const version="20261106-15x15multi1";
       const [dictionaryResponse,puzzlesResponse]=await Promise.all([
         fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"}),
         fetch("./data/scanwords-1000.json?v="+version,{signal:controller.signal,cache:"no-store"})
