@@ -10,18 +10,24 @@ async function startGuestGame(page) {
   await expect(page.locator("#play-toggle")).toBeVisible();
   await page.locator("#play-toggle").click();
   await expect(page.locator("#practice")).toBeVisible();
+  await page.evaluate(() => { window.__qqStartTap = performance.now(); });
   await page.locator("#practice").click();
   await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
-  return pageErrors;
+  const startMs = await page.evaluate(() => performance.now() - window.__qqStartTap);
+  return { pageErrors, startMs };
 }
 
 test("loads a fully occupied 15x15 scanword with exactly five picture clues", async ({ page }) => {
-  const pageErrors = await startGuestGame(page);
+  const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(225);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
+  await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+  const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
+  expect(pictureSources).toEqual(["apple.svg", "banana.svg", "cucumber.svg", "lemon.svg", "tomato.svg"]);
+  console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms");
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
