@@ -572,7 +572,7 @@ function normalizeScanwordEntry(item){
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
   if(answer.length<1||answer.length>12||!clue)return null;
-  return {answer,clue,clueShort,imageKey,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const N=15,TOTAL=N*N;
@@ -611,7 +611,7 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(!entry||used.has(entry.answer)||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(!entry||used.has(entry.key)||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -621,12 +621,12 @@ function buildScanword(entries){
         cells.push([yy,xx]);
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
-      if(words.length&&!crosses&&!allowSeed)return false;
+      if(words.length&&!crosses&&!allowSeed&&!(entry.answer.length===1&&at.length>0))return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);frontier.add(key);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
-      used.add(entry.answer);words.push(word);
+      used.add(entry.key);words.push(word);
       return true;
     };
     // Two crossing seed words create the first connected component.
@@ -674,7 +674,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.answer)||(entry.imageKey&&at.length>0))continue;
+              if(used.has(entry.key)||(entry.imageKey&&at.length>0))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -720,14 +720,15 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            if(!valid||!crosses)continue;
+            if(!valid||(!crosses&&!(length===1&&anchor.existing)))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             cells.forEach((cell,k)=>{
               const old=occupied.get(cell.join(","));
               if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
             });
-            const pool=[...possible].filter(entry=>!used.has(entry.answer)&&cells.every((cell,k)=>{
+            if(length===1&&!crosses&&anchor.existing){for(const bucket of positions[0].values())for(const entry of bucket)possible.add(entry)}
+            const pool=[...possible].filter(entry=>!used.has(entry.key)&&cells.every((cell,k)=>{
               const old=occupied.get(cell.join(","));
               return old===undefined||old===entry.answer[k];
             }));
