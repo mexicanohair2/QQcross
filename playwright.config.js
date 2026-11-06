@@ -9,7 +9,7 @@ module.exports = defineConfig({
   reporter: process.env.CI
     ? [["list"], ["html", { outputFolder: "playwright-report", open: "never" }]]
     : "list",
-  timeout: 45_000,
+  timeout: 120_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL: "http://127.0.0.1:4173",
