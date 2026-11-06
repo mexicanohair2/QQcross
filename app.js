@@ -632,7 +632,9 @@ function buildScanword(entries){
     // Two crossing seed words create the first connected component.
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
     if(!firstPool.length)return null;
-    const pictureSeeds=firstPool.filter(e=>e.imageKey);\n    const firstPoolPreferred=pictureSeeds.length?pictureSeeds:firstPool;\n    const first=firstPoolPreferred[Math.floor(Math.random()*firstPoolPreferred.length)];
+    const pictureSeeds=firstPool.filter(e=>e.imageKey);
+    const firstPoolPreferred=pictureSeeds.length?pictureSeeds:firstPool;
+    const first=firstPoolPreferred[Math.floor(Math.random()*firstPoolPreferred.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     const seedChoices=[];
@@ -647,7 +649,7 @@ function buildScanword(entries){
     }
     if(!seedChoices.length)return null;
     let seeded=false;
-    seedChoices.sort((a,b)=>Number(!!b.entry.imageKey)-Number(!!a.entry.imageKey)+(Math.random()-.5));
+    seedChoices.sort((a,b)=>(Number(!!b.entry.imageKey)-Number(!!a.entry.imageKey))+(Math.random()-.5));
     for(const choice of seedChoices.slice(0,120)){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
@@ -730,7 +732,8 @@ function buildScanword(entries){
               return old===undefined||old===entry.answer[k];
             }));
             if(!pool.length)continue;
-            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));\n            const entry=pool[0];
+            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));
+            const entry=pool[0];
             if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false)){closing=true;break}
           }
         }
@@ -740,12 +743,15 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<40;attempt++){
+  for(let attempt=0;attempt<80;attempt++){
     const result=buildAttempt();
-    if(result&&result.coverage>bestCoverage){bestCoverage=result.coverage;best=result}
-    if(result?.coverage===TOTAL)break;
+    const imageCount=result?.words.filter(w=>w.imageKey).length||0;
+    if(result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage))){
+      bestImageCount=imageCount;bestCoverage=result.coverage;best=result;
+    }
+    if(result?.coverage===TOTAL&&imageCount===5)break;
   }
-  if(!best||bestCoverage!==TOTAL)throw new Error("Не удалось собрать полностью заполненный сканворд 15×15 (лучший результат: "+bestCoverage+"/225). Повтори генерацию.");
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==5)throw new Error("Не удалось собрать полностью заполненный сканворд с пятью картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/5). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
