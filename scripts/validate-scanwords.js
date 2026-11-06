@@ -20,6 +20,28 @@ for (const [answer, imageKey] of Object.entries(expectedPictures)) {
   if (!fs.existsSync(asset)) fail(`Missing picture clue asset: ${asset}`);
   else if (!fs.readFileSync(asset, "utf8").includes("<svg")) fail(`Invalid SVG picture clue asset: ${asset}`);
 }
+const seenSingleLetters = new Set();
+const seenClues = new Map();
+const seenPairs = new Set();
+const clueKey = value => String(value || "").toLocaleLowerCase("ru-RU").replace(/ё/g, "е").replace(/[«»"'.,!?—:;()]/g, "").replace(/\s+/g, " ").trim();
+for (let i = 0; i < dictionary.length; i++) {
+  const item = dictionary[i];
+  const answer = normalize(item?.answer || item?.word);
+  const clue = clueKey(item?.clue || item?.question || item?.emoji || item?.flag || item?.clueShort);
+  const pair = answer + "|" + clue;
+  if (seenPairs.has(pair)) fail(`Duplicate dictionary entry for ${answer}: ${clue}`);
+  seenPairs.add(pair);
+  if (answer.length === 1) {
+    if (seenSingleLetters.has(answer)) fail(`Duplicate one-letter answer: ${answer}`);
+    seenSingleLetters.add(answer);
+  }
+  if (clue && clue !== "что изображено на картинке") {
+    const previous = seenClues.get(clue);
+    if (previous && previous !== answer) fail(`Ambiguous clue shared by ${previous} and ${answer}: ${clue}`);
+    seenClues.set(clue, answer);
+  }
+}
+if (seenSingleLetters.size > 33) fail(`Unexpected number of one-letter answers: ${seenSingleLetters.size}`);
 let valid = 0;
 for (let i = 0; i < dictionary.length; i++) {
   const item = dictionary[i];
