@@ -3,7 +3,7 @@ const { test, expect } = require("@playwright/test");
 async function startGuestGame(page) {
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
-  await page.goto("/");
+  await page.goto("/?debugTiming=1");
   await expect(page).toHaveTitle(/QQCross/);
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
@@ -27,7 +27,8 @@ test("loads a fully occupied 15x15 scanword with exactly five picture clues", as
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(pictureSources).toEqual(["apple.svg", "banana.svg", "cucumber.svg", "lemon.svg", "tomato.svg"]);
-  console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms");
+  const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
+  console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
