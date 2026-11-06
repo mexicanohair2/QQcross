@@ -790,6 +790,9 @@ function loadPuzzle(){return makeRandomPuzzle()}
 
 
 async function begin(size=1){
+  const qqDebugTiming=new URLSearchParams(location.search).has("debugTiming");
+  const qqStartTime=performance.now();
+  let qqGenerationMs=0;
   const playButton=$("#practice");
   if(playButton){playButton.disabled=true;playButton.textContent="Собираем сканворд…"}
   try{
@@ -803,11 +806,12 @@ async function begin(size=1){
     for(let attempt=0;attempt<2&&!loaded;attempt++){
       try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQCross: puzzle start failed",error)}
     }
+    qqGenerationMs=performance.now()-qqStartTime;
     if(!loaded)throw lastError||new Error("Не удалось собрать полностью заполненное поле 15×15. Попробуй ещё раз.");
     state.screen="game";state.partySize=size;state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];ensureWordLetter(0);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
-    pushGameHistoryEntry();render();if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
+    pushGameHistoryEntry();render();if(qqDebugTiming)window.__qqcrossTiming={generationMs:Math.round(qqGenerationMs),totalMs:Math.round(performance.now()-qqStartTime)};if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
   }catch(error){
     console.error("QQCross: single-player start failed",error);
     toast(error&&error.message?error.message:"Не удалось запустить игру. Попробуй ещё раз.");
