@@ -66,6 +66,8 @@ function validate(puzzle, run) {
   }
   if (seen.size !== puzzle.words.length) throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + ")");
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
+  const pictureCount = puzzle.words.filter(word => word.imageKey).length;
+  if (pictureCount !== 5) throw new Error("Run " + run + ": expected exactly five picture clues, found " + pictureCount);
   return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size };
 }
 
