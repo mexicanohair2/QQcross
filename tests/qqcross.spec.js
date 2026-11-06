@@ -22,6 +22,8 @@ test("loads a fully occupied 15x15 scanword with exactly five picture clues", as
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(225);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
+  await expect(page.locator(".scan-filler")).toHaveCount(0);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(225);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
