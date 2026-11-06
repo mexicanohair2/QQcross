@@ -588,7 +588,7 @@ function buildScanword(entries){
     if(/сколько будет|чему равно|вычисли|посчитай/i.test(entry.clue))score-=30;
     // Prefer a precise definition over a fill-in-the-blank variant when the
     // same answer has both; the latter often makes neighboring clues alike.
-    if(/(?:…|\\.\\.\\.)/.test(entry.clue))score-=35;
+    if(entry.clue.includes("…")||entry.clue.includes("..."))score-=35;
     // Single-letter answers are reserved for the final gap-repair pass only.
     if(entry.answer.length===1)score-=100;
     return score;
