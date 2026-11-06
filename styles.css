@@ -541,3 +541,9 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:re
 .scanword-board>.scan-cell.scan-clue-picture .scan-clue-image{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 1px #0002)}
 .scanword-board>.scan-cell.scan-clue-picture .scan-arrow{z-index:4!important;background:#ffffffb8;color:#243746;border-radius:3px;width:38%;height:38%}
 html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue-picture{background:linear-gradient(145deg,#e9f7ff,#cfeafa)!important}
+
+/* Remove pale seams between scanword tiles: the board has no exposed grid gaps. */
+.scanword-board{gap:0!important;background:transparent!important}
+.scanword-board>.scan-cell{border-radius:0!important}
+.scanword-board>.scan-cell.scan-clue-picture{padding:1px!important}
+.scanword-board>.scan-cell.scan-clue-picture .scan-clue-image{width:100%;height:100%;object-fit:contain}
