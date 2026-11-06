@@ -584,6 +584,8 @@ function buildScanword(entries){
     if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
     if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
     if(/сколько будет|чему равно|вычисли|посчитай/i.test(entry.clue))score-=30;
+    // Single-letter answers are reserved for the final gap-repair pass only.
+    if(entry.answer.length===1)score-=100;
     return score;
   };
   normalized.sort((a,b)=>quality(b)-quality(a));
@@ -609,9 +611,9 @@ function buildScanword(entries){
         if(!occupied.has(key))frontier.add(key);
       }
     };
-    const addWord=(entry,y,x,dirIndex,id,allowSeed=false)=>{
+    const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(!entry||used.has(entry.key)||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -735,7 +737,8 @@ function buildScanword(entries){
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));
             const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false)){closing=true;break}
+            // A one-cell answer is allowed only here, after every longer fit has failed.
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1)){closing=true;break}
           }
         }
       }
