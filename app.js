@@ -663,7 +663,7 @@ function buildScanword(entries){
           const dir=dirs[di];
           if(at.some(w=>w.dir===dir.name))continue;
           const max=dir.dy>0?N-1-y:dir.dy<0?y:dir.dx>0?N-1-x:x;
-          for(let length=1;length<=Math.min(12,max);length++){
+          for(let length=2;length<=Math.min(12,max);length++){
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();let availableCrosses=0;
             for(let p=0;p<length;p++){
