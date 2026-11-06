@@ -1,11 +1,11 @@
 const fs = require("node:fs");
 const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
 const expectedPictures = {
-  ТОМАТ: "tomato",
-  ЛИМОН: "lemon",
   ЯБЛОКО: "apple",
-  БАНАН: "banana",
-  ОГУРЕЦ: "cucumber"
+  ТОМАТ: "tomato",
+  КОТ: "cat",
+  ВЕЛОСИПЕД: "bicycle",
+  ЧАСЫ: "clock"
 };
 const fail = message => { console.error("SCANWORD DATA ERROR:", message); process.exitCode = 1; };
 const normalize = value => String(value || "").toLocaleUpperCase("ru-RU").replace(/Ё/g, "Е").replace(/[^А-ЯA-Z]/g, "");
