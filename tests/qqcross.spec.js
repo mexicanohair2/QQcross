@@ -1,0 +1,52 @@
+const { test, expect } = require("@playwright/test");
+
+async function startGuestGame(page) {
+  const pageErrors = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
+
+  await page.goto("/");
+  await expect(page).toHaveTitle(/QQCross/);
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+
+  await expect(page.locator("#play-toggle")).toBeVisible();
+  await page.locator("#play-toggle").click();
+  await expect(page.locator("#practice")).toBeVisible();
+  await page.locator("#practice").click();
+
+  await expect(page.locator(".game-screen")).toBeVisible({ timeout: 30_000 });
+  return pageErrors;
+}
+
+test("loads the game and builds a complete scanword grid", async ({ page }) => {
+  const pageErrors = await startGuestGame(page);
+
+  await expect(page.locator(".scanword-board")).toBeVisible();
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(225);
+  await expect(page.locator(".scan-clue").first()).toBeVisible();
+
+  expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
+});
+
+test("opens a scanword clue from its numbered cell", async ({ page }) => {
+  await startGuestGame(page);
+
+  await page.locator(".scan-clue").first().click();
+  await expect(page.locator(".clue-popup-backdrop")).toBeVisible();
+  await expect(page.locator(".clue-popup-text")).toBeVisible();
+  await expect(page.locator(".clue-popup-text")).not.toBeEmpty();
+  await page.getByRole("button", { name: "Понятно" }).click();
+  await expect(page.locator(".clue-popup-backdrop")).toHaveCount(0);
+});
+
+test("keeps the page within the emulated device width", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+
+  const dimensions = await page.evaluate(() => ({
+    viewport: document.documentElement.clientWidth,
+    page: document.documentElement.scrollWidth
+  }));
+
+  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
+});
