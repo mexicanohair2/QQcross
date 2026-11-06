@@ -567,11 +567,12 @@ function fitScanwordClue(value){
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const rawClue=String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
+  const imageKey=/^(tomato|lemon|apple|banana|cucumber)$/.test(String(item.imageKey||""))?String(item.imageKey):null;
+  const rawClue=imageKey?"Что изображено на картинке?":String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
-  const clueShort=compactScanwordClue(item.clueShort||item.shortClue||clue);
+  const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
   if(answer.length<1||answer.length>12||!clue)return null;
-  return {answer,clue,clueShort,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  return {answer,clue,clueShort,imageKey,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
 function buildScanword(entries){
   const N=15,TOTAL=N*N;
@@ -597,7 +598,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
-  let bestCoverage=0,best=null;
+  let bestCoverage=0,bestImageCount=-1,best=null;
   const buildAttempt=()=>{
     const occupied=new Map(),clueAt=new Map(),used=new Set(),words=[],frontier=new Set();
     const addFrontier=(y,x)=>{
@@ -622,7 +623,7 @@ function buildScanword(entries){
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
       if(words.length&&!crosses&&!allowSeed)return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
-      const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
+      const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);frontier.add(key);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
       used.add(entry.answer);words.push(word);
@@ -631,7 +632,7 @@ function buildScanword(entries){
     // Two crossing seed words create the first connected component.
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
     if(!firstPool.length)return null;
-    const first=firstPool[Math.floor(Math.random()*firstPool.length)];
+    const pictureSeeds=firstPool.filter(e=>e.imageKey);\n    const firstPoolPreferred=pictureSeeds.length?pictureSeeds:firstPool;\n    const first=firstPoolPreferred[Math.floor(Math.random()*firstPoolPreferred.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     const seedChoices=[];
@@ -646,7 +647,7 @@ function buildScanword(entries){
     }
     if(!seedChoices.length)return null;
     let seeded=false;
-    seedChoices.sort(()=>Math.random()-.5);
+    seedChoices.sort((a,b)=>Number(!!b.entry.imageKey)-Number(!!a.entry.imageKey)+(Math.random()-.5));
     for(const choice of seedChoices.slice(0,120)){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
@@ -678,7 +679,7 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+Math.random()*3});
+              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
             }
           }
         }
@@ -729,7 +730,7 @@ function buildScanword(entries){
               return old===undefined||old===entry.answer[k];
             }));
             if(!pool.length)continue;
-            const entry=pool[Math.floor(Math.random()*pool.length)];
+            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));\n            const entry=pool[0];
             if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false)){closing=true;break}
           }
         }
@@ -833,9 +834,11 @@ function renderGame(root){
     if(wordsAt){
       const arrows=wordsAt.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'">'+({right:"→",left:"←",down:"↓",up:"↑"}[w.dir])+'</span>').join("");
       const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
-      const single=wordsAt.length===1?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
+      const single=wordsAt.length===1&&!wordsAt[0].imageKey?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+'" data-clue-cell="'+key+'" title="'+esc(fullClueTitle)+'" aria-label="'+esc(fullClueTitle)+'"'+position+'><span class="scan-clue-text">'+esc(single)+'</span>'+arrows+label+'</button>');
+      const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="'+esc(wordsAt[0].answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
+      const clueTitle=wordsAt.length===1&&wordsAt[0].imageKey?"Что изображено на картинке?":fullClueTitle;
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(wordsAt.length===1&&wordsAt[0].imageKey?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
@@ -864,7 +867,7 @@ function renderGame(root){
       const close=()=>popup.remove();
       const showQuestion=word=>{
         options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
-        options.querySelector(".clue-popup-text").textContent=word.clue;
+        options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+word.answer.length+" букв";
         options.querySelector(".clue-popup-back").onclick=()=>showChoices();
       };
