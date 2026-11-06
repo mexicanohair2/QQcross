@@ -1,5 +1,5 @@
-const CACHE_NAME="qqcross-20261107-mixed-pictures-v8";
-const CORE=["./","./index.html","./manifest.json","./icon.svg","./styles.css?v=20261107-mixed-pictures-v8","./app.js?v=20261107-mixed-pictures-v8","./data/scanword-dictionary.json","./assets/scanword/tomato.svg","./assets/scanword/apple.svg","./assets/scanword/cat.svg","./assets/scanword/bicycle.svg","./assets/scanword/clock.svg"];
+const CACHE_NAME="qqcross-20261107-burgundy-cells-v9";
+const CORE=["./","./index.html","./manifest.json","./icon.svg","./styles.css?v=20261107-burgundy-cells-v9","./app.js?v=20261107-burgundy-cells-v9","./data/scanword-dictionary.json","./assets/scanword/tomato.svg","./assets/scanword/apple.svg","./assets/scanword/cat.svg","./assets/scanword/bicycle.svg","./assets/scanword/clock.svg"];
 self.addEventListener("install",event=>event.waitUntil(caches.open(CACHE_NAME).then(cache=>cache.addAll(CORE)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",event=>event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith("qqcross-")&&key!==CACHE_NAME).map(key=>caches.delete(key)))).then(()=>self.clients.claim())));
 self.addEventListener("fetch",event=>{
