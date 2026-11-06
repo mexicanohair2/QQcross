@@ -567,7 +567,7 @@ function fitScanwordClue(value){
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const imageKey=/^(tomato|lemon|apple|banana|cucumber)$/.test(String(item.imageKey||""))?String(item.imageKey):null;
+  const imageKey=/^(tomato|apple|cat|bicycle|clock)$/.test(String(item.imageKey||""))?String(item.imageKey):null;
   const rawClue=imageKey?"Что изображено на картинке?":String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
