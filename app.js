@@ -658,7 +658,7 @@ function buildScanword(entries){
       const options=[];
       for(const clueKey of frontier){
         const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
-        if(occupied.has(clueKey)||at.length>=4)continue;
+        if(occupied.has(clueKey)||at.length>=4||at.some(w=>w.imageKey))continue;
         for(let di=0;di<4;di++){
           const dir=dirs[di];
           if(at.some(w=>w.dir===dir.name))continue;
@@ -674,7 +674,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.answer))continue;
+              if(used.has(entry.answer)||(entry.imageKey&&at.length>0))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
