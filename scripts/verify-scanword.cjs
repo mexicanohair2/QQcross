@@ -32,8 +32,8 @@ function validate(puzzle, run) {
   for (let i = 0; i < puzzle.words.length; i++) {
     const word = puzzle.words[i];
     if (!word.clue || !word.answer || word.answer.length !== word.cells.length) throw new Error("Run " + run + ": malformed word " + word.id);
-    if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
-    answers.add(word.answer);
+    if (word.answer.length > 1 && answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
+    if (word.answer.length > 1) answers.add(word.answer);
     const [cy, cx] = word.clueCell;
     if (cy < 0 || cx < 0 || cy >= 15 || cx >= 15 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
     for (let k = 0; k < word.cells.length; k++) {
@@ -56,6 +56,17 @@ function validate(puzzle, run) {
     for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
       graph[ids[i]].add(ids[j]);
       graph[ids[j]].add(ids[i]);
+    }
+  }
+  for (let i = 0; i < puzzle.words.length; i++) {
+    const a = puzzle.words[i], aKey = a.clueCell.join(",");
+    for (let j = i + 1; j < puzzle.words.length; j++) {
+      const b = puzzle.words[j], bKey = b.clueCell.join(",");
+      const [ay, ax] = a.clueCell, [by, bx] = b.clueCell;
+      const sharedClue = aKey === bKey;
+      const adjacentClueToAnswer = b.cells.some(([y,x]) => Math.abs(y-ay)+Math.abs(x-ax)===1) ||
+        a.cells.some(([y,x]) => Math.abs(y-by)+Math.abs(x-bx)===1);
+      if (sharedClue || adjacentClueToAnswer) { graph[i].add(j); graph[j].add(i); }
     }
   }
   const seen = new Set([0]);
