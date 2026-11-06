@@ -589,7 +589,7 @@ function buildScanword(entries){
   normalized.sort((a,b)=>quality(b)-quality(a));
   const byLength=new Map();
   normalized.forEach(entry=>{
-    if(entry.answer.length<2)return;
+    if(entry.answer.length<1)return;
     let positions=byLength.get(entry.answer.length);
     if(!positions){positions=Array.from({length:entry.answer.length},()=>new Map());byLength.set(entry.answer.length,positions)}
     for(let p=0;p<entry.answer.length;p++){
@@ -663,7 +663,7 @@ function buildScanword(entries){
           const dir=dirs[di];
           if(at.some(w=>w.dir===dir.name))continue;
           const max=dir.dy>0?N-1-y:dir.dy<0?y:dir.dx>0?N-1-x:x;
-          for(let length=2;length<=Math.min(12,max);length++){
+          for(let length=1;length<=Math.min(12,max);length++){
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();let availableCrosses=0;
             for(let p=0;p<length;p++){
@@ -712,7 +712,7 @@ function buildScanword(entries){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
-          for(let length=max;length>=2;length--){
+          for(let length=max;length>=1;length--){
             const cells=[];let valid=true,crosses=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
