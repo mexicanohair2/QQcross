@@ -558,3 +558,12 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue-picture{backgro
 .scanword-board>.scan-cell.cell{background:linear-gradient(145deg,#4b3440,#33232d)!important}
 .scanword-board>.scan-cell.cell.filled{background:linear-gradient(145deg,#527c68,#315644)!important}
 .scanword-board>.scan-cell.scan-clue-picture{padding:0!important}
+
+/* Remove the pale end-of-answer strokes that looked like white strips below tiles. */
+.scanword-board>.scan-cell.cell.answer-end-across,
+.scanword-board>.scan-cell.cell.answer-end-down,
+.scanword-board>.scan-cell.cell.answer-end-across.answer-end-down,
+html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-across,
+html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-down{
+  box-shadow:none!important;
+}
