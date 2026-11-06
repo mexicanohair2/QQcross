@@ -547,3 +547,14 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue-picture{backgro
 .scanword-board>.scan-cell{border-radius:0!important}
 .scanword-board>.scan-cell.scan-clue-picture{padding:1px!important}
 .scanword-board>.scan-cell.scan-clue-picture .scan-clue-image{width:100%;height:100%;object-fit:contain}
+
+/* Seam-free board: remove gaps, cell shadows, rounded corners and outlines. */
+.scanword-board{gap:0!important;background:#291c25!important}
+.scanword-board>.scan-cell,
+.scanword-board>.scan-cell.scan-clue,
+.scanword-board>.scan-cell.cell,
+.scanword-board>.scan-cell.scan-empty{border:0!important;border-radius:0!important;outline:0!important;box-shadow:none!important}
+.scanword-board>.scan-cell.scan-clue{background:linear-gradient(145deg,#79515f,#513642)!important}
+.scanword-board>.scan-cell.cell{background:linear-gradient(145deg,#4b3440,#33232d)!important}
+.scanword-board>.scan-cell.cell.filled{background:linear-gradient(145deg,#527c68,#315644)!important}
+.scanword-board>.scan-cell.scan-clue-picture{padding:0!important}
