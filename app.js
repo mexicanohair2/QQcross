@@ -581,6 +581,8 @@ function buildScanword(entries){
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
+    // Preserve the five mandatory picture clues when deduplicating answers.
+    if(entry.imageKey)score+=1000;
     if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
     if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
     if(/сколько будет|чему равно|вычисли|посчитай/i.test(entry.clue))score-=30;
