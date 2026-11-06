@@ -1047,7 +1047,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261106-15x15-quality3";
+      const version="20261107-picture5-v1";
       const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       const dictionary=await dictionaryResponse.json();
