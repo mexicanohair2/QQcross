@@ -26,7 +26,7 @@ test("loads a fully occupied 15x15 scanword with exactly five picture clues", as
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(pictureSources).toEqual(["apple.svg", "banana.svg", "cucumber.svg", "lemon.svg", "tomato.svg"]);
+  expect(pictureSources).toEqual(["apple.svg", "bicycle.svg", "cat.svg", "clock.svg", "tomato.svg"]);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
   expect(internalTiming).not.toBeNull();
