@@ -588,6 +588,14 @@ function buildScanword(entries){
     if(entry.answer.length===1)score-=100;
     return score;
   };
+  // Keep only the strongest clue for each answer. This prevents the same
+  // word from entering the candidate pool with several near-duplicate prompts.
+  const bestByAnswer=new Map();
+  normalized.forEach(entry=>{
+    const previous=bestByAnswer.get(entry.answer);
+    if(!previous||quality(entry)>quality(previous))bestByAnswer.set(entry.answer,entry);
+  });
+  normalized.splice(0,normalized.length,...bestByAnswer.values());
   normalized.sort((a,b)=>quality(b)-quality(a));
   const byLength=new Map();
   normalized.forEach(entry=>{
