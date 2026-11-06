@@ -626,3 +626,18 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell{
 html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
   border-color:#8b405b!important;
 }
+
+
+/* Correct the tile frames to true dark burgundy (not rose/mauve). */
+.scanword-board>.scan-cell,
+.scanword-board>.scan-cell.cell,
+.scanword-board>.scan-cell.scan-filler{
+  border:2px solid #3b071b!important;
+}
+.scanword-board>.scan-cell.scan-clue{
+  border:2px solid #3b071b!important;
+}
+html[data-qq-theme="light"] .scanword-board>.scan-cell,
+html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
+  border-color:#3b071b!important;
+}
