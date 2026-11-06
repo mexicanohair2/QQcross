@@ -847,7 +847,7 @@ function renderGame(root){
       const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
       const single=wordsAt.length===1&&!wordsAt[0].imageKey?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
-      const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="Изображение-подсказка" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
+      const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="'+esc(wordsAt[0].answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=wordsAt.length===1&&wordsAt[0].imageKey?"Что изображено на картинке?":fullClueTitle;
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(wordsAt.length===1&&wordsAt[0].imageKey?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
