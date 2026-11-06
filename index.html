@@ -7,7 +7,7 @@
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <meta name="description" content="QQCross — играй в сканворды">
 <link rel="manifest" href="./manifest.json">
-<link rel="stylesheet" href="./styles.css?v=20261107-mixed-pictures-v8">
+<link rel="stylesheet" href="./styles.css?v=20261107-burgundy-cells-v9">
 <title>QQCross</title>
 </head>
 <body>
@@ -33,7 +33,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261107-mixed-pictures-v8";
+    app.src="./app.js?v=20261107-burgundy-cells-v9";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
