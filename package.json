@@ -5,7 +5,8 @@
   "description": "QQCross scanword game",
   "scripts": {
     "test:e2e": "playwright test",
-    "test:e2e:mobile": "playwright test --project=mobile-chromium"
+    "test:e2e:mobile": "playwright test --project=mobile-chromium",
+    "test:scanword": "node scripts/validate-scanwords.js && node scripts/verify-scanword.cjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"
