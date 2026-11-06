@@ -73,7 +73,7 @@ def main() -> int:
             if previous and previous != answer:
                 errors.append(f"same clue used for {previous} and {answer}: {clue}")
             clues[key] = answer
-        by_answer[answer].append(clue)
+        if not item.get("imageKey"):\n            by_answer[answer].append(clue)
 
     if one_letter > 33:
         errors.append(f"too many one-letter answers: {one_letter} (maximum 33)")
