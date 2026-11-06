@@ -874,7 +874,8 @@ function renderGame(root){
       const showQuestion=word=>{
         options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+word.answer.length+" букв";
+        const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
+        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+count+" "+form;
         options.querySelector(".clue-popup-back").onclick=()=>showChoices();
       };
       const showChoices=()=>{
