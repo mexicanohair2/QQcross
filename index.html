@@ -26,8 +26,8 @@
 </script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
 <script src="./wordle.js?v=20261108-daily-v2"></script>
-<script src="./new-games.js?v=20261108-progression-v1"></script>
-<script src="./progression.js?v=20261108-progression-v2"></script>
+<script src="./new-games.js?v=20261108-progression-v2"></script>
+<script src="./progression.js?v=20261108-progression-v3"></script>
 <script src="./encyclopedia.js?v=20261108-encyclopedia-v1"></script>
 <script>
 (function(){
@@ -38,7 +38,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261108-progression-v2";
+    app.src="./app.js?v=20261108-progression-v3";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
