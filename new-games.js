@@ -138,49 +138,102 @@ async function loadClues(){
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
 }
 function mountCody(root,onExit,clues,words){
- const seen=new Set();
- const pool=shuffle(clues.filter(x=>x&&x.answer&&x.clue&&!x.imageKey&&norm(x.answer).length>=4&&norm(x.answer).length<=9).filter(x=>{const w=norm(x.answer);if(seen.has(w))return false;seen.add(w);return true;}));
- const byInitial=new Map();
- pool.forEach(item=>{const initial=norm(item.answer)[0],list=byInitial.get(initial)||[];list.push(item);byInitial.set(initial,list);});
- let puzzle=null;
- const secretCandidates=shuffle(words.slice(0,7000).filter(w=>w.length>=4&&w.length<=5));
- for(const secretWord of secretCandidates){
-  const used=new Set(),items=[];let possible=true;
-  for(const letter of secretWord){
-   const item=(byInitial.get(letter)||[]).find(x=>!used.has(norm(x.answer)));
-   if(!item){possible=false;break;}
-   used.add(norm(item.answer));items.push(item);
+ const COLS=13,CENTER=6,GROUPS=20,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
+ const STORAGE_KEY="qqcross.cody.progress.v2";
+ const SECRET_WORDS=["ПРИРОДА","КОСМОС","ИСТОРИЯ","МУЗЫКА","ПЛАНЕТА","ЖИВОТНЫЕ","СПОРТ","КНИГА","ГОРОД","МАШИНА","ВРЕМЯ","СЕМЬЯ","ШКОЛА","ДРУЖБА","МОРЕ","РАСТЕНИЯ","ТЕХНИКА","ИСКУССТВО","ЗВЕЗДЫ","ПРОФЕССИЯ","КУЛЬТУРА","НАУКА","ПТИЦЫ","ЦВЕТЫ","ЭНЕРГИЯ","ПУТЕШЕСТВИЕ","ЗДОРОВЬЕ"];
+ const GROUP_NAMES=["Первые открытия","Мир вокруг нас","Природа и жизнь","Наука и техника","Истории и события","Культура","Большие открытия","Путешествия","Живой мир","Мир искусства","Время и пространство","Человек и общество","Изобретения","Планета Земля","Словесные загадки","Новые горизонты","Эрудиция","Большая экспедиция","Мастер слова","Финальный рубеж"];
+ const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&!/^[\p{Extended_Pictographic}\uFE0F\u200D\s]+$/u.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,11}$/.test(x.answer)&&x.clue.length>3);
+ const pool=[...new Map(cleanClues.map(x=>[x.answer,x])).values()].sort((a,b)=>a.answer.localeCompare(b.answer,"ru"));
+ const randomFor=seed=>{let x=(seed>>>0)||1;return()=>{x=(x+0x6D2B79F5)>>>0;let t=x;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
+ const shuffleSeed=(arr,rng)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+ let progress={completed:[],states:{}};
+ try{const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");if(saved&&Array.isArray(saved.completed)&&saved.states&&typeof saved.states==="object")progress=saved;}catch(_){}
+ const save=()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(progress));}catch(_){}};
+ const puzzleId=n=>"p"+String(n+1).padStart(3,"0");
+ function buildPuzzle(level){
+  const rng=randomFor(20261107+level*7919),secrets=shuffleSeed(SECRET_WORDS,rng);
+  for(const secret of secrets){
+   const used=new Set(),items=[];let ok=true;
+   for(let row=0;row<secret.length;row++){
+    const letter=secret[row];
+    const candidates=shuffleSeed(pool.filter(x=>x.answer.includes(letter)&&!used.has(x.answer)),rng);
+    const chosen=candidates.find(x=>{const at=x.answer.indexOf(letter);return CENTER-at>=0&&CENTER-at+x.answer.length<=COLS;});
+    if(!chosen){ok=false;break;}
+    used.add(chosen.answer);
+    const crossIndex=chosen.answer.indexOf(letter);
+    items.push({...chosen,crossIndex,row,cells:[...chosen.answer].map((ch,i)=>({x:CENTER-crossIndex+i,y:row,letter:ch}))});
+   }
+   if(ok&&items.length>=4)return{id:puzzleId(level),level,secret,items,cols:COLS,rows:secret.length};
   }
-  if(!possible)continue;
-  const layout=layoutWords(items.map(x=>norm(x.answer)),13);
-  if(layout.placed.length===items.length){puzzle={layout,items,secret:secretWord};break;}
+  throw new Error("Не удалось собрать кроссворд из проверенных вопросов. Попробуй открыть другой уровень.");
  }
- for(let tries=0;tries<35&&!puzzle;tries++){
-  const group=pool.slice(tries*8,tries*8+8);if(group.length<3)continue;
-  const layout=layoutWords(group.map(x=>norm(x.answer)),13);
-  if(layout.placed.length>=3){
-   const items=layout.placed.map(p=>group.find(x=>norm(x.answer)===p.word)).filter(Boolean);
-   puzzle={layout,items,secret:items.map(x=>norm(x.answer)[0]).join("")};
+ function isComplete(n){return progress.completed.includes(puzzleId(n));}
+ function groupUnlocked(group){if(group===0)return true;for(let i=(group-1)*PER_GROUP-1;i>=0;i--)if(!isComplete(i))return false;return true;}
+ function groupDone(group){for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(!isComplete(i))return false;return true;}
+ function completedCount(group){let n=0;for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(isComplete(i))n++;return n;}
+ function getState(id){if(!progress.states[id])progress.states[id]={solved:[],revealed:{},drafts:{}};const s=progress.states[id];if(!Array.isArray(s.solved))s.solved=[];if(!s.revealed||typeof s.revealed!=="object")s.revealed={};if(!s.drafts||typeof s.drafts!=="object")s.drafts={};return s;}
+ function renderTop(title,backLabel,backFn){root.innerHTML='<div class="screen qq-extra-screen qq-cody-app"><div class="top qq-extra-top"><button type="button" class="btn" id="qqCodyBack">← '+backLabel+'</button><b>'+escapeHtml(title)+'</b><span class="qq-extra-mark">QQ</span></div><div id="qqCodyView"></div></div>';root.querySelector("#qqCodyBack").onclick=backFn;}
+ function renderMap(){
+  renderTop("Кроссворды","Назад",onExit);
+  const view=root.querySelector("#qqCodyView");
+  view.innerHTML='<section class="qq-cody-world"><div class="qq-cody-world-mark">МИР СЛОВ</div><h2>Путешествие по словам</h2><p>20 групп · 5 головоломок в каждой. Внутри группы можно выбирать любой открытый уровень.</p><div class="qq-cody-total">'+progress.completed.length+' / '+TOTAL+' решено</div><div class="qq-cody-total-track"><span style="width:'+Math.min(100,progress.completed.length/TOTAL*100)+'%"></span></div></section><div class="qq-cody-group-grid">'+GROUP_NAMES.map((name,g)=>{const done=completedCount(g),unlocked=groupUnlocked(g);return '<button type="button" class="qq-cody-group '+(unlocked?"":"locked")+' '+(groupDone(g)?"complete":"")+'" data-group="'+g+'" '+(unlocked?"":"disabled")+'><span class="qq-cody-group-no">ГРУППА '+(g+1)+'</span><b>'+escapeHtml(name)+'</b><span class="qq-cody-group-progress">'+done+' / '+PER_GROUP+' уровней</span><span class="qq-cody-dots">'+Array.from({length:PER_GROUP},(_,i)=>'<i class="'+(isComplete(g*PER_GROUP+i)?"done":"")+'"></i>').join("")+'</span>'+(unlocked?"":'<span class="qq-cody-lock">Закрыта</span>')+'</button>';}).join("")+'</div><p class="qq-extra-small qq-cody-footnote">Прогресс сохраняется на этом устройстве. Все вопросы берутся из проверенного словаря QQCross.</p>';
+  view.querySelectorAll("[data-group]").forEach(b=>b.onclick=()=>renderGroup(+b.dataset.group));
+ }
+ function renderGroup(group){
+  renderTop("Группа "+(group+1),"Миры",renderMap);
+  const view=root.querySelector("#qqCodyView"),done=completedCount(group);
+  view.innerHTML='<section class="qq-cody-group-head"><span>МИР СЛОВ</span><h2>'+escapeHtml(GROUP_NAMES[group])+'</h2><p>Реши пять кроссвордов, чтобы открыть следующую группу.</p><b>'+done+' / 5 завершено</b></section><div class="qq-cody-level-grid">'+Array.from({length:PER_GROUP},(_,i)=>{const n=group*PER_GROUP+i,complete=isComplete(n);return '<button type="button" class="qq-cody-level '+(complete?"complete":"")+'" data-level="'+n+'"><span class="qq-cody-level-number">'+(i+1)+'</span><span><b>Кроссворд '+(i+1)+'</b><small>'+(complete?"Решён": "Секретное слово · "+(4+(n%4))+" букв")+'</small></span><strong>'+(complete?"✓":"→")+'</strong></button>';}).join("")+'</div>'+(groupDone(group)&&group<GROUPS-1?'<button class="btn primary full qq-cody-next-group" id="qqCodyNextGroup">Открыть следующую группу</button>':"");
+  view.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>startPuzzle(+b.dataset.level,group));
+  const next=view.querySelector("#qqCodyNextGroup");if(next)next.onclick=()=>renderGroup(group+1);
+ }
+ function startPuzzle(level,group){let puzzle;try{puzzle=buildPuzzle(level);}catch(e){renderTop("Кроссворды","К группе",()=>renderGroup(group));root.querySelector("#qqCodyView").innerHTML='<div class="card"><h3>Не удалось собрать уровень</h3><p>'+escapeHtml(e.message)+'</p><button class="btn primary full" id="qqCodyRetry">Повторить</button></div>';root.querySelector("#qqCodyRetry").onclick=()=>startPuzzle(level,group);return;}renderPuzzle(puzzle,group);}
+ function renderPuzzle(puzzle,group){
+  const id=puzzle.id,s=getState(id);let active=s.solved.length===puzzle.items.length?0:puzzle.items.findIndex((x,i)=>!s.solved.includes(x.answer));if(active<0)active=0;let cursor=0,message="Выбери слово на поле или вопрос из списка.";
+  const isSolved=i=>s.solved.includes(puzzle.items[i].answer);
+  const revealed=(i,j)=>isSolved(i)||((s.revealed[i]||[]).includes(j));
+  const valueAt=(i,j)=>revealed(i,j)?puzzle.items[i].answer[j]:(s.drafts[i]||{})[j]||"";
+  function persist(){save();}
+  function cellsMarkup(){
+   let html="";
+   for(let y=0;y<puzzle.rows;y++)for(let x=0;x<COLS;x++){
+    const wi=y,item=puzzle.items[wi],j=item.cells.findIndex(p=>p.x===x);
+    if(j<0){html+='<span class="qq-cody-empty-cell"></span>';continue;}
+    const val=valueAt(wi,j),secret=x===CENTER;
+    html+='<button type="button" class="qq-cody-cell '+(secret?"secret":"")+' '+(wi===active?"active":"")+' '+(isSolved(wi)?"solved":"")+' '+(val?"filled":"")+' '+(wi===active&&cursor===j?"cursor":"")+'" data-word="'+wi+'" data-slot="'+j+'" aria-label="Слово '+(wi+1)+', буква '+(j+1)+(val?", "+val:"")+ '">'+(val?escapeHtml(val):secret?"·":"")+'</button>';
+   }
+   return html;
   }
+  function render(){
+   const view=root.querySelector("#qqCodyView"),item=puzzle.items[active],draft=s.drafts[active]||{};
+   const secretView=puzzle.secret.split("").map((ch,i)=>{const row=puzzle.items[i],j=row.crossIndex;return '<span class="'+(revealed(i,j)?"open":"")+'">'+(revealed(i,j)?ch:"·")+'</span>';}).join("");
+   view.innerHTML='<div class="qq-cody-level-top"><span>ГРУППА '+(group+1)+' · УРОВЕНЬ '+((puzzle.level%PER_GROUP)+1)+'</span><b>'+s.solved.length+' / '+puzzle.items.length+'</b></div><div class="qq-cody-progress-track"><span style="width:'+s.solved.length/puzzle.items.length*100+'%"></span></div><div class="qq-cody-secret-wrap"><div class="qq-cody-secret-label">СЕКРЕТНОЕ СЛОВО · ВЫДЕЛЕННАЯ КОЛОНКА</div><div class="qq-cody-secret">'+secretView+'</div></div><div class="qq-cody-board-wrap"><div class="qq-cody-board" style="--qq-cody-cols:'+COLS+';--qq-cody-rows:'+puzzle.rows+'">'+cellsMarkup()+'</div></div><div class="qq-cody-question"><div class="qq-cody-question-top"><span>ВОПРОС '+(active+1)+'</span><b>'+item.answer.length+' БУКВ</b></div><p>'+escapeHtml(item.clue)+'</p><small>Нажми на клетки слова и введи ответ клавиатурой ниже.</small></div><div class="qq-cody-question-list">'+puzzle.items.map((x,i)=>'<button type="button" class="qq-cody-question-item '+(i===active?"active":"")+' '+(isSolved(i)?"done":"")+'" data-clue="'+i+'"><span class="qq-cody-question-index">'+(i+1)+'</span><span class="qq-cody-question-short">'+escapeHtml(x.clue)+'</span><b>'+(isSolved(i)?"✓":x.answer.length+" букв")+'</b></button>').join("")+'</div><div class="qq-cody-tools"><button type="button" class="btn" id="qqCodyLoupe">⌕ Лупа</button><button type="button" class="btn" id="qqCodyHint">Подсказка</button></div><div class="qq-cody-keyboard" aria-label="Русская клавиатура"><div class="qq-cody-key-row">'+("ЙЦУКЕНГШЩЗХЪ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ФЫВАПРОЛДЖЭ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ЯЧСМИТЬБЮ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row special"><button type="button" data-action="delete">⌫</button><button type="button" data-action="clear">Очистить</button><button type="button" data-action="check">Проверить</button></div></div><p class="qq-cody-message" id="qqCodyMessage" aria-live="polite">'+escapeHtml(message)+'</p>';
+   view.querySelectorAll("[data-word]").forEach(b=>b.onclick=()=>{active=+b.dataset.word;cursor=+b.dataset.slot;message="Выбрана клетка "+(cursor+1)+" из "+puzzle.items[active].answer.length+".";render();});
+   view.querySelectorAll("[data-clue]").forEach(b=>b.onclick=()=>{active=+b.dataset.clue;cursor=firstMissing(active);message="Вопрос выбран.";render();});
+   view.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>enterLetter(b.dataset.letter));
+   view.querySelector('[data-action="delete"]').onclick=deleteLetter;
+   view.querySelector('[data-action="clear"]').onclick=()=>{s.drafts[active]={};cursor=firstMissing(active);message="Введённые буквы очищены.";persist();render();};
+   view.querySelector('[data-action="check"]').onclick=checkAnswer;
+   view.querySelector("#qqCodyLoupe").onclick=()=>revealLetter(cursor);
+   view.querySelector("#qqCodyHint").onclick=()=>revealLetter(firstMissing(active));
+  }
+  function firstMissing(i){const item=puzzle.items[i],draft=s.drafts[i]||{};for(let j=0;j<item.answer.length;j++)if(!revealed(i,j)&&!draft[j])return j;for(let j=0;j<item.answer.length;j++)if(!revealed(i,j))return j;return 0;}
+  function enterLetter(letter){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||(s.drafts[active]={});let pos=cursor;while(pos<item.answer.length&&(revealed(active,pos)||draft[pos]))pos++;if(pos>=item.answer.length)pos=firstMissing(active);if(revealed(active,pos))return;draft[pos]=letter;cursor=Math.min(item.answer.length-1,pos+1);message="";persist();render();}
+  function deleteLetter(){if(isSolved(active))return;const draft=s.drafts[active]||(s.drafts[active]={});let pos=Math.min(cursor,puzzle.items[active].answer.length-1);while(pos>=0&&(!draft[pos]||revealed(active,pos)))pos--;if(pos<0)pos=firstMissing(active);delete draft[pos];cursor=Math.max(0,pos);message="";persist();render();}
+  function revealLetter(pos){if(isSolved(active))return;const item=puzzle.items[active];if(pos<0||pos>=item.answer.length||revealed(active,pos)){pos=firstMissing(active);if(revealed(active,pos)){message="В этом слове все буквы уже открыты.";render();return;}}const list=s.revealed[active]||(s.revealed[active]=[]);if(!list.includes(pos))list.push(pos);if(s.drafts[active])delete s.drafts[active][pos];cursor=firstMissing(active);message="Открыта буква «"+item.answer[pos]+"».";sound("hint");persist();render();}
+  function checkAnswer(){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||{};let typed="";for(let j=0;j<item.answer.length;j++)typed+=revealed(active,j)?item.answer[j]:(draft[j]||"");if(typed.length!==item.answer.length){message="Заполни все клетки слова.";render();return;}if(typed!==item.answer){message="Ответ не совпал. Попробуй ещё раз.";s.drafts[active]={};cursor=0;sound("hint");persist();render();return;}s.solved.push(item.answer);delete s.drafts[active];const next=puzzle.items.findIndex((x,i)=>!isSolved(i));if(next>=0){const target=puzzle.items[next],hidden=target.answer.split("").map((_,i)=>i).filter(i=>i!==target.crossIndex&&!revealed(next,i));if(hidden.length){const rng=randomFor(7000+puzzle.level*31+s.solved.length);const pos=hidden[Math.floor(rng()*hidden.length)];const arr=s.revealed[next]||(s.revealed[next]=[]);if(!arr.includes(pos))arr.push(pos);}}message="Верно! Буквы появились в пересекающихся клетках.";sound(s.solved.length===puzzle.items.length?"win":"good");persist();if(s.solved.length===puzzle.items.length){if(!progress.completed.includes(id))progress.completed.push(id);save();renderComplete();return;}active=next;cursor=firstMissing(active);render();}
+  renderTop("Кроссворд "+((puzzle.level%PER_GROUP)+1),"Группа",()=>renderGroup(group));render();
  }
- if(!puzzle){
-  const group=pool.slice(0,8),layout=layoutWords(group.map(x=>norm(x.answer)),13);
-  const items=layout.placed.map(p=>group.find(x=>norm(x.answer)===p.word)).filter(Boolean);
-  puzzle={layout,items,secret:items.map(x=>norm(x.answer)[0]).join("")};
+ function renderComplete(){
+  const view=root.querySelector("#qqCodyView"),next=puzzleNext(currentLevel);
+  view.innerHTML='<section class="qq-cody-finish"><div class="qq-cody-finish-icon">✓</div><h2>Кроссворд решён!</h2><p>Ты открыл секретное слово <b>'+escapeHtml(next.secret)+'</b>.</p><div class="qq-cody-secret-finish">'+next.secret.split("").join(" · ")+'</div><button type="button" class="btn primary full" id="qqCodyNext">Следующий уровень</button><button type="button" class="btn full" id="qqCodyGroup">К группе</button></section>';
+  view.querySelector("#qqCodyNext").onclick=()=>startPuzzle(currentLevel+1,Math.floor((currentLevel+1)/PER_GROUP));
+  view.querySelector("#qqCodyGroup").onclick=()=>renderGroup(Math.floor(currentLevel/PER_GROUP));
  }
- let solved=new Set(),active=0,usedHint=false;
- const body='<p class="qq-extra-sub">Решай тематические вопросы, заполняй пересекающиеся слова и открой секретное слово.</p><div class="qq-cody-progress" id="qqCodyProgress">Решено: 0 / '+puzzle.items.length+'</div>'+drawCrossword(puzzle.layout,"qqCodyBoard")+'<div class="qq-secret" id="qqSecret"><span>Секретное слово</span><b>· · · · ·</b></div><div class="qq-cody-clues" id="qqCodyClues">'+puzzle.items.map((x,i)=>'<button type="button" class="qq-cody-clue '+(i===0?"active":"")+'" data-clue="'+i+'"><span class="qq-cody-number">'+(i+1)+'</span><span class="qq-cody-question">'+escapeHtml(x.clue)+'</span><b>'+norm(x.answer).length+' букв</b></button>').join("")+'</div><div class="qq-cody-tools"><button class="btn" id="qqCodyLoupe">⌕ Лупа</button><button class="btn" id="qqCodyHint">Подсказка</button></div><div class="qq-cody-entry"><input id="qqCodyInput" class="input" maxlength="12" autocomplete="off" placeholder="Введи ответ"><button class="btn primary" id="qqCodyCheck">Ответить</button></div><p class="qq-extra-small" id="qqCodyMessage" aria-live="polite">Выбери вопрос и введи ответ.</p>';
- shell(root,"Кроссворды",onExit,body);
- const board=root.querySelector("#qqCodyBoard"),list=root.querySelector("#qqCodyClues"),input=root.querySelector("#qqCodyInput"),message=root.querySelector("#qqCodyMessage"),secret=root.querySelector("#qqSecret");
- function renderBoard(){puzzle.layout.placed.forEach((p,i)=>p.cells.forEach((pos,j)=>{const c=board.querySelector('[data-pos="'+pos.x+','+pos.y+'"]');if(!c)return;if(solved.has(p.word)){c.textContent=p.word[j];c.classList.add("revealed");if(j===0)c.classList.add("secret-letter");}}));}
- function renderSecret(){const letters=puzzle.items.map(x=>solved.has(norm(x.answer))?norm(x.answer)[0]:"·");secret.querySelector("b").textContent=letters.join(" ");if(solved.size===puzzle.items.length){secret.classList.add("complete");message.textContent="Все ответы найдены! Секретное слово открыто.";sound("win");}}
- function select(i){active=i;list.querySelectorAll(".qq-cody-clue").forEach(b=>b.classList.toggle("active",+b.dataset.clue===i));input.value="";input.focus();}
- function answer(){const item=puzzle.items[active],value=norm(input.value);if(!item||solved.has(norm(item.answer)))return;if(value!==norm(item.answer)){message.textContent="Пока неверно. Попробуй ещё раз.";message.classList.add("qq-shake");setTimeout(()=>message.classList.remove("qq-shake"),300);sound("hint");return;}solved.add(value);list.querySelector('[data-clue="'+active+'"]')?.classList.add("done");renderBoard();renderSecret();root.querySelector("#qqCodyProgress").textContent="Решено: "+solved.size+" / "+puzzle.items.length;message.textContent="Верно!";sound("good");const next=puzzle.items.findIndex((x,i)=>!solved.has(norm(x.answer)));if(next>=0)select(next);}
- list.addEventListener("click",e=>{const b=e.target.closest("[data-clue]");if(b)select(+b.dataset.clue);});
- root.querySelector("#qqCodyCheck").onclick=answer;input.addEventListener("keydown",e=>{if(e.key==="Enter")answer();});
- root.querySelector("#qqCodyLoupe").onclick=()=>{const item=puzzle.items[active],word=norm(item?.answer);if(!word)return;const p=puzzle.layout.placed.find(x=>x.word===word);if(!p)return;const missing=p.cells.find((pos,i)=>{const c=board.querySelector('[data-pos="'+pos.x+','+pos.y+'"]');return c&&!c.textContent;});if(!missing){message.textContent="В этом слове больше нечего открывать.";return;}const i=p.cells.findIndex(pos=>pos.x===missing.x&&pos.y===missing.y);const c=board.querySelector('[data-pos="'+missing.x+','+missing.y+'"]');c.textContent=word[i];c.classList.add("revealed","qq-hint-reveal");message.textContent="Лупа открыла одну букву.";sound("hint");};
- root.querySelector("#qqCodyHint").onclick=()=>{const item=puzzle.items[active];message.textContent=item?"Подсказка: "+(item.clueShort||item.clue):"Выбери вопрос.";sound("hint");};
- renderSecret();select(0);
+ let currentLevel=0;
+ function puzzleNext(level){const p=buildPuzzle(level);return{secret:p.secret};}
+ const originalStart=startPuzzle;
+ startPuzzle=function(level,group){currentLevel=level;originalStart(level,group);};
+ renderMap();
 }
 async function mount(root,mode,onExit){
  try{
