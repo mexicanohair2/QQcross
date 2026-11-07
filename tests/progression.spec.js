@@ -234,3 +234,28 @@ test("double-tapping a discovered word works with touch pointer events", async (
   });
   await expect(page.locator("#encyclopediaInput")).toHaveValue("ТУНЕЦ");
 });
+
+test("late completion of an older daily challenge cannot rewind the current streak", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    p.completeDaily("scanword", "2041-06-03");
+    p.completeDaily("wordle", "2041-06-03");
+    p.completeDaily("scanword", "2041-06-02");
+    p.completeDaily("wordle", "2041-06-02");
+    const afterLateDay = p.get().daily;
+    p.completeDaily("scanword", "2041-06-04");
+    p.completeDaily("wordle", "2041-06-04");
+    const afterNextDay = p.get().daily;
+    return {
+      lastAfterLate: afterLateDay.lastCompletedDate,
+      streakAfterLate: afterLateDay.currentStreak,
+      lastAfterNext: afterNextDay.lastCompletedDate,
+      streakAfterNext: afterNextDay.currentStreak
+    };
+  });
+  expect(result.lastAfterLate).toBe("2041-06-03");
+  expect(result.streakAfterLate).toBe(1);
+  expect(result.lastAfterNext).toBe("2041-06-04");
+  expect(result.streakAfterNext).toBe(2);
+});
