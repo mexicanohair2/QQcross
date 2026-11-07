@@ -31,6 +31,8 @@ jobs:
         run: python scripts/build_wordle_dictionary.py
       - name: Build 100k Russian lexicon
         run: python scripts/build_russian_lexicon.py
+      - name: Strictly validate the 100k lexicon against game dictionaries
+        run: python scripts/validate_russian_lexicon.py
       - name: Publish the generated 100k lexicon to the GitHub Pages source
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
