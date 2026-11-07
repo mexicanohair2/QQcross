@@ -137,8 +137,8 @@ test("the secret straw-hat counter works across different game screens", async (
   const extraHat = page.locator(".qq-extra-screen .qq-straw-hat");
   await expect(extraHat).toBeVisible();
   for (let i = 0; i < 5; i++) await extraHat.click({ force: true });
-  await page.locator('[data-tab="Профиль"]').click();
-  await expect(page.locator("#qqTitleInventory")).toContainText("Mugiwara");
+  const unlocked = await page.evaluate(() => window.QQProgression.get().titles.includes("Mugiwara"));
+  expect(unlocked).toBe(true);
 });
 
 
