@@ -156,3 +156,38 @@ test("unique level completions cannot be farmed by replaying the same level", as
   expect(result.next).toBe(true);
   expect(result.count).toBe(2);
 });
+
+test("double-tapping a discovered word opens its encyclopedia entry", async ({ page }) => {
+  await enterGuest(page);
+  await page.evaluate(() => {
+    const word = document.createElement("button");
+    word.type = "button";
+    word.dataset.qqWord = "ЁЛКА";
+    word.textContent = "ЁЛКА";
+    document.querySelector("#app").append(word);
+    word.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+  });
+  await expect(page.locator("#encyclopediaInput")).toHaveValue("ЁЛКА");
+});
+
+test("accessibility preferences and abstract-background opt-out survive reload", async ({ page }) => {
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("qqcross_font_size", "large");
+    localStorage.setItem("qqcross_reduce_motion", "true");
+    localStorage.setItem("qqcross_abstract_enabled", "false");
+    localStorage.setItem("qqcross_background_v1", "amethyst-waves");
+  });
+  await page.reload();
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15000 });
+  const preferences = await page.evaluate(() => ({
+    fontSize: document.documentElement.dataset.qqFontSize,
+    reduceMotion: document.documentElement.dataset.qqReduceMotion,
+    background: document.documentElement.dataset.qqBackground
+  }));
+  expect(preferences).toEqual({
+    fontSize: "large",
+    reduceMotion: "true",
+    background: "misty-forest"
+  });
+});
