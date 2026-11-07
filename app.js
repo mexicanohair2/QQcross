@@ -967,6 +967,9 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list)});
+  const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
+  state.selectedWord=activeWord?.id||"";
+  const activeWordCells=new Set((activeWord?.cells||[]).map(c=>c.join(",")));
   const wordEnds=new Map();
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1];if(!last)return;const k=last.join(",");const dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs)});
   const cells=[];
@@ -979,21 +982,25 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
       const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="'+esc(wordsAt[0].answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=wordsAt.length===1&&wordsAt[0].imageKey?"Что изображено на картинке?":fullClueTitle;
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(wordsAt.length===1&&wordsAt[0].imageKey?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(wordsAt.length===1&&wordsAt[0].imageKey?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
       const wordFlash=state.wordFlashKeys?.has(key);
       const endClass=(wordEnds.get(key)||[]).map(dir=>"answer-end-"+dir).join(" ");
-      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(endClass?" "+endClass:"");
+      const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(activeWordCells.has(key)?" active-word-cell":"")+(endClass?" "+endClass:"");
       const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове"'+position+'>'+letterMarkup+'</button>');
     }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
-  root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Свайпни от края экрана назад — прогресс сохранится</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
-    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+'<div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
+  const activeDirection=activeWord?({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[activeWord.dir]||""):"";
+  const activeLength=activeWord?.answer?.length||0;
+  const questionList=puzzle.words.map((word,index)=>'<button type="button" class="scanword-question-item '+(word.id===activeWord?.id?'active':'')+(state.completed?.has(word.id)?' done':'')+'" data-word-clue="'+esc(word.id)+'"><span class="scanword-question-index">'+(index+1)+'</span><span class="scanword-question-short">'+esc(word.clueShort||word.clue)+'</span><span class="scanword-question-status">'+(state.completed?.has(word.id)?'✓':({right:'→',left:'←',down:'↓',up:'↑'}[word.dir]||''))+'</span></button>').join("");
+  root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
+    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Твой ход — выбери вопрос слева.')+'</div>':'')+
+    '<div class="scanword-play-area"><aside class="scanword-questions" aria-label="Вопросы сканворда"><div class="scanword-question-current"><div class="scanword-question-kicker">ТЕКУЩИЙ ВОПРОС</div><div class="scanword-question-full">'+(activeWord?(activeWord.imageKey?'Что изображено на картинке?':esc(activeWord.clue)):'Все вопросы решены')+'</div><div class="scanword-question-meta">'+(activeWord?((activeDirection?activeDirection+" · ":"")+"Ответ: "+activeLength+" "+(activeLength===1?"буква":activeLength<5?"буквы":"букв")):"Отличная работа!")+'</div></div><div class="scanword-question-list">'+questionList+'</div></aside><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
@@ -1010,35 +1017,21 @@ function renderGame(root){
       toast(data==="deleted"?"Дружеский бой удалён":data==="left"?"Ты вышел из дружеского боя":"Бой уже не найден");
     }catch(error){toast(error.message||"Не удалось удалить бой");deleteOnlineButton.disabled=false;deleteOnlineButton.textContent="Удалить бой"}
   };
+  root.querySelectorAll("[data-word-clue]").forEach(button=>{
+    button.onclick=()=>{
+      const word=puzzle.words.find(item=>item.id===button.dataset.wordClue);
+      if(!word)return;
+      state.selectedWord=word.id;
+      renderGame(root);
+    };
+  });
   root.querySelectorAll("[data-clue-cell]").forEach(button=>{
     button.onclick=()=>{
-      const wrap=root.querySelector(".board-wrap");if(!wrap)return;
-      wrap.querySelector(".clue-popup-backdrop")?.remove();
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
-      const popup=document.createElement("div");popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
-      const options=popup.querySelector(".clue-popup-options");
-      const close=()=>popup.remove();
-      const showQuestion=word=>{
-        options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
-        options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
-        const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+count+" "+form;
-        options.querySelector(".clue-popup-back").onclick=()=>showChoices();
-      };
-      const showChoices=()=>{
-        if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
-        options.innerHTML="";
-        wordsAt.forEach(word=>{
-          const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
-          choice.textContent=({right:"→ Вправо",left:"← Влево",down:"↓ Вниз",up:"↑ Вверх"}[word.dir])+" · "+fitScanwordClue(word.clueShort||word.clue);
-          choice.onclick=()=>showQuestion(word);options.append(choice);
-        });
-      };
-      popup.querySelector(".clue-popup-close").onclick=close;
-      popup.onclick=event=>{if(event.target===popup)close()};
-      showChoices();wrap.append(popup);
+      const next=wordsAt.find(word=>!state.completed?.has(word.id))||wordsAt[0];
+      state.selectedWord=next.id;
+      renderGame(root);
     };
   });
   let activeDrag=null,dragGhost=null;
