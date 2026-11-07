@@ -1099,3 +1099,21 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 .qq-wheel{position:relative!important;display:block!important;width:min(100%,280px)!important;aspect-ratio:1/1!important;height:auto!important;padding:0!important;margin:10px auto!important;overflow:visible!important}
 .qq-wheel-letter{position:absolute!important;left:50%!important;top:50%!important;width:clamp(44px,12vw,56px)!important;height:clamp(44px,12vw,56px)!important;margin:0!important;transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(-86px) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important}
 .qq-wheel-letter.chosen{background:linear-gradient(145deg,#78628e,#4a3a5b)!important;border-color:#d4bce9!important;box-shadow:0 0 0 3px #bca3d733!important}
+
+
+/* Word of Wonders: compact mobile-first board and functional letter-wheel. */
+.qq-wow-screen{height:100dvh!important;max-height:100dvh!important;min-height:0!important;overflow:hidden!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;padding:4px 8px max(4px,env(safe-area-inset-bottom))!important;gap:2px!important}
+.qq-wow-screen>.qq-extra-top{flex:0 0 auto!important;min-height:32px!important;margin:0!important;padding:2px 0!important}
+.qq-wow-screen .qq-extra-sub{flex:0 0 auto!important;margin:0!important;text-align:center!important;font-size:11px!important;line-height:1.2!important}
+.qq-wow-screen .qq-wheel-progress{flex:0 0 auto!important;margin:2px auto!important;padding:5px 9px!important;font-size:11px!important;width:min(100%,280px)!important}
+.qq-wow-screen .qq-cross-board{flex:0 0 auto!important;width:min(100%,340px)!important;max-width:100%!important;aspect-ratio:auto!important;grid-template-rows:repeat(var(--qq-cols),clamp(12px,2.45vh,18px))!important;grid-auto-rows:clamp(12px,2.45vh,18px)!important;gap:2px!important;margin:2px auto!important}
+.qq-wow-screen .qq-cross-cell,.qq-wow-screen .qq-cross-empty{aspect-ratio:auto!important;min-height:0!important;min-width:0!important;border-radius:2px!important}
+.qq-wow-screen .qq-cross-cell{font-size:clamp(8px,2.6vw,14px)!important}
+.qq-wow-screen .qq-wheel-answer{flex:0 0 23px!important;min-height:23px!important;height:23px!important;margin:0!important;font-size:18px!important;line-height:23px!important;letter-spacing:.12em!important}
+.qq-wow-screen .qq-wheel{flex:0 0 auto!important;width:min(43vw,164px)!important;height:min(43vw,164px)!important;aspect-ratio:1!important;margin:0 auto!important;border-radius:50%!important;overflow:hidden!important}
+.qq-wow-screen .qq-wheel-letter{width:clamp(32px,9vw,39px)!important;height:clamp(32px,9vw,39px)!important;font-size:16px!important}
+.qq-wow-screen .qq-wheel-letter[style]{transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(calc(-1 * min(15vw,56px))) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important}
+.qq-wow-screen .qq-wheel-actions{flex:0 0 auto!important;width:min(100%,340px)!important;margin:2px auto 0!important;gap:5px!important}
+.qq-wow-screen .qq-wheel-actions .btn{min-height:34px!important;padding:5px 6px!important;font-size:11px!important}
+@media(max-height:680px){.qq-wow-screen{gap:1px!important}.qq-wow-screen .qq-extra-top{min-height:27px!important}.qq-wow-screen .qq-cross-board{grid-template-rows:repeat(var(--qq-cols),clamp(11px,2.25vh,15px))!important;grid-auto-rows:clamp(11px,2.25vh,15px)!important}.qq-wow-screen .qq-wheel{width:min(38vw,138px)!important;height:min(38vw,138px)!important}.qq-wow-screen .qq-wheel-letter[style]{transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(-45px) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important}}
+@media(max-width:360px){.qq-wow-screen{padding-left:4px!important;padding-right:4px!important}.qq-wow-screen .qq-cross-board{grid-template-rows:repeat(var(--qq-cols),clamp(11px,2.2vh,14px))!important;grid-auto-rows:clamp(11px,2.2vh,14px)!important}}
