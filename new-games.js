@@ -101,26 +101,30 @@ function mountWheel(root,onExit,words){
   const layout=layoutWords(selected,13);if(layout.placed.length>=6)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
  }
  if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);const layout=layoutWords(candidates,13);puzzle={seed,layout,words:layout.placed.map(p=>p.word)};}
- let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false;
+ let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false,lastDragIndex=-1;
  const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
- const body='<p class="qq-extra-sub">Соединяй буквы в круге, находи все спрятанные слова и открывай кроссворд.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. Перемешивай круг и находи все слова.</p>';
+ const body='<p class="qq-extra-sub">Проводи пальцем по буквам или нажимай их по очереди — составь слово.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div>';
  shell(root,"Word of Wonders",onExit,body);
+ root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
  function refresh(){answer.textContent=selected.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",selected.includes(+b.dataset.index)));}
+ function addIndex(i){if(i>=0&&!selected.includes(i)){selected.push(i);lastDragIndex=i;refresh();}}
  function submit(){
   const word=selected.map(i=>puzzle.seed[i]).join("");
-  if(!word){return;}
+  if(!word)return;
   const target=puzzle.words.find(w=>w===word&&!solved.has(w));
   if(target){solved.add(target);const entry=puzzle.layout.placed.find(p=>p.word===target);entry?.cells.forEach(p=>{const c=board.querySelector('[data-pos="'+p.x+','+p.y+'"]');if(c){c.textContent=puzzle.layout.grid[p.y][p.x];c.classList.add("revealed");}});progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;sound(solved.size===puzzle.words.length?"win":"good");}
-  else if(puzzle.words.includes(word))answer.textContent="Это слово уже найдено";
+  else if(puzzle.words.includes(word))answer.textContent="Уже найдено";
   else {answer.classList.add("qq-shake");setTimeout(()=>answer.classList.remove("qq-shake"),300);sound("hint");}
-  selected=[];refresh();
+  selected=[];lastDragIndex=-1;refresh();
  }
- wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;dragging=true;dragPath=true;selected=[+b.dataset.index];refresh();});
- wheel.addEventListener("pointerenter",e=>{if(!dragging)return;const b=e.target.closest("[data-index]");if(!b)return;const i=+b.dataset.index;if(!selected.includes(i))selected.push(i);refresh();},true);
- const stop=()=>{if(!dragging)return;dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}else{selected=[];refresh();}dragPath=false;};
- wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
- wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
+ wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;e.preventDefault();dragging=true;dragPath=true;lastDragIndex=-1;selected=[];addIndex(+b.dataset.index);});
+ const track=e=>{if(!dragging)return;const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(b)addIndex(+b.dataset.index);};
+ const stop=e=>{if(!dragging)return;track(e);dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}else{selected=[];refresh();}dragPath=false;};
+ document.addEventListener("pointermove",track,{passive:false});
+ document.addEventListener("pointerup",stop);
+ document.addEventListener("pointercancel",stop);
+ wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;e.preventDefault();return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
  root.querySelector("#qqWheelSubmit").onclick=submit;
  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
  root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);puzzle.seed=letters.join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
