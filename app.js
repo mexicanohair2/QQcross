@@ -807,7 +807,7 @@ function buildScanword(entries,attemptLimit=16){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
+              if(valid&&crosses)options.push({entry,y,x,di,score:crosses*18-newCells*2+Math.min(crosses,4)*4+length*.08-at.length*3+(entry.imageKey?1000:0)+Math.random()*3});
             }
           }
         }
