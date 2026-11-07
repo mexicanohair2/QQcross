@@ -97,35 +97,49 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
 });
 
 
-test("opens the classic Russian word-search game", async ({ page }) => {
+test("opens the 1000-level Russian word-search map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await expect(page.locator(".qq-game-launch")).toHaveCount(4);
   await page.locator('[data-extra-game="search"]').click();
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
+  await expect(page.locator('[data-level="1"]')).toBeEnabled();
+  await expect(page.locator('[data-level="2"]')).toBeDisabled();
+  await page.locator('[data-level="1"]').click();
   await expect(page.locator(".qq-search-grid")).toBeVisible();
-  await expect(page.locator(".qq-search-cell")).toHaveCount(121);
-  await expect(page.locator(".qq-word-list span").first()).toBeVisible();
-  await expect(page.locator(".qq-extra-screen")).toContainText("Поиск слов");
+  await expect(page.locator(".qq-search-cell")).toHaveCount(81);
+  await expect(page.locator(".qq-word-list")).toHaveCount(0);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector(".qq-search-hint").getBoundingClientRect().bottom }));
+  expect(fit.b).toBeLessThanOrEqual(fit.h + 1);
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
 
-test("opens the letter-wheel crossword game and accepts letter selection", async ({ page }) => {
+test("opens the 1000-level Word of Wonders map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="wheel"]').click();
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
+  await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
-  await expect(page.locator(".qq-extra-screen")).toContainText("Word of Wonders");
   await expect(page.locator(".qq-wheel-letter").first()).toBeVisible();
+  await expect(page.locator("#qqWheelSubmit")).toHaveCount(0);
   await page.locator(".qq-wheel-letter").first().click();
   await expect(page.locator("#qqWheelAnswer")).not.toBeEmpty();
   await page.locator("#qqWheelClear").click();
   await expect(page.locator("#qqWheelAnswer")).toBeEmpty();
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector("#qqWheelBoard").getBoundingClientRect(), c: document.querySelector(".qq-wow-controls").getBoundingClientRect() }));
+  expect(fit.b.width).toBeGreaterThan(250);
+  expect(fit.c.bottom).toBeLessThanOrEqual(fit.h + 1);
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
 
