@@ -98,25 +98,40 @@ const summaries = [];
 const packedPuzzles = [];
 const fingerprints = new Set();
 for (let run = 1; run <= runCount; run++) {
-  const math = Object.create(Math);
-  math.random = seededRandom(run * 7919);
-  const context = {
-    window: { QQCROSS_DICTIONARY: dictionary },
-    localStorage: { getItem: () => "[]" },
-    Math: math,
-    Date,
-    Set,
-    Map,
-    console
-  };
-  vm.createContext(context);
-  vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
   const t0 = performance.now();
-  const puzzle = context.__buildScanword(dictionary);
+  let puzzle = null, stats = null, fingerprint = "", lastError = null;
+  const retries = writePack ? 8 : 1;
+  for (let retry = 0; retry < retries && !puzzle; retry++) {
+    const math = Object.create(Math);
+    math.random = seededRandom(run * 7919 + retry * 104729);
+    const context = {
+      window: { QQCROSS_DICTIONARY: dictionary },
+      localStorage: { getItem: () => "[]" },
+      Math: math,
+      Date,
+      Set,
+      Map,
+      console
+    };
+    vm.createContext(context);
+    vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
+    try {
+      const candidate = context.__buildScanword(dictionary);
+      const candidateStats = validate(candidate, run);
+      const candidateFingerprint = candidate.words.map(word => [word.answer, word.clueCell.join(","), word.dir].join("@")).join("|");
+      if (writePack && fingerprints.has(candidateFingerprint)) {
+        lastError = new Error("Duplicate generated puzzle");
+        continue;
+      }
+      puzzle = candidate;
+      stats = candidateStats;
+      fingerprint = candidateFingerprint;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!puzzle) throw new Error("Run " + run + ": failed to generate a valid unique puzzle" + (lastError ? ": " + lastError.message : ""));
   const elapsed = performance.now() - t0;
-  const stats = validate(puzzle, run);
-  const fingerprint = puzzle.words.map(word => [word.answer, word.clueCell.join(","), word.dir].join("@")).join("|");
-  if (writePack && fingerprints.has(fingerprint)) throw new Error("Duplicate generated puzzle at run " + run);
   fingerprints.add(fingerprint);
   timings.push(elapsed);
   summaries.push({ run, ...stats, ms: Math.round(elapsed) });
@@ -150,7 +165,7 @@ console.log(JSON.stringify({
   validRuns: summaries.length,
   packWritten: writePack,
   uniquePuzzles: fingerprints.size,
-  medianMs: Math.round((timings[3] + timings[4]) / 2),
+  medianMs: Math.round((timings[Math.floor((timings.length - 1) / 2)] + timings[Math.floor(timings.length / 2)]) / 2),
   p95Ms: Math.round(timings[timings.length - 1]),
   runs: summaries
 }, null, 2));
