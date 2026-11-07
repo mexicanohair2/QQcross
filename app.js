@@ -827,7 +827,15 @@ function buildScanword(entries){
     }
     if(!seeded)return null;
     for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
+      // Keep only the best 18 candidates while scanning. Sorting the full
+      // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
+      const addOption=option=>{
+        let index=options.findIndex(current=>current.score<option.score);
+        if(index<0){if(options.length<18)options.push(option);return}
+        options.splice(index,0,option);
+        if(options.length>18)options.pop();
+      };
       for(const clueKey of frontier){
         const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
         if(occupied.has(clueKey)||at.length>=4||at.some(w=>w.imageKey))continue;
@@ -853,15 +861,13 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
+              if(valid&&crosses)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
             }
           }
         }
       }
       if(!options.length)break;
-      options.sort((a,b)=>b.score-a.score);
-      const pool=options.slice(0,Math.min(18,options.length));
-      const pick=pool[Math.floor(Math.random()*pool.length)];
+      const pick=options[Math.floor(Math.random()*options.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
     // Repair residual gaps only with words that genuinely cross existing letters.
