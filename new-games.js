@@ -15,7 +15,7 @@ async function loadLexicon() {
   }).catch(e=>{lexiconPromise=null;throw e;});
   return lexiconPromise;
 }
-function sound(kind) {window.QQAudio?.play(kind==="win"?"word":kind==="hint"?"wrong":"correct");}
+function sound(kind) {window.QQAudio?.play(({win:"word",hint:"wrong",good:"correct",letter:"letter",select:"select"})[kind]||"correct");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ</span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;}
 function pathBetween(a,b){
@@ -49,7 +49,7 @@ function mountSearch(root,onExit,words){
  const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),list=root.querySelector("#qqWordList");
  const clear=()=>{grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];};
  const cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
- function markPath(path){const changed=path.length!==selection.length||path.some((p,i)=>p.x!==selection[i]?.x||p.y!==selection[i]?.y);clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));if(changed&&path.length) sound("select");}
+ function markPath(path){const started=selection.length===0&&path.length>0;clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));if(started)sound("select");}
  function finish(path){
   if(!path.length)return;
   const value=path.map(p=>puzzle.grid[p.y][p.x]).join("");
