@@ -24,7 +24,7 @@ def download(url: str) -> bytes:
 
 def clean_required(raw: str) -> str | None:
     word = str(raw or "").strip().lower().replace("ё", "е")
-    if not re.fullmatch(r"[а-я]{2,18}", word):
+    if not re.fullmatch(r"[а-я]{2,18}", word) or word in BAD or re.search(r"(.)\\1\\1", word):
         return None
     return word.upper()
 
@@ -96,7 +96,7 @@ def main() -> None:
         "version": 2, "language": "ru", "count": len(words),
         "included_existing_wordle_valid": wordle_required,
         "included_existing_scanword_answers": scanword_required,
-        "normalization": "Ё приведена к Е; только кириллические русские слова длиной 3–18 букв",
+        "normalization": "Ё приведена к Е; только кириллические слова длиной 2–18 букв; исключены оскорбления и записи с тремя одинаковыми буквами подряд",
         "sources": [
             {"name": "Russian Word Frequency Lists for Children", "url": FREQUENCY_URL, "license": "CC0-1.0"},
             {"name": "danakt/russian-words", "url": MORPHOLOGY_URL, "license": "MIT"}
