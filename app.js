@@ -879,8 +879,10 @@ function buildScanword(entries){
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       for(const anchor of anchors){
-        if(closing)break;
-        for(let di=0;di<4&&!closing;di++){
+        // Process every independent anchor in this pass. Restarting after each
+        // single placement rescanned the whole 15x15 frontier repeatedly and
+        // made both page startup and the 50-seed verifier stall for minutes.
+        for(let di=0;di<4;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
