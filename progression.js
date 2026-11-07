@@ -12,7 +12,7 @@ const TITLE_NAMES=[
 "Легенда","Сокровище","Светоч","Мудрец слов","Мастер мысли","Великий знаток","Гений букв","Гений слов","Гений загадок","Гений QQ",
 "Титан","Колосс","Великан","Чемпион","Абсолют","Первопроходец","Непобедимый","Неутомимый","Бессменный","Несравненный",
 "Вдохновитель","Создатель","Хранитель знаний","Мастер разума","Словесный титан","Мастер всех игр","Золотой ум","Серебряный ум","Алмазный ум","Миф",
-"Мифический","Вечный искатель","Повелитель слов","Повелитель букв","Мастер вселенной","Великий стратег","Мастер QQCross","Король слов","Легендарный игрок","Mugiwara"
+"Мифический","Вечный искатель","Повелитель слов","Повелитель букв","Мастер вселенной","Великий стратег","Мастер QQCross","Король слов","Легендарный игрок","Повелитель кроссвордов"
 ];
 const ACHIEVEMENTS=[
 {id:"scanword_1",name:"Первый сканворд",desc:"Заверши первый сканворд",stat:"scanwords",target:1},
@@ -40,7 +40,7 @@ const ACHIEVEMENTS=[
 {id:"words_100",name:"Коллекционер слов",desc:"Открой 100 новых слов",stat:"wordsFound",target:100},
 {id:"groups_5",name:"Пять групп",desc:"Открой 5 групп кроссвордов",stat:"groups",target:5}
 ];
-const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{}});
+const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{}});
 let data=fresh(),cloudTimer=null,cloudClient=null,cloudUserId=null;
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
@@ -63,10 +63,10 @@ function recordWord(word){const w=normalize(word);if(w.length<2||data.discovered
 function tapHat(){data.hatTaps++;recalculate();save();return data.hatTaps}
 function daily(date=today()){const seed=hash(date+"|qqcross-daily-v1");const lengths=[4,5,6,7,8];return{date,scanwordSeed:hash(date+"|scanword"),wordleSeed:hash(date+"|wordle"),wordleLength:lengths[seed%lengths.length],completed:{...(data.daily.days[date]||{})}}}
 function completeDaily(type,date=today()){if(!["scanword","wordle"].includes(type))return get();const day=data.daily.days[date]||(data.daily.days[date]={});if(day[type])return get();day[type]=true;if(day.scanword&&day.wordle&&date!==data.daily.lastCompletedDate){const last=data.daily.lastCompletedDate;const yesterday=new Date(date+"T12:00:00");yesterday.setDate(yesterday.getDate()-1);const previous=yesterday.getFullYear()+"-"+String(yesterday.getMonth()+1).padStart(2,"0")+"-"+String(yesterday.getDate()).padStart(2,"0");data.daily.currentStreak=last===previous?data.daily.currentStreak+1:1;data.daily.bestStreak=Math.max(data.daily.bestStreak,data.daily.currentStreak);data.daily.lastCompletedDate=date;recalculate()}save();return get()}
-function setActiveTitle(name){if(!data.titles.includes(name))return false;data.activeTitle=name;save();return true}
+function takePendingRewards(){const pending=Object.entries(data.pendingRewards||{}).map(([id,reward])=>({id,...reward}));data.pendingRewards={};save();return pending}\nfunction setActiveTitle(name){if(!data.titles.includes(name))return false;data.activeTitle=name;save();return true}
 function get(){return JSON.parse(JSON.stringify(data))}
 function achievements(){return ACHIEVEMENTS.map(a=>({ ...a,value:a.stat==="bestStreak"?data.daily.bestStreak:Number(data.stats[a.stat])||0,unlocked:!!data.achievements[a.id],reward:data.achievements[a.id]?.reward||null}))}
 function setCloud(client,userId){cloudClient=client;cloudUserId=userId||null;if(!client||!userId)return Promise.resolve();return client.from("qqcross_player_progress").select("progress").eq("user_id",userId).maybeSingle().then(({data:row,error})=>{if(error)throw error;if(row?.progress)mergeProgress(row.progress);else syncCloud().catch(e=>console.warn("QQCross progression sync:",e));return get()})}
 loadLocal();recalculate();
-window.QQProgression={get,daily,record,recordWord,tapHat,completeDaily,setActiveTitle,achievements,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
+window.QQProgression={get,daily,record,recordWord,tapHat,completeDaily,setActiveTitle,achievements,takePendingRewards,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
 })();
