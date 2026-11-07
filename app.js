@@ -830,7 +830,7 @@ async function runChatGPTTurn(root,turnKey){
     const {data,error}=await supabaseClient.functions.invoke("qqcross-ai-turn",{
       body:{rack:[...(state.playerRacks[1]||[])],words,completed:[...(state.completed||[])]}
     });
-    if(error)throw error;
+    if(error){let message=error.message||"Не удалось связаться с сервером ChatGPT.";try{const payload=await error.context?.json();if(payload?.error)message=payload.error}catch{}throw new Error(message)}
     if(!data||data.error)throw new Error(data?.error||"Сервер не вернул ход ChatGPT.");
     if(state.screen!=="game"||!state.aiMatch||state.turn!==1||String(state.round||1)+":1"!==turnKey)return;
     const word=puzzle.words.find(w=>String(w.id)===String(data.wordId));
