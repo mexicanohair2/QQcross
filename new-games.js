@@ -182,7 +182,7 @@ function mountCody(root,onExit,clues,words){
  function renderGroup(group){
   renderTop("Группа "+(group+1),"Миры",renderMap);
   const view=root.querySelector("#qqCodyView"),done=completedCount(group);
-  view.innerHTML='<section class="qq-cody-group-head"><span>МИР СЛОВ</span><h2>'+escapeHtml(GROUP_NAMES[group])+'</h2><p>Реши пять кроссвордов, чтобы открыть следующую группу.</p><b>'+done+' / 5 завершено</b></section><div class="qq-cody-level-grid">'+Array.from({length:PER_GROUP},(_,i)=>{const n=group*PER_GROUP+i,complete=isComplete(n);return '<button type="button" class="qq-cody-level '+(complete?"complete":"")+'" data-level="'+n+'"><span class="qq-cody-level-number">'+(i+1)+'</span><span><b>Кроссворд '+(i+1)+'</b><small>'+(complete?"Решён": "Секретное слово · "+(4+(n%4))+" букв")+'</small></span><strong>'+(complete?"✓":"→")+'</strong></button>';}).join("")+'</div>'+(groupDone(group)&&group<GROUPS-1?'<button class="btn primary full qq-cody-next-group" id="qqCodyNextGroup">Открыть следующую группу</button>':"");
+  view.innerHTML='<section class="qq-cody-group-head"><span>МИР СЛОВ</span><h2>'+escapeHtml(GROUP_NAMES[group])+'</h2><p>Реши пять кроссвордов, чтобы открыть следующую группу.</p><b>'+done+' / 5 завершено</b></section><div class="qq-cody-level-grid">'+Array.from({length:PER_GROUP},(_,i)=>{const n=group*PER_GROUP+i,complete=isComplete(n);return '<button type="button" class="qq-cody-level '+(complete?"complete":"")+'" data-level="'+n+'"><span class="qq-cody-level-number">'+(i+1)+'</span><span><b>Кроссворд '+(i+1)+'</b><small>'+(complete?"Решён": "Секретное слово · "+"в сетке")+'</small></span><strong>'+(complete?"✓":"→")+'</strong></button>';}).join("")+'</div>'+(groupDone(group)&&group<GROUPS-1?'<button class="btn primary full qq-cody-next-group" id="qqCodyNextGroup">Открыть следующую группу</button>':"");
   view.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>startPuzzle(+b.dataset.level,group));
   const next=view.querySelector("#qqCodyNextGroup");if(next)next.onclick=()=>renderGroup(group+1);
  }
@@ -224,9 +224,9 @@ function mountCody(root,onExit,clues,words){
   renderTop("Кроссворд "+((puzzle.level%PER_GROUP)+1),"Группа",()=>renderGroup(group));render();
  }
  function renderComplete(){
-  const view=root.querySelector("#qqCodyView"),next=puzzleNext(currentLevel);
-  view.innerHTML='<section class="qq-cody-finish"><div class="qq-cody-finish-icon">✓</div><h2>Кроссворд решён!</h2><p>Ты открыл секретное слово <b>'+escapeHtml(next.secret)+'</b>.</p><div class="qq-cody-secret-finish">'+next.secret.split("").join(" · ")+'</div><button type="button" class="btn primary full" id="qqCodyNext">Следующий уровень</button><button type="button" class="btn full" id="qqCodyGroup">К группе</button></section>';
-  view.querySelector("#qqCodyNext").onclick=()=>startPuzzle(currentLevel+1,Math.floor((currentLevel+1)/PER_GROUP));
+  const view=root.querySelector("#qqCodyView"),next=puzzleNext(currentLevel),hasNext=currentLevel<TOTAL-1;
+  view.innerHTML='<section class="qq-cody-finish"><div class="qq-cody-finish-icon">✓</div><h2>Кроссворд решён!</h2><p>Ты открыл секретное слово <b>'+escapeHtml(next.secret)+'</b>.</p><div class="qq-cody-secret-finish">'+next.secret.split("").join(" · ")+'</div>'+(hasNext?'<button type="button" class="btn primary full" id="qqCodyNext">Следующий уровень</button>':'<button type="button" class="btn primary full" id="qqCodyNext">Вернуться к мирам</button>')+'<button type="button" class="btn full" id="qqCodyGroup">К группе</button></section>';
+  view.querySelector("#qqCodyNext").onclick=()=>hasNext?startPuzzle(currentLevel+1,Math.floor((currentLevel+1)/PER_GROUP)):renderMap();
   view.querySelector("#qqCodyGroup").onclick=()=>renderGroup(Math.floor(currentLevel/PER_GROUP));
  }
  let currentLevel=0;
