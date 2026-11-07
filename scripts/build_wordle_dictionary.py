@@ -116,12 +116,13 @@ def self_test() -> None:
     assert normalize_word("Иван") is None
     sample = build(
         "тунец\nбанан\nслово\nИван\nдлинное",
-        "lemma,abs_frequency,ipm\nсосна,100,10\n",
-        {"answers": ["БАНАН"], "valid": ["БАНАН"]},
+        "lemma,abs_frequency,ipm\nсосна,100,10\nбанан,90,9\n",
+        {"answers": [], "valid": []},
         1,
     )
     assert "ТУНЕЦ" in sample["valid"]
     assert "СОСНА" in sample["answers"]
+    assert "БАНАН" in sample["answers"]
     assert "ТУНЕЦ" not in sample["answers"]
     print("Wordle dictionary builder self-test: OK")
 
