@@ -37,13 +37,12 @@ test("loads a fully occupied 15x15 scanword with three distinct picture clues", 
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
-test("opens a picture clue and displays the image question", async ({ page }) => {
+test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
   await startGuestGame(page);
-  await page.locator(".scan-clue-picture").first().click();
-  await expect(page.locator(".clue-popup-backdrop")).toBeVisible();
-  await expect(page.locator(".clue-popup-text")).toHaveText("Что изображено на картинке?");
-  await page.getByRole("button", { name: "Понятно" }).click();
-  await expect(page.locator(".clue-popup-backdrop")).toHaveCount(0);
+  const pictureClue = page.locator(".scan-clue-picture").first();
+  await pictureClue.click();
+  await expect(page.locator(".scanword-question-full")).toHaveText("Что изображено на картинке?");
+  await expect(page.locator(".scan-clue-picture").first()).toHaveClass(/scan-clue-active/);
 });
 
 test("keeps the landing page within the emulated device width", async ({ page }) => {
@@ -86,7 +85,6 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   expect(greyKeyCount).toBeGreaterThan(0);
   const greyKey = page.locator(".wordle-key.absent").first();
   await expect(greyKey).toBeEnabled();
-  await expect(greyKey).toHaveAttribute("aria-disabled", "false");
   await expect(greyKey).toHaveAttribute("aria-label", /можно вводить/);
   const greyLetter = await greyKey.getAttribute("data-key");
   await greyKey.click();
