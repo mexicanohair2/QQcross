@@ -101,7 +101,7 @@ def build(source_text: str, frequency_text: str, existing: dict, min_valid: int)
         if len(answers) >= target_count:
             break
 
-    threshold = max(min_valid, len(base_valid) * 20)
+    threshold = min_valid  # Keep the initial 20x expansion target stable on future rebuilds.
     if len(valid) < threshold:
         raise RuntimeError(
             f"Словарь получился слишком маленьким: {len(valid)} слов; нужно минимум {threshold}. "
