@@ -67,11 +67,12 @@ if (allPictureEntries.length !== 46 || new Set(allPictureEntries.map(item => ite
 }
 for (const item of allPictureEntries) {
   const answer = normalize(item.answer || item.word);
-  const expectedAnswer = Object.entries(expectedPictures).find(([, key]) => key === item.imageKey)?.[0];
+  const expectedAnswer = expectedPictures[item.imageKey];
   if (!expectedAnswer || answer !== expectedAnswer) fail(`Picture ${item.imageKey} does not match answer ${answer}; expected ${expectedAnswer || "a known answer"}`);
   if (!/что изображено/i.test(item.clue || "")) fail(`Picture ${item.imageKey} is missing its image-based clue prompt`);
 }
-for (const [answer, imageKey] of Object.entries(expectedPictures)) {
+for (const [imageKey, expectedAnswer] of Object.entries(expectedPictures)) {
+  const answer = normalize(expectedAnswer);
   const matches = dictionary.filter(item => normalize(item.answer || item.word) === answer && item.imageKey === imageKey);
   if (matches.length !== 1) fail(`Expected exactly one ${answer} picture clue, found ${matches.length}`);
   const asset = `assets/scanword/${imageKey}.svg`;
