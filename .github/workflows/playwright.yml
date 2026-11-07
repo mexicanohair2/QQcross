@@ -37,7 +37,7 @@ jobs:
           retention-days: 1
 
   e2e:
-    name: \${{ matrix.project }}
+    name: ${{ matrix.project }}
     needs: prepare-wordle
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -74,7 +74,7 @@ jobs:
       - name: Validate scanword dictionary and generated grids
         run: npm run test:scanword
       - name: Run browser tests
-        run: npx playwright test --project=\${{ matrix.project }}
+        run: npx playwright test --project=${{ matrix.project }}
       - name: Upload test report and failure artifacts
         if: always()
         uses: actions/upload-artifact@v4
