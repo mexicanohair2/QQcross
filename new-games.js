@@ -55,7 +55,7 @@ function levelComplete(root,key,level,next){
  const panel=document.createElement("section");panel.className="qq-level-complete";
  panel.innerHTML='<b>Уровень '+level+' пройден</b><span>Следующий уровень открыт.</span><button type="button" class="btn primary" id="qqLevelContinue">'+(level===LEVEL_TOTAL?"К уровням":"Следующий уровень")+'</button>';
  root.querySelector(".qq-extra-screen")?.append(panel);
- panel.querySelector("#qqLevelContinue").onclick=next;
+ const button=panel.querySelector("#qqLevelContinue");const timer=setTimeout(next,1800);button.onclick=()=>{clearTimeout(timer);next();};
 }
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
