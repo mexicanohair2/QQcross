@@ -680,7 +680,7 @@ function normalizeScanwordEntry(item){
   if(answer.length<1||answer.length>12||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
-function buildScanword(entries){
+function buildScanword(entries,attemptLimit=64){
   const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
@@ -868,7 +868,7 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<8;attempt++){
+  for(let attempt=0;attempt<attemptLimit;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
