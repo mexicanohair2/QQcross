@@ -34,6 +34,7 @@ function validate(puzzle, run) {
     if (!word.clue || !word.answer || word.answer.length !== word.cells.length) throw new Error("Run " + run + ": malformed word " + word.id);
     if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
     answers.add(word.answer);
+    const [cy, cx] = word.clueCell;
     const directions = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
     const delta = directions[word.dir];
     if (!delta) throw new Error("Run " + run + ": invalid direction " + word.dir + " for " + word.id);
@@ -44,7 +45,6 @@ function validate(puzzle, run) {
       }
       if (word.answer[k] < "А" || word.answer[k] > "Я") throw new Error("Run " + run + ": invalid answer character in " + word.id);
     }
-    const [cy, cx] = word.clueCell;
     if (cy < 0 || cx < 0 || cy >= 15 || cx >= 15 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
     for (let k = 0; k < word.cells.length; k++) {
       const [y, x] = word.cells[k];
