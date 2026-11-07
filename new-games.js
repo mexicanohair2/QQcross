@@ -25,46 +25,109 @@ function pathBetween(a,b){
  for(let i=0;i<=steps;i++)out.push({x:a.x+sx*i,y:a.y+sy*i});
  return out;
 }
-function buildSearchPuzzle(words){
- const size=11,grid=Array.from({length:size},()=>Array(size).fill(""));
- const chosen=shuffle(words.filter(w=>w.length>=4&&w.length<=9)).slice(0,9).sort((a,b)=>b.length-a.length),placed=[];
- for(const word of chosen){
-  let done=false;
-  for(let attempt=0;attempt<220&&!done;attempt++){
-   const dir=shuffle([[1,0],[0,1],[1,1],[-1,1]])[0],x=Math.floor(Math.random()*size),y=Math.floor(Math.random()*size),endX=x+dir[0]*(word.length-1),endY=y+dir[1]*(word.length-1);
-   if(endX<0||endX>=size||endY<0||endY>=size)continue;
-   let ok=true;for(let i=0;i<word.length;i++){const c=grid[y+dir[1]*i][x+dir[0]*i];if(c&&c!==word[i]){ok=false;break;}}
-   if(!ok)continue;
-   const cells=[];for(let i=0;i<word.length;i++){const p={x:x+dir[0]*i,y:y+dir[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
-   placed.push({word,cells,found:false});done=true;
+const LEVEL_TOTAL=1000;
+const SEARCH_THEMES=[
+{name:"Животный мир",words:"КОШКА СОБАКА ЛОШАДЬ КОРОВА ОВЦА КОЗА ЗАЯЦ БЕЛКА ЛИСИЦА ВОЛК МЕДВЕДЬ ТИГР ЛЕВ ЖИРАФ СЛОН ЗЕБРА ПАНДА ЕНОТ ХОМЯК ВЫДРА ОРЕЛ ВОРОНА ЛЕБЕДЬ УТКА ПИНГВИН ДЕЛЬФИН КИТ АКУЛА".split(" ")},
+{name:"Зимний лес",words:"ЕЛЬ СОСНА БЕРЕЗА ОСИНА КЕДР ЛИСТВА ВЕТКА КОРЕНЬ СНЕГ МОРОЗ ИНЕЙ СУГРОБ ШИШКА МХИ ТРОПА ПОЛЯНА РУЧЕЙ ЗАЙЦЫ ЛИСА ВОЛК СОВА ДЯТЕЛ ЛОСЬ ОЛЕНЬ".split(" ")},
+{name:"Морское путешествие",words:"КОРАБЛЬ МАЯК ПАРУС ЯКОРЬ ВОЛНА ОКЕАН МОРЕ БЕРЕГ ОСТРОВ КАПИТАН МАТРОС ШТОРМ РЫБАК ЧАЙКА ДЕЛЬФИН КИТ РАКУШКА КОРАЛЛ ПРИБОЙ".split(" ")},
+{name:"Домашний уют",words:"КОМНАТА КУХНЯ ДИВАН КРЕСЛО ПОДУШКА ОДЕЯЛО КОВЕР ЛАМПА ОКНО ДВЕРЬ ПОЛКА КНИГА ЧАШКА ЧАЙНИК СВЕЧА ЗЕРКАЛО ШТОРА КОМОД КРОВАТЬ".split(" ")},
+{name:"Космос",words:"КОСМОС ПЛАНЕТА ЗВЕЗДА КОМЕТА МЕТЕОР ОРБИТА РАКЕТА СПУТНИК ЛУНА СОЛНЦЕ ГАЛАКТИКА ВАКУУМ АСТРОНОМ ТЕЛЕСКОП САТУРН МАРС ВЕНЕРА ЮПИТЕР".split(" ")},
+{name:"Вкусная кухня",words:"ЯБЛОКО БАНАН ГРУША СЛИВА ВИШНЯ ЛИМОН АПЕЛЬСИН МОРКОВЬ КАРТОФЕЛЬ ОГУРЕЦ ПОМИДОР КАПУСТА ТЫКВА КАША ПИРОГ СУП САЛАТ ХЛЕБ МЕД".split(" ")},
+{name:"Город",words:"УЛИЦА ПЛОЩАДЬ ПАРК МОСТ ДОРОГА ВОКЗАЛ МУЗЕЙ ТЕАТР ШКОЛА БИБЛИОТЕКА МАГАЗИН АПТЕКА ФОНТАН БАШНЯ ТРАМВАЙ АВТОБУС МЕТРО ПЕРЕХОД".split(" ")},
+{name:"Путешествия",words:"БИЛЕТ ВОКЗАЛ ПОЕЗД САМОЛЕТ АЭРОПОРТ ЧЕМОДАН ПАСПОРТ КАРТА МАРШРУТ ГОСТИНИЦА ПАЛАТКА РЮКЗАК ПРИЧАЛ ЭКСКУРСИЯ ПЛЯЖ ГОРЫ ДОЛИНА ВОСТОК ЗАПАД".split(" ")},
+{name:"Растения",words:"РОМАШКА РОЗА ТЮЛЬПАН ПИОН СИРЕНЬ ЛИЛИЯ ГВОЗДИКА МАК ВАСИЛЕК ПОДСОЛНУХ КЛЕВЕР КАКТУС ПАПОРОТНИК БАМБУК ЛАВАНДА ЖАСМИН САКУРА ЛЕПЕСТОК".split(" ")},
+{name:"Техника",words:"КОМПЬЮТЕР МОНИТОР КЛАВИАТУРА МЫШКА ТЕЛЕФОН ПЛАНШЕТ КАМЕРА РОБОТ ПРИНТЕР НАУШНИКИ ДИНАМИК МИКРОФОН БАТАРЕЯ ПРОЦЕССОР ЭКРАН КАБЕЛЬ СЕРВЕР".split(" ")}
+];
+function readUnlocked(key){try{return Math.max(1,Math.min(LEVEL_TOTAL,Number(localStorage.getItem(key))||1));}catch(_){return 1;}}
+function unlockNext(key,level){try{localStorage.setItem(key,String(Math.max(readUnlocked(key),Math.min(LEVEL_TOTAL,level+1))));}catch(_){}}
+function renderLevelMap(root,title,onExit,key,openLevel){
+ const unlocked=readUnlocked(key);
+ shell(root,title,onExit,'<section class="qq-level-intro"><b>ПУТЕШЕСТВИЕ ПО СЛОВАМ</b><span>Открыто до '+unlocked+' уровня из '+LEVEL_TOTAL+'</span></section><div class="qq-level-grid" aria-label="Выбор уровня">'+Array.from({length:LEVEL_TOTAL},(_,i)=>{const n=i+1,done=n<unlocked,locked=n>unlocked;return '<button type="button" class="qq-level-dot '+(done?"done":"")+' '+(locked?"locked":"current")+'" data-level="'+n+'" '+(locked?"disabled":"")+' aria-label="Уровень '+n+'">'+n+'</button>';}).join("")+'</div>');
+ root.querySelector(".qq-extra-screen").classList.add("qq-level-screen");
+ root.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>openLevel(+b.dataset.level));
+ root.querySelector(".qq-level-dot.current")?.scrollIntoView({block:"center"});
+}
+function levelComplete(root,key,level,next){
+ unlockNext(key,level);
+ const panel=document.createElement("section");panel.className="qq-level-complete";
+ panel.innerHTML='<b>Уровень '+level+' пройден</b><span>Следующий уровень открыт.</span><button type="button" class="btn primary" id="qqLevelContinue">'+(level===LEVEL_TOTAL?"К уровням":"Следующий уровень")+'</button>';
+ root.querySelector(".qq-extra-screen")?.append(panel);
+ panel.querySelector("#qqLevelContinue").onclick=next;
+}
+function buildSearchPuzzle(words,level){
+ const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
+ const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)));
+ const count=Math.min(18,level<=20?5+Math.floor((level-1)/2):14+Math.min(4,Math.floor((level-20)/100)));
+ let size=Math.min(20,level<=20?9+Math.floor((level-1)/2):18+Math.min(2,Math.floor((level-20)/250)));
+ let chosen=pool.slice(0,count);
+ if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12)).slice(0,Math.max(5,count));
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+ let grid,placed;
+ for(let grow=0;grow<5;grow++){
+  grid=Array.from({length:size},()=>Array(size).fill(""));placed=[];
+  for(const word of [...chosen].sort((a,b)=>b.length-a.length)){
+   let done=false;
+   for(let attempt=0;attempt<500&&!done;attempt++){
+    const d=dirs[Math.floor(Math.random()*dirs.length)],x=Math.floor(Math.random()*size),y=Math.floor(Math.random()*size),ex=x+d[0]*(word.length-1),ey=y+d[1]*(word.length-1);
+    if(ex<0||ex>=size||ey<0||ey>=size)continue;
+    let ok=true;for(let i=0;i<word.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==word[i]){ok=false;break;}}
+    if(!ok)continue;
+    const cells=[];for(let i=0;i<word.length;i++){const p={x:x+d[0]*i,y:y+d[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
+    placed.push({word,cells,found:false});done=true;
+   }
+  }
+  if(placed.length>=Math.min(chosen.length,Math.max(5,count-2))||size>=20)break;
+  size++;
+ }
+ const targets=new Set(placed.map(p=>p.word));let decoy="";
+ for(const p of placed){
+  const chars=[...p.word];
+  for(let i=1;i<chars.length-1&&!decoy;i++){
+   const old=chars[i];
+   for(const ch of LETTERS){if(ch===old)continue;chars[i]=ch;const candidate=chars.join("");if(!lexicon.has(candidate)&&!targets.has(candidate)){decoy=candidate;break;}}
+   chars[i]=old;
+  }
+  if(decoy)break;
+ }
+ if(decoy){
+  let inserted=false;
+  for(let a=0;a<120&&!inserted;a++){
+   const d=dirs[Math.floor(Math.random()*dirs.length)],x=Math.floor(Math.random()*size),y=Math.floor(Math.random()*size),ex=x+d[0]*(decoy.length-1),ey=y+d[1]*(decoy.length-1);
+   if(ex<0||ex>=size||ey<0||ey>=size)continue;
+   let ok=true;for(let i=0;i<decoy.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==decoy[i]){ok=false;break;}}
+   if(ok){for(let i=0;i<decoy.length;i++)grid[y+d[1]*i][x+d[0]*i]=decoy[i];inserted=true;}
   }
  }
  for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!grid[y][x])grid[y][x]=LETTERS[Math.floor(Math.random()*LETTERS.length)];
- return {size,grid,placed};
+ return {size,grid,placed,theme:theme.name,decoy};
 }
 function mountSearch(root,onExit,words){
- const puzzle=buildSearchPuzzle(words);let start=null,drag=false,solved=new Set(),selection=[];
- const body='<p class="qq-extra-sub">Найди спрятанные слова. Выделяй их пальцем по прямой — в любом из восьми направлений.</p><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><div class="qq-word-list" id="qqWordList">'+puzzle.placed.map(p=>'<span data-word="'+p.word+'">'+p.word+'</span>').join("")+'</div><button class="btn full" id="qqSearchNew">Новое поле</button>';
- shell(root,"Поиск слов",onExit,body);
- const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),list=root.querySelector("#qqWordList");
- const clear=()=>{grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];};
- const cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
- function markPath(path){const started=selection.length===0&&path.length>0;clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));if(started)sound("select");}
- function finish(path){
-  if(!path.length)return;
-  const value=path.map(p=>puzzle.grid[p.y][p.x]).join("");
-  const reverse=[...value].reverse().join("");
-  const found=puzzle.placed.find(p=>!p.found&&(p.word===value||p.word===reverse));
-  if(found){found.found=true;solved.add(found.word);found.cells.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-found"));list.querySelector('[data-word="'+found.word+'"]')?.classList.add("done");progress.textContent="Найдено: "+solved.size+" / "+puzzle.placed.length;sound(solved.size===puzzle.placed.length?"win":"good");if(solved.size===puzzle.placed.length)progress.textContent="Все слова найдены! Отличная работа.";}
-  else {path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),260);}
-  clear();
+ const KEY="qqcross.search.unlocked.v1";
+ const showMap=()=>renderLevelMap(root,"Поиск слов",onExit,KEY,playLevel);
+ function playLevel(level){
+  const puzzle=buildSearchPuzzle(words,level);let start=null,drag=false,solved=new Set(),selection=[],tapStart=null,completed=false;
+  const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><div class="qq-search-hint">Ищи слова по горизонтали, вертикали и диагонали — в обе стороны.</div>';
+  shell(root,"Поиск слов · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-search-screen");
+  const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
+  function clear(){grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];}
+  function markPath(path){clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));}
+  function finish(path){
+   if(!path.length||completed)return;
+   const value=path.map(p=>puzzle.grid[p.y][p.x]).join(""),reverse=[...value].reverse().join("");
+   const found=puzzle.placed.find(p=>!p.found&&(p.word===value||p.word===reverse));
+   if(found){
+    found.found=true;solved.add(found.word);found.cells.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-found"));
+    progress.textContent="Найдено: "+solved.size+" / "+puzzle.placed.length;sound(solved.size===puzzle.placed.length?"win":"good");
+    if(solved.size===puzzle.placed.length){completed=true;unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),250);}
+   }else{path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),300);sound("hint");}
+   clear();
+  }
+  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
+  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const path=pathBetween(start,{x:+c.dataset.x,y:+c.dataset.y});if(path.length)markPath(path);};
+  const end=e=>{if(!drag)return;track(e);drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
+  grid.addEventListener("pointermove",track);grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
  }
- let tapStart=null;
- grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
- grid.addEventListener("pointermove",e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const path=pathBetween(start,{x:+c.dataset.x,y:+c.dataset.y});if(path.length)markPath(path);});
- const end=()=>{if(!drag)return;drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
- grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
- root.querySelector("#qqSearchNew").onclick=()=>mountSearch(root,onExit,words);
+ showMap();
 }
 function layoutWords(words,size=13){
  const grid=Array.from({length:size},()=>Array(size).fill(null)),placed=[];
