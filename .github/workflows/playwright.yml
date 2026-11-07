@@ -34,12 +34,12 @@ jobs:
       - name: Publish the generated 100k lexicon to the GitHub Pages source
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          if git diff --quiet -- data/russian-words-100000.json; then
+          git add data/russian-words-100000.json
+          if git diff --cached --quiet; then
             echo "The 100k lexicon is already current."
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add data/russian-words-100000.json
             git commit -m "Publish 100,000-word Russian lexicon [skip ci]"
             git push
           fi
