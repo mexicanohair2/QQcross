@@ -985,8 +985,8 @@ function renderGame(root){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
     if(wordsAt){
       const arrows=wordsAt.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'">'+({right:"→",left:"←",down:"↓",up:"↑"}[w.dir])+'</span>').join("");
-      const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
-      const single=wordsAt.length===1&&!wordsAt[0].imageKey?fitScanwordClue(wordsAt[0].clueShort||wordsAt[0].clue):"";
+      const displayWord=wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
+      const single=displayWord&&!displayWord.imageKey?fitScanwordClue(displayWord.clueShort||displayWord.clue):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
       const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="'+esc(wordsAt[0].answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=wordsAt.length===1&&wordsAt[0].imageKey?"Что изображено на картинке?":fullClueTitle;
