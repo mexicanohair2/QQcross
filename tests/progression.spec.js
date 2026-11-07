@@ -46,3 +46,58 @@ test("the secret Mugiwara title unlocks after fifteen straw-hat taps", async ({ 
   await page.locator("[data-tab='Профиль']").click();
   await expect(page.locator("#qqTitleInventory")).toContainText("Mugiwara");
 });
+
+
+test("daily challenges are deterministic and streaks count only complete days once", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    const first = p.daily("2040-03-01");
+    const repeated = p.daily("2040-03-01");
+    const second = p.daily("2040-03-02");
+    p.completeDaily("scanword", first.date);
+    const afterOne = p.get().daily.currentStreak;
+    p.completeDaily("scanword", first.date);
+    p.completeDaily("wordle", first.date);
+    const afterFirstDay = p.get().daily.currentStreak;
+    p.completeDaily("wordle", second.date);
+    p.completeDaily("scanword", second.date);
+    const afterSecondDay = p.get().daily.currentStreak;
+    return {
+      stable: first.scanwordSeed === repeated.scanwordSeed &&
+        first.wordleSeed === repeated.wordleSeed &&
+        first.wordleLength === repeated.wordleLength,
+      validLength: [4, 5, 6, 7, 8].includes(first.wordleLength),
+      afterOne,
+      afterFirstDay,
+      afterSecondDay,
+      best: p.get().daily.bestStreak
+    };
+  });
+  expect(result.stable).toBe(true);
+  expect(result.validLength).toBe(true);
+  expect(result.afterOne).toBe(0);
+  expect(result.afterFirstDay).toBe(1);
+  expect(result.afterSecondDay).toBe(2);
+  expect(result.best).toBe(2);
+});
+
+test("discovered words are normalized and counted only once", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    const first = p.recordWord("ёлка");
+    const duplicate = p.recordWord("ЕЛКА");
+    const snapshot = p.get();
+    return {
+      first,
+      duplicate,
+      count: snapshot.stats.wordsFound,
+      words: snapshot.discoveredWords
+    };
+  });
+  expect(result.first).toBe(true);
+  expect(result.duplicate).toBe(false);
+  expect(result.count).toBe(1);
+  expect(result.words).toContain("ЕЛКА");
+});
