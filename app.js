@@ -818,9 +818,8 @@ function buildScanword(entries,attemptLimit=16){
       const pick=pool[Math.floor(Math.random()*pool.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
-    // Repair the remaining board globally: exhaust every multi-letter placement
-    // before using a one-letter fallback. The old first-fit loop could insert a
-    // single-letter answer at an early clue even when a longer fit existed elsewhere.
+    // Repair residual gaps with connected multi-letter words first.
+    // One-letter answers are deferred until no longer placement exists anywhere.
     let closing=true;
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
@@ -832,63 +831,54 @@ function buildScanword(entries,attemptLimit=16){
         const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
-      let bestOption=null;
-      const singleOptions=[];
+      let singleFallback=null;
       for(const anchor of anchors){
-        const at=anchor.list;
-        if(at.length>=4||at.some(w=>w.imageKey))continue;
-        for(let di=0;di<4;di++){
-          const dir=dirs[di];
-          if(at.some(w=>w.dir===dir.name))continue;
+        if(closing)break;
+        for(let di=0;di<4&&!closing;di++){
+          const dir=dirs[di],at=anchor.list;
+          if(at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
           for(let length=max;length>=2;length--){
-            const cells=[];let valid=true,crosses=0,newCells=0;
+            const cells=[];let valid=true,crosses=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
               if(yy<0||xx<0||yy>=N||xx>=N||clueAt.has(key)){valid=false;break}
-              if(occupied.has(key))crosses++;else newCells++;
+              if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            if(!valid||!crosses||(anchor.existing&&newCells===0))continue;
+            if(!valid||!crosses)continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             cells.forEach((cell,k)=>{
               const old=occupied.get(cell.join(","));
               if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
             });
-            for(const entry of possible){
-              if(used.has(entry.key))continue;
-              if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3||at.length>0))continue;
-              if(!entry.imageKey&&at.some(w=>w.imageKey))continue;
-              let matches=true;
-              for(let k=0;k<length;k++){
-                const old=occupied.get(cells[k].join(","));
-                if(old!==undefined&&old!==entry.answer[k]){matches=false;break}
-              }
-              if(!matches)continue;
-              const score=newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)-at.length*2+Math.random()*3;
-              if(!bestOption||score>bestOption.score)bestOption={entry,y:anchor.y,x:anchor.x,di,score};
-            }
+            const pool=[...possible].filter(entry=>
+              !used.has(entry.key)&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&at.length===0))&&
+              cells.every((cell,k)=>{
+                const old=occupied.get(cell.join(","));
+                return old===undefined||old===entry.answer[k];
+              })
+            );
+            if(!pool.length)continue;
+            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));
+            if(addWord(pool[0],anchor.y,anchor.x,di,"w"+words.length)){closing=true;break}
           }
-          // Save one-letter options, but do not use them while any longer word fits anywhere.
-          if(anchor.existing&&max>=1){
+          if(!singleFallback&&anchor.existing&&max>=1){
             const yy=anchor.y+dir.dy,xx=anchor.x+dir.dx,key=yy+","+xx;
             if(yy>=0&&xx>=0&&yy<N&&xx<N&&!occupied.has(key)&&!clueAt.has(key)){
               const positions=byLength.get(1);
-              if(positions)for(const bucket of positions[0].values())for(const entry of bucket){
-                if(used.has(entry.key)||entry.imageKey)continue;
-                singleOptions.push({entry,y:anchor.y,x:anchor.x,di,score:Math.random()});
+              if(positions){
+                const pool=[...positions[0].values()].flat().filter(entry=>!used.has(entry.key)&&!entry.imageKey);
+                if(pool.length)singleFallback={entry:pool[Math.floor(Math.random()*pool.length)],y:anchor.y,x:anchor.x,di};
               }
             }
           }
         }
       }
-      if(bestOption){
-        if(addWord(bestOption.entry,bestOption.y,bestOption.x,bestOption.di,"w"+words.length)){closing=true;continue}
-      }
-      if(singleOptions.length){
-        singleOptions.sort((a,b)=>b.score-a.score);
-        const fallback=singleOptions[0];
+      if(!closing&&singleFallback){
+        const fallback=singleFallback;
         if(addWord(fallback.entry,fallback.y,fallback.x,fallback.di,"w"+words.length,false,true))closing=true;
       }
     }
