@@ -7,11 +7,28 @@ const expectedPictures = {
   ВЕЛОСИПЕД: "bicycle",
   ЧАСЫ: "clock"
 };
+const pictureDescriptions = {
+  apple: "яблоко",
+  tomato: "помидор",
+  cat: "кошка",
+  bicycle: "велосипед",
+  clock: "часы"
+};
 const fail = message => { console.error("SCANWORD DATA ERROR:", message); process.exitCode = 1; };
 const normalize = value => String(value || "").toLocaleUpperCase("ru-RU").replace(/Ё/g, "Е").replace(/[^А-ЯA-Z]/g, "");
 if (!Array.isArray(dictionary) || dictionary.length < 2000) {
   fail("Expected the current scanword dictionary with at least 2000 entries");
   process.exit();
+}
+const allPictureEntries = dictionary.filter(item => item.imageKey);
+if (allPictureEntries.length !== 5 || new Set(allPictureEntries.map(item => item.imageKey)).size !== 5) {
+  fail("The dictionary must contain exactly five unique picture clues, with no repeated image keys");
+}
+for (const item of allPictureEntries) {
+  const answer = normalize(item.answer || item.word);
+  const expectedAnswer = Object.entries(expectedPictures).find(([, key]) => key === item.imageKey)?.[0];
+  if (!expectedAnswer || answer !== expectedAnswer) fail(`Picture ${item.imageKey} does not match answer ${answer}; expected ${expectedAnswer || "a known answer"}`);
+  if (/что изображено/i.test(item.clue || "") && !pictureDescriptions[item.imageKey]) fail(`Missing clear description for image ${item.imageKey}`);
 }
 for (const [answer, imageKey] of Object.entries(expectedPictures)) {
   const matches = dictionary.filter(item => normalize(item.answer || item.word) === answer && item.imageKey === imageKey);
