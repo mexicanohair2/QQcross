@@ -875,6 +875,15 @@ function buildScanword(entries,attemptLimit=16){
               }
             }
           }
+          // A single-letter clue may also occupy an otherwise isolated gap while
+          // its answer reuses the matching adjacent letter from a connected word.
+          if(!singleFallback&&!anchor.existing&&max>=1){
+            const yy=anchor.y+dir.dy,xx=anchor.x+dir.dx,key=yy+","+xx;
+            const letter=yy>=0&&xx>=0&&yy<N&&xx<N?occupied.get(key):undefined;
+            const candidates=letter===undefined?[]:(byLength.get(1)?.[0]?.get(letter)||[]);
+            const entry=candidates.find(item=>!used.has(item.key)&&!item.imageKey);
+            if(entry)singleFallback={entry,y:anchor.y,x:anchor.x,di};
+          }
         }
       }
       if(!closing&&singleFallback){
