@@ -191,3 +191,27 @@ test("accessibility preferences and abstract-background opt-out survive reload",
     background: "misty-forest"
   });
 });
+
+test("unclaimed achievement rewards stay queued until explicitly acknowledged", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    p.record("scanwords", 5);
+    const before = p.peekPendingRewards();
+    const stillPending = p.peekPendingRewards();
+    const acknowledged = p.ackPendingReward(before[0].id);
+    const after = p.peekPendingRewards();
+    return {
+      countBefore: before.length,
+      stillPending: stillPending.length,
+      acknowledged,
+      countAfter: after.length,
+      removed: !after.some(item => item.id === before[0].id)
+    };
+  });
+  expect(result.countBefore).toBeGreaterThan(0);
+  expect(result.stillPending).toBe(result.countBefore);
+  expect(result.acknowledged).toBe(true);
+  expect(result.countAfter).toBe(result.countBefore - 1);
+  expect(result.removed).toBe(true);
+});
