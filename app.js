@@ -1089,7 +1089,7 @@ function restoreLocalMatch(id){
   letterBag=[...(match.letterBag||[])];
   const g=match.game||{};
   Object.assign(state,{
-    screen:"game",matchId:match.id,partySize:g.partySize||1,aiMatch:!!match.aiMatch,aiThinkingTurn:null,aiError:"",filled:{...(g.filled||{})},owners:{...(g.owners||{})},
+    screen:"game",matchId:match.id,partySize:g.partySize||1,aiMatch:!!g.aiMatch,aiThinkingTurn:null,aiError:"",filled:{...(g.filled||{})},owners:{...(g.owners||{})},
     feedback:{...(g.feedback||{})},hints:{...(g.hints||{})},completed:new Set(g.completed||[]),scores:g.scores||0,
     playerScores:[...(g.playerScores||[])],turn:g.turn||0,round:g.round||1,seconds:g.seconds??60,
     rackNeedsRefill:[...(g.rackNeedsRefill||[])],playerRacks:(g.playerRacks||[]).map(r=>[...r]),
