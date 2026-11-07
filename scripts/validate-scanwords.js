@@ -1,11 +1,52 @@
 const fs = require("node:fs");
 const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
 const expectedPictures = {
-  ЯБЛОКО: "apple",
-  ТОМАТ: "tomato",
-  КОТ: "cat",
-  ВЕЛОСИПЕД: "bicycle",
-  ЧАСЫ: "clock"
+  "airplane": "САМОЛЕТ",
+  "apple": "ЯБЛОКО",
+  "ball": "МЯЧ",
+  "banana": "БАНАН",
+  "bear": "МЕДВЕДЬ",
+  "bee": "ПЧЕЛА",
+  "bicycle": "ВЕЛОСИПЕД",
+  "boat": "ЛОДКА",
+  "book": "КНИГА",
+  "bus": "АВТОБУС",
+  "butterfly": "БАБОЧКА",
+  "car": "МАШИНА",
+  "carrot": "МОРКОВЬ",
+  "cat": "КОТ",
+  "clock": "ЧАСЫ",
+  "cloud": "ОБЛАКО",
+  "crocodile": "КРОКОДИЛ",
+  "cucumber": "ОГУРЕЦ",
+  "cup": "ЧАШКА",
+  "dog": "СОБАКА",
+  "dolphin": "ДЕЛЬФИН",
+  "fish": "РЫБА",
+  "fox": "ЛИСА",
+  "giraffe": "ЖИРАФ",
+  "grapes": "ВИНОГРАД",
+  "guitar": "ГИТАРА",
+  "hedgehog": "ЕЖ",
+  "house": "ДОМ",
+  "kangaroo": "КЕНГУРУ",
+  "key": "КЛЮЧ",
+  "lemon": "ЛИМОН",
+  "lion": "ЛЕВ",
+  "octopus": "ОСЬМИНОГ",
+  "orange": "АПЕЛЬСИН",
+  "owl": "СОВА",
+  "parrot": "ПОПУГАЙ",
+  "penguin": "ПИНГВИН",
+  "snail": "УЛИТКА",
+  "spider": "ПАУК",
+  "strawberry": "КЛУБНИКА",
+  "sun": "СОЛНЦЕ",
+  "sunflower": "ПОДСОЛНУХ",
+  "tiger": "ТИГР",
+  "tomato": "ПОМИДОР",
+  "whale": "КИТ",
+  "zebra": "ЗЕБРА"
 };
 const pictureDescriptions = {
   apple: "яблоко",
@@ -21,8 +62,8 @@ if (!Array.isArray(dictionary) || dictionary.length < 2000) {
   process.exit();
 }
 const allPictureEntries = dictionary.filter(item => item.imageKey);
-if (allPictureEntries.length !== 5 || new Set(allPictureEntries.map(item => item.imageKey)).size !== 5) {
-  fail("The dictionary must contain exactly five unique picture clues, with no repeated image keys");
+if (allPictureEntries.length !== 46 || new Set(allPictureEntries.map(item => item.imageKey)).size !== 46) {
+  fail("The dictionary must contain exactly 46 unique picture clues, with no repeated image keys");
 }
 for (const item of allPictureEntries) {
   const answer = normalize(item.answer || item.word);
