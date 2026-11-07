@@ -694,3 +694,10 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 @media(min-width:700px){.wordle-screen{padding:14px 20px 28px}.wordle-board{width:330px}.wordle-key{height:50px}}
 
 .wordle-launch-card{margin-top:22px;display:grid;gap:10px;border:1px solid var(--line);background:linear-gradient(145deg,var(--panel),var(--bg))}
+
+/* Wordle keys remain active after feedback; grey is a hint, never a disabled state. */
+.wordle-key{cursor:pointer;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}
+.wordle-key:active{transform:scale(.95)}
+.wordle-key.absent{background:#777e88;color:#fff;opacity:1}
+.wordle-key.absent:hover{background:#858d97}
+.wordle-key:disabled{cursor:not-allowed;opacity:.5}

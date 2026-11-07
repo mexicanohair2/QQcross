@@ -68,11 +68,21 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   await expect(page.locator(".wordle-tile")).toHaveCount(30);
   await expect(page.locator(".wordle-key")).not.toHaveCount(0);
   await expect(page.locator(".wordle-message")).not.toContainText("Не удалось загрузить словарь");
-  for (const letter of ["Б","А","Н","А","Н"]) {
+  const dictionary = await page.evaluate(() => fetch("./data/wordle-words.json").then(response => response.json()));
+  expect(dictionary.valid.length).toBeGreaterThanOrEqual(7500);
+  expect(dictionary.valid).toContain("ТУНЕЦ");
+  expect(dictionary.answers.length).toBeGreaterThanOrEqual(300);
+  for (const letter of ["Т","У","Н","Е","Ц"]) {
     await page.locator('.wordle-key[data-key="' + letter + '"]').click();
   }
   await page.locator('.wordle-key[data-key="ENTER"]').click();
   await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
+  const greyKey = page.locator(".wordle-key.absent").first();
+  await expect(greyKey).toBeEnabled();
+  await expect(greyKey).toHaveAttribute("aria-label", /можно вводить/);
+  const greyLetter = await greyKey.getAttribute("data-key");
+  await greyKey.click();
+  await expect(page.locator(".wordle-row").nth(1).locator(".wordle-tile").first()).toHaveText(greyLetter);
   await page.locator("#wordleBack").click();
   await expect(page.locator("#playWordle")).toBeVisible();
   expect(pageErrors).toEqual([]);

@@ -281,10 +281,21 @@ async function loadMatchInbox(){
   const [ir,mr]=await Promise.all([supabaseClient.rpc("list_qqcross_match_invites"),supabaseClient.rpc("list_qqcross_my_matches")]);
   if(ir.error)throw ir.error;if(mr.error)throw mr.error;
   if(invites)invites.innerHTML=ir.data?.length?ir.data.map(x=>'<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>').join(""):'<p class="small muted">Новых приглашений нет.</p>';
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});if(error)throw error;await loadMatchInbox();toast("Приглашение принято")}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});if(error)throw error;await loadMatchInbox()}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
+  document.querySelectorAll(".delete-online-match").forEach(b=>b.onclick=async()=>{
+   const id=b.dataset.id;
+   if(!confirm("Удалить эту дружескую партию? Если ты её создал — она исчезнет у всех. Если ты участник — только из твоего списка."))return;
+   b.disabled=true;
+   try{
+    const {data,error}=await supabaseClient.rpc("delete_qqcross_match",{target_match_id:id});
+    if(error)throw error;
+    await loadMatchInbox();
+    toast(data==="deleted"?"Партия удалена":data==="left"?"Партия убрана из твоего списка":"Партия уже не найдена");
+   }catch(e){toast(e.message||"Не удалось удалить партию");b.disabled=false}
+  });
  }catch(e){if(invites)invites.textContent=e.message||"Не удалось загрузить приглашения"}
 }
 async function openOnlineMatch(id){

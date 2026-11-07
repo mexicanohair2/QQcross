@@ -11,8 +11,34 @@ permissions:
   contents: read
 
 jobs:
+  prepare-wordle:
+    name: Build expanded Russian Wordle dictionary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Cache source dictionaries
+        uses: actions/cache@v4
+        with:
+          path: .cache/wordle
+          key: qqcross-wordle-source-v1
+      - name: Build Wordle dictionary
+        run: python scripts/build_wordle_dictionary.py
+      - name: Upload generated Wordle dictionary
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordle-dictionary
+          path: data/wordle-words.json
+          retention-days: 1
+
   e2e:
-    name: ${{ matrix.project }}
+    name: \${{ matrix.project }}
+    needs: prepare-wordle
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -22,37 +48,38 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
-
+      - name: Download generated Wordle dictionary
+        uses: actions/download-artifact@v4
+        with:
+          name: wordle-dictionary
+          path: data
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
       - name: Install dependencies
         run: npm install
-
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-
       - name: Audit scanword dictionary with Python
         run: python scripts/scanword_audit.py
-
+      - name: Check Wordle dictionary builder
+        run: |
+          python -m py_compile scripts/build_wordle_dictionary.py
+          python scripts/build_wordle_dictionary.py --self-test
       - name: Validate scanword dictionary and generated grids
         run: npm run test:scanword
-
       - name: Run browser tests
-        run: npx playwright test --project=${{ matrix.project }}
-
+        run: npx playwright test --project=\${{ matrix.project }}
       - name: Upload test report and failure artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-${{ matrix.project }}
+          name: playwright-\${{ matrix.project }}
           path: |
             playwright-report/
             test-results/
