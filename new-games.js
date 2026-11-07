@@ -125,7 +125,7 @@ function mountWheel(root,onExit,words){
  }
  wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;dragging=true;dragPath=true;selected=[+b.dataset.index];refresh();});
  wheel.addEventListener("pointerenter",e=>{if(!dragging)return;const b=e.target.closest("[data-index]");if(!b)return;const i=+b.dataset.index;if(!selected.includes(i))selected.push(i);refresh();},true);
- const stop=()=>{if(!dragging)return;dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}dragPath=false;};
+ const stop=()=>{if(!dragging)return;dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}else{selected=[];refresh();}dragPath=false;};
  wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
  wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
  root.querySelector("#qqWheelSubmit").onclick=submit;
