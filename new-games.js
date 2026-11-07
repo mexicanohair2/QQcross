@@ -102,7 +102,8 @@ function mountWheel(root,onExit,words){
  }
  if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);const layout=layoutWords(candidates,13);puzzle={seed,layout,words:layout.placed.map(p=>p.word)};}
  let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false;
- const body='<p class="qq-extra-sub">Соединяй буквы в круге, находи все спрятанные слова и открывай кроссворд.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+[...puzzle.seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("")+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. За дополнительные слова начисляются бонусы.</p>';
+ const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
+ const body='<p class="qq-extra-sub">Соединяй буквы в круге, находи все спрятанные слова и открывай кроссворд.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. Перемешивай круг и находи все слова.</p>';
  shell(root,"Word of Wonders",onExit,body);
  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
  function refresh(){answer.textContent=selected.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",selected.includes(+b.dataset.index)));}
@@ -122,7 +123,7 @@ function mountWheel(root,onExit,words){
  wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
  root.querySelector("#qqWheelSubmit").onclick=submit;
  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
- root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);wheel.innerHTML=letters.map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("");puzzle.seed=letters.join("");selected=[];refresh();};
+ root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);puzzle.seed=letters.join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
  refresh();
 }
 async function loadClues(){
