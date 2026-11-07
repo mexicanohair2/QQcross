@@ -55,3 +55,25 @@ test("keeps the landing page within the emulated device width", async ({ page })
   }));
   expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
+
+test("opens the Russian Wordle from the bottom of the home page and supports a five-letter guess", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await expect(page.locator("#playWordle")).toBeVisible();
+  await page.locator("#playWordle").click();
+  await expect(page.locator(".wordle-screen")).toBeVisible();
+  await expect(page.locator(".wordle-tile")).toHaveCount(30);
+  await expect(page.locator(".wordle-key")).not.toHaveCount(0);
+  await expect(page.locator(".wordle-message")).not.toContainText("Не удалось загрузить словарь");
+  for (const letter of ["Б","А","Н","А","Н"]) {
+    await page.locator('.wordle-key[data-key="' + letter + '"]').click();
+  }
+  await page.locator('.wordle-key[data-key="ENTER"]').click();
+  await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
+  await page.locator("#wordleBack").click();
+  await expect(page.locator("#playWordle")).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
