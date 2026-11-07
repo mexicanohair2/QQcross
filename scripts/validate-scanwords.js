@@ -109,4 +109,4 @@ for (let i = 0; i < dictionary.length; i++) {
   if (!answer || answer.length > 12 || !clue) fail(`Dictionary entry ${i + 1} is incomplete or outside the 1–12 letter range`);
   else valid++;
 }
-if (!process.exitCode) console.log(`Validated ${valid} dictionary entries and all five picture clue assets.`);
+if (!process.exitCode) console.log(`Validated ${valid} dictionary entries and all ${Object.keys(expectedPictures).length} unique picture clue assets.`);
