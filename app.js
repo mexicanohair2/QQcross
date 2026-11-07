@@ -304,7 +304,7 @@ async function lookupEncyclopediaWord(word){
   const a=result.article;
   const stress=result.stress?'<p class="qq-word-stress">Ударение по Викисловарю: <b>'+esc(result.stress)+'</b></p>':'';
   const related=(a.related||[]).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join("");
-  out.innerHTML=correction+'<h3>'+esc(a.title)+'</h3>'+stress+'<p class="qq-encyclopedia-extract">'+esc(a.extract||"В статье нет краткого описания.")+'</p><div class="qq-related"><b>Связанные понятия</b><div class="qq-word-chips">'+(related||'<span class="muted small">Связанные понятия не найдены.</span>')+'</div></div><a class="qq-wiki-link" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">Открыть полную статью в Википедии ↗</a>';
+  out.innerHTML=correction+'<h3>'+esc(a.title)+'</h3>'+stress+'<p class="qq-encyclopedia-extract">'+esc(a.extract||"В статье нет краткого описания.")+'</p><div class="qq-related"><b>Связанные понятия</b><div class="qq-word-chips">'+(related||'<span class="muted small">Связанные понятия не найдены.</span>')+'</div></div><a class="qq-wiki-link" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">Открыть полную статью в '+esc(a.sourceLabel||"Википедии")+' ↗</a>';
   out.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));
  }catch(e){if(out.isConnected)out.innerHTML='<p class="muted">Не удалось получить статью. Проверь подключение и попробуй ещё раз.</p>'}
 }
