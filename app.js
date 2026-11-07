@@ -807,7 +807,7 @@ function buildScanword(entries,attemptLimit=16){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:crosses*18-newCells*2+Math.min(crosses,4)*4+length*.08-at.length*3+(entry.imageKey?1000:0)+Math.random()*3});
+              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
             }
           }
         }
@@ -818,12 +818,12 @@ function buildScanword(entries,attemptLimit=16){
       const pick=pool[Math.floor(Math.random()*pool.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
-    // Repair residual gaps only with words that genuinely cross existing letters.
-    // This keeps every added word in the same connected scanword component.
+    // Repair the remaining board globally: exhaust every multi-letter placement
+    // before using a one-letter fallback. The old first-fit loop could insert a
+    // single-letter answer at an early clue even when a longer fit existed elsewhere.
     let closing=true;
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
-      const remaining=TOTAL-occupied.size-clueAt.size;
       const anchors=[];
       clueAt.forEach((list,key)=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
@@ -832,39 +832,64 @@ function buildScanword(entries,attemptLimit=16){
         const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
+      let bestOption=null;
+      const singleOptions=[];
       for(const anchor of anchors){
-        if(closing)break;
-        for(let di=0;di<4&&!closing;di++){
+        const at=anchor.list;
+        if(at.length>=4||at.some(w=>w.imageKey))continue;
+        for(let di=0;di<4;di++){
           const dir=dirs[di];
-          if(anchor.list.some(w=>w.dir===dir.name))continue;
+          if(at.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
-          for(let length=max;length>=1;length--){
-            const cells=[];let valid=true,crosses=0;
+          for(let length=max;length>=2;length--){
+            const cells=[];let valid=true,crosses=0,newCells=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
               if(yy<0||xx<0||yy>=N||xx>=N||clueAt.has(key)){valid=false;break}
-              if(occupied.has(key))crosses++;
+              if(occupied.has(key))crosses++;else newCells++;
               cells.push([yy,xx]);
             }
-            if(!valid||(!crosses&&!(length===1&&anchor.existing)))continue;
+            if(!valid||!crosses||(anchor.existing&&newCells===0))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             cells.forEach((cell,k)=>{
               const old=occupied.get(cell.join(","));
               if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
             });
-            if(length===1&&!crosses&&anchor.existing){for(const bucket of positions[0].values())for(const entry of bucket)possible.add(entry)}
-            const pool=[...possible].filter(entry=>!used.has(entry.key)&&cells.every((cell,k)=>{
-              const old=occupied.get(cell.join(","));
-              return old===undefined||old===entry.answer[k];
-            }));
-            if(!pool.length)continue;
-            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));
-            const entry=pool[0];
-            // A one-cell answer is allowed only here, after every longer fit has failed.
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1)){closing=true;break}
+            for(const entry of possible){
+              if(used.has(entry.key))continue;
+              if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3||at.length>0))continue;
+              if(!entry.imageKey&&at.some(w=>w.imageKey))continue;
+              let matches=true;
+              for(let k=0;k<length;k++){
+                const old=occupied.get(cells[k].join(","));
+                if(old!==undefined&&old!==entry.answer[k]){matches=false;break}
+              }
+              if(!matches)continue;
+              const score=newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)-at.length*2+Math.random()*3;
+              if(!bestOption||score>bestOption.score)bestOption={entry,y:anchor.y,x:anchor.x,di,score};
+            }
+          }
+          // Save one-letter options, but do not use them while any longer word fits anywhere.
+          if(anchor.existing&&max>=1){
+            const yy=anchor.y+dir.dy,xx=anchor.x+dir.dx,key=yy+","+xx;
+            if(yy>=0&&xx>=0&&yy<N&&xx<N&&!occupied.has(key)&&!clueAt.has(key)){
+              const positions=byLength.get(1);
+              if(positions)for(const bucket of positions[0].values())for(const entry of bucket){
+                if(used.has(entry.key)||entry.imageKey)continue;
+                singleOptions.push({entry,y:anchor.y,x:anchor.x,di,score:Math.random()});
+              }
+            }
           }
         }
+      }
+      if(bestOption){
+        if(addWord(bestOption.entry,bestOption.y,bestOption.x,bestOption.di,"w"+words.length)){closing=true;continue}
+      }
+      if(singleOptions.length){
+        singleOptions.sort((a,b)=>b.score-a.score);
+        const fallback=singleOptions[0];
+        if(addWord(fallback.entry,fallback.y,fallback.x,fallback.di,"w"+words.length,false,true))closing=true;
       }
     }
     const coverage=occupied.size+clueAt.size;
