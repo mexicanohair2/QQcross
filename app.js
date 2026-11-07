@@ -95,14 +95,17 @@ function renderDaily(root){
   window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
  };
 }
-function startDailyScanword(d){
- const original=Math.random;
+async function startDailyScanword(d){
  try{
-  Math.random=window.QQProgression.randomFor(d.scanwordSeed);
-  try{preparedScanword=buildScanword(getScanwordDictionary())}finally{Math.random=original}
+  if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length)await preloadScanwordDictionary();
+  if(scanwordPreparePromise)await scanwordPreparePromise;
+  const original=Math.random;
+  try{Math.random=window.QQProgression.randomFor(d.scanwordSeed);preparedScanword=buildScanword(getScanwordDictionary())}
+  finally{Math.random=original}
   if(!preparedScanword)throw new Error("Не удалось подготовить ежедневное поле");
-  state.dailyMode=true;state.dailyScanwordDate=d.date;state.progressRecorded=false;state.screen="";begin(1);
- }catch(e){Math.random=original;toast(e.message||"Не удалось открыть ежедневный сканворд")}
+  state.screen="";
+  await begin(1,false,{date:d.date,completed:!!d.completed?.scanword});
+ }catch(e){toast(e.message||"Не удалось открыть ежедневный сканворд")}
 }
 let progressRewardApplyPromise=null;
 async function applyProgressRewards(){
@@ -596,7 +599,7 @@ function checkWords(){
   const newlyCompleted=[];
   puzzle.words.forEach(w=>{
     if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){
-      state.completed.add(w.id);newlyCompleted.push(w);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
+      state.completed.add(w.id);newlyCompleted.push(w);window.QQProgression?.recordWord?.(w.answer);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
   if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
@@ -1173,7 +1176,7 @@ async function runChatGPTTurn(root,turnKey){
   }
 }
 
-async function begin(size=1,chatGPT=false){
+async function begin(size=1,chatGPT=false,dailyChallenge=null){
   const qqDebugTiming=new URLSearchParams(location.search).has("debugTiming");
   const qqStartTime=performance.now();
   let qqGenerationMs=0;
@@ -1194,7 +1197,7 @@ async function begin(size=1,chatGPT=false){
     }
     qqGenerationMs=performance.now()-qqStartTime;
     if(!loaded)throw lastError||new Error("Не удалось собрать полностью заполненное поле 15×15. Попробуй ещё раз.");
-    state.screen="game";state.progressRecorded=false;state.partySize=size;state.aiMatch=!!chatGPT;state.aiThinkingTurn=null;state.aiError="";state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
+    state.screen="game";state.dailyMode=!!dailyChallenge;state.dailyScanwordDate=dailyChallenge?.date||null;state.progressRecorded=!!dailyChallenge?.completed;state.partySize=size;state.aiMatch=!!chatGPT;state.aiThinkingTurn=null;state.aiError="";state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];ensureWordLetter(0);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();if(qqDebugTiming)window.__qqcrossTiming={generationMs:Math.round(qqGenerationMs),totalMs:Math.round(performance.now()-qqStartTime)};if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
