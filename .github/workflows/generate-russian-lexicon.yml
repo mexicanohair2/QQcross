@@ -1,11 +1,6 @@
 name: Build 100,000-word Russian lexicon
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/build_russian_lexicon.py'
-      - '.github/workflows/generate-russian-lexicon.yml'
   workflow_dispatch:
 
 permissions:
@@ -20,18 +15,18 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Build and validate lexicon
-        run: python scripts/build_russian_lexicon.py
-      - name: Validate exact word count and uniqueness
-        run: python -c "import json,re; d=json.load(open('data/russian-words-100000.json',encoding='utf-8')); w=d['words']; assert d['count']==100000 and len(w)==100000 and len(set(w))==100000 and all(re.fullmatch(r'[А-Я]{2,18}',x) for x in w); print('100,000 unique Cyrillic words: OK')"
-      - name: Commit generated lexicon
+      - name: Build and validate the 100k lexicon
         run: |
-          if git diff --quiet -- data/russian-words-100000.json; then
-            echo "100k lexicon is already up to date."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python scripts/build_russian_lexicon.py
+          python scripts/validate_russian_lexicon.py
+      - name: Commit generated dictionary
+        run: |
           git add data/russian-words-100000.json
-          git commit -m "Build 100,000-word Russian lexicon"
-          git push
+          if git diff --cached --quiet; then
+            echo "The 100k lexicon is already current."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Build 100,000-word Russian lexicon"
+            git push
+          fi
