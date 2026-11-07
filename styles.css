@@ -1198,3 +1198,7 @@ html[data-qq-ambience="sakura"] body::before{content:"";position:fixed;inset:-15
 @keyframes qqPetals{from{background-position:0 -180px,0 -100px,0 -220px,0 -80px}to{background-position:90px 110vh,-80px 120vh,130px 105vh,-100px 115vh}}
 @media(prefers-reduced-motion:reduce){html[data-qq-ambience="forest"] .home-hero::after,html[data-qq-ambience="sakura"] body::before{animation:none!important}}
 @media(max-width:360px){.ambience-list{gap:5px}.ambience-choice{padding:7px 3px}.ambience-choice small{font-size:8px}}
+
+.qq-forest-hat{position:absolute;right:27px;bottom:43px;z-index:3;font-size:15px;transform:rotate(-13deg);filter:saturate(.7);pointer-events:none}
+.qq-forest-hat::after{content:"";position:absolute;right:0;top:13px;width:18px;height:1.5px;border-radius:2px;background:#394047;transform:rotate(17deg);opacity:.8}
+.qq-straw-hat{font-size:12px;vertical-align:middle;opacity:.82}
