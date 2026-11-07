@@ -101,3 +101,23 @@ test("discovered words are normalized and counted only once", async ({ page }) =
   expect(result.count).toBe(1);
   expect(result.words).toContain("ЕЛКА");
 });
+
+
+test("one hundred distinct progression titles unlock from the first scanword milestone", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    const names = p.TITLE_NAMES;
+    p.record("scanwords", 5);
+    return {
+      total: names.length,
+      unique: new Set(names).size,
+      firstUnlocked: p.get().titles.includes(names[0]),
+      defaultTitle: p.get().activeTitle
+    };
+  });
+  expect(result.total).toBe(100);
+  expect(result.unique).toBe(100);
+  expect(result.firstUnlocked).toBe(true);
+  expect(result.defaultTitle).toBe("Новичок");
+});
