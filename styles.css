@@ -821,3 +821,26 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 .qq-cody-finish .btn{margin-top:8px}
 @media(max-width:390px){.qq-cody-group-grid{gap:7px}.qq-cody-group{padding:10px;min-height:118px}.qq-cody-group>b{font-size:12px}.qq-cody-question>p{font-size:14px}.qq-cody-question-item{grid-template-columns:25px minmax(0,1fr) auto;padding:7px;gap:6px}.qq-cody-question-short{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.qq-cody-cell,.qq-cody-group,.qq-cody-level{transition:none!important}}
+
+
+/* CodyCross layout: straight horizontal answer rows with their clues beside the grid. */
+.qq-cody-board-wrap{width:100%;overflow-x:auto;overscroll-behavior-x:contain;padding:4px 0 12px;scrollbar-width:thin}
+.qq-cody-board{width:max(100%,420px);max-width:760px;margin:0 auto;display:grid;gap:5px}
+.qq-cody-row{display:grid;grid-template-columns:minmax(0,1fr) 126px;gap:8px;align-items:stretch;min-height:31px}
+.qq-cody-answer-row{min-width:0;display:grid;grid-template-columns:repeat(13,minmax(0,1fr));grid-auto-rows:clamp(27px,5.2vw,39px);gap:2px;align-items:stretch}
+.qq-cody-answer-row .qq-cody-cell{width:100%;height:100%;min-width:0;aspect-ratio:auto;border-radius:3px;font-size:clamp(11px,2.9vw,18px)}
+.qq-cody-answer-row .qq-cody-empty-cell{min-width:0;aspect-ratio:auto}
+.qq-cody-side-clue{min-width:0;padding:5px 7px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:3px;border:1px solid #594a67;border-radius:8px;background:linear-gradient(145deg,#292235,#1c1725);color:#f3edf8;text-align:left;overflow-wrap:anywhere}
+.qq-cody-side-clue>span{font-size:8px;letter-spacing:.08em;color:#bca8d1;font-weight:900}
+.qq-cody-side-clue>p{margin:0;font-size:10px;line-height:1.2;font-weight:700;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.qq-cody-side-clue>b{font-size:8px;color:#b7a9c5;white-space:nowrap}
+.qq-cody-side-clue.active{border-color:#d3b9ed;background:linear-gradient(145deg,#40324e,#2b2136);box-shadow:inset 0 0 0 1px #927baa}
+.qq-cody-side-clue.done{border-color:#4c765b;background:linear-gradient(145deg,#263b30,#1c2b24)}
+.qq-cody-row.active .qq-cody-answer-row .qq-cody-cell:not(.secret){border-color:#9b83b4}
+@media(max-width:390px){
+ .qq-cody-board{width:max(100%,410px)}
+ .qq-cody-row{grid-template-columns:minmax(0,1fr) 116px;gap:6px}
+ .qq-cody-answer-row{grid-auto-rows:27px;gap:1px}
+ .qq-cody-side-clue{padding:4px 5px}
+ .qq-cody-side-clue>p{font-size:9px;-webkit-line-clamp:3}
+}
