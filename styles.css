@@ -1026,3 +1026,63 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 @media(max-width:390px){.qq-cody-app.qq-cody-playing{padding-left:4px!important;padding-right:4px!important}.qq-cody-app.qq-cody-playing .qq-cody-play-layout{grid-template-columns:minmax(0,44%) minmax(0,56%)!important;gap:3px!important}.qq-cody-app.qq-cody-playing .qq-cody-question-side .qq-cody-question{padding:5px!important}.qq-cody-app.qq-cody-playing .qq-cody-question-item{grid-template-columns:16px minmax(0,1fr) auto!important;padding:3px 2px!important;gap:2px!important}.qq-cody-app.qq-cody-playing .qq-cody-question-index{width:15px!important;height:15px!important;font-size:8px!important}}
 @media(max-height:680px){.qq-cody-app.qq-cody-playing>.qq-extra-top{min-height:25px!important;padding:2px 0!important}.qq-cody-app.qq-cody-playing .qq-cody-secret-wrap{padding:2px 5px!important}.qq-cody-app.qq-cody-playing .qq-cody-question-side .qq-cody-question>p{font-size:10px!important}.qq-cody-app.qq-cody-playing .qq-cody-key-row button{height:24px!important}.qq-cody-app.qq-cody-playing .qq-cody-key-row.special button{height:23px!important}.qq-cody-app.qq-cody-playing .qq-cody-tools .btn{min-height:23px!important;padding:2px 4px!important}.qq-cody-app.qq-cody-playing .qq-cody-message{min-height:10px!important}}
 @media(orientation:landscape) and (max-height:520px){.qq-cody-app.qq-cody-playing .qq-cody-secret-wrap{display:none!important}.qq-cody-app.qq-cody-playing .qq-cody-play-layout{grid-template-columns:minmax(0,40%) minmax(0,60%)!important}.qq-cody-app.qq-cody-playing .qq-cody-key-row button{height:22px!important}}
+
+
+/* CodyCross reference layout: every clue is paired with its own answer row. */
+.qq-cody-app.qq-cody-playing .qq-cody-play-layout{
+ display:flex!important;flex:1 1 0!important;flex-direction:column!important;gap:2px!important;
+ min-height:0!important;overflow:hidden!important;width:100%!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row{
+ display:grid!important;grid-template-columns:minmax(0,44%) minmax(0,56%)!important;
+ gap:3px!important;align-items:stretch!important;flex:1 1 0!important;min-height:0!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-clue{
+ display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:stretch!important;
+ min-width:0!important;min-height:0!important;overflow:hidden!important;padding:3px 5px!important;
+ border:1px solid #514568!important;border-radius:4px!important;
+ background:linear-gradient(145deg,#292235,#1b1725)!important;color:#eee7f4!important;text-align:left!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-clue.active{
+ border-color:#a88acb!important;background:linear-gradient(145deg,#403052,#292039)!important;
+ box-shadow:inset 0 0 0 1px #8d72ad!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-clue.done{
+ border-color:#547d61!important;background:linear-gradient(145deg,#263d30,#1b2921)!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-meta{
+ display:flex!important;justify-content:space-between!important;align-items:center!important;gap:3px!important;
+ margin-bottom:2px!important;color:#bca8d1!important;font-size:8px!important;line-height:1!important;letter-spacing:.04em!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-meta b{font-size:9px!important;color:#eee4f6!important}
+.qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{
+ display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;
+ overflow:hidden!important;overflow-wrap:anywhere!important;font-size:clamp(8px,2.15vw,10px)!important;
+ line-height:1.12!important;font-weight:700!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-cells{
+ display:grid!important;grid-template-columns:repeat(9,minmax(0,1fr))!important;
+ align-items:center!important;justify-items:stretch!important;gap:1px!important;
+ min-width:0!important;min-height:0!important;overflow:hidden!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-cells .qq-cody-cell{
+ width:100%!important;height:auto!important;min-width:0!important;aspect-ratio:1/1!important;
+ padding:0!important;border-radius:3px!important;font-size:clamp(9px,2.7vw,14px)!important;
+}
+.qq-cody-app.qq-cody-playing .qq-cody-row-cells .qq-cody-empty-cell{
+ display:block!important;width:100%!important;height:auto!important;aspect-ratio:1/1!important;
+}
+@media(max-width:390px){
+ .qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,43%) minmax(0,57%)!important;gap:2px!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue{padding:2px 3px!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{font-size:clamp(7px,2.05vw,9px)!important;line-height:1.08!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-cells .qq-cody-cell{font-size:clamp(8px,2.5vw,12px)!important}
+}
+@media(max-height:680px){
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue{padding:2px 3px!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-meta{font-size:7px!important;margin-bottom:1px!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{-webkit-line-clamp:2!important;font-size:8px!important}
+}
+@media(orientation:landscape) and (max-height:520px){
+ .qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,40%) minmax(0,60%)!important}
+}
