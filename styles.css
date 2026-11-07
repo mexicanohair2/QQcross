@@ -888,8 +888,8 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
   overflow:hidden!important;
 }
 .scanword-board{
-  width:min(100%,100dvh - 180px)!important;
-  height:min(100%,100dvh - 180px)!important;
+  width:min(100%,calc(100dvh - 180px))!important;
+  height:min(100%,calc(100dvh - 180px))!important;
   max-width:100%!important;max-height:100%!important;
   min-width:0!important;min-height:0!important;aspect-ratio:1/1!important;
   margin:auto!important;flex:0 1 auto!important;
