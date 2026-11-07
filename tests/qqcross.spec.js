@@ -128,18 +128,36 @@ test("opens the letter-wheel crossword game and accepts letter selection", async
   expect(errors).toEqual([]);
 });
 
-test("opens Cody-style crosswords with a magnifier and a compact hint", async ({ page }) => {
+test("opens the rebuilt Cody-style crossword with a real secret column, level map and letter keyboard", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="cody"]').click();
-  await expect(page.locator(".qq-cody-clue").first()).toBeVisible();
+  await expect(page.locator(".qq-cody-world")).toBeVisible();
+  await expect(page.locator(".qq-cody-group")).toHaveCount(20);
+  await page.locator('[data-group="0"]').click();
+  await expect(page.locator(".qq-cody-level")).toHaveCount(5);
+  await page.locator('[data-level="0"]').click();
+  await expect(page.locator(".qq-cody-board")).toBeVisible();
+  await expect(page.locator(".qq-cody-cell.secret")).toHaveCount(4, { timeout: 5_000 });
+  await expect(page.locator(".qq-cody-secret span")).toHaveCount(4);
+  await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(32);
+  await expect(page.locator(".qq-cody-question")).toBeVisible();
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
+  await expect(page.locator("input")).toHaveCount(0);
+  await page.locator('.qq-cody-key-row button[data-letter="А"]').click();
+  await expect(page.locator(".qq-cody-cell.cursor")).toHaveText("А");
+  await page.locator('.qq-cody-key-row button[data-action="delete"]').click();
+  await expect(page.locator(".qq-cody-cell.cursor")).not.toHaveText("А");
   await page.locator("#qqCodyLoupe").click();
-  await page.locator("#qqCodyHint").click();
+  await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(1);
+  await page.locator("#qqCodyBack").click();
+  await expect(page.locator(".qq-cody-level")).toHaveCount(5);
+  await page.locator("#qqCodyBack").click();
+  await expect(page.locator(".qq-cody-group")).toHaveCount(20);
   expect(errors).toEqual([]);
 });
 
