@@ -564,7 +564,7 @@ function compactScanwordClue(value){
 function fitScanwordClue(value){
   return compactScanwordClue(value);
 }
-const SCANWORD_IMAGE_KEYS=new Set(["tomato","apple","cat","bicycle","clock","pear","orange","strawberry","grapes","watermelon","carrot","mushroom","sunflower","sun","cloud","house","car","bus","airplane","boat","book","key","cup","ball","guitar","dog","fish","elephant","turtle"]);
+const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
@@ -651,7 +651,7 @@ function buildScanword(entries){
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length!==5)return null;
+    if(pictureSeeds.length<8)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
@@ -771,7 +771,7 @@ function buildScanword(entries){
     }
     if(result?.coverage===TOTAL&&imageCount===8)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==5)throw new Error("Не удалось собрать полностью заполненный сканворд с пятью картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/5). Повтори генерацию.");
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==8)throw new Error("Не удалось собрать полностью заполненный сканворд с восемью разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/8). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
