@@ -33,7 +33,7 @@ def main() -> None:
     wordle = json.loads((ROOT / "data/wordle-words.json").read_text(encoding="utf-8"))
     scanword = json.loads((ROOT / "data/scanword-dictionary.json").read_text(encoding="utf-8"))
     required_wordle = {norm(w) for w in wordle.get("valid", []) if norm(w) and norm(w) not in BAD and not TRIPLE.search(norm(w))}
-    required_scanword = {norm(x.get("answer")) for x in scanword if isinstance(x, dict) and norm(x.get("answer")) and norm(x.get("answer")) not in BAD and not TRIPLE.search(norm(x.get("answer")))}
+    required_scanword = {norm(x.get("answer")) for x in scanword if isinstance(x, dict) and WORD.fullmatch(norm(x.get("answer"))) and norm(x.get("answer")) not in BAD and not TRIPLE.search(norm(x.get("answer")))}
     missing = (required_wordle | required_scanword) - lexicon
     if missing:
         raise SystemExit(f"Потеряны слова из игровых словарей: {sorted(missing)[:20]}")
