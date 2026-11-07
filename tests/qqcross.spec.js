@@ -164,6 +164,43 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
+test("difficulty grows through level 1000 in Word of Wonders and word search", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.evaluate(() => {
+    localStorage.setItem("qqcross.wow.unlocked.v1", "1000");
+    localStorage.setItem("qqcross.search.unlocked.v1", "1000");
+  });
+  await page.reload();
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+
+  await page.locator('[data-extra-game="wheel"]').click();
+  await page.locator('[data-level="20"]').click();
+  await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
+  await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
+  await page.locator(".qq-extra-top [data-exit]").click();
+  await page.locator('[data-level="1000"]').click();
+  await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "25");
+  await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ (2[6-9]|30)/);
+  const wowFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqWheelBoard").getBoundingClientRect().bottom }));
+  expect(wowFit.bottom).toBeLessThanOrEqual(wowFit.h + 1);
+  expect(wowFit.s).toBeLessThanOrEqual(wowFit.h + 1);
+
+  await page.locator(".qq-extra-top [data-exit]").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="20"]').click();
+  await expect(page.locator(".qq-search-cell")).toHaveCount(324);
+  await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
+  await page.locator(".qq-extra-top [data-exit]").click();
+  await page.locator('[data-level="1000"]').click();
+  await expect(page.locator(".qq-search-cell")).toHaveCount(625);
+  await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (2[4-9]|30)/);
+  const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
+  expect(searchFit.bottom).toBeLessThanOrEqual(searchFit.h + 1);
+  expect(searchFit.s).toBeLessThanOrEqual(searchFit.h + 1);
+});
+
 test("opens the rebuilt Cody-style crossword with a real secret column, level map and letter keyboard", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
