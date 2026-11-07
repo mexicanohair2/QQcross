@@ -1246,3 +1246,80 @@ html[data-qq-ambience="sakura"] body::before{content:"";position:fixed;inset:-15
  .qq-daily-task{grid-template-columns:36px minmax(0,1fr) auto;padding:12px}
  .qq-daily-task-icon{width:34px;height:34px}
 }
+
+
+/* 50 hand-tuned nature and abstract backgrounds; no city or metallic textures */
+html[data-qq-background="misty-forest"],.background-preview[data-background-preview="misty-forest"]{--qq-bg-a:#20372f;--qq-bg-b:#516d64;--qq-bg-c:#a4b8aa}
+html[data-qq-background="sakura-dawn"],.background-preview[data-background-preview="sakura-dawn"]{--qq-bg-a:#563d57;--qq-bg-b:#c08da9;--qq-bg-c:#f0d8e2}
+html[data-qq-background="starry-night"],.background-preview[data-background-preview="starry-night"]{--qq-bg-a:#0b102a;--qq-bg-b:#26345c;--qq-bg-c:#5d5a8d}
+html[data-qq-background="autumn-grove"],.background-preview[data-background-preview="autumn-grove"]{--qq-bg-a:#4b2f25;--qq-bg-b:#936341;--qq-bg-c:#d3a56e}
+html[data-qq-background="winter-pines"],.background-preview[data-background-preview="winter-pines"]{--qq-bg-a:#152b3c;--qq-bg-b:#3f6275;--qq-bg-c:#c4d7e2}
+html[data-qq-background="mountain-lake"],.background-preview[data-background-preview="mountain-lake"]{--qq-bg-a:#183b49;--qq-bg-b:#4d8190;--qq-bg-c:#b0d0d3}
+html[data-qq-background="ocean-shore"],.background-preview[data-background-preview="ocean-shore"]{--qq-bg-a:#0d3b53;--qq-bg-b:#2c7c8e;--qq-bg-c:#8db9b5}
+html[data-qq-background="lavender-field"],.background-preview[data-background-preview="lavender-field"]{--qq-bg-a:#473d69;--qq-bg-b:#8c80b4;--qq-bg-c:#c5bad7}
+html[data-qq-background="mossy-stones"],.background-preview[data-background-preview="mossy-stones"]{--qq-bg-a:#293b32;--qq-bg-b:#5f765f;--qq-bg-c:#9aa17c}
+html[data-qq-background="moonlit-meadow"],.background-preview[data-background-preview="moonlit-meadow"]{--qq-bg-a:#1d2638;--qq-bg-b:#42516a;--qq-bg-c:#7f8ba0}
+html[data-qq-background="spring-rain"],.background-preview[data-background-preview="spring-rain"]{--qq-bg-a:#1f4750;--qq-bg-b:#528d8a;--qq-bg-c:#c0d7d2}
+html[data-qq-background="golden-dusk"],.background-preview[data-background-preview="golden-dusk"]{--qq-bg-a:#493629;--qq-bg-b:#a56e42;--qq-bg-c:#e6bd7b}
+html[data-qq-background="cloud-sea"],.background-preview[data-background-preview="cloud-sea"]{--qq-bg-a:#3a5064;--qq-bg-b:#7c9aab;--qq-bg-c:#d4e1e7}
+html[data-qq-background="pine-valley"],.background-preview[data-background-preview="pine-valley"]{--qq-bg-a:#142d2c;--qq-bg-b:#365d4e;--qq-bg-c:#78917a}
+html[data-qq-background="coral-sunset"],.background-preview[data-background-preview="coral-sunset"]{--qq-bg-a:#563a4c;--qq-bg-b:#b36f73;--qq-bg-c:#efb08a}
+html[data-qq-background="snowy-hills"],.background-preview[data-background-preview="snowy-hills"]{--qq-bg-a:#273e52;--qq-bg-b:#6c8ca0;--qq-bg-c:#d8e6ec}
+html[data-qq-background="fern-shade"],.background-preview[data-background-preview="fern-shade"]{--qq-bg-a:#1d3c34;--qq-bg-b:#527a62;--qq-bg-c:#a5b49a}
+html[data-qq-background="river-fog"],.background-preview[data-background-preview="river-fog"]{--qq-bg-a:#243b4a;--qq-bg-b:#597b88;--qq-bg-c:#b3c5c6}
+html[data-qq-background="desert-dawn"],.background-preview[data-background-preview="desert-dawn"]{--qq-bg-a:#5a4237;--qq-bg-b:#a87b59;--qq-bg-c:#e0c29a}
+html[data-qq-background="wildflower"],.background-preview[data-background-preview="wildflower"]{--qq-bg-a:#3f3c62;--qq-bg-b:#8c7da4;--qq-bg-c:#c7a8bb}
+html[data-qq-background="moon-snow"],.background-preview[data-background-preview="moon-snow"]{--qq-bg-a:#18223b;--qq-bg-b:#3e5175;--qq-bg-c:#9da9c8}
+html[data-qq-background="waterfall"],.background-preview[data-background-preview="waterfall"]{--qq-bg-a:#143d47;--qq-bg-b:#3f7f83;--qq-bg-c:#a2c6bb}
+html[data-qq-background="autumn-leaves"],.background-preview[data-background-preview="autumn-leaves"]{--qq-bg-a:#533b2b;--qq-bg-b:#a66e39;--qq-bg-c:#dfae64}
+html[data-qq-background="night-garden"],.background-preview[data-background-preview="night-garden"]{--qq-bg-a:#172b2c;--qq-bg-b:#39514b;--qq-bg-c:#6f8b7b}
+html[data-qq-background="aurora"],.background-preview[data-background-preview="aurora"]{--qq-bg-a:#142a3c;--qq-bg-b:#3a6474;--qq-bg-c:#8c91b6}
+html[data-qq-background="amethyst-waves"],.background-preview[data-background-preview="amethyst-waves"]{--qq-bg-a:#25143b;--qq-bg-b:#6b3e9a;--qq-bg-c:#b18bea}
+html[data-qq-background="lilac-haze"],.background-preview[data-background-preview="lilac-haze"]{--qq-bg-a:#342744;--qq-bg-b:#7c5b98;--qq-bg-c:#c1a8d8}
+html[data-qq-background="blue-orbits"],.background-preview[data-background-preview="blue-orbits"]{--qq-bg-a:#102a4a;--qq-bg-b:#336f9d;--qq-bg-c:#9dc9e6}
+html[data-qq-background="rose-quartz"],.background-preview[data-background-preview="rose-quartz"]{--qq-bg-a:#4a2c45;--qq-bg-b:#98617d;--qq-bg-c:#e5b4ca}
+html[data-qq-background="northern-ribbons"],.background-preview[data-background-preview="northern-ribbons"]{--qq-bg-a:#143344;--qq-bg-b:#2e7a75;--qq-bg-c:#8bc6a9}
+html[data-qq-background="cosmic-dust"],.background-preview[data-background-preview="cosmic-dust"]{--qq-bg-a:#14122e;--qq-bg-b:#4a3a7e;--qq-bg-c:#9b8bd3}
+html[data-qq-background="pastel-clouds"],.background-preview[data-background-preview="pastel-clouds"]{--qq-bg-a:#3d4566;--qq-bg-b:#8598c0;--qq-bg-c:#e1d6e7}
+html[data-qq-background="soft-circles"],.background-preview[data-background-preview="soft-circles"]{--qq-bg-a:#2a3150;--qq-bg-b:#5b6e9c;--qq-bg-c:#b0b8d4}
+html[data-qq-background="deep-indigo"],.background-preview[data-background-preview="deep-indigo"]{--qq-bg-a:#11172f;--qq-bg-b:#303b73;--qq-bg-c:#727cc1}
+html[data-qq-background="purple-wave"],.background-preview[data-background-preview="purple-wave"]{--qq-bg-a:#2a1d48;--qq-bg-b:#6e4e9b;--qq-bg-c:#b18dd1}
+html[data-qq-background="mint-mist"],.background-preview[data-background-preview="mint-mist"]{--qq-bg-a:#183b3c;--qq-bg-b:#548f82;--qq-bg-c:#b1d2bf}
+html[data-qq-background="lagoon-glow"],.background-preview[data-background-preview="lagoon-glow"]{--qq-bg-a:#0f3851;--qq-bg-b:#3e8fa4;--qq-bg-c:#9bd3d2}
+html[data-qq-background="peach-light"],.background-preview[data-background-preview="peach-light"]{--qq-bg-a:#563b45;--qq-bg-b:#b87976;--qq-bg-c:#f0c3a4}
+html[data-qq-background="ink-night"],.background-preview[data-background-preview="ink-night"]{--qq-bg-a:#101322;--qq-bg-b:#2a3355;--qq-bg-c:#6876a8}
+html[data-qq-background="glowing-dots"],.background-preview[data-background-preview="glowing-dots"]{--qq-bg-a:#1b1c3a;--qq-bg-b:#55518d;--qq-bg-c:#b5a9d8}
+html[data-qq-background="petal-layers"],.background-preview[data-background-preview="petal-layers"]{--qq-bg-a:#4d2e53;--qq-bg-b:#95638d;--qq-bg-c:#e1afc9}
+html[data-qq-background="lilac-layers"],.background-preview[data-background-preview="lilac-layers"]{--qq-bg-a:#30274f;--qq-bg-b:#6e5c9c;--qq-bg-c:#b6a7d7}
+html[data-qq-background="twilight-gradient"],.background-preview[data-background-preview="twilight-gradient"]{--qq-bg-a:#20213b;--qq-bg-b:#51476e;--qq-bg-c:#aa8eac}
+html[data-qq-background="sea-abstract"],.background-preview[data-background-preview="sea-abstract"]{--qq-bg-a:#123d50;--qq-bg-b:#377c8d;--qq-bg-c:#93c3c3}
+html[data-qq-background="star-vortex"],.background-preview[data-background-preview="star-vortex"]{--qq-bg-a:#10152e;--qq-bg-b:#343d77;--qq-bg-c:#8d84c8}
+html[data-qq-background="warm-amber"],.background-preview[data-background-preview="warm-amber"]{--qq-bg-a:#493225;--qq-bg-b:#9c6338;--qq-bg-c:#e5b26c}
+html[data-qq-background="watercolor"],.background-preview[data-background-preview="watercolor"]{--qq-bg-a:#3e425c;--qq-bg-b:#8991a8;--qq-bg-c:#d9c8d6}
+html[data-qq-background="light-flow"],.background-preview[data-background-preview="light-flow"]{--qq-bg-a:#142f4a;--qq-bg-b:#427e9b;--qq-bg-c:#a6d0d8}
+html[data-qq-background="lavender-space"],.background-preview[data-background-preview="lavender-space"]{--qq-bg-a:#211d43;--qq-bg-b:#594d8d;--qq-bg-c:#b1a1d4}
+html[data-qq-background="quiet-gradient"],.background-preview[data-background-preview="quiet-gradient"]{--qq-bg-a:#25213a;--qq-bg-b:#62597d;--qq-bg-c:#b6a9c9}
+html[data-qq-background] body{background:radial-gradient(ellipse at 14% 12%,var(--qq-bg-c) 0%,transparent 56%),radial-gradient(ellipse at 88% 82%,var(--qq-bg-b) 0%,transparent 58%),linear-gradient(135deg,var(--qq-bg-a),var(--qq-bg-b) 58%,var(--qq-bg-a));background-attachment:fixed}
+.background-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}.background-choice{min-width:0;border:1px solid var(--qq-border,var(--line));border-radius:12px;padding:7px;background:var(--qq-card,var(--panel));color:var(--qq-text,var(--text));text-align:left}.background-choice.selected{border-color:var(--purple);box-shadow:inset 0 0 0 1px var(--purple)}.background-preview{display:block;height:48px;border-radius:8px;margin-bottom:6px;background:radial-gradient(ellipse at 18% 20%,var(--qq-bg-c),transparent 60%),linear-gradient(135deg,var(--qq-bg-a),var(--qq-bg-b))}.background-choice b,.background-choice small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.background-choice b{font-size:11px}.background-choice small{font-size:9px;color:var(--muted);margin-top:2px}
+html[data-qq-font-size="large"]{font-size:18px}html[data-qq-font-size="small"]{font-size:14px}html[data-qq-reduce-motion="true"] *,html[data-qq-reduce-motion="true"] *::before,html[data-qq-reduce-motion="true"] *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+html[data-qq-ambience="autumn"] body::before,html[data-qq-ambience="rain"] body::before,html[data-qq-ambience="fireflies"] body::before,html[data-qq-ambience="stars"] body::before,html[data-qq-ambience="fog"] body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none}
+html[data-qq-ambience="autumn"] body::before{opacity:.32;background-image:radial-gradient(ellipse 5px 3px at 12% 14%,#c77b3c 60%,transparent 72%),radial-gradient(ellipse 5px 3px at 70% 25%,#d9a04d 60%,transparent 72%),radial-gradient(ellipse 4px 3px at 42% 65%,#9c5938 60%,transparent 72%),radial-gradient(ellipse 5px 3px at 88% 78%,#d2a05e 60%,transparent 72%);background-size:220px 180px;animation:qqPetals 19s linear infinite}
+html[data-qq-ambience="rain"] body::before{opacity:.18;background:repeating-linear-gradient(105deg,transparent 0 18px,#a9c8d8 19px,transparent 20px 42px);animation:qqRain 1.2s linear infinite}
+html[data-qq-ambience="fireflies"] body::before{opacity:.45;background-image:radial-gradient(3px 3px at 15% 20%,#d6ef9b 50%,transparent 75%),radial-gradient(2px 2px at 70% 30%,#f1e9a4 50%,transparent 75%),radial-gradient(3px 3px at 42% 70%,#b8e2a0 50%,transparent 75%),radial-gradient(2px 2px at 85% 80%,#f1e9a4 50%,transparent 75%);background-size:250px 210px;animation:qqFireflies 6s ease-in-out infinite alternate}
+html[data-qq-ambience="stars"] body::before{opacity:.38;background-image:radial-gradient(2px 2px at 15% 20%,#fff 55%,transparent 75%),radial-gradient(1px 1px at 70% 30%,#e7dfff 55%,transparent 75%),radial-gradient(2px 2px at 42% 70%,#fff 55%,transparent 75%),radial-gradient(1px 1px at 85% 80%,#e7dfff 55%,transparent 75%);background-size:190px 170px;animation:qqTwinkle 4s ease-in-out infinite alternate}
+html[data-qq-ambience="fog"] body::before{opacity:.22;background:linear-gradient(110deg,transparent 20%,#c7d3d8 48%,transparent 72%);background-size:220% 100%;animation:qqFog 24s ease-in-out infinite alternate}
+@keyframes qqRain{from{background-position:0 -60px}to{background-position:0 260px}}@keyframes qqFireflies{from{opacity:.12;transform:translateY(0)}to{opacity:.5;transform:translateY(-8px)}}@keyframes qqTwinkle{from{opacity:.15}to{opacity:.5}}@keyframes qqFog{from{background-position:0 0}to{background-position:100% 0}}
+.qq-encyclopedia-search form{display:flex;gap:8px;align-items:center}.qq-encyclopedia-search input{min-width:0;flex:1}.qq-encyclopedia-extract{line-height:1.6}.qq-word-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.qq-word-correction{color:var(--muted);font-size:13px}.qq-word-correction button{border:0;background:transparent;color:var(--purple);font-weight:700}.qq-word-stress{font-size:13px;color:var(--muted)}.qq-related{margin:14px 0}.qq-wiki-link{color:var(--purple);font-weight:700;font-size:13px}.qq-achievement{min-width:0}.nav{grid-template-columns:repeat(7,minmax(0,1fr))}@media(max-width:390px){.nav button{font-size:9px;padding:5px 1px}.background-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.qq-encyclopedia-search form{flex-direction:column;align-items:stretch}}
+
+.scanword-smart-hints{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.scanword-smart-hints button{border:1px solid var(--qq-border,var(--line));background:var(--qq-card,var(--panel));color:var(--qq-text,var(--text));border-radius:9px;padding:7px 9px;font-size:11px;font-weight:700}
+.scanword-smart-hints button:active{transform:scale(.97)}
+.scanword-hint-message{min-height:0;margin-top:5px;color:var(--muted);font-size:11px;line-height:1.4}
+.scanword-hint-message:empty{display:none}
+.qq-word-discovery-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.qq-word-discovery-list button{border:1px solid var(--qq-border,var(--line));background:var(--qq-card,var(--panel));color:var(--qq-text,var(--text));border-radius:999px;padding:5px 9px;font-size:11px}
+.qq-encyclopedia-search{padding:14px}
+.qq-encyclopedia-search form{margin:8px 0 12px}
+.qq-encyclopedia-search .input{width:100%}
+.qq-encyclopedia-search #encyclopediaResult{min-height:12px}
+@media(max-width:420px){.scanword-smart-hints button{flex:1;min-width:0}.scanword-hint-message{font-size:10px}.qq-encyclopedia-search form .btn{width:100%}}
