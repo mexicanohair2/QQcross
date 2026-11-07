@@ -107,8 +107,7 @@ function mountWheel(root,onExit,words){
  shell(root,"Word of Wonders",onExit,body);
  root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
- function refresh(){answer.textContent=selected.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",selected.includes(+b.dataset.index)));}
- function addIndex(i){if(i>=0&&!selected.includes(i)){selected.push(i);lastDragIndex=i;refresh();}}
+ function refresh(show=selected){answer.textContent=show.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",show.includes(+b.dataset.index)));}
  function submit(){
   const word=selected.map(i=>puzzle.seed[i]).join("");
   if(!word)return;
@@ -118,13 +117,14 @@ function mountWheel(root,onExit,words){
   else {answer.classList.add("qq-shake");setTimeout(()=>answer.classList.remove("qq-shake"),300);sound("hint");}
   selected=[];lastDragIndex=-1;refresh();
  }
- wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;e.preventDefault();dragging=true;dragPath=true;lastDragIndex=-1;selected=[];addIndex(+b.dataset.index);});
- const track=e=>{if(!dragging)return;const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(b)addIndex(+b.dataset.index);};
- const stop=e=>{if(!dragging)return;track(e);dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}else{selected=[];refresh();}dragPath=false;};
+ wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;dragging=true;dragPath=false;lastDragIndex=+b.dataset.index;dragSelection=[lastDragIndex];});
+ let dragSelection=[];
+ const track=e=>{if(!dragging)return;const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(!b)return;const i=+b.dataset.index;if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i))dragSelection.push(i);refresh(dragSelection);}};
+ const stop=e=>{if(!dragging)return;track(e);dragging=false;if(dragPath&&dragSelection.length>1){selected=[...dragSelection];submit();suppressClick=true;}else refresh();dragPath=false;dragSelection=[];lastDragIndex=-1;};
  document.addEventListener("pointermove",track,{passive:false});
  document.addEventListener("pointerup",stop);
  document.addEventListener("pointercancel",stop);
- wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;e.preventDefault();return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
+ wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
  root.querySelector("#qqWheelSubmit").onclick=submit;
  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
  root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);puzzle.seed=letters.join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
