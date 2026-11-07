@@ -35,7 +35,7 @@ test("profile shows unified progression, a title inventory and daily streak", as
   await expect(page.locator("#qqDailyStreak")).toBeVisible();
   await expect(page.locator("#qqTitleInventory")).toBeVisible();
   await expect(page.locator("#qqAchievements")).toBeVisible();
-  await expect(page.locator(".qq-achievement").count()).resolves.toBeGreaterThanOrEqual(20);
+  expect(await page.locator(".qq-achievement").count()).toBeGreaterThanOrEqual(20);
 });
 
 test("the secret Mugiwara title unlocks after fifteen straw-hat taps", async ({ page }) => {
