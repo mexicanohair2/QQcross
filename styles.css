@@ -698,6 +698,9 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 /* Wordle keys remain active after feedback; grey is a hint, never a disabled state. */
 .wordle-key{cursor:pointer;pointer-events:auto;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .15s,transform .1s}
 .wordle-key:active{transform:scale(.95)}
-.wordle-key.absent{background:#777e88;color:#fff;opacity:1}
-.wordle-key.absent:hover{background:#858d97}
+.wordle-key.absent{background:#c3c9d1;color:#242a33;opacity:1;border:1px solid #929ba7}
+.wordle-key.absent:hover{background:#d0d5dc}
 .wordle-key:disabled{cursor:not-allowed;opacity:.5}
+
+.game-topbar{gap:10px;align-items:center}.game-topbar .small{flex:1;min-width:0}.delete-online-game{font-size:12px;padding:8px 10px;white-space:nowrap;background:rgba(180,85,85,.16);border:1px solid rgba(180,85,85,.35);color:var(--text)}
+.wordle-help{font-size:13px;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}

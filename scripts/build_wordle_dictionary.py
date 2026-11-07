@@ -21,8 +21,8 @@ FREQUENCY_URL = (
 )
 WORD_RE = re.compile(r"^[а-яё]{5}$")
 MIN_VALID_WORDS = 7500
-MAX_FREQUENCY_ANSWERS = 700
-MIN_ANSWER_IPM = 0.5
+MAX_FREQUENCY_ANSWERS = 5000
+MIN_ANSWER_IPM = 0.05
 EXTRA_GUESSES = {"ТУНЕЦ", "КРЕСТ", "КОВШИ", "КЛЕЩИ", "СУШКА", "СЛИВА"}
 
 
@@ -73,12 +73,17 @@ def build(source_text: str, frequency_text: str, existing: dict, min_valid: int)
             source_words.add(word)
 
     frequency_candidates: list[tuple[float, str]] = []
-    for row in csv.DictReader(io.StringIO(frequency_text)):
+    sample = frequency_text[:8192]
+    try:
+        delimiter = csv.Sniffer().sniff(sample, delimiters=",;\\t").delimiter
+    except csv.Error:
+        delimiter = ";" if sample.count(";") > sample.count(",") else ","
+    for row in csv.DictReader(io.StringIO(frequency_text), delimiter=delimiter):
         word = normalize_word(row.get("lemma", ""))
         if not word:
             continue
         try:
-            ipm = float(row.get("ipm") or 0)
+            ipm = float(str(row.get("ipm") or "0").replace(",", "."))
         except ValueError:
             continue
         if ipm >= MIN_ANSWER_IPM:
@@ -94,12 +99,14 @@ def build(source_text: str, frequency_text: str, existing: dict, min_valid: int)
         if normalized and normalized in valid and normalized != "ТУНЕЦ" and normalized not in answers:
             answers.append(normalized)
 
-    target_count = len(existing.get("answers") or []) + MAX_FREQUENCY_ANSWERS
-    for _, word in frequency_candidates:
-        if word != "ТУНЕЦ" and word not in answers:
+    for _, word in frequency_candidates[:MAX_FREQUENCY_ANSWERS]:
+        if word not in answers:
             answers.append(word)
-        if len(answers) >= target_count:
-            break
+    if "ТУНЕЦ" not in answers:
+        answers.append("ТУНЕЦ")
+    for word in sorted(EXTRA_GUESSES):
+        if word in valid and word not in answers:
+            answers.append(word)
 
     threshold = min_valid  # Keep the initial 20x expansion target stable on future rebuilds.
     if len(valid) < threshold:
@@ -123,7 +130,7 @@ def self_test() -> None:
     assert "ТУНЕЦ" in sample["valid"]
     assert "СОСНА" in sample["answers"]
     assert "БАНАН" in sample["answers"]
-    assert "ТУНЕЦ" not in sample["answers"]
+    assert "ТУНЕЦ" in sample["answers"]
     print("Wordle dictionary builder self-test: OK")
 
 
@@ -150,7 +157,7 @@ def main() -> int:
     )
     print(
         f"Wordle dictionary built: {len(result['valid']):,} accepted guesses, "
-        f"{len(result['answers']):,} answer words; ТУНЕЦ is accepted."
+        f"{len(result['answers']):,} answer words; ТУНЕЦ is accepted and can be selected."
     )
     return 0
 

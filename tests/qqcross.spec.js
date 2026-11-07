@@ -69,9 +69,10 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   await expect(page.locator(".wordle-key")).not.toHaveCount(0);
   await expect(page.locator(".wordle-message")).not.toContainText("Не удалось загрузить словарь");
   const dictionary = await page.evaluate(() => fetch("./data/wordle-words.json").then(response => response.json()));
-  expect(dictionary.valid.length).toBeGreaterThanOrEqual(7500);
+  expect(dictionary.valid.length).toBeGreaterThanOrEqual(25000);
   expect(dictionary.valid).toContain("ТУНЕЦ");
-  expect(dictionary.answers.length).toBeGreaterThanOrEqual(300);
+  expect(dictionary.answers).toContain("ТУНЕЦ");
+  expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);
   for (const letter of ["Т","У","Н","Е","Ц"]) {
     await page.locator('.wordle-key[data-key="' + letter + '"]').click();
   }

@@ -281,7 +281,7 @@ async function loadMatchInbox(){
   const [ir,mr]=await Promise.all([supabaseClient.rpc("list_qqcross_match_invites"),supabaseClient.rpc("list_qqcross_my_matches")]);
   if(ir.error)throw ir.error;if(mr.error)throw mr.error;
   if(invites)invites.innerHTML=ir.data?.length?ir.data.map(x=>'<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>').join(""):'<p class="small muted">Новых приглашений нет.</p>';
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});if(error)throw error;await loadMatchInbox();toast("Приглашение принято")}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});if(error)throw error;await loadMatchInbox()}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
   document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
@@ -952,10 +952,24 @@ function renderGame(root){
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
-  root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top"><span class="small muted">Свайпни от края экрана назад — прогресс сохранится</span></div>'+
+  root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Свайпни от края экрана назад — прогресс сохранится</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+'<div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
+  const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
+  if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
+    const id=state.onlineMatchId;if(!id)return;
+    if(!confirm("Удалить дружеский бой? Если ты создал его — он исчезнет у всех. Если ты участник — ты выйдешь из него."))return;
+    deleteOnlineButton.disabled=true;deleteOnlineButton.textContent="Удаляем…";
+    try{
+      const {data,error}=await supabaseClient.rpc("delete_qqcross_match",{target_match_id:id});if(error)throw error;
+      clearInterval(state.interval);clearInterval(partyRefreshTimer);
+      if(onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null}
+      state.onlineMatchId=null;state.matchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.pendingMatchId=null;
+      state.screen="";state.tab="Главная";state.turn=0;state.pendingMoves=[];render();
+      toast(data==="deleted"?"Дружеский бой удалён":data==="left"?"Ты вышел из дружеского боя":"Бой уже не найден");
+    }catch(error){toast(error.message||"Не удалось удалить бой");deleteOnlineButton.disabled=false;deleteOnlineButton.textContent="Удалить бой"}
+  };
   root.querySelectorAll("[data-clue-cell]").forEach(button=>{
     button.onclick=()=>{
       const wrap=root.querySelector(".board-wrap");if(!wrap)return;
