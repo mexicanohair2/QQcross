@@ -284,7 +284,7 @@ function mountCody(root,onExit,clues,words){
  function groupDone(group){for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(!isComplete(i))return false;return true;}
  function completedCount(group){let n=0;for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(isComplete(i))n++;return n;}
  function getState(id){if(!progress.states[id])progress.states[id]={solved:[],revealed:{},drafts:{}};const s=progress.states[id];if(!Array.isArray(s.solved))s.solved=[];if(!s.revealed||typeof s.revealed!=="object")s.revealed={};if(!s.drafts||typeof s.drafts!=="object")s.drafts={};return s;}
- function renderTop(title,backLabel,backFn){root.innerHTML='<div class="screen qq-extra-screen qq-cody-app"><div class="top qq-extra-top"><button type="button" class="btn" id="qqCodyBack">← '+backLabel+'</button><b>'+escapeHtml(title)+'</b><span class="qq-extra-mark">QQ</span></div><div id="qqCodyView"></div></div>';root.querySelector("#qqCodyBack").onclick=backFn;}
+ function renderTop(title,backLabel,backFn){root.innerHTML='<div class="screen qq-extra-screen qq-cody-app"><div class="top qq-extra-top"><button type="button" class="btn" id="qqCodyBack">← '+backLabel+'</button><b>'+escapeHtml(title)+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div><div id="qqCodyView"></div></div>';root.querySelector("#qqCodyBack").onclick=backFn;}
  function renderMap(){
   renderTop("Кроссворды","Назад",onExit);
   const view=root.querySelector("#qqCodyView");
