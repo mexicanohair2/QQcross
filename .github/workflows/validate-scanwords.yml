@@ -20,5 +20,12 @@ jobs:
         run: |
           node --check app.js
           node --check sw.js
+          node --check wordle.js
+          node --check new-games.js
+          node --check progression.js
+          node --check encyclopedia.js
+          node --check scripts/verify-scanword.cjs
+          node --check scripts/validate-scanwords.js
+          python -m py_compile scripts/scanword_audit.py
       - name: Validate scanword data
         run: node scripts/validate-scanwords.js
