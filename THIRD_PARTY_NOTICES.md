@@ -72,3 +72,12 @@ Additional five-letter Wordle candidates are sourced from:
   https://github.com/hingston/russian
 The list is filtered to five-letter Cyrillic words and combined with QQCross's
 existing dictionary. Attribution: University of Leeds Corpus; cleanup by hingston.
+
+
+### Russian 50,000-word lexicon
+
+- Source: https://github.com/Digital-Pushkin-Lab/Russian-Word-Frequency-Lists-for-Children
+- File: `wordlist_detcorpus_50000.csv`
+- License: CC0 1.0 Universal
+- Build script: `scripts/build_russian_lexicon.py`
+- The generated QQCross lexicon contains 50,000 unique Cyrillic Russian lemmas; `ё` is normalized to `е`.

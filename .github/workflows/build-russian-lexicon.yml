@@ -1,0 +1,32 @@
+name: Build QQCross Russian lexicon
+
+on:
+  push:
+    branches: [feature/word-games-codycross-ru]
+    paths:
+      - 'scripts/build_russian_lexicon.py'
+      - '.github/workflows/build-russian-lexicon.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build and validate exactly 50,000 Russian words
+        run: python scripts/build_russian_lexicon.py
+      - name: Commit generated dictionary
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/russian-words-50000.json
+          git diff --cached --quiet && exit 0
+          git commit -m "Add 50,000-word Russian lexicon"
+          git push
