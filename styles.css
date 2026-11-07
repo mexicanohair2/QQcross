@@ -1162,3 +1162,12 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
  .qq-wow-screen .qq-wheel-actions .btn{min-height:27px!important}
 }
 @media(max-width:360px){.qq-level-grid{gap:4px!important}.qq-search-screen{padding-left:4px!important;padding-right:4px!important}.qq-wow-screen{padding-left:4px!important;padding-right:4px!important}}
+
+/* Wordle variable word lengths */
+.wordle-lengths{display:flex;justify-content:center;gap:7px;margin:5px auto 8px}
+.wordle-lengths button{width:34px;height:30px;border-radius:9px;border:1px solid var(--qq-border,#514568);background:var(--qq-card,#211a2b);color:var(--qq-text,#eee8f4);font-weight:800;font-size:12px}
+.wordle-lengths button.active{background:linear-gradient(145deg,#75618a,#4b3b5b);border-color:#c6addd;box-shadow:0 0 0 2px #b69acb33}
+.wordle-board{width:min(100%,520px);margin:6px auto;gap:5px}
+.wordle-row{display:grid;grid-template-columns:repeat(var(--wordle-cols,5),minmax(0,1fr));gap:5px;width:min(100%,calc(var(--wordle-cols,5)*48px + (var(--wordle-cols,5) - 1)*5px));margin:0 auto}
+.wordle-tile{min-width:0;aspect-ratio:1/1;width:100%;height:auto}
+@media(max-width:420px){.wordle-row{width:min(100%,calc(var(--wordle-cols,5)*min(10vw,43px) + (var(--wordle-cols,5) - 1)*4px));gap:4px}.wordle-tile{font-size:clamp(14px,4vw,22px)}}
