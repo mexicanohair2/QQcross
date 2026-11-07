@@ -135,7 +135,7 @@ test("opens the 1000-level Russian word-search map and mobile board", async ({ p
   expect(errors).toEqual([]);
 });
 
-test("opens the 1000-level Word of Wonders map and verifies the exact board word count", async ({ page }) => {
+test("opens the 1000-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -146,14 +146,18 @@ test("opens the 1000-level Word of Wonders map and verifies the exact board word
   await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
-  await expect(page.locator(".qq-wheel-letter").first()).toBeVisible();
-  await expect(page.locator("#qqWheelSubmit")).toHaveCount(0);
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
   await expect(page.locator("#qqWheelProgress")).toContainText("/ " + count);
-  await page.locator(".qq-wheel-letter").first().click();
-  await expect(page.locator("#qqWheelAnswer")).not.toBeEmpty();
-  await page.locator("#qqWheelClear").click();
-  await expect(page.locator("#qqWheelAnswer")).toBeEmpty();
+  const letters = page.locator(".qq-wheel-letter");
+  const first = await letters.nth(0).boundingBox();
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2);
+  await page.mouse.down();
+  for (let i = 1; i < await letters.count(); i++) {
+    const box = await letters.nth(i).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  }
+  await page.mouse.up();
+  await expect(page.locator("#qqWheelProgress")).toContainText("Найдено: 1 / " + count);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector("#qqWheelBoard").getBoundingClientRect(), c: document.querySelector(".qq-wow-controls").getBoundingClientRect() }));
   expect(fit.b.width).toBeGreaterThan(250);
   expect(fit.c.bottom).toBeLessThanOrEqual(fit.h + 1);
