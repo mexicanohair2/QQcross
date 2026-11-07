@@ -30,16 +30,16 @@ function pathBetween(a,b){
 }
 const LEVEL_TOTAL=1000;
 const SEARCH_THEMES=[
-{name:"Животный мир",words:"КОШКА СОБАКА ЛОШАДЬ КОРОВА ОВЦА КОЗА ЗАЯЦ БЕЛКА ЛИСИЦА ВОЛК МЕДВЕДЬ ТИГР ЛЕВ ЖИРАФ СЛОН ЗЕБРА ПАНДА ЕНОТ ХОМЯК ВЫДРА ОРЕЛ ВОРОНА ЛЕБЕДЬ УТКА ПИНГВИН ДЕЛЬФИН КИТ АКУЛА".split(" ")},
-{name:"Зимний лес",words:"ЕЛЬ СОСНА БЕРЕЗА ОСИНА КЕДР ЛИСТВА ВЕТКА КОРЕНЬ СНЕГ МОРОЗ ИНЕЙ СУГРОБ ШИШКА МХИ ТРОПА ПОЛЯНА РУЧЕЙ ЗАЙЦЫ ЛИСА ВОЛК СОВА ДЯТЕЛ ЛОСЬ ОЛЕНЬ".split(" ")},
-{name:"Морское путешествие",words:"КОРАБЛЬ МАЯК ПАРУС ЯКОРЬ ВОЛНА ОКЕАН МОРЕ БЕРЕГ ОСТРОВ КАПИТАН МАТРОС ШТОРМ РЫБАК ЧАЙКА ДЕЛЬФИН КИТ РАКУШКА КОРАЛЛ ПРИБОЙ".split(" ")},
-{name:"Домашний уют",words:"КОМНАТА КУХНЯ ДИВАН КРЕСЛО ПОДУШКА ОДЕЯЛО КОВЕР ЛАМПА ОКНО ДВЕРЬ ПОЛКА КНИГА ЧАШКА ЧАЙНИК СВЕЧА ЗЕРКАЛО ШТОРА КОМОД КРОВАТЬ".split(" ")},
-{name:"Космос",words:"КОСМОС ПЛАНЕТА ЗВЕЗДА КОМЕТА МЕТЕОР ОРБИТА РАКЕТА СПУТНИК ЛУНА СОЛНЦЕ ГАЛАКТИКА ВАКУУМ АСТРОНОМ ТЕЛЕСКОП САТУРН МАРС ВЕНЕРА ЮПИТЕР".split(" ")},
-{name:"Вкусная кухня",words:"ЯБЛОКО БАНАН ГРУША СЛИВА ВИШНЯ ЛИМОН АПЕЛЬСИН МОРКОВЬ КАРТОФЕЛЬ ОГУРЕЦ ПОМИДОР КАПУСТА ТЫКВА КАША ПИРОГ СУП САЛАТ ХЛЕБ МЕД".split(" ")},
-{name:"Город",words:"УЛИЦА ПЛОЩАДЬ ПАРК МОСТ ДОРОГА ВОКЗАЛ МУЗЕЙ ТЕАТР ШКОЛА БИБЛИОТЕКА МАГАЗИН АПТЕКА ФОНТАН БАШНЯ ТРАМВАЙ АВТОБУС МЕТРО ПЕРЕХОД".split(" ")},
-{name:"Путешествия",words:"БИЛЕТ ВОКЗАЛ ПОЕЗД САМОЛЕТ АЭРОПОРТ ЧЕМОДАН ПАСПОРТ КАРТА МАРШРУТ ГОСТИНИЦА ПАЛАТКА РЮКЗАК ПРИЧАЛ ЭКСКУРСИЯ ПЛЯЖ ГОРЫ ДОЛИНА ВОСТОК ЗАПАД".split(" ")},
-{name:"Растения",words:"РОМАШКА РОЗА ТЮЛЬПАН ПИОН СИРЕНЬ ЛИЛИЯ ГВОЗДИКА МАК ВАСИЛЕК ПОДСОЛНУХ КЛЕВЕР КАКТУС ПАПОРОТНИК БАМБУК ЛАВАНДА ЖАСМИН САКУРА ЛЕПЕСТОК".split(" ")},
-{name:"Техника",words:"КОМПЬЮТЕР МОНИТОР КЛАВИАТУРА МЫШКА ТЕЛЕФОН ПЛАНШЕТ КАМЕРА РОБОТ ПРИНТЕР НАУШНИКИ ДИНАМИК МИКРОФОН БАТАРЕЯ ПРОЦЕССОР ЭКРАН КАБЕЛЬ СЕРВЕР".split(" ")}
+{name:"Животный мир",words:"КОШКА СОБАКА ЛОШАДЬ КОРОВА ОВЦА КОЗА ЗАЯЦ БЕЛКА ЛИСИЦА ВОЛК МЕДВЕДЬ ТИГР ЛЕВ ЖИРАФ СЛОН ЗЕБРА ПАНДА ЕНОТ ХОМЯК ВЫДРА ОРЕЛ ВОРОНА ЛЕБЕДЬ УТКА ПИНГВИН ДЕЛЬФИН КИТ АКУЛА КРОЛИК БАРСУК БОБР КРОТ ЕЖ БУЙВОЛ АНТИЛОПА ЛЕОПАРД КРОКОДИЛ ЧЕРЕПАХА ЯЩЕРИЦА ЗМЕЯ ЛЯГУШКА ПЧЕЛА МУРАВЕЙ БАБОЧКА СТРЕКОЗА КОМАР МУХА ОСА ПАУК ГОЛУБЬ ГУСЬ ИНДЮК ПЕТУХ КУРИЦА".split(" ")},
+{name:"Зимний лес",words:"ЕЛЬ СОСНА БЕРЕЗА ОСИНА КЕДР ЛИСТВА ВЕТКА КОРЕНЬ СНЕГ МОРОЗ ИНЕЙ СУГРОБ ШИШКА ТРОПА ПОЛЯНА РУЧЕЙ ЗАЙЦЫ ЛИСА ВОЛК СОВА ДЯТЕЛ ЛОСЬ ОЛЕНЬ ЛЕС ПИХТА ЛИПА ДУБ КЛЕН РЯБИНА ЧЕРЕМУХА ОРЕШНИК БУК ЯСЕНЬ ОПУШКА БУРЕЛОМ СНЕГОПАД МЕТЕЛЬ ВЬЮГА СНЕГОВИК КОРЯГА ЗИМА ЛЕД ХОЛОД".split(" ")},
+{name:"Морское путешествие",words:"КОРАБЛЬ МАЯК ПАРУС ЯКОРЬ ВОЛНА ОКЕАН МОРЕ БЕРЕГ ОСТРОВ КАПИТАН МАТРОС ШТОРМ РЫБАК ЧАЙКА ДЕЛЬФИН КИТ РАКУШКА КОРАЛЛ ПРИБОЙ ПОДЛОДКА КАТЕР ЛОДКА ЯХТА БАРЖА ПАРОМ ПИРС ПРИСТАНЬ ОТЛИВ ПРИЛИВ БУЙ МЕДУЗА КРАБ КАЛЬМАР СКАТ ОСЬМИНОГ УСТРИЦА МИДИЯ ТЮЛЕНЬ МОРЖ КАСАТКА ПЕЛИКАН".split(" ")},
+{name:"Домашний уют",words:"КОМНАТА КУХНЯ ДИВАН КРЕСЛО ПОДУШКА ОДЕЯЛО КОВЕР ЛАМПА ОКНО ДВЕРЬ ПОЛКА КНИГА ЧАШКА ЧАЙНИК СВЕЧА ЗЕРКАЛО ШТОРА КОМОД КРОВАТЬ СТОЛ СТУЛ ПЛИТА ПЕЧЬ ХОЛОДИЛЬНИК ТЕЛЕВИЗОР КАРТИНА КАСТРЮЛЯ СКОВОРОДА ТАРЕЛКА ЛОЖКА ВИЛКА НОЖ ПОДНОС ПОЛОТЕНЦЕ ВАЗА КОВРИК ПРИХОЖАЯ ВАННАЯ БАЛКОН ГАРДЕРОБ ШКАФ".split(" ")},
+{name:"Космос",words:"КОСМОС ПЛАНЕТА ЗВЕЗДА КОМЕТА МЕТЕОР ОРБИТА РАКЕТА СПУТНИК ЛУНА СОЛНЦЕ ГАЛАКТИКА ВАКУУМ АСТРОНОМ ТЕЛЕСКОП САТУРН МАРС ВЕНЕРА ЮПИТЕР АСТЕРОИД АСТРОНАВТ КОСМОНАВТ НЕВЕСОМОСТЬ РОБОТ СКАФАНДР КОСМОДРОМ ЗАТМЕНИЕ СОЗВЕЗДИЕ ТУМАННОСТЬ МЕРКУРИЙ НЕПТУН УРАН ПЛУТОН ВОСХОД ЗАКАТ".split(" ")},
+{name:"Вкусная кухня",words:"ЯБЛОКО БАНАН ГРУША СЛИВА ВИШНЯ ЛИМОН АПЕЛЬСИН МОРКОВЬ КАРТОФЕЛЬ ОГУРЕЦ ПОМИДОР КАПУСТА ТЫКВА КАША ПИРОГ СУП САЛАТ ХЛЕБ МЕД КЛУБНИКА МАЛИНА ЧЕРНИКА СМОРОДИНА АРБУЗ ДЫНЯ ПЕРСИК АБРИКОС МАНГО АНАНАС ГРАНАТ ФИНИК ИЗЮМ ОРЕХ ГРИБ СЫР ТВОРОГ КЕФИР ЙОГУРТ СМЕТАНА МУКА САХАР СОЛЬ ПЕРЕЦ УКРОП ПЕТРУШКА".split(" ")},
+{name:"Город",words:"УЛИЦА ПЛОЩАДЬ ПАРК МОСТ ДОРОГА ВОКЗАЛ МУЗЕЙ ТЕАТР ШКОЛА БИБЛИОТЕКА МАГАЗИН АПТЕКА ФОНТАН БАШНЯ ТРАМВАЙ АВТОБУС МЕТРО ПЕРЕХОД ПЕРЕУЛОК ПРОСПЕКТ БУЛЬВАР ПОДЪЕЗД ДОМ ДВОР ЗДАНИЕ НЕБОСКРЕБ ПАМЯТНИК ВОРОТА СТАДИОН КИНОТЕАТР БОЛЬНИЦА ПОЛИКЛИНИКА ПОЧТА БАНК РЫНОК ПЕКАРНЯ КАФЕ РЕСТОРАН ЗАПРАВКА ТРОТУАР".split(" ")},
+{name:"Путешествия",words:"БИЛЕТ ВОКЗАЛ ПОЕЗД САМОЛЕТ АЭРОПОРТ ЧЕМОДАН ПАСПОРТ КАРТА МАРШРУТ ГОСТИНИЦА ПАЛАТКА РЮКЗАК ПРИЧАЛ ЭКСКУРСИЯ ПЛЯЖ ДОЛИНА ВОСТОК ЗАПАД ПУТЕШЕСТВИЕ ПОХОД СПАЛЬНИК КОМПАС НАВИГАТОР РАСПИСАНИЕ ПЛАТФОРМА ВАГОН КУПЕ КАЮТА КРУИЗ СУВЕНИР ФОТОАППАРАТ БИНОКЛЬ ТУРИСТ ПРИКЛЮЧЕНИЕ КАРАВАН ПЕРЕВАЛ ПРИВАЛ ПЕРЕПРАВА".split(" ")},
+{name:"Растения",words:"РОМАШКА РОЗА ТЮЛЬПАН ПИОН СИРЕНЬ ЛИЛИЯ ГВОЗДИКА МАК ВАСИЛЕК ПОДСОЛНУХ КЛЕВЕР КАКТУС ПАПОРОТНИК БАМБУК ЖАСМИН ЛЕПЕСТОК ПОДСНЕЖНИК ЛЮТИК НЕЗАБУДКА ГЕРАНЬ ФИАЛКА ГОРТЕНЗИЯ ОДУВАНЧИК КОЛОКОЛЬЧИК КУВШИНКА ЛОТОС МОЖЖЕВЕЛЬНИК КИПАРИС ТОПОЛЬ ИВА КАШТАН СЕМЯ РОСТОК БУТОН СТЕБЕЛЬ".split(" ")},
+{name:"Техника",words:"КОМПЬЮТЕР МОНИТОР КЛАВИАТУРА МЫШКА ТЕЛЕФОН ПЛАНШЕТ КАМЕРА РОБОТ ПРИНТЕР НАУШНИКИ ДИНАМИК МИКРОФОН БАТАРЕЯ ПРОЦЕССОР ЭКРАН КАБЕЛЬ СЕРВЕР НОУТБУК СМАРТФОН ПРИЛОЖЕНИЕ ПРОГРАММА ИНТЕРНЕТ СИСТЕМА ДИСПЛЕЙ КОРПУС ПАМЯТЬ ДИСК ФАЙЛ ПАПКА САЙТ СЕТЬ МОДЕМ СИГНАЛ АНТЕННА АККУМУЛЯТОР ЗАРЯДКА КОЛОНКА ГАРНИТУРА ПЛАТА ЧИП КОД ДАННЫЕ ПАРОЛЬ ОБЛАКО СЕРВИС".split(" ")}
 ];
 function readUnlocked(key){try{return Math.max(1,Math.min(LEVEL_TOTAL,Number(localStorage.getItem(key))||1));}catch(_){return 1;}}
 function unlockNext(key,level){try{localStorage.setItem(key,String(Math.max(readUnlocked(key),Math.min(LEVEL_TOTAL,level+1))));}catch(_){}}
@@ -60,13 +60,13 @@ function levelComplete(root,key,level,next){
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
  const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)));
- const count=Math.min(18,level<=20?5+Math.floor((level-1)/2):14+Math.min(4,Math.floor((level-20)/100)));
- let size=Math.min(20,level<=20?9+Math.floor((level-1)/2):18+Math.min(2,Math.floor((level-20)/250)));
+ const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
+ let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
  let chosen=pool.slice(0,count);
- if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12)).slice(0,Math.max(5,count));
+ if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w))).slice(0,Math.max(5,count));
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
- for(let grow=0;grow<5;grow++){
+ for(let grow=0;grow<8;grow++){
   grid=Array.from({length:size},()=>Array(size).fill(""));placed=[];
   for(const word of [...chosen].sort((a,b)=>b.length-a.length)){
    let done=false;
@@ -79,7 +79,7 @@ function buildSearchPuzzle(words,level){
     placed.push({word,cells,found:false});done=true;
    }
   }
-  if(placed.length>=Math.min(chosen.length,Math.max(5,count-2))||size>=20)break;
+  if(placed.length>=Math.min(chosen.length,Math.max(5,count-2))||size>=25)break;
   size++;
  }
  const targets=new Set(placed.map(p=>p.word));let decoy="";
@@ -173,22 +173,18 @@ function mountWheel(root,onExit,words){
  const KEY="qqcross.wow.unlocked.v1";
  const showMap=()=>renderLevelMap(root,"Word of Wonders",onExit,KEY,playLevel);
  function build(level){
-  const targetCount=Math.min(18,level<=20?5+Math.floor((level-1)/2):14+Math.min(4,Math.floor((level-20)/100)));
-  const size=Math.min(20,level<=20?9+Math.floor((level-1)/2):18+Math.min(2,Math.floor((level-20)/250)));
-  let result=null;
+  const targetCount=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
+  const size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
+  let result=null,best=null;
   const seeds=shuffle(words.filter(w=>w.length>=6&&w.length<=9&&new Set(w).size>=5));
-  for(const seed of seeds.slice(0,100)){
-   const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))).slice(0,100).sort((a,b)=>b.length-a.length);
+  for(const seed of seeds.slice(0,24)){
+   const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))).slice(0,140).sort((a,b)=>b.length-a.length);
    const layout=layoutWords([seed,...candidates].slice(0,targetCount),size);
    const actual=layout.placed.map(p=>p.word);
-   if(actual.length>=Math.min(targetCount,level<=20?5:8)){result={seed,layout,words:actual};break;}
+   if(!best||actual.length>best.words.length)best={seed,layout,words:actual};
+   if(actual.length>=Math.max(5,Math.ceil(targetCount*.85))){result={seed,layout,words:actual};break;}
   }
-  if(!result){
-   const seed=seeds[0]||"КОРАБЛЬ",candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&canBuild(w,seed))).slice(0,targetCount);
-   const layout=layoutWords([seed,...candidates],size);
-   result={seed,layout,words:layout.placed.map(p=>p.word)};
-  }
-  return result;
+  return result||best||{seed:"КОРАБЛЬ",layout:layoutWords(["КОРАБЛЬ"],size),words:["КОРАБЛЬ"]};
  }
  function playLevel(level){
   const puzzle=build(level);
@@ -232,7 +228,7 @@ function mountWheel(root,onExit,words){
   };
   const stop=e=>{
    if(!dragging)return;track(e);dragging=false;
-   if(dragPath&&dragSelection.length>1){suppressClick=true;solveWord(dragSelection,true);}
+   if(dragPath&&dragSelection.length>1){suppressClick=true;setTimeout(()=>{suppressClick=false;},350);solveWord(dragSelection,true);}
    dragSelection=[];lastDragIndex=-1;dragPath=false;
   };
   wheel.addEventListener("pointermove",track);wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
