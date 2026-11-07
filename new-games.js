@@ -15,15 +15,7 @@ async function loadLexicon() {
   }).catch(e=>{lexiconPromise=null;throw e;});
   return lexiconPromise;
 }
-function sound(kind) {
-  try {
-    const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
-    const ctx=new Ctx();const now=ctx.currentTime;
-    const notes=kind==="win"?[523.25,659.25,783.99]:kind==="hint"?[392,494]:[440,554.37];
-    notes.forEach((hz,i)=>{const osc=ctx.createOscillator(),gain=ctx.createGain();osc.type="sine";osc.frequency.value=hz;gain.gain.setValueAtTime(.0001,now+i*.09);gain.gain.exponentialRampToValueAtTime(.045,now+i*.09+.02);gain.gain.exponentialRampToValueAtTime(.0001,now+i*.09+.19);osc.connect(gain);gain.connect(ctx.destination);osc.start(now+i*.09);osc.stop(now+i*.09+.2);});
-    setTimeout(()=>ctx.close().catch(()=>{}),900);
-  } catch (_) {}
-}
+function sound(kind) {window.QQAudio?.play(kind==="win"?"word":kind==="hint"?"wrong":"correct");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ</span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;}
 function pathBetween(a,b){
@@ -57,7 +49,7 @@ function mountSearch(root,onExit,words){
  const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),list=root.querySelector("#qqWordList");
  const clear=()=>{grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];};
  const cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
- function markPath(path){clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));}
+ function markPath(path){const changed=path.length!==selection.length||path.some((p,i)=>p.x!==selection[i]?.x||p.y!==selection[i]?.y);clear();selection=path;path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-selected"));if(changed&&path.length) sound("select");}
  function finish(path){
   if(!path.length)return;
   const value=path.map(p=>puzzle.grid[p.y][p.x]).join("");
@@ -217,7 +209,7 @@ function mountCody(root,onExit,clues,words){
    view.querySelector("#qqCodyHint").onclick=()=>revealLetter(firstMissing(active));
   }
   function firstMissing(i){const item=puzzle.items[i],draft=s.drafts[i]||{};for(let j=0;j<item.answer.length;j++)if(!revealed(i,j)&&!draft[j])return j;for(let j=0;j<item.answer.length;j++)if(!revealed(i,j))return j;return 0;}
-  function enterLetter(letter){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||(s.drafts[active]={});let pos=cursor;while(pos<item.answer.length&&(revealed(active,pos)||draft[pos]))pos++;if(pos>=item.answer.length)pos=firstMissing(active);if(revealed(active,pos))return;draft[pos]=letter;cursor=Math.min(item.answer.length-1,pos+1);message="";persist();render();}
+  function enterLetter(letter){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||(s.drafts[active]={});let pos=cursor;while(pos<item.answer.length&&(revealed(active,pos)||draft[pos]))pos++;if(pos>=item.answer.length)pos=firstMissing(active);if(revealed(active,pos))return;draft[pos]=letter;cursor=Math.min(item.answer.length-1,pos+1);message="";sound("letter");persist();render();}
   function deleteLetter(){if(isSolved(active))return;const draft=s.drafts[active]||(s.drafts[active]={});let pos=Math.min(cursor,puzzle.items[active].answer.length-1);while(pos>=0&&(!draft[pos]||revealed(active,pos)))pos--;if(pos<0)pos=firstMissing(active);delete draft[pos];cursor=Math.max(0,pos);message="";persist();render();}
   function revealLetter(pos){if(isSolved(active))return;const item=puzzle.items[active];if(pos<0||pos>=item.answer.length||revealed(active,pos)){pos=firstMissing(active);if(revealed(active,pos)){message="В этом слове все буквы уже открыты.";render();return;}}const list=s.revealed[active]||(s.revealed[active]=[]);if(!list.includes(pos))list.push(pos);if(s.drafts[active])delete s.drafts[active][pos];cursor=firstMissing(active);message="Открыта буква «"+item.answer[pos]+"».";sound("hint");persist();render();}
   function checkAnswer(){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||{};let typed="";for(let j=0;j<item.answer.length;j++)typed+=revealed(active,j)?item.answer[j]:(draft[j]||"");if(typed.length!==item.answer.length){message="Заполни все клетки слова.";render();return;}if(typed!==item.answer){message="Ответ не совпал. Попробуй ещё раз.";s.drafts[active]={};cursor=0;sound("hint");persist();render();return;}s.solved.push(item.answer);delete s.drafts[active];const next=puzzle.items.findIndex((x,i)=>!isSolved(i));if(next>=0){const target=puzzle.items[next],hidden=target.answer.split("").map((_,i)=>i).filter(i=>i!==target.crossIndex&&!revealed(next,i));if(hidden.length){const rng=randomFor(7000+puzzle.level*31+s.solved.length);const pos=hidden[Math.floor(rng()*hidden.length)];const arr=s.revealed[next]||(s.revealed[next]=[]);if(!arr.includes(pos))arr.push(pos);}}message="Верно! Буквы появились в пересекающихся клетках.";sound(s.solved.length===puzzle.items.length?"win":"good");persist();if(s.solved.length===puzzle.items.length){if(!progress.completed.includes(id))progress.completed.push(id);save();renderComplete();return;}active=next;cursor=firstMissing(active);render();}
