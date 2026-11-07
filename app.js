@@ -70,6 +70,9 @@ let scanwordCandidateCache=null;
 let preparedScanword=null;
 let scanwordPreparing=false;
 let scanwordPreparePromise=null;
+let scanwordPuzzlePack=[];
+let scanwordPackOrder=[];
+let scanwordPackLoadPromise=null;
 let draggingLetter=false;
 let suppressCellClick=false;
 
@@ -680,7 +683,7 @@ function normalizeScanwordEntry(item){
   if(answer.length<1||answer.length>12||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
-function buildScanword(entries){
+function buildScanword(entries,attemptLimit=16){
   const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
@@ -815,12 +818,11 @@ function buildScanword(entries){
       const pick=pool[Math.floor(Math.random()*pool.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
-    // Repair residual gaps only with words that genuinely cross existing letters.
-    // This keeps every added word in the same connected scanword component.
+    // Repair residual gaps with connected multi-letter words first.
+    // One-letter answers are deferred until no longer placement exists anywhere.
     let closing=true;
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
-      const remaining=TOTAL-occupied.size-clueAt.size;
       const anchors=[];
       clueAt.forEach((list,key)=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
@@ -829,13 +831,14 @@ function buildScanword(entries){
         const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
+      let singleFallback=null;
       for(const anchor of anchors){
         if(closing)break;
         for(let di=0;di<4&&!closing;di++){
-          const dir=dirs[di];
-          if(anchor.list.some(w=>w.dir===dir.name))continue;
+          const dir=dirs[di],at=anchor.list;
+          if(at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
-          for(let length=max;length>=1;length--){
+          for(let length=max;length>=2;length--){
             const cells=[];let valid=true,crosses=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
@@ -843,37 +846,114 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            if(!valid||(!crosses&&!(length===1&&anchor.existing)))continue;
+            if(!valid||!crosses)continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             cells.forEach((cell,k)=>{
               const old=occupied.get(cell.join(","));
               if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
             });
-            if(length===1&&!crosses&&anchor.existing){for(const bucket of positions[0].values())for(const entry of bucket)possible.add(entry)}
-            const pool=[...possible].filter(entry=>!used.has(entry.key)&&cells.every((cell,k)=>{
-              const old=occupied.get(cell.join(","));
-              return old===undefined||old===entry.answer[k];
-            }));
+            const pool=[...possible].filter(entry=>
+              !used.has(entry.key)&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&at.length===0))&&
+              cells.every((cell,k)=>{
+                const old=occupied.get(cell.join(","));
+                return old===undefined||old===entry.answer[k];
+              })
+            );
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey));
-            const entry=pool[0];
-            // A one-cell answer is allowed only here, after every longer fit has failed.
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1)){closing=true;break}
+            if(addWord(pool[0],anchor.y,anchor.x,di,"w"+words.length)){closing=true;break}
+          }
+          if(!singleFallback&&anchor.existing&&max>=1){
+            const yy=anchor.y+dir.dy,xx=anchor.x+dir.dx,key=yy+","+xx;
+            if(yy>=0&&xx>=0&&yy<N&&xx<N&&!occupied.has(key)&&!clueAt.has(key)){
+              const positions=byLength.get(1);
+              if(positions){
+                const pool=[...positions[0].values()].flat().filter(entry=>!used.has(entry.key)&&!entry.imageKey);
+                if(pool.length)singleFallback={entry:pool[Math.floor(Math.random()*pool.length)],y:anchor.y,x:anchor.x,di};
+              }
+            }
+          }
+          // A single-letter clue may also occupy an otherwise isolated gap while
+          // its answer reuses the matching adjacent letter from a connected word.
+          if(!singleFallback&&!anchor.existing&&max>=1){
+            const yy=anchor.y+dir.dy,xx=anchor.x+dir.dx,key=yy+","+xx;
+            const letter=yy>=0&&xx>=0&&yy<N&&xx<N?occupied.get(key):undefined;
+            const candidates=letter===undefined?[]:(byLength.get(1)?.[0]?.get(letter)||[]);
+            const entry=candidates.find(item=>!used.has(item.key)&&!item.imageKey);
+            if(entry)singleFallback={entry,y:anchor.y,x:anchor.x,di};
           }
         }
       }
+      if(!closing&&singleFallback){
+        const fallback=singleFallback;
+        if(addWord(fallback.entry,fallback.y,fallback.x,fallback.di,"w"+words.length,false,true))closing=true;
+      }
     }
     const coverage=occupied.size+clueAt.size;
-    return {coverage,occupied,clueAt,words};
+    return {coverage,occupied,clueAt,words,used};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<8;attempt++){
+  for(let attempt=0;attempt<attemptLimit;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
+  }
+  // If greedy placement leaves a single isolated gap, shift a crossing clue one cell
+  // backward. The old final letter must be shared by another answer, so no occupied
+  // cell is lost; the replacement answer is looked up by its matching suffix.
+  if(best&&bestCoverage<TOTAL){
+    let repaired=true;
+    while(repaired&&best.coverage<TOTAL){
+      repaired=false;
+      const owners=new Map();
+      best.words.forEach((word,index)=>word.cells.forEach(cell=>{
+        const key=cell.join(","),set=owners.get(key)||new Set();
+        set.add(index);owners.set(key,set);
+      }));
+      for(let gy=0;gy<N&&!repaired;gy++)for(let gx=0;gx<N&&!repaired;gx++){
+        const gapKey=gy+","+gx;
+        if(best.occupied.has(gapKey)||best.clueAt.has(gapKey))continue;
+        for(let di=0;di<dirs.length&&!repaired;di++){
+          const dir=dirs[di],ay=gy+dir.dy,ax=gx+dir.dx;
+          if(ay<0||ax<0||ay>=N||ax>=N)continue;
+          const anchorKey=ay+","+ax,at=best.clueAt.get(anchorKey)||[];
+          if(at.length!==1)continue;
+          const word=at[0],length=word.answer.length;
+          if(word.imageKey||word.dirIndex!==di||length<2)continue;
+          const lastKey=word.cells[length-1].join(",");
+          if((owners.get(lastKey)?.size||0)<2)continue;
+          if(!word.cells.slice(0,-1).some(cell=>(owners.get(cell.join(","))?.size||0)>1))continue;
+          const candidates=byLength.get(length)?.[1]?.get(word.answer[0])||[];
+          const replacement=candidates.find(entry=>
+            !entry.imageKey&&
+            !best.used.has(entry.key)&&
+            entry.answer.slice(1)===word.answer.slice(0,-1)
+          );
+          if(!replacement)continue;
+          const oldAnswer=word.answer;
+          best.used.delete(oldAnswer);
+          best.used.add(replacement.key);
+          word.answer=replacement.answer;
+          word.sourceAnswer=replacement.answer;
+          word.clue=replacement.clue;
+          word.clueShort=replacement.clueShort;
+          word.isEmoji=replacement.emoji;
+          word.imageKey=replacement.imageKey||null;
+          word.clueCell=[gy,gx];
+          word.cells=[[ay,ax],...word.cells.slice(0,-1)];
+          best.occupied.set(anchorKey,replacement.answer[0]);
+          best.clueAt.delete(anchorKey);
+          best.clueAt.set(gapKey,[word]);
+          best.coverage=best.occupied.size+best.clueAt.size;
+          repaired=true;
+          bestCoverage=best.coverage;
+        }
+      }
+    }
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с тремя разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
@@ -882,7 +962,18 @@ function buildScanword(entries){
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function clonePreparedScanword(source){
-  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),coverage:source.coverage};
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used instanceof Set?source.used:[...(source.used||[])]),clueKeys:new Set(source.clueKeys instanceof Set?source.clueKeys:[...(source.clueKeys||[])]),coverage:source.coverage};
+}
+function takePackedScanword(){
+  if(!scanwordPuzzlePack.length)return null;
+  if(!scanwordPackOrder.length){
+    scanwordPackOrder=Array.from({length:scanwordPuzzlePack.length},(_,i)=>i);
+    for(let i=scanwordPackOrder.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [scanwordPackOrder[i],scanwordPackOrder[j]]=[scanwordPackOrder[j],scanwordPackOrder[i]];
+    }
+  }
+  return clonePreparedScanword(scanwordPuzzlePack[scanwordPackOrder.pop()]);
 }
 function refreshPracticeButton(){
   const button=$("#practice");
@@ -899,7 +990,7 @@ function prepareNextScanword(){
   refreshPracticeButton();
   scanwordPreparePromise=new Promise(resolve=>{
     setTimeout(()=>{
-      try{preparedScanword=buildScanword(dictionary)}
+      try{preparedScanword=takePackedScanword()||buildScanword(dictionary)}
       catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error);preparedScanword=null}
       finally{
         scanwordPreparing=false;
@@ -1257,6 +1348,22 @@ window.addEventListener("pagehide",()=>persistCurrentMatch());
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")persistCurrentMatch()});
 
 let dictionaryLoadPromise=null;
+function preloadScanwordPuzzlePack(){
+  if(scanwordPuzzlePack.length)return Promise.resolve(true);
+  if(scanwordPackLoadPromise)return scanwordPackLoadPromise;
+  scanwordPackLoadPromise=fetch("./data/scanword-puzzles.json?v=20261108-pack-v1",{cache:"no-store"})
+    .then(response=>{if(!response.ok)throw new Error("Пакет сканвордов: HTTP "+response.status);return response.json()})
+    .then(data=>{
+      if(data?.version!==1||!Array.isArray(data.puzzles)||data.puzzles.length<20)throw new Error("Некорректный пакет сканвордов");
+      const valid=data.puzzles.filter(p=>p&&p.w===15&&p.h===15&&Array.isArray(p.words)&&p.words.length>=10&&Array.isArray(p.used)&&Array.isArray(p.clueKeys)&&p.used.length+p.clueKeys.length===225);
+      if(valid.length<20)throw new Error("В пакете недостаточно полных сканвордов");
+      scanwordPuzzlePack=valid;
+      scanwordPackOrder=[];
+      return true;
+    })
+    .catch(error=>{console.warn("QQCross scanword pack:",error);scanwordPackLoadPromise=null;return false});
+  return scanwordPackLoadPromise;
+}
 function preloadScanwordDictionary(){
   if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return Promise.resolve(true);
   if(dictionaryLoadPromise)return dictionaryLoadPromise;
@@ -1270,6 +1377,7 @@ function preloadScanwordDictionary(){
       const dictionary=await dictionaryResponse.json();
       if(!Array.isArray(dictionary)||!dictionary.length)throw new Error("Некорректный словарь сканвордов");
       window.QQCROSS_DICTIONARY=dictionary;
+      await preloadScanwordPuzzlePack();
       prepareNextScanword();
       return true;
     }catch(error){

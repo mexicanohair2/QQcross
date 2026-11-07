@@ -88,36 +88,84 @@ function validate(puzzle, run) {
       throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
     }
   }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys };
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, oneLetterAnswers: puzzle.words.filter(word => word.answer.length === 1).length, pictureKeys };
 }
 
+const writePack = process.argv.includes("--write-pack");
+const runCount = writePack ? 50 : 20;
 const timings = [];
 const summaries = [];
-for (let run = 1; run <= 20; run++) {
-  const math = Object.create(Math);
-  math.random = seededRandom(run * 7919);
-  const context = {
-    window: { QQCROSS_DICTIONARY: dictionary },
-    localStorage: { getItem: () => "[]" },
-    Math: math,
-    Date,
-    Set,
-    Map,
-    console
-  };
-  vm.createContext(context);
-  vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
+const packedPuzzles = [];
+const fingerprints = new Set();
+for (let run = 1; run <= runCount; run++) {
   const t0 = performance.now();
-  const puzzle = context.__buildScanword(dictionary);
+  let puzzle = null, stats = null, fingerprint = "", lastError = null;
+  const retries = writePack ? 8 : 1;
+  for (let retry = 0; retry < retries && !puzzle; retry++) {
+    const math = Object.create(Math);
+    math.random = seededRandom(run * 7919 + retry * 104729);
+    const context = {
+      window: { QQCROSS_DICTIONARY: dictionary },
+      localStorage: { getItem: () => "[]" },
+      Math: math,
+      Date,
+      Set,
+      Map,
+      console
+    };
+    vm.createContext(context);
+    vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
+    try {
+      const candidate = context.__buildScanword(dictionary);
+      const candidateStats = validate(candidate, run);
+      const candidateFingerprint = candidate.words.map(word => [word.answer, word.clueCell.join(","), word.dir].join("@")).join("|");
+      if (writePack && fingerprints.has(candidateFingerprint)) {
+        lastError = new Error("Duplicate generated puzzle");
+        continue;
+      }
+      puzzle = candidate;
+      stats = candidateStats;
+      fingerprint = candidateFingerprint;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (!puzzle) throw new Error("Run " + run + ": failed to generate a valid unique puzzle" + (lastError ? ": " + lastError.message : ""));
   const elapsed = performance.now() - t0;
+  fingerprints.add(fingerprint);
   timings.push(elapsed);
-  summaries.push({ run, ...validate(puzzle, run), ms: Math.round(elapsed) });
+  summaries.push({ run, ...stats, ms: Math.round(elapsed) });
+  if (writePack) packedPuzzles.push({
+    id: "pack-" + run,
+    title: "Сканворд",
+    w: puzzle.w,
+    h: puzzle.h,
+    words: puzzle.words.map(word => ({
+      id: word.id, answer: word.answer, sourceAnswer: word.sourceAnswer,
+      clue: word.clue, clueShort: word.clueShort, isEmoji: word.isEmoji,
+      imageKey: word.imageKey, dir: word.dir, dirIndex: word.dirIndex,
+      cells: word.cells, clueCell: word.clueCell
+    })),
+    used: [...puzzle.used],
+    clueKeys: [...puzzle.clueKeys],
+    coverage: puzzle.coverage
+  });
 }
 timings.sort((a, b) => a - b);
+if (writePack) {
+  fs.writeFileSync("data/scanword-puzzles.json", JSON.stringify({
+    version: 1,
+    generatedAt: new Date().toISOString(),
+    puzzleCount: packedPuzzles.length,
+    puzzles: packedPuzzles
+  }));
+}
 console.log(JSON.stringify({
   dictionaryEntries: dictionary.length,
   validRuns: summaries.length,
-  medianMs: Math.round((timings[3] + timings[4]) / 2),
+  packWritten: writePack,
+  uniquePuzzles: fingerprints.size,
+  medianMs: Math.round((timings[Math.floor((timings.length - 1) / 2)] + timings[Math.floor(timings.length / 2)]) / 2),
   p95Ms: Math.round(timings[timings.length - 1]),
   runs: summaries
 }, null, 2));
