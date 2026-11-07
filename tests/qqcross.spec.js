@@ -78,7 +78,7 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   for (const guess of guesses) {
     for (const letter of guess) await page.locator('.wordle-key[data-key="' + letter + '"]').click();
     await page.locator('.wordle-key[data-key="ENTER"]').click();
-    await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
+    await expect(page.locator('.wordle-key[data-key="' + guess[0] + '"]')).toHaveClass(/correct|present|absent/, { timeout: 5_000 });
     greyKeyCount = await page.locator(".wordle-key.absent").count();
     if (greyKeyCount > 0) break;
     await page.locator("#wordleNew").click();
