@@ -19,8 +19,8 @@ function tone(freq,duration,volume,type,delay=0){
 function musicTick(){
  if(!prefs.music||document.hidden)return;
  const note=melody[noteIndex%melody.length],c=audioContext();if(!c)return;
- tone(note,.95,.012,"sine");
- if(noteIndex%4===0)tone(note/2,1.35,.008,"sine",.02);
+ tone(note,.95,.045,"sine");
+ if(noteIndex%4===0)tone(note/2,1.35,.024,"sine",.02);
  noteIndex++;
 }
 function startMusic(){if(!prefs.music||musicTimer!==null)return;musicTick();musicTimer=setInterval(musicTick,1050);}
