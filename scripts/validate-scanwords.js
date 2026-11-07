@@ -69,7 +69,7 @@ for (const item of allPictureEntries) {
   const answer = normalize(item.answer || item.word);
   const expectedAnswer = Object.entries(expectedPictures).find(([, key]) => key === item.imageKey)?.[0];
   if (!expectedAnswer || answer !== expectedAnswer) fail(`Picture ${item.imageKey} does not match answer ${answer}; expected ${expectedAnswer || "a known answer"}`);
-  if (/что изображено/i.test(item.clue || "") && !pictureDescriptions[item.imageKey]) fail(`Missing clear description for image ${item.imageKey}`);
+  if (!/что изображено/i.test(item.clue || "")) fail(`Picture ${item.imageKey} is missing its image-based clue prompt`);
 }
 for (const [answer, imageKey] of Object.entries(expectedPictures)) {
   const matches = dictionary.filter(item => normalize(item.answer || item.word) === answer && item.imageKey === imageKey);
