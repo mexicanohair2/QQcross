@@ -564,10 +564,11 @@ function compactScanwordClue(value){
 function fitScanwordClue(value){
   return compactScanwordClue(value);
 }
+const SCANWORD_IMAGE_KEYS=new Set(["tomato","apple","cat","bicycle","clock","pear","orange","strawberry","grapes","watermelon","carrot","mushroom","sunflower","sun","cloud","house","car","bus","airplane","boat","book","key","cup","ball","guitar","dog","fish","elephant","turtle"]);
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
   const answer=String(item.answer||item.word||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
-  const imageKey=/^(tomato|apple|cat|bicycle|clock)$/.test(String(item.imageKey||""))?String(item.imageKey):null;
+  const imageKey=SCANWORD_IMAGE_KEYS.has(String(item.imageKey||""))?String(item.imageKey):null;
   const rawClue=imageKey?"Что изображено на картинке?":String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
@@ -581,7 +582,7 @@ function buildScanword(entries){
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
-    // Preserve the five mandatory picture clues when deduplicating answers.
+    // Preserve the eight distinct picture clues required in every puzzle.
     if(entry.imageKey)score+=1000;
     if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
     if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
@@ -615,7 +616,7 @@ function buildScanword(entries){
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
   let bestCoverage=0,bestImageCount=-1,best=null;
   const buildAttempt=()=>{
-    const occupied=new Map(),clueAt=new Map(),used=new Set(),words=[],frontier=new Set();
+    const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
     const addFrontier=(y,x)=>{
       for(const dir of dirs)for(let step=1;step<=12;step++){
         const ay=y-dir.dy*step,ax=x-dir.dx*step;
@@ -626,7 +627,7 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=8))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -641,7 +642,7 @@ function buildScanword(entries){
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);frontier.add(key);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
-      used.add(entry.key);words.push(word);
+      used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
     // Two crossing seed words create the first connected component.
@@ -691,7 +692,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.key)||(entry.imageKey&&at.length>0))continue;
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=8||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -768,7 +769,7 @@ function buildScanword(entries){
     if(result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage))){
       bestImageCount=imageCount;bestCoverage=result.coverage;best=result;
     }
-    if(result?.coverage===TOTAL&&imageCount===5)break;
+    if(result?.coverage===TOTAL&&imageCount===8)break;
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==5)throw new Error("Не удалось собрать полностью заполненный сканворд с пятью картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/5). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
