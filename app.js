@@ -310,7 +310,31 @@ async function lookupEncyclopediaWord(word){
 }
 function openWordInfo(word){state.screen="";state.tab="Энциклопедия";render();setTimeout(()=>{const input=$("#encyclopediaInput");if(input){input.value=word;lookupEncyclopediaWord(word)}},0)}
 let qqWordInfoBound=false;
-function bindWordInfo(){if(qqWordInfoBound)return;qqWordInfoBound=true;document.addEventListener("dblclick",e=>{const target=e.target.closest("[data-qq-word]");if(target){e.preventDefault();openWordInfo(target.dataset.qqWord||target.textContent)}})}
+function bindWordInfo(){
+ if(qqWordInfoBound)return;
+ qqWordInfoBound=true;
+ let lastTapTarget=null,lastTapAt=0,lastOpenedTarget=null,lastOpenedAt=0;
+ const open=target=>{
+  const now=Date.now();
+  if(lastOpenedTarget===target&&now-lastOpenedAt<450)return;
+  lastOpenedTarget=target;lastOpenedAt=now;
+  openWordInfo(target.dataset.qqWord||target.textContent);
+ };
+ document.addEventListener("dblclick",e=>{
+  const target=e.target.closest("[data-qq-word]");
+  if(target){e.preventDefault();open(target)}
+ });
+ // Mobile browsers do not consistently emit dblclick for touch, so detect a
+ // second tap on the same discovered word while keeping single taps inert.
+ document.addEventListener("pointerup",e=>{
+  if(e.pointerType!=="touch")return;
+  const target=e.target.closest("[data-qq-word]");
+  if(!target){lastTapTarget=null;lastTapAt=0;return;}
+  const now=Date.now();
+  if(target===lastTapTarget&&now-lastTapAt<=450)open(target);
+  lastTapTarget=target;lastTapAt=now;
+ });
+}
 bindWordInfo();
 function profile(){
  const p=window.QQProgression?.get?.()||{stats:{},daily:{},titles:["Новичок"],activeTitle:"Новичок"};
