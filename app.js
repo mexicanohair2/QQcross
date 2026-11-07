@@ -18,7 +18,7 @@ const BACKGROUNDS=[["misty-forest","Туманный лес","nature"],["sakura-
 const BACKGROUND_KEY="qqcross_background_v1";
 let abstractEnabled=(()=>{try{return localStorage.getItem("qqcross_abstract_enabled")!=="false"}catch{return true}})();
 let activeBackground=(()=>{try{const v=localStorage.getItem(BACKGROUND_KEY);return BACKGROUNDS.some(x=>x[0]===v)?v:"misty-forest"}catch{return "misty-forest"}})();
-function applyBackground(value=activeBackground){activeBackground=BACKGROUNDS.some(x=>x[0]===value)?value:"misty-forest";document.documentElement.dataset.qqBackground=activeBackground;try{localStorage.setItem(BACKGROUND_KEY,activeBackground)}catch{}}
+function applyBackground(value=activeBackground){const candidate=BACKGROUNDS.some(x=>x[0]===value)?value:"misty-forest";activeBackground=!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===candidate)?.[2]==="abstract"?"misty-forest":candidate;document.documentElement.dataset.qqBackground=activeBackground;try{localStorage.setItem(BACKGROUND_KEY,activeBackground)}catch{}}
 applyBackground();
 const AMBIENCE_KEY="qqcross_ambience_v1";
 let activeAmbience=(()=>{try{const v=localStorage.getItem(AMBIENCE_KEY);return ["forest","sakura","autumn","rain","fireflies","stars","fog","none"].includes(v)?v:"forest"}catch{return "forest"}})();
@@ -28,6 +28,9 @@ function applyAmbience(value=activeAmbience){
   try{localStorage.setItem(AMBIENCE_KEY,activeAmbience)}catch{}
 }
 applyAmbience();
+// Restore accessibility preferences on every launch, not only after changing the controls.
+document.documentElement.dataset.qqFontSize=localStorage.getItem("qqcross_font_size")||"normal";
+document.documentElement.dataset.qqReduceMotion=localStorage.getItem("qqcross_reduce_motion")==="true"?"true":"false";
 function avatarStorageKey(){return "qqcross_avatar_image_"+String(state.profile?.id||"guest");}
 function getAvatarImage(){try{const v=localStorage.getItem(avatarStorageKey());return v&&/^data:image\/(webp|png|jpeg);base64,/.test(v)?v:"";}catch{return "";}}
 function avatarMarkup(size=""){
@@ -306,6 +309,7 @@ async function lookupEncyclopediaWord(word){
 function openWordInfo(word){state.screen="";state.tab="Энциклопедия";render();setTimeout(()=>{const input=$("#encyclopediaInput");if(input){input.value=word;lookupEncyclopediaWord(word)}},0)}
 let qqWordInfoBound=false;
 function bindWordInfo(){if(qqWordInfoBound)return;qqWordInfoBound=true;document.addEventListener("dblclick",e=>{const target=e.target.closest("[data-qq-word]");if(target){e.preventDefault();openWordInfo(target.dataset.qqWord||target.textContent)}})}
+bindWordInfo();
 function profile(){
  const p=window.QQProgression?.get?.()||{stats:{},daily:{},titles:["Новичок"],activeTitle:"Новичок"};
  const achievements=window.QQProgression?.achievements?.()||[];
