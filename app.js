@@ -809,20 +809,35 @@ function buildScanword(entries){
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
-    const seedChoices=[];
+    // Reservoir-sample seed placements instead of sorting a potentially huge
+    // list with a random comparator. The old sort was O(n log n) per restart.
+    const imageSeedChoices=[],regularSeedChoices=[];
+    let imageSeedSeen=0,regularSeedSeen=0;
+    const keepRandom=(pool,item,seen,limit)=>{
+      seen++;
+      if(pool.length<limit)pool.push(item);
+      else{const index=Math.floor(Math.random()*seen);if(index<limit)pool[index]=item;}
+      return seen;
+    };
     for(let cross=0;cross<first.answer.length;cross++){
       const x=firstX+cross+1,letter=first.answer[cross];
       for(const e of normalized){
         if(e.answer===first.answer||e.answer.length<3)continue;
         for(let p=0;p<Math.min(7,e.answer.length);p++){
-          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N)seedChoices.push({entry:e,x,y:firstY-p-1});
+          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N){
+            const choice={entry:e,x,y:firstY-p-1};
+            if(e.imageKey)imageSeedSeen=keepRandom(imageSeedChoices,choice,imageSeedSeen,60);
+            else regularSeedSeen=keepRandom(regularSeedChoices,choice,regularSeedSeen,120);
+          }
         }
       }
     }
-    if(!seedChoices.length)return null;
+    if(!imageSeedChoices.length&&!regularSeedChoices.length)return null;
     let seeded=false;
-    seedChoices.sort((a,b)=>(Number(!!b.entry.imageKey)-Number(!!a.entry.imageKey))+(Math.random()-.5));
-    for(const choice of seedChoices.slice(0,120)){
+    const seedCandidates=imageSeedChoices.length
+      ?imageSeedChoices.concat(regularSeedChoices.slice(0,60))
+      :regularSeedChoices;
+    for(const choice of seedCandidates){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
