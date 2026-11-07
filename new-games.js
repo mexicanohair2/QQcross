@@ -138,13 +138,36 @@ async function loadClues(){
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
 }
 function mountCody(root,onExit,clues,words){
- const pool=shuffle(clues.filter(x=>x&&x.answer&&x.clue&&!x.imageKey&&norm(x.answer).length>=4&&norm(x.answer).length<=9));
+ const seen=new Set();
+ const pool=shuffle(clues.filter(x=>x&&x.answer&&x.clue&&!x.imageKey&&norm(x.answer).length>=4&&norm(x.answer).length<=9).filter(x=>{const w=norm(x.answer);if(seen.has(w))return false;seen.add(w);return true;}));
+ const byInitial=new Map();
+ pool.forEach(item=>{const initial=norm(item.answer)[0],list=byInitial.get(initial)||[];list.push(item);byInitial.set(initial,list);});
  let puzzle=null;
- for(let tries=0;tries<30&&!puzzle;tries++){
-  const group=pool.slice(tries*8,tries*8+8);if(group.length<4)continue;
-  const layout=layoutWords(group.map(x=>norm(x.answer)),13);if(layout.placed.length>=4)puzzle={layout,items:layout.placed.map(p=>group.find(x=>norm(x.answer)===p.word)).filter(Boolean)};
+ const secretCandidates=shuffle(words.slice(0,7000).filter(w=>w.length>=4&&w.length<=5));
+ for(const secretWord of secretCandidates){
+  const used=new Set(),items=[];let possible=true;
+  for(const letter of secretWord){
+   const item=(byInitial.get(letter)||[]).find(x=>!used.has(norm(x.answer)));
+   if(!item){possible=false;break;}
+   used.add(norm(item.answer));items.push(item);
+  }
+  if(!possible)continue;
+  const layout=layoutWords(items.map(x=>norm(x.answer)),13);
+  if(layout.placed.length===items.length){puzzle={layout,items,secret:secretWord};break;}
  }
- if(!puzzle){const items=pool.slice(0,5);puzzle={layout:layoutWords(items.map(x=>norm(x.answer)),13),items};}
+ for(let tries=0;tries<35&&!puzzle;tries++){
+  const group=pool.slice(tries*8,tries*8+8);if(group.length<3)continue;
+  const layout=layoutWords(group.map(x=>norm(x.answer)),13);
+  if(layout.placed.length>=3){
+   const items=layout.placed.map(p=>group.find(x=>norm(x.answer)===p.word)).filter(Boolean);
+   puzzle={layout,items,secret:items.map(x=>norm(x.answer)[0]).join("")};
+  }
+ }
+ if(!puzzle){
+  const group=pool.slice(0,8),layout=layoutWords(group.map(x=>norm(x.answer)),13);
+  const items=layout.placed.map(p=>group.find(x=>norm(x.answer)===p.word)).filter(Boolean);
+  puzzle={layout,items,secret:items.map(x=>norm(x.answer)[0]).join("")};
+ }
  let solved=new Set(),active=0,usedHint=false;
  const body='<p class="qq-extra-sub">Решай тематические вопросы, заполняй пересекающиеся слова и открой секретное слово.</p><div class="qq-cody-progress" id="qqCodyProgress">Решено: 0 / '+puzzle.items.length+'</div>'+drawCrossword(puzzle.layout,"qqCodyBoard")+'<div class="qq-secret" id="qqSecret"><span>Секретное слово</span><b>· · · · ·</b></div><div class="qq-cody-clues" id="qqCodyClues">'+puzzle.items.map((x,i)=>'<button type="button" class="qq-cody-clue '+(i===0?"active":"")+'" data-clue="'+i+'"><span class="qq-cody-number">'+(i+1)+'</span><span class="qq-cody-question">'+escapeHtml(x.clue)+'</span><b>'+norm(x.answer).length+' букв</b></button>').join("")+'</div><div class="qq-cody-tools"><button class="btn" id="qqCodyLoupe">⌕ Лупа</button><button class="btn" id="qqCodyHint">Подсказка</button></div><div class="qq-cody-entry"><input id="qqCodyInput" class="input" maxlength="12" autocomplete="off" placeholder="Введи ответ"><button class="btn primary" id="qqCodyCheck">Ответить</button></div><p class="qq-extra-small" id="qqCodyMessage" aria-live="polite">Выбери вопрос и введи ответ.</p>';
  shell(root,"Кроссворды",onExit,body);
