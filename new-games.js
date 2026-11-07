@@ -68,11 +68,10 @@ function mountSearch(root,onExit,words){
   clear();
  }
  let tapStart=null;
- grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;drag=true;start={x:+c.dataset.x,y:+c.dataset.y};tapStart=start;markPath([start]);});
+ grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
  grid.addEventListener("pointermove",e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const path=pathBetween(start,{x:+c.dataset.x,y:+c.dataset.y});if(path.length)markPath(path);});
- const end=()=>{if(!drag)return;drag=false;if(selection.length>1)finish(selection);else clear();start=null;};
+ const end=()=>{if(!drag)return;drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
  grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
- grid.addEventListener("click",e=>{const c=e.target.closest("[data-x]");if(!c||drag)return;const p={x:+c.dataset.x,y:+c.dataset.y};if(!tapStart){tapStart=p;markPath([p]);}else{finish(pathBetween(tapStart,p));tapStart=null;}});
  root.querySelector("#qqSearchNew").onclick=()=>mountSearch(root,onExit,words);
 }
 function layoutWords(words,size=13){
@@ -110,7 +109,7 @@ function mountWheel(root,onExit,words){
   const layout=layoutWords(selected,13);if(layout.placed.length>=4)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
  }
  if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);puzzle={seed,layout:layoutWords(candidates,13),words:candidates};}
- let selected=[],solved=new Set(),dragging=false,dragPath=false;
+ let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false;
  const body='<p class="qq-extra-sub">Соединяй буквы в круге, составляй слова и открывай клетки кроссворда.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+[...puzzle.seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("")+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. За дополнительные слова начисляются бонусы.</p>';
  shell(root,"Поиск слов из букв",onExit,body);
  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
@@ -126,9 +125,9 @@ function mountWheel(root,onExit,words){
  }
  wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;dragging=true;dragPath=true;selected=[+b.dataset.index];refresh();});
  wheel.addEventListener("pointerenter",e=>{if(!dragging)return;const b=e.target.closest("[data-index]");if(!b)return;const i=+b.dataset.index;if(!selected.includes(i))selected.push(i);refresh();},true);
- const stop=()=>{if(!dragging)return;dragging=false;if(dragPath&&selected.length>1)submit();dragPath=false;};
+ const stop=()=>{if(!dragging)return;dragging=false;if(dragPath&&selected.length>1){submit();suppressClick=true;}dragPath=false;};
  wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
- wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(dragPath){dragPath=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
+ wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
  root.querySelector("#qqWheelSubmit").onclick=submit;
  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
  root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);wheel.innerHTML=letters.map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("");puzzle.seed=letters.join("");selected=[];refresh();};
@@ -138,7 +137,7 @@ async function loadClues(){
  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return window.QQCROSS_DICTIONARY;
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
 }
-function mountCody(root,onExit,clues){
+function mountCody(root,onExit,clues,words){
  const pool=shuffle(clues.filter(x=>x&&x.answer&&x.clue&&!x.imageKey&&norm(x.answer).length>=4&&norm(x.answer).length<=9));
  let puzzle=null;
  for(let tries=0;tries<30&&!puzzle;tries++){
@@ -165,7 +164,7 @@ async function mount(root,mode,onExit){
   const words=await loadLexicon();
   if(mode==="search")mountSearch(root,onExit,words);
   else if(mode==="wheel")mountWheel(root,onExit,words);
-  else if(mode==="cody")mountCody(root,onExit,await loadClues());
+  else if(mode==="cody")mountCody(root,onExit,await loadClues(),words);
   else throw new Error("Неизвестный режим");
  }catch(error){
   shell(root,"QQCross",onExit,'<div class="card"><h3>Не удалось открыть игру</h3><p class="muted">'+escapeHtml(error.message||"Ошибка загрузки данных")+'</p><p class="qq-extra-small">Проверь подключение и обнови приложение. Игровые данные не изменены.</p><button class="btn primary full" id="qqExtraRetry">Повторить</button></div>');
