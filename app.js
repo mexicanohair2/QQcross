@@ -680,6 +680,55 @@ function normalizeScanwordEntry(item){
   if(answer.length<1||answer.length>12||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
+function assertValidScanwordLayout(result,N,TOTAL){
+  const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
+  if(!result||!Array.isArray(result.words)||result.words.length<10)fail("слишком мало вопросов");
+  if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size!==TOTAL)fail("поле заполнено не полностью");
+  for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
+  const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
+  for(let i=0;i<result.words.length;i++){
+    const word=result.words[i],answer=String(word.answer||"");
+    if(!word.clue||!answer||answer.length!==word.cells.length)fail("неверный ответ или подсказка у "+word.id);
+    if(answers.has(answer))fail("повтор ответа "+answer);
+    answers.add(answer);
+    const delta=directions[word.dir],cell=word.clueCell;
+    if(!delta||!Array.isArray(cell)||cell.length!==2)fail("неверное направление или координаты вопроса");
+    const [cy,cx]=cell,clueKey=cy+","+cx;
+    if(cy<0||cx<0||cy>=N||cx>=N||!(result.clueAt.get(clueKey)||[]).includes(word))fail("вопрос находится вне поля");
+    for(let k=0;k<word.cells.length;k++){
+      const [y,x]=word.cells[k],expectedY=cy+delta[0]*(k+1),expectedX=cx+delta[1]*(k+1);
+      if(y!==expectedY||x!==expectedX||y<0||x<0||y>=N||x>=N)fail("слово "+word.id+" расположено с разрывом или неверным направлением");
+      if(answer[k]<"А"||answer[k]>"Я")fail("недопустимая буква в ответе "+word.id);
+      const key=y+","+x;
+      if(result.clueAt.has(key))fail("ответ пересекает клетку вопроса");
+      if(letters.has(key)&&letters.get(key)!==answer[k])fail("конфликт букв в клетке "+key);
+      letters.set(key,answer[k]);
+      if(!owners.has(key))owners.set(key,new Set());
+      owners.get(key).add(i);
+    }
+  }
+  if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
+  for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
+  for(const key of result.occupied.keys())if(!letters.has(key))fail("пустая занятая клетка: "+key);
+  for(const set of owners.values()){
+    const ids=[...set];
+    for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){graph[ids[i]].add(ids[j]);graph[ids[j]].add(ids[i])}
+  }
+  for(let i=0;i<result.words.length;i++)for(let j=i+1;j<result.words.length;j++){
+    const a=result.words[i],b=result.words[j],aKey=a.clueCell.join(","),bKey=b.clueCell.join(",");
+    const [ay,ax]=a.clueCell,[by,bx]=b.clueCell;
+    const touches=b.cells.some(([y,x])=>Math.abs(y-ay)+Math.abs(x-ax)===1)||
+      a.cells.some(([y,x])=>Math.abs(y-by)+Math.abs(x-bx)===1);
+    if(aKey===bKey||touches){graph[i].add(j);graph[j].add(i)}
+  }
+  const seen=new Set([0]),stack=[0];
+  while(stack.length){const i=stack.pop();for(const j of graph[i])if(!seen.has(j)){seen.add(j);stack.push(j)}}
+  if(seen.size!==result.words.length)fail("обнаружены несвязанные слова");
+  const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
+  if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
+  return true;
+}
 function buildScanword(entries){
   const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
@@ -879,6 +928,7 @@ function buildScanword(entries){
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
+  assertValidScanwordLayout(best,N,TOTAL);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function clonePreparedScanword(source){
