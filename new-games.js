@@ -17,7 +17,7 @@ async function loadLexicon() {
 }
 function sound(kind) {window.QQAudio?.play(({win:"word",hint:"wrong",good:"correct",letter:"letter",select:"select"})[kind]||"correct");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ</span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;}
+function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;}
 function pathBetween(a,b){
  const dx=b.x-a.x,dy=b.y-a.y,steps=Math.max(Math.abs(dx),Math.abs(dy));
  if(!steps||!(dx===0||dy===0||Math.abs(dx)===Math.abs(dy)))return [];
