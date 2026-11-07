@@ -70,6 +70,9 @@ let scanwordCandidateCache=null;
 let preparedScanword=null;
 let scanwordPreparing=false;
 let scanwordPreparePromise=null;
+let scanwordPuzzlePack=[];
+let scanwordPackOrder=[];
+let scanwordPackLoadPromise=null;
 let draggingLetter=false;
 let suppressCellClick=false;
 
@@ -935,7 +938,18 @@ function buildScanword(entries,attemptLimit=16){
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function clonePreparedScanword(source){
-  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),coverage:source.coverage};
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used instanceof Set?source.used:[...(source.used||[])]),clueKeys:new Set(source.clueKeys instanceof Set?source.clueKeys:[...(source.clueKeys||[])]),coverage:source.coverage};
+}
+function takePackedScanword(){
+  if(!scanwordPuzzlePack.length)return null;
+  if(!scanwordPackOrder.length){
+    scanwordPackOrder=Array.from({length:scanwordPuzzlePack.length},(_,i)=>i);
+    for(let i=scanwordPackOrder.length-1;i>0;i--){
+      const j=Math.floor(Math.random()*(i+1));
+      [scanwordPackOrder[i],scanwordPackOrder[j]]=[scanwordPackOrder[j],scanwordPackOrder[i]];
+    }
+  }
+  return clonePreparedScanword(scanwordPuzzlePack[scanwordPackOrder.pop()]);
 }
 function refreshPracticeButton(){
   const button=$("#practice");
@@ -952,7 +966,7 @@ function prepareNextScanword(){
   refreshPracticeButton();
   scanwordPreparePromise=new Promise(resolve=>{
     setTimeout(()=>{
-      try{preparedScanword=buildScanword(dictionary)}
+      try{preparedScanword=takePackedScanword()||buildScanword(dictionary)}
       catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error);preparedScanword=null}
       finally{
         scanwordPreparing=false;
@@ -1310,6 +1324,22 @@ window.addEventListener("pagehide",()=>persistCurrentMatch());
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")persistCurrentMatch()});
 
 let dictionaryLoadPromise=null;
+function preloadScanwordPuzzlePack(){
+  if(scanwordPuzzlePack.length)return Promise.resolve(true);
+  if(scanwordPackLoadPromise)return scanwordPackLoadPromise;
+  scanwordPackLoadPromise=fetch("./data/scanword-puzzles.json?v=20261108-pack-v1",{cache:"no-store"})
+    .then(response=>{if(!response.ok)throw new Error("Пакет сканвордов: HTTP "+response.status);return response.json()})
+    .then(data=>{
+      if(data?.version!==1||!Array.isArray(data.puzzles)||data.puzzles.length<20)throw new Error("Некорректный пакет сканвордов");
+      const valid=data.puzzles.filter(p=>p&&p.w===15&&p.h===15&&Array.isArray(p.words)&&p.words.length>=10&&Array.isArray(p.used)&&Array.isArray(p.clueKeys)&&p.used.length+p.clueKeys.length===225);
+      if(valid.length<20)throw new Error("В пакете недостаточно полных сканвордов");
+      scanwordPuzzlePack=valid;
+      scanwordPackOrder=[];
+      return true;
+    })
+    .catch(error=>{console.warn("QQCross scanword pack:",error);scanwordPackLoadPromise=null;return false});
+  return scanwordPackLoadPromise;
+}
 function preloadScanwordDictionary(){
   if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return Promise.resolve(true);
   if(dictionaryLoadPromise)return dictionaryLoadPromise;
@@ -1323,6 +1353,7 @@ function preloadScanwordDictionary(){
       const dictionary=await dictionaryResponse.json();
       if(!Array.isArray(dictionary)||!dictionary.length)throw new Error("Некорректный словарь сканвордов");
       window.QQCROSS_DICTIONARY=dictionary;
+      await preloadScanwordPuzzlePack();
       prepareNextScanword();
       return true;
     }catch(error){
