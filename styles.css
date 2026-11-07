@@ -1093,3 +1093,9 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 .qq-cody-app.qq-cody-playing .qq-cody-row-cells{padding:0!important;gap:1px!important}
 .qq-cody-app.qq-cody-playing .qq-cody-row-clue{padding:3px 4px!important}
 @media(max-width:390px){.qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,42%) minmax(0,58%)!important;gap:2px!important}}
+
+
+/* Word of Wonders: place every letter evenly around a real circular wheel. */
+.qq-wheel{position:relative!important;display:block!important;width:min(100%,280px)!important;aspect-ratio:1/1!important;height:auto!important;padding:0!important;margin:10px auto!important;overflow:visible!important}
+.qq-wheel-letter{position:absolute!important;left:50%!important;top:50%!important;width:clamp(44px,12vw,56px)!important;height:clamp(44px,12vw,56px)!important;margin:0!important;transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(-86px) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important}
+.qq-wheel-letter.chosen{background:linear-gradient(145deg,#78628e,#4a3a5b)!important;border-color:#d4bce9!important;box-shadow:0 0 0 3px #bca3d733!important}
