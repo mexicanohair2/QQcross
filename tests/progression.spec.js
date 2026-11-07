@@ -215,3 +215,22 @@ test("unclaimed achievement rewards stay queued until explicitly acknowledged", 
   expect(result.countAfter).toBe(result.countBefore - 1);
   expect(result.removed).toBe(true);
 });
+
+test("double-tapping a discovered word works with touch pointer events", async ({ page }) => {
+  await enterGuest(page);
+  await page.evaluate(() => {
+    const word = document.createElement("button");
+    word.type = "button";
+    word.dataset.qqWord = "ТУНЕЦ";
+    word.textContent = "ТУНЕЦ";
+    document.querySelector("#app").append(word);
+    const tap = () => word.dispatchEvent(new PointerEvent("pointerup", {
+      bubbles: true,
+      pointerType: "touch",
+      pointerId: 7
+    }));
+    tap();
+    tap();
+  });
+  await expect(page.locator("#encyclopediaInput")).toHaveValue("ТУНЕЦ");
+});
