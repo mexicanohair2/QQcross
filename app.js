@@ -114,16 +114,16 @@ let progressRewardApplyPromise=null;
 async function applyProgressRewards(){
  if(!state.profile)return false;
  if(progressRewardApplyPromise)return progressRewardApplyPromise;
- const rewards=window.QQProgression?.takePendingRewards?.()||[];
+ const rewards=window.QQProgression?.peekPendingRewards?.()||[];
  if(!rewards.length)return false;
  progressRewardApplyPromise=(async()=>{
   const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
   if(cloud){
-   try{await window.QQProgression.syncCloud()}catch(error){rewards.forEach(r=>window.QQProgression.requeuePendingReward(r.id,r.item,r.quantity));toast("Не удалось синхронизировать награду. Попробуем позже.");return false}
+   try{await window.QQProgression.syncCloud()}
+   catch(error){toast("Не удалось синхронизировать награду. Она останется в ожидании и будет повторена позже.");return false}
   }
   let changed=false;
-  for(let i=0;i<rewards.length;i++){
-   const reward=rewards[i];
+  for(const reward of rewards){
    if(cloud){
     try{
      const {data,error}=await supabaseClient.rpc("claim_qqcross_progress_reward",{p_reward_key:reward.id});
@@ -131,14 +131,16 @@ async function applyProgressRewards(){
      const result=Array.isArray(data)?data[0]:data;
      const item=result?.item_type;
      if(item&&state.profile.items)state.profile.items[item]=Number(result.current_quantity)||0;
+     window.QQProgression.ackPendingReward(reward.id);
      changed=true;
     }catch(error){
-     for(const pending of rewards.slice(i))window.QQProgression.requeuePendingReward(pending.id,pending.item,pending.quantity);
-     toast("Не удалось начислить облачную награду. Она сохранена для повтора.");
+     toast("Не удалось начислить облачную награду. Она останется в ожидании и будет повторена позже.");
      break;
     }
    }else if(state.profile.items&&Object.prototype.hasOwnProperty.call(state.profile.items,reward.item)){
-    state.profile.items[reward.item]+=reward.quantity;changed=true;
+    state.profile.items[reward.item]+=reward.quantity;
+    window.QQProgression.ackPendingReward(reward.id);
+    changed=true;
    }
   }
   if(changed){save();toast("Награда за достижение добавлена в инвентарь");if(state.tab==="Профиль"&&!state.screen)render()}
