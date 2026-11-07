@@ -30,7 +30,7 @@ def clean_required(raw: str) -> str | None:
 
 def clean(raw: str) -> str | None:
     word = str(raw or "").strip().lower().replace("ё", "е")
-    if not WORD_RE.fullmatch(word) or word in BAD or word in STOPWORDS or re.search(r"(.)\\1\\1", word):
+    if not WORD_RE.fullmatch(word) or word in BAD or word in STOPWORDS or re.search(r"(.)\1\1", word):
         return None
     return word.upper()
 
