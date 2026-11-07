@@ -95,3 +95,68 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   await expect(page.locator("#playWordle")).toBeVisible();
   expect(pageErrors).toEqual([]);
 });
+
+
+test("opens the classic Russian word-search game", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await expect(page.locator(".qq-game-launch")).toHaveCount(4);
+  await page.locator('[data-extra-game="search"]').click();
+  await expect(page.locator(".qq-search-grid")).toBeVisible();
+  await expect(page.locator(".qq-search-cell")).toHaveCount(121);
+  await expect(page.locator(".qq-word-list span").first()).toBeVisible();
+  await expect(page.locator(".qq-extra-screen")).toContainText("Поиск слов");
+  expect(errors).toEqual([]);
+});
+
+test("opens the letter-wheel crossword game and accepts letter selection", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="wheel"]').click();
+  await expect(page.locator("#qqWheel")).toBeVisible();
+  await expect(page.locator(".qq-wheel-letter").first()).toBeVisible();
+  await page.locator(".qq-wheel-letter").first().click();
+  await expect(page.locator("#qqWheelAnswer")).not.toBeEmpty();
+  await page.locator("#qqWheelClear").click();
+  await expect(page.locator("#qqWheelAnswer")).toBeEmpty();
+  expect(errors).toEqual([]);
+});
+
+test("opens Cody-style crosswords with a magnifier and a compact hint", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="cody"]').click();
+  await expect(page.locator(".qq-cody-clue").first()).toBeVisible();
+  await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
+  await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
+  await page.locator("#qqCodyLoupe").click();
+  await page.locator("#qqCodyHint").click();
+  expect(errors).toEqual([]);
+});
+
+
+test("the shared 50,000-word Russian lexicon includes every existing Wordle guess and scanword answer", async ({ page }) => {
+  await page.goto("/");
+  const [lexicon, wordle, scanwords] = await Promise.all([
+    page.evaluate(() => fetch("./data/russian-words-50000.json").then(r => r.json())),
+    page.evaluate(() => fetch("./data/wordle-words.json").then(r => r.json())),
+    page.evaluate(() => fetch("./data/scanword-dictionary.json").then(r => r.json()))
+  ]);
+  const master = new Set(lexicon.words);
+  expect(lexicon.language).toBe("ru");
+  expect(lexicon.count).toBe(50000);
+  expect(lexicon.words).toHaveLength(50000);
+  expect(master.size).toBe(50000);
+  expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
+  expect(wordle.valid.every(word => master.has(word))).toBe(true);
+  expect(scanwords.filter(entry => String(entry.answer).length >= 2).every(entry => master.has(String(entry.answer).toUpperCase().replace(/Ё/g, "Е")))).toBe(true);
+});

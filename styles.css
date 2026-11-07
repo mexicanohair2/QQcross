@@ -711,3 +711,34 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 .wordle-key.absent{background:#858d97;color:#fff;opacity:1;cursor:pointer}
 .wordle-key.absent:hover{background:#929ba5}
 .wordle-key:disabled{opacity:.5}
+
+
+/* Дополнительные словесные игры QQCross — спокойная тёмная палитра */
+.qq-game-launch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 20px}
+.qq-game-launch{min-width:0;min-height:116px;text-align:left;padding:14px;border:1px solid #40334f;border-radius:16px;background:linear-gradient(145deg,#211a2c,#15111d);color:#f3edf9;display:flex;flex-direction:column;gap:6px;box-shadow:0 5px 14px #0002}
+.qq-game-launch:active{transform:scale(.985)}.qq-game-launch b{font-size:15px}.qq-game-launch small{font-size:11px;line-height:1.35;color:#b9adc8}
+.qq-game-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#30243e;color:#d9c9ee;font-size:23px}
+.qq-extra-screen{padding-top:12px}.qq-extra-top{margin-bottom:14px}.qq-extra-top b{font-size:17px}.qq-extra-mark{color:#a992c9;font-weight:900}
+.qq-extra-sub{margin:4px 2px 14px;color:#c1b6ce;font-size:13px;line-height:1.5}.qq-extra-small{font-size:11px;color:#a99db8;line-height:1.45;text-align:center}
+.qq-search-progress,.qq-wheel-progress,.qq-cody-progress{padding:10px 12px;border-radius:12px;background:#1b1624;border:1px solid #3c3049;color:#d8cce5;text-align:center;font-size:13px;margin:8px 0 12px}
+.qq-search-grid{width:min(100%,440px);margin:0 auto;display:grid;grid-template-columns:repeat(var(--qq-cols),minmax(0,1fr));gap:3px;touch-action:none;user-select:none}
+.qq-search-cell{min-width:0;aspect-ratio:1;border:1px solid #40364b;border-radius:5px;background:linear-gradient(145deg,#292334,#1c1825);color:#eee8f4;font-size:clamp(12px,3.4vw,19px);font-weight:750;padding:0}
+.qq-search-cell.qq-selected{background:#5b4b70;border-color:#b8a1d4;color:white}.qq-search-cell.qq-found{background:#31594e;border-color:#6cae91;color:#f3fff8}.qq-search-cell.qq-miss{background:#633a48;border-color:#b56e7f}
+.qq-word-list{display:flex;flex-wrap:wrap;gap:7px;justify-content:center;margin:15px 0}.qq-word-list span{padding:6px 9px;border:1px solid #40364b;border-radius:9px;color:#d2c7dc;font-size:12px}.qq-word-list span.done{text-decoration:line-through;color:#8dbba4;border-color:#426a59;background:#1b3028}
+.qq-cross-board{width:min(100%,430px);margin:10px auto 16px;display:grid;grid-template-columns:repeat(var(--qq-cols),minmax(0,1fr));gap:2px;aspect-ratio:1}
+.qq-cross-cell{min-width:0;aspect-ratio:1;border:1px solid #51445f;border-radius:3px;background:#272130;color:#f4eef9;display:grid;place-items:center;font-size:clamp(11px,3.1vw,18px);font-weight:800}
+.qq-cross-cell.revealed{background:#394f48;border-color:#648e7a;animation:qqReveal .24s ease-out}.qq-cross-cell.secret-letter{box-shadow:inset 0 0 0 2px #b29acb;background:#463c53}.qq-cross-empty{aspect-ratio:1;background:transparent}
+.qq-wheel-answer{min-height:34px;text-align:center;letter-spacing:.18em;font-size:22px;font-weight:800;color:#e9dff2;margin:12px 0}
+.qq-wheel{width:min(100%,300px);margin:10px auto;display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:14px;border-radius:50%;background:radial-gradient(circle,#241d2d 0%,#17131f 68%,#100d17 100%);border:1px solid #42364e;touch-action:none;user-select:none}
+.qq-wheel-letter{width:clamp(46px,14vw,58px);height:clamp(46px,14vw,58px);border-radius:50%;border:1px solid #6b5a7d;background:linear-gradient(145deg,#40354d,#282132);color:#f6effa;font-size:21px;font-weight:800;touch-action:none}.qq-wheel-letter.chosen{background:#655477;border-color:#c5afd9;transform:scale(.96)}
+.qq-wheel-actions{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:7px;margin:12px 0}
+.qq-cody-clues{display:grid;gap:8px;margin:12px 0}.qq-cody-clue{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:9px;width:100%;padding:11px;border:1px solid #40364b;border-radius:12px;background:#1d1826;color:#eee8f4;text-align:left}
+.qq-cody-clue.active{border-color:#9a84b4;background:#292137}.qq-cody-clue.done{border-color:#426a59;background:#1b3028}
+.qq-cody-clue b{font-size:10px;color:#b7a9c6;white-space:nowrap}.qq-cody-number{width:26px;height:26px;border-radius:8px;background:#393047;display:grid;place-items:center;color:#e1d4ed;font-size:12px}
+.qq-cody-question{font-size:13px;line-height:1.35}.qq-secret{display:flex;align-items:center;justify-content:space-between;padding:11px 13px;border-radius:12px;background:#211a2c;border:1px solid #51415f;color:#c9bbd6;font-size:12px}
+.qq-secret b{letter-spacing:.24em;font-size:16px;color:#eee5f5}.qq-secret.complete{border-color:#668e79;background:#20352b}
+.qq-cody-tools{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:12px 0}.qq-cody-entry{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+.qq-cody-entry .input{margin:0;min-width:0}.qq-cody-entry .btn{white-space:nowrap}.qq-shake{animation:qqShake .28s ease}
+@keyframes qqReveal{from{transform:scale(.82);opacity:.6}to{transform:scale(1);opacity:1}}@keyframes qqShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media(max-width:360px){.qq-search-grid{gap:2px}.qq-search-cell{font-size:11px}.qq-cody-clue{grid-template-columns:26px minmax(0,1fr) auto;padding:8px;gap:6px}.qq-cody-question{font-size:12px}.qq-wheel-actions .btn{padding:9px 5px;font-size:12px}}
+@media(prefers-reduced-motion:reduce){.qq-cross-cell.revealed,.qq-shake{animation:none}}
