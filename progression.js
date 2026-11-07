@@ -64,12 +64,14 @@ function recordWord(word){const w=normalize(word);if(w.length<2||data.discovered
 function tapHat(){data.hatTaps++;recalculate();save();return data.hatTaps}
 function daily(date=today()){const seed=hash(date+"|qqcross-daily-v1");const lengths=[4,5,6,7,8];return{date,scanwordSeed:hash(date+"|scanword"),wordleSeed:hash(date+"|wordle"),wordleLength:lengths[seed%lengths.length],completed:{...(data.daily.days[date]||{})}}}
 function completeDaily(type,date=today()){if(!["scanword","wordle"].includes(type))return get();const day=data.daily.days[date]||(data.daily.days[date]={});if(day[type])return get();day[type]=true;if(day.scanword&&day.wordle&&date!==data.daily.lastCompletedDate){const last=data.daily.lastCompletedDate;const yesterday=new Date(date+"T12:00:00");yesterday.setDate(yesterday.getDate()-1);const previous=yesterday.getFullYear()+"-"+String(yesterday.getMonth()+1).padStart(2,"0")+"-"+String(yesterday.getDate()).padStart(2,"0");data.daily.currentStreak=last===previous?data.daily.currentStreak+1:1;data.daily.bestStreak=Math.max(data.daily.bestStreak,data.daily.currentStreak);data.daily.lastCompletedDate=date;recalculate()}save();return get()}
-function takePendingRewards(){const pending=Object.entries(data.pendingRewards||{}).map(([id,reward])=>({id,...reward}));data.pendingRewards={};save();return pending}
+function peekPendingRewards(){return Object.entries(data.pendingRewards||{}).map(([id,reward])=>({id,...reward}))}
+function ackPendingReward(id){if(!data.pendingRewards||!Object.prototype.hasOwnProperty.call(data.pendingRewards,id))return false;delete data.pendingRewards[id];save();return true}
+function takePendingRewards(){const pending=peekPendingRewards();pending.forEach(reward=>delete data.pendingRewards[reward.id]);save();return pending}
 function requeuePendingReward(id,item,quantity){data.pendingRewards=data.pendingRewards||{};data.pendingRewards[id]={item,quantity};save()}
 function setActiveTitle(name){if(!data.titles.includes(name))return false;data.activeTitle=name;save();return true}
 function get(){return JSON.parse(JSON.stringify(data))}
 function achievements(){return ACHIEVEMENTS.map(a=>({ ...a,value:a.stat==="bestStreak"?data.daily.bestStreak:Number(data.stats[a.stat])||0,unlocked:!!data.achievements[a.id],reward:data.achievements[a.id]?.reward||null}))}
 function setCloud(client,userId){cloudClient=client;cloudUserId=userId||null;if(!client||!userId)return Promise.resolve();return client.from("qqcross_player_progress").select("progress").eq("user_id",userId).maybeSingle().then(({data:row,error})=>{if(error)throw error;if(row?.progress)mergeProgress(row.progress);else syncCloud().catch(e=>console.warn("QQCross progression sync:",e));return get()})}
 loadLocal();recalculate();
-window.QQProgression={get,daily,record,recordUnique,recordWord,tapHat,completeDaily,setActiveTitle,achievements,takePendingRewards,requeuePendingReward,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
+window.QQProgression={get,daily,record,recordUnique,recordWord,tapHat,completeDaily,setActiveTitle,achievements,takePendingRewards,peekPendingRewards,ackPendingReward,requeuePendingReward,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
 })();
