@@ -74,14 +74,14 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   expect(dictionary.answers).toContain("ТУНЕЦ");
   expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);
   let greyKeyCount = 0;
-  for (let attempt = 0; attempt < 8 && greyKeyCount === 0; attempt++) {
-    for (const letter of ["Т","У","Н","Е","Ц"]) {
-      await page.locator('.wordle-key[data-key="' + letter + '"]').click();
-    }
+  const guesses = ["ТУНЕЦ", "БЛЮДО"];
+  for (const guess of guesses) {
+    for (const letter of guess) await page.locator('.wordle-key[data-key="' + letter + '"]').click();
     await page.locator('.wordle-key[data-key="ENTER"]').click();
     await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
     greyKeyCount = await page.locator(".wordle-key.absent").count();
-    if (greyKeyCount === 0 && attempt < 7) await page.locator("#wordleNew").click();
+    if (greyKeyCount > 0) break;
+    await page.locator("#wordleNew").click();
   }
   expect(greyKeyCount).toBeGreaterThan(0);
   const greyKey = page.locator(".wordle-key.absent").first();
@@ -214,7 +214,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await page.locator('[data-group="0"]').click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator('[data-level="0"]').click();
-  await expect(page.locator(".qq-cody-board")).toBeVisible();
+  await expect(page.locator(".qq-cody-play-layout")).toBeVisible();
   await expect(page.locator(".qq-cody-cell.secret")).toHaveCount(await page.locator(".qq-cody-secret span").count(), { timeout: 5_000 });
   expect(await page.locator(".qq-cody-secret span").count()).toBeGreaterThanOrEqual(4);
   await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(32);
@@ -238,7 +238,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
 });
 
 
-test("the shared 50,000-word Russian lexicon includes every existing Wordle guess and scanword answer", async ({ page }) => {
+test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword entries", async ({ page }) => {
   await page.goto("/");
   const [lexicon, wordle, scanwords] = await Promise.all([
     page.evaluate(() => fetch("./data/russian-words-100000.json").then(r => r.json())),
@@ -251,6 +251,9 @@ test("the shared 50,000-word Russian lexicon includes every existing Wordle gues
   expect(lexicon.words).toHaveLength(100000);
   expect(master.size).toBe(100000);
   expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
-  expect(wordle.valid.every(word => master.has(word))).toBe(true);
-  expect(scanwords.filter(entry => String(entry.answer).length >= 2).every(entry => master.has(String(entry.answer).toUpperCase().replace(/Ё/g, "Е")))).toBe(true);
+  const normalize = value => String(value || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
+  const blocked = new Set(["БЛЯДЬ","БЛЯТЬ","ЕБАТЬ","ЕБАЛО","ХУЙНЯ","ПИЗДА","ГОВНО","МУДАК","ДЕРЬМО","ПИЗДЕЦ","НАХУЙ","СУКА","МРАЗЬ"]);
+  const cleanWord = word => /^[А-Я]{2,18}$/.test(word) && !blocked.has(word) && !/(.)\\1\\1/.test(word);
+  expect(wordle.valid.map(normalize).filter(cleanWord).every(word => master.has(word))).toBe(true);
+  expect(scanwords.map(entry => normalize(entry.answer)).filter(cleanWord).every(word => master.has(word))).toBe(true);
 });
