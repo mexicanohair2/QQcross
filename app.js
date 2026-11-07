@@ -500,10 +500,16 @@ async function loadCloudProfile(userId,generation=null){
   const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
   if(error)throw error;
   const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
-  if(inventoryError)throw inventoryError;
   let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
   const items=defaultItems();
-  (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
+  if(inventoryError){
+    console.warn("QQCross inventory:",inventoryError);
+    if(saved&&saved.id===userId&&saved.items&&typeof saved.items==="object"){
+      Object.keys(items).forEach(key=>{const value=saved.items[key];if(Number.isInteger(value)&&value>=0)items[key]=value});
+    }
+  }else{
+    (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
+  }
   if(generation!==null&&generation!==authGeneration)return;
   state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
   authRestoreError="";
