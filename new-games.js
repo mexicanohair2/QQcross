@@ -167,7 +167,7 @@ function layoutWords(words,size=13){
 }
 function drawCrossword(layout,rootId){
  const cells=[];for(let y=0;y<layout.size;y++)for(let x=0;x<layout.size;x++){const ch=layout.grid[y][x];cells.push(ch?'<span class="qq-cross-cell" data-pos="'+x+','+y+'"></span>':'<span class="qq-cross-empty"></span>');}
- return '<div class="qq-cross-board" id="'+rootId+'" style="--qq-cols:'+layout.size+';--qq-rows:'+layout.size+'">'+cells.join("")+'</div>';
+ return '<div class="qq-cross-board" id="'+rootId+'" data-word-count="'+layout.placed.length+'" data-grid-size="'+layout.size+'" style="--qq-cols:'+layout.size+';--qq-rows:'+layout.size+'">'+cells.join("")+'</div>';
 }
 function mountWheel(root,onExit,words){
  const KEY="qqcross.wow.unlocked.v1";
