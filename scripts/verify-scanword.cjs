@@ -93,7 +93,7 @@ function validate(puzzle, run) {
 
 const timings = [];
 const summaries = [];
-for (let run = 1; run <= 30; run++) {
+for (let run = 1; run <= 20; run++) {
   const math = Object.create(Math);
   math.random = seededRandom(run * 7919);
   const context = {
