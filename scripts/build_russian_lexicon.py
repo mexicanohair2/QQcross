@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build a deterministic 50,000-entry Russian-only QQCross lexicon."""
+"""Build a deterministic 100,000-entry Russian-only QQCross lexicon."""
 from __future__ import annotations
 import csv
 import io
@@ -9,13 +9,13 @@ import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "data" / "russian-words-50000.json"
+OUT = ROOT / "data" / "russian-words-100000.json"
 FREQUENCY_URL = "https://raw.githubusercontent.com/Digital-Pushkin-Lab/Russian-Word-Frequency-Lists-for-Children/main/wordlist_detcorpus_50000.csv"
 MORPHOLOGY_URL = "https://raw.githubusercontent.com/danakt/russian-words/master/russian.txt"
 WORD_RE = re.compile(r"^[а-яё]{3,18}$", re.IGNORECASE)
 BAD = {"блядь","блять","ебать","ебало","хуйня","пизда","говно","мудак","дерьмо","пиздец","нахуй","сука","мразь"}
 STOPWORDS = {"что","быть","она","оно","они","как","это","этот","эта","эти","весь","все","всё","свой","своя","свои","сам","сама","сами","себя","кто","где","куда","когда","почему","зачем","так","там","тут","здесь","вот","уже","еще","ещё","только","тоже","также","один","одна","одно","одни","такой","такая","такие","мочь","может","очень","много","мало","больше","меньше","мой","моя","мое","мои","твой","твоя","ваш","ваша","наш","наша","его","ее","её","их","мне","тебе","ему","ей","нам","вам","меня","тебя","него","нее","них","который","которая","которые","чтобы","будто","словно","ли","же","бы","не","ни","да","нет","и","или","а","но","о","об","во","в","на","с","со","к","ко","от","до","за","по","из","у","под","над","при","про","без","для","через","между","тот","та","то","те","если","даже","надо","нужно","раз","два","три","четыре","пять","можно","нельзя","хорошо","плохо","теперь","сейчас","потом","тогда","никогда","всегда","почти","лишь","просто","вроде","вместе","возможно","видимо","конечно","кажется","поэтому","однако","потому","значит","например","вообще","вокруг","внутри","снаружи","вперед","назад","вверх","вниз","рядом","вновь","снова","опять","сразу","вдруг","вполне","весьма","само","самой","самого","самому","себе","собой","собственный","собою","всякий","каждый","вся","всех","всем","всему","любая","любой","любое","любые","которого","которым","каков","чей","чья","чьи","откуда","отчего","сколько","пока","хотя","точно","согласно","несмотря","благодаря","вместо","среди","кроме","перед","после","около","вдоль","ради","вслед"}
-TARGET = 50_000
+TARGET = 100_000
 
 def download(url: str) -> bytes:
     request = urllib.request.Request(url, headers={"User-Agent": "QQCross-Russian-Lexicon/1.0"})
@@ -93,7 +93,7 @@ def main() -> None:
     morphology = download(MORPHOLOGY_URL)
     words, wordle_required, scanword_required = build(frequency, morphology, (ROOT / "data" / "wordle-words.json").read_text(encoding="utf-8"), (ROOT / "data" / "scanword-dictionary.json").read_text(encoding="utf-8"))
     payload = {
-        "version": 1, "language": "ru", "count": len(words),
+        "version": 2, "language": "ru", "count": len(words),
         "included_existing_wordle_valid": wordle_required,
         "included_existing_scanword_answers": scanword_required,
         "normalization": "Ё приведена к Е; только кириллические русские слова длиной 3–18 букв",
