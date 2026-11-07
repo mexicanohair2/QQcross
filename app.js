@@ -187,18 +187,24 @@ function shop(){const products=[["magnifier","🔎","Лупы","Проверка
 function profile(){return `<h2>Профиль</h2><div class="card row"><div class="avatar big">${AVATARS[state.profile.avatar]}</div><div><h3>${esc(state.profile.username)}</h3><span class="muted small">Игрок QQCross</span></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
 function settings(){
   const themes=[["light","Светлая · голубая","Белый фон и мягкие голубые ячейки"],["gray","Тёмно-серый","Графитовые оттенки"],["purple","Тёмно-фиолетовый","Глубокие фиолетовые оттенки"],["burgundy","Тёмно-бордовый","Тёмные винные оттенки"]];
+  const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
   return `<h2>Настройки</h2>
+    <section class="card settings-card">
+      <span class="pill">Звук</span>
+      <h3>Музыка и эффекты</h3>
+      <label class="audio-setting"><span><b>Фоновая мелодия</b><small>Тихая спокойная мелодия во время игры</small></span><input type="checkbox" id="qqMusicToggle" ${audio.music?"checked":""}></label>
+      <label class="audio-setting"><span><b>Звуки действий</b><small>Буквы, слова, правильные и неверные ответы</small></span><input type="checkbox" id="qqEffectsToggle" ${audio.effects?"checked":""}></label>
+      <p class="small muted settings-note">Настройки звука сохраняются на этом устройстве. Музыка включается после первого касания экрана.</p>
+    </section>
     <section class="card settings-card">
       <span class="pill">Персонализация</span>
       <h3>Цвет интерфейса</h3>
-      
       <div class="theme-list">${themes.map(([key,name,desc])=>`<button class="theme-choice ${activeTheme===key?"selected":""}" data-theme-choice="${key}" aria-pressed="${activeTheme===key}">
         <span class="theme-swatch theme-swatch-${key}"></span>
         <span class="theme-copy"><b>${name}</b></span>
         <span class="theme-check">${activeTheme===key?"✓":""}</span>
       </button>`).join("")}</div>
-    </section>
-    `;
+    </section>`;
 }
 function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
@@ -215,7 +221,7 @@ function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWor
   }else{
     state.profile.coins-=cost;state.profile.items[item]+=qty;save();render();toast("Куплено: "+qty+" шт.");
   }
-});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
+});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")});const music=$("#qqMusicToggle"),effects=$("#qqEffectsToggle");if(music)music.onchange=()=>window.QQAudio?.setMusic(music.checked);if(effects)effects.onchange=()=>window.QQAudio?.setEffects(effects.checked)}
 function renderLobby(root){
  if(state.pendingMatchId){
   root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><button class="btn danger" id="deletePendingMatch">Удалить бой</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
@@ -397,7 +403,7 @@ function placeAtCell(k,letterIndex,root){
   if(state.loupeActive){toast("Нажми на клетку, чтобы открыть букву");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});delete state.feedback[k];
+  state.pendingMoves.push({k,l:letter});window.QQAudio?.play("letter");delete state.feedback[k];
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 async function finishTurn(root,timeout=false){
@@ -408,7 +414,7 @@ async function finishTurn(root,timeout=false){
     else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
   });
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
-  const newlyCompleted=correct?checkWords():[];
+  if(correct)window.QQAudio?.play("correct");if(incorrect)window.QQAudio?.play("wrong");const newlyCompleted=correct?checkWords():[];
   const refilled=refillRack(state.turn);
   state.rackNewIndices=state.partySize===1?refilled.map((_,i)=>state.playerRacks[state.turn].length-refilled.length+i):[];
   if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")renderGame(root)},520);}
@@ -448,6 +454,7 @@ function place(k,root){
   if(state.filled[k]){toast("Клетка уже занята");return}
   const l=state.letters[state.selectedLetter];
   if(expected[k]===l){
+    window.QQAudio?.play("correct");
     state.filled[k]=l;state.owners[k]=state.turn;
     state.letters.splice(state.selectedLetter,1);
     if(letterBag.length)state.letters.push(drawLetters(1)[0]);
@@ -456,6 +463,7 @@ function place(k,root){
     state.playerScores[state.turn]++;state.scores++;state.playerRacks[state.turn]=state.letters;
     checkWords();ensureWordLetter(state.turn);renderGame(root);
   }else{
+    window.QQAudio?.play("wrong");
     state.wrong=k;renderGame(root);
     setTimeout(()=>{state.wrong=null;const el=document.querySelector('[data-cell="'+k+'"]');if(el)el.classList.remove("wrong")},500);
   }
@@ -464,7 +472,7 @@ function checkWords(){
   const newlyCompleted=[];
   puzzle.words.forEach(w=>{
     if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){
-      state.completed.add(w.id);newlyCompleted.push(w);state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
+      state.completed.add(w.id);newlyCompleted.push(w);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
   if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
