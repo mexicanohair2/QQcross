@@ -45,12 +45,15 @@ def build(frequency_text: str, morphology_bytes: bytes, wordle_text: str, scanwo
             seen.add(word)
             required.append(word)
     wordle_required = len(required)
-    for entry in scanword_data:
-        word = clean_required(entry.get("answer") if isinstance(entry, dict) else "")
-        if word and word not in seen:
+    scanword_words = {
+        word for entry in scanword_data
+        if isinstance(entry, dict) and (word := clean_required(entry.get("answer"))) is not None
+    }
+    scanword_required = len(scanword_words)
+    for word in sorted(scanword_words):
+        if word not in seen:
             seen.add(word)
             required.append(word)
-    scanword_required = len(required) - wordle_required
     if len(required) > TARGET:
         raise RuntimeError(f"Игровые словари уже содержат {len(required)} уникальных слов; лимит {TARGET}.")
     words = list(required)

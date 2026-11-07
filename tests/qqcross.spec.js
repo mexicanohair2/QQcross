@@ -158,5 +158,5 @@ test("the shared 50,000-word Russian lexicon includes every existing Wordle gues
   expect(master.size).toBe(50000);
   expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
   expect(wordle.valid.every(word => master.has(word))).toBe(true);
-  expect(scanwords.every(entry => master.has(String(entry.answer).toUpperCase().replace(/Ё/g, "Е")))).toBe(true);
+  expect(scanwords.filter(entry => String(entry.answer).length >= 2).every(entry => master.has(String(entry.answer).toUpperCase().replace(/Ё/g, "Е")))).toBe(true);
 });

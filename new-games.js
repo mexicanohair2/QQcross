@@ -108,7 +108,7 @@ function mountWheel(root,onExit,words){
   const selected=[seed,...candidates.filter(w=>w!==seed)].slice(0,8);
   const layout=layoutWords(selected,13);if(layout.placed.length>=4)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
  }
- if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);puzzle={seed,layout:layoutWords(candidates,13),words:candidates};}
+ if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);const layout=layoutWords(candidates,13);puzzle={seed,layout,words:layout.placed.map(p=>p.word)};}
  let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false;
  const body='<p class="qq-extra-sub">Соединяй буквы в круге, составляй слова и открывай клетки кроссворда.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+[...puzzle.seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("")+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. За дополнительные слова начисляются бонусы.</p>';
  shell(root,"Поиск слов из букв",onExit,body);
