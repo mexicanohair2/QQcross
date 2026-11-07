@@ -953,3 +953,39 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 /* Keep the active clue visible inside multi-direction scanword cells. */
 .scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-clue-text{display:block!important;position:relative;z-index:2;padding:1px 1px 10px!important;font-size:clamp(4px,.58vw,7px)!important;line-height:1!important;}
 .scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-arrow{width:28%;height:28%;font-size:clamp(7px,1vw,11px)!important;}
+
+/* CodyCross: questions at the side, crossword rows beside them, viewport-fitted. */
+.qq-cody-app{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:0 6px max(3px,env(safe-area-inset-bottom))!important}
+.qq-cody-app>.qq-extra-top{flex:0 0 auto!important;margin:0!important;padding:4px 0!important;min-height:30px!important}
+.qq-cody-app #qqCodyView{flex:1 1 0!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:clamp(2px,.45vh,5px)!important}
+.qq-cody-level-top{flex:0 0 auto!important;font-size:9px!important}
+.qq-cody-progress-track{flex:0 0 4px!important;height:4px!important;margin:0!important}
+.qq-cody-secret-wrap{flex:0 0 auto!important;margin:0!important;padding:4px 7px!important;min-height:0!important}
+.qq-cody-secret-label{font-size:8px!important}
+.qq-cody-secret{gap:3px!important}
+.qq-cody-secret span{width:clamp(16px,4.7vw,23px)!important;height:clamp(19px,4vh,25px)!important;font-size:11px!important}
+.qq-cody-play-layout{display:grid!important;grid-template-columns:minmax(0,42%) minmax(0,58%)!important;gap:4px!important;flex:1 1 0!important;min-height:0!important;overflow:hidden!important}
+.qq-cody-question-side{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
+.qq-cody-question-side .qq-cody-question{flex:0 0 auto!important;min-height:0!important;max-height:35%!important;overflow-y:auto!important;margin:0!important;padding:6px!important;border-radius:8px!important}
+.qq-cody-question-side .qq-cody-question-top{font-size:8px!important}
+.qq-cody-question-side .qq-cody-question-top b{font-size:8px!important}
+.qq-cody-question-side .qq-cody-question>p{font-size:clamp(10px,2.7vw,13px)!important;line-height:1.22!important;margin:4px 0!important;overflow-wrap:anywhere!important}
+.qq-cody-question-side .qq-cody-question>small{display:none!important}
+.qq-cody-question-list{display:flex!important;flex:1 1 0!important;flex-direction:column!important;gap:3px!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;margin:0!important;padding:1px!important;overscroll-behavior:contain!important}
+.qq-cody-question-item{grid-template-columns:19px minmax(0,1fr) auto!important;gap:3px!important;padding:4px 3px!important;border-radius:6px!important;min-width:0!important}
+.qq-cody-question-index{width:18px!important;height:18px!important;font-size:8px!important}
+.qq-cody-question-short{font-size:clamp(8px,2.2vw,10px)!important;line-height:1.18!important;overflow-wrap:anywhere!important}
+.qq-cody-question-item>b{font-size:8px!important}
+.qq-cody-board-wrap{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;min-height:0!important;width:100%!important;overflow:hidden!important;padding:0!important}
+.qq-cody-board{width:100%!important;max-width:100%!important;height:auto!important;margin:0!important;grid-template-columns:repeat(var(--qq-cody-cols),minmax(0,1fr))!important;grid-template-rows:repeat(var(--qq-cody-rows),minmax(0,1fr))!important;gap:1px!important;align-content:center!important;max-height:100%!important;aspect-ratio:13 / var(--qq-cody-rows)!important}
+.qq-cody-cell{min-height:0!important;min-width:0!important;border-radius:2px!important;font-size:clamp(8px,2.5vw,14px)!important}
+.qq-cody-empty-cell{min-width:0!important;aspect-ratio:auto!important}
+.qq-cody-tools{flex:0 0 auto!important;grid-template-columns:1fr 1fr!important;gap:4px!important;margin:0!important}
+.qq-cody-tools .btn{padding:4px 6px!important;font-size:10px!important;min-height:26px!important}
+.qq-cody-keyboard{flex:0 0 auto!important;gap:2px!important;margin:0 auto!important;width:100%!important;max-width:560px!important}
+.qq-cody-key-row{gap:3px!important}
+.qq-cody-key-row button{height:clamp(25px,4.2vh,36px)!important;min-height:0!important;border-radius:5px!important;font-size:clamp(10px,2.9vw,14px)!important}
+.qq-cody-key-row.special button{height:clamp(25px,4vh,33px)!important;font-size:10px!important}
+.qq-cody-message{flex:0 0 auto!important;min-height:12px!important;margin:0!important;font-size:9px!important;line-height:1.15!important}
+@media(max-width:390px){.qq-cody-app{padding-left:4px!important;padding-right:4px!important}.qq-cody-play-layout{grid-template-columns:minmax(0,44%) minmax(0,56%)!important;gap:3px!important}.qq-cody-question-side .qq-cody-question{padding:5px!important}.qq-cody-question-item{grid-template-columns:16px minmax(0,1fr) auto!important;padding:3px 2px!important;gap:2px!important}.qq-cody-question-index{width:15px!important;height:15px!important;font-size:8px!important}}
+@media(max-height:680px){.qq-cody-app>.qq-extra-top{min-height:25px!important;padding:2px 0!important}.qq-cody-secret-wrap{padding:2px 5px!important}.qq-cody-question-side .qq-cody-question>p{font-size:10px!important}.qq-cody-key-row button{height:24px!important}.qq-cody-key-row.special button{height:23px!important}.qq-cody-tools .btn{min-height:23px!important;padding:2px 4px!important}.qq-cody-message{min-height:10px!important}}
