@@ -79,8 +79,8 @@ function validate(puzzle, run) {
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 8 || new Set(pictureKeys).size !== 8) {
-    throw new Error("Run " + run + ": expected eight distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 8) {
+    throw new Error("Run " + run + ": expected three distinct picture clues, found " + pictureKeys.join(","));
   }
   const pictureAnswers = new Map([["airplane","САМОЛЕТ"],["apple","ЯБЛОКО"],["ball","МЯЧ"],["banana","БАНАН"],["bear","МЕДВЕДЬ"],["bee","ПЧЕЛА"],["bicycle","ВЕЛОСИПЕД"],["boat","ЛОДКА"],["book","КНИГА"],["bus","АВТОБУС"],["butterfly","БАБОЧКА"],["car","МАШИНА"],["carrot","МОРКОВЬ"],["cat","КОТ"],["clock","ЧАСЫ"],["cloud","ОБЛАКО"],["crocodile","КРОКОДИЛ"],["cucumber","ОГУРЕЦ"],["cup","ЧАШКА"],["dog","СОБАКА"],["dolphin","ДЕЛЬФИН"],["fish","РЫБА"],["fox","ЛИСА"],["giraffe","ЖИРАФ"],["grapes","ВИНОГРАД"],["guitar","ГИТАРА"],["hedgehog","ЕЖ"],["house","ДОМ"],["kangaroo","КЕНГУРУ"],["key","КЛЮЧ"],["lemon","ЛИМОН"],["lion","ЛЕВ"],["octopus","ОСЬМИНОГ"],["orange","АПЕЛЬСИН"],["owl","СОВА"],["parrot","ПОПУГАЙ"],["penguin","ПИНГВИН"],["snail","УЛИТКА"],["spider","ПАУК"],["strawberry","КЛУБНИКА"],["sun","СОЛНЦЕ"],["sunflower","ПОДСОЛНУХ"],["tiger","ТИГР"],["tomato","ПОМИДОР"],["whale","КИТ"],["zebra","ЗЕБРА"]]);
   for (const word of pictureWords) {

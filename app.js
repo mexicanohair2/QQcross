@@ -582,7 +582,7 @@ function buildScanword(entries){
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
-    // Preserve the eight distinct picture clues required in every puzzle.
+    // Preserve the three distinct picture clues required in every puzzle.
     if(entry.imageKey)score+=1000;
     if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
     if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
@@ -627,7 +627,7 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=8))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -651,7 +651,7 @@ function buildScanword(entries){
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<8)return null;
+    if(pictureSeeds.length<3)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
@@ -692,7 +692,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=8||at.length>0)))continue;
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -769,9 +769,9 @@ function buildScanword(entries){
     if(result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage))){
       bestImageCount=imageCount;bestCoverage=result.coverage;best=result;
     }
-    if(result?.coverage===TOTAL&&imageCount===8)break;
+    if(result?.coverage===TOTAL&&imageCount===3)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==8)throw new Error("Не удалось собрать полностью заполненный сканворд с восемью разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/8). Повтори генерацию.");
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с восемью разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
