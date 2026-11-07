@@ -946,3 +946,6 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
   .game-tools .letter-area{padding:2px 5px!important}
   .game-tools .letter{height:29px!important}
 }
+
+/* QQCross audio preferences */
+.audio-setting{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 2px;border-bottom:1px solid var(--qq-theme-border,#51475c);cursor:pointer}.audio-setting:last-of-type{border-bottom:0}.audio-setting span{display:flex;flex-direction:column;gap:4px}.audio-setting small{font-size:11px;color:var(--qq-theme-muted,#b7adbf);line-height:1.4}.audio-setting input{width:22px;height:22px;flex:0 0 auto;accent-color:var(--qq-theme-accent,#a899b8)}
