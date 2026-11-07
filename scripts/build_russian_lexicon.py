@@ -22,15 +22,39 @@ def download(url: str) -> bytes:
     with urllib.request.urlopen(request, timeout=120) as response:
         return response.read()
 
+def clean_required(raw: str) -> str | None:
+    word = str(raw or "").strip().lower().replace("ё", "е")
+    if not re.fullmatch(r"[а-я]{2,18}", word):
+        return None
+    return word.upper()
+
 def clean(raw: str) -> str | None:
     word = str(raw or "").strip().lower().replace("ё", "е")
     if not WORD_RE.fullmatch(word) or word in BAD or word in STOPWORDS:
         return None
     return word.upper()
 
-def build(frequency_text: str, morphology_bytes: bytes) -> list[str]:
-    ranked: list[tuple[float, str]] = []
+def build(frequency_text: str, morphology_bytes: bytes, wordle_text: str, scanword_text: str) -> tuple[list[str], int, int]:
+    wordle_data = json.loads(wordle_text)
+    scanword_data = json.loads(scanword_text)
+    required: list[str] = []
     seen: set[str] = set()
+    for raw in wordle_data.get("valid", []):
+        word = clean_required(raw)
+        if word and word not in seen:
+            seen.add(word)
+            required.append(word)
+    wordle_required = len(required)
+    for entry in scanword_data:
+        word = clean_required(entry.get("answer") if isinstance(entry, dict) else "")
+        if word and word not in seen:
+            seen.add(word)
+            required.append(word)
+    scanword_required = len(required) - wordle_required
+    if len(required) > TARGET:
+        raise RuntimeError(f"Игровые словари уже содержат {len(required)} уникальных слов; лимит {TARGET}.")
+    words = list(required)
+    ranked: list[tuple[float, str]] = []
     for row in csv.DictReader(io.StringIO(frequency_text)):
         word = clean(row.get("lemma"))
         if not word or word in seen:
@@ -42,7 +66,10 @@ def build(frequency_text: str, morphology_bytes: bytes) -> list[str]:
             ipm = 0.0
         ranked.append((ipm, word))
     ranked.sort(key=lambda item: (-item[0], item[1]))
-    words = [word for _, word in ranked[:TARGET]]
+    for _, word in ranked:
+        if len(words) >= TARGET:
+            break
+        words.append(word)
     if len(words) < TARGET:
         morphology = morphology_bytes.decode("cp1251", errors="ignore").splitlines()
         for raw in morphology:
@@ -54,16 +81,18 @@ def build(frequency_text: str, morphology_bytes: bytes) -> list[str]:
                     break
     if len(words) != TARGET:
         raise RuntimeError(f"Получено {len(words)} уникальных русских слов; требуется ровно {TARGET}.")
-    if len(set(words)) != TARGET or any(not re.fullmatch(r"[А-Я]{3,18}", w) for w in words):
+    if len(set(words)) != TARGET or any(not re.fullmatch(r"[А-Я]{2,18}", w) for w in words):
         raise RuntimeError("Проверка словаря не пройдена: дубликаты или некириллические записи.")
-    return words
+    return words, wordle_required, scanword_required
 
 def main() -> None:
     frequency = download(FREQUENCY_URL).decode("utf-8-sig")
     morphology = download(MORPHOLOGY_URL)
-    words = build(frequency, morphology)
+    words, wordle_required, scanword_required = build(frequency, morphology, (ROOT / "data" / "wordle-words.json").read_text(encoding="utf-8"), (ROOT / "data" / "scanword-dictionary.json").read_text(encoding="utf-8"))
     payload = {
         "version": 1, "language": "ru", "count": len(words),
+        "included_existing_wordle_valid": wordle_required,
+        "included_existing_scanword_answers": scanword_required,
         "normalization": "Ё приведена к Е; только кириллические русские слова длиной 3–18 букв",
         "sources": [
             {"name": "Russian Word Frequency Lists for Children", "url": FREQUENCY_URL, "license": "CC0-1.0"},

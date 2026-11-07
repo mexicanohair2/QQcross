@@ -142,3 +142,21 @@ test("opens Cody-style crosswords with a magnifier and a compact hint", async ({
   await page.locator("#qqCodyHint").click();
   expect(errors).toEqual([]);
 });
+
+
+test("the shared 50,000-word Russian lexicon includes every existing Wordle guess and scanword answer", async ({ page }) => {
+  await page.goto("/");
+  const [lexicon, wordle, scanwords] = await Promise.all([
+    page.evaluate(() => fetch("./data/russian-words-50000.json").then(r => r.json())),
+    page.evaluate(() => fetch("./data/wordle-words.json").then(r => r.json())),
+    page.evaluate(() => fetch("./data/scanword-dictionary.json").then(r => r.json()))
+  ]);
+  const master = new Set(lexicon.words);
+  expect(lexicon.language).toBe("ru");
+  expect(lexicon.count).toBe(50000);
+  expect(lexicon.words).toHaveLength(50000);
+  expect(master.size).toBe(50000);
+  expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
+  expect(wordle.valid.every(word => master.has(word))).toBe(true);
+  expect(scanwords.every(entry => master.has(String(entry.answer).toUpperCase().replace(/Ё/g, "Е")))).toBe(true);
+});
