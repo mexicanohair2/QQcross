@@ -1170,7 +1170,7 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 .wordle-board{width:min(100%,520px);margin:6px auto;gap:5px}
 .wordle-row{display:grid;grid-template-columns:repeat(var(--wordle-cols,5),minmax(0,1fr));gap:5px;width:min(100%,calc(var(--wordle-cols,5)*48px + (var(--wordle-cols,5) - 1)*5px));margin:0 auto}
 .wordle-tile{min-width:0;aspect-ratio:1/1;width:100%;height:auto}
-@media(max-width:420px){.wordle-row{width:min(100%,calc(var(--wordle-cols,5)*min(10vw,43px) + (var(--wordle-cols,5) - 1)*4px));gap:4px}.wordle-tile{font-size:clamp(14px,4vw,22px)}}
+@media(max-width:420px){.wordle-row{width:min(100%,calc(var(--wordle-cols,5)*9vw + 35px));gap:4px}.wordle-tile{font-size:clamp(14px,4vw,22px)}}
 
 /* Quiet seasonal atmosphere and user avatar */
 .qq-avatar-image{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
