@@ -132,66 +132,113 @@ function mountSearch(root,onExit,words){
 function layoutWords(words,size=13){
  const grid=Array.from({length:size},()=>Array(size).fill(null)),placed=[];
  function fits(word,x,y,dir){
-  for(let i=0;i<word.length;i++){const xx=x+dir[0]*i,yy=y+dir[1]*i;if(xx<0||yy<0||xx>=size||yy>=size)return false;const old=grid[yy][xx];if(old&&old!==word[i])return false;}
-  return true;
+  let crossings=0;
+  for(let i=0;i<word.length;i++){
+   const xx=x+dir[0]*i,yy=y+dir[1]*i;
+   if(xx<0||yy<0||xx>=size||yy>=size)return -1;
+   const old=grid[yy][xx];if(old&&old!==word[i])return -1;if(old===word[i])crossings++;
+  }
+  return crossings;
  }
- function put(word,x,y,dir){const cells=[];for(let i=0;i<word.length;i++){const p={x:x+dir[0]*i,y:y+dir[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}placed.push({word,cells,found:false});}
+ function put(word,x,y,dir){
+  const cells=[];for(let i=0;i<word.length;i++){const p={x:x+dir[0]*i,y:y+dir[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
+  placed.push({word,cells,orientation:dir[0]?"h":"v",found:false});
+ }
  if(!words.length)return {grid,placed,size};
- const first=words[0],x=Math.floor((size-first.length)/2),y=Math.floor(size/2);put(first,x,y,[1,0]);
+ const first=words[0],x=Math.max(0,Math.floor((size-first.length)/2)),y=Math.floor(size/2);put(first,x,y,[1,0]);
  for(const word of words.slice(1)){
-  let done=false;
+  if(placed.some(p=>p.word===word))continue;
+  const options=[];
   for(const existing of shuffle(placed)){
-   const dir=existing.cells[0].y===existing.cells[existing.cells.length-1].y?[0,1]:[1,0];
-   for(let i=0;i<word.length&&!done;i++)for(let j=0;j<existing.word.length&&!done;j++){
+   const dir=existing.orientation==="h"?[0,1]:[1,0];
+   for(let i=0;i<word.length;i++)for(let j=0;j<existing.word.length;j++){
     if(word[i]!==existing.word[j])continue;
-    const cx=existing.cells[j].x-dir[0]*i,cy=existing.cells[j].y-dir[1]*i;
-    if(fits(word,cx,cy,dir)){put(word,cx,cy,dir);done=true;}
+    const cx=existing.cells[j].x-dir[0]*i,cy=existing.cells[j].y-dir[1]*i,crossings=fits(word,cx,cy,dir);
+    if(crossings>0)options.push({x:cx,y:cy,dir,crossings,center:Math.abs(cx+dir[0]*(word.length-1)/2-size/2)+Math.abs(cy+dir[1]*(word.length-1)/2-size/2)});
    }
   }
+  options.sort((a,b)=>a.center-b.center||a.crossings-b.crossings);
+  if(options.length){const p=options[0];put(word,p.x,p.y,p.dir);}
  }
  return {grid,placed,size};
 }
 function drawCrossword(layout,rootId){
  const cells=[];for(let y=0;y<layout.size;y++)for(let x=0;x<layout.size;x++){const ch=layout.grid[y][x];cells.push(ch?'<span class="qq-cross-cell" data-pos="'+x+','+y+'"></span>':'<span class="qq-cross-empty"></span>');}
- return '<div class="qq-cross-board" id="'+rootId+'" style="--qq-cols:'+layout.size+'">'+cells.join("")+'</div>';
+ return '<div class="qq-cross-board" id="'+rootId+'" style="--qq-cols:'+layout.size+';--qq-rows:'+layout.size+'">'+cells.join("")+'</div>';
 }
 function mountWheel(root,onExit,words){
- let puzzle=null;
- for(let tries=0;tries<35&&!puzzle;tries++){
-  const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8&&new Set(w).size>=5))[0];if(!seed)break;
-  const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&canBuild(w,seed))).slice(0,40);
-  const selected=[seed,...candidates.filter(w=>w!==seed)].slice(0,8);
-  const layout=layoutWords(selected,13);if(layout.placed.length>=6)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
+ const KEY="qqcross.wow.unlocked.v1";
+ const showMap=()=>renderLevelMap(root,"Word of Wonders",onExit,KEY,playLevel);
+ function build(level){
+  const targetCount=Math.min(18,level<=20?5+Math.floor((level-1)/2):14+Math.min(4,Math.floor((level-20)/100)));
+  const size=Math.min(20,level<=20?9+Math.floor((level-1)/2):18+Math.min(2,Math.floor((level-20)/250)));
+  let result=null;
+  const seeds=shuffle(words.filter(w=>w.length>=6&&w.length<=9&&new Set(w).size>=5));
+  for(const seed of seeds.slice(0,100)){
+   const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))).slice(0,100).sort((a,b)=>b.length-a.length);
+   const layout=layoutWords([seed,...candidates].slice(0,targetCount),size);
+   const actual=layout.placed.map(p=>p.word);
+   if(actual.length>=Math.min(targetCount,level<=20?5:8)){result={seed,layout,words:actual};break;}
+  }
+  if(!result){
+   const seed=seeds[0]||"КОРАБЛЬ",candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&canBuild(w,seed))).slice(0,targetCount);
+   const layout=layoutWords([seed,...candidates],size);
+   result={seed,layout,words:layout.placed.map(p=>p.word)};
+  }
+  return result;
  }
- if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);const layout=layoutWords(candidates,13);puzzle={seed,layout,words:layout.placed.map(p=>p.word)};}
- let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false,lastDragIndex=-1;
- const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
- const body='<p class="qq-extra-sub">Проводи пальцем по буквам или нажимай их по очереди — составь слово.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div>';
- shell(root,"Word of Wonders",onExit,body);
- root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
- const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
- function refresh(show=selected){answer.textContent=show.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",show.includes(+b.dataset.index)));}
- function submit(){
-  const word=selected.map(i=>puzzle.seed[i]).join("");
-  if(!word)return;
-  const target=puzzle.words.find(w=>w===word&&!solved.has(w));
-  if(target){solved.add(target);const entry=puzzle.layout.placed.find(p=>p.word===target);entry?.cells.forEach(p=>{const c=board.querySelector('[data-pos="'+p.x+','+p.y+'"]');if(c){c.textContent=puzzle.layout.grid[p.y][p.x];c.classList.add("revealed");}});progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;sound(solved.size===puzzle.words.length?"win":"good");}
-  else if(puzzle.words.includes(word))answer.textContent="Уже найдено";
-  else {answer.classList.add("qq-shake");setTimeout(()=>answer.classList.remove("qq-shake"),300);sound("hint");}
-  selected=[];lastDragIndex=-1;refresh();
+ function playLevel(level){
+  const puzzle=build(level);
+  let selected=[],solved=new Set(),dragging=false,dragPath=false,dragSelection=[],lastDragIndex=-1,completed=false,suppressClick=false;
+  const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
+  const body='<div class="qq-wow-level-meta"><span>УРОВЕНЬ '+level+'</span><b id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</b></div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wow-controls"><div class="qq-wheel" id="qqWheel" style="--qq-wheel-radius:48px">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div></div>';
+  shell(root,"Word of Wonders · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
+  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
+  function refresh(show=selected){answer.textContent=show.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",show.includes(+b.dataset.index)));}
+  function complete(){if(completed)return;completed=true;unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),350);}
+  function solveWord(indices,feedback=true){
+   const word=indices.map(i=>puzzle.seed[i]).join("");if(!word)return false;
+   const target=puzzle.words.find(w=>w===word&&!solved.has(w));
+   if(target){
+    solved.add(target);const entry=puzzle.layout.placed.find(p=>p.word===target);
+    entry?.cells.forEach(p=>{const c=board.querySelector('[data-pos="'+p.x+','+p.y+'"]');if(c){c.textContent=puzzle.layout.grid[p.y][p.x];c.classList.add("revealed");}});
+    progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;sound(solved.size===puzzle.words.length?"win":"good");
+    selected=[];refresh();if(solved.size===puzzle.words.length)complete();return true;
+   }
+   if(puzzle.words.includes(word))answer.textContent="Уже найдено";
+   else if(feedback){answer.classList.add("qq-shake");setTimeout(()=>answer.classList.remove("qq-shake"),300);sound("hint");}
+   selected=[];refresh();return false;
+  }
+  function addTap(i){
+   if(completed||selected.includes(i))return;
+   selected.push(i);refresh();
+   const word=selected.map(n=>puzzle.seed[n]).join("");
+   if(puzzle.words.includes(word)){solveWord(selected,false);return;}
+   if(selected.length>=puzzle.seed.length)solveWord(selected,true);
+  }
+  wheel.addEventListener("pointerdown",e=>{
+   const b=e.target.closest("[data-index]");if(!b||completed)return;
+   e.preventDefault();dragging=true;dragPath=false;dragSelection=[+b.dataset.index];lastDragIndex=+b.dataset.index;
+   try{wheel.setPointerCapture(e.pointerId);}catch(_){}
+  });
+  const track=e=>{
+   if(!dragging)return;
+   const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(!b)return;
+   const i=+b.dataset.index;
+   if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i)){dragSelection.push(i);refresh(dragSelection);}}
+  };
+  const stop=e=>{
+   if(!dragging)return;track(e);dragging=false;
+   if(dragPath&&dragSelection.length>1){suppressClick=true;solveWord(dragSelection,true);}
+   dragSelection=[];lastDragIndex=-1;dragPath=false;
+  };
+  wheel.addEventListener("pointermove",track);wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
+  wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}addTap(+b.dataset.index);});
+  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
+  root.querySelector("#qqWheelMix").onclick=()=>{puzzle.seed=shuffle([...puzzle.seed]).join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
+  refresh();
  }
- wheel.addEventListener("pointerdown",e=>{const b=e.target.closest("[data-index]");if(!b)return;dragging=true;dragPath=false;lastDragIndex=+b.dataset.index;dragSelection=[lastDragIndex];});
- let dragSelection=[];
- const track=e=>{if(!dragging)return;const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(!b)return;const i=+b.dataset.index;if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i))dragSelection.push(i);refresh(dragSelection);}};
- const stop=e=>{if(!dragging)return;track(e);dragging=false;if(dragPath&&dragSelection.length>1){selected=[...dragSelection];submit();suppressClick=true;}else refresh();dragPath=false;dragSelection=[];lastDragIndex=-1;};
- document.addEventListener("pointermove",track,{passive:false});
- document.addEventListener("pointerup",stop);
- document.addEventListener("pointercancel",stop);
- wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}const i=+b.dataset.index;if(selected.includes(i))selected=selected.filter(x=>x!==i);else selected.push(i);refresh();});
- root.querySelector("#qqWheelSubmit").onclick=submit;
- root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
- root.querySelector("#qqWheelMix").onclick=()=>{const letters=shuffle([...puzzle.seed]);puzzle.seed=letters.join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
- refresh();
+ showMap();
 }
 async function loadClues(){
  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return window.QQCROSS_DICTIONARY;
