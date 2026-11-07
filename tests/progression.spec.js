@@ -121,3 +121,22 @@ test("one hundred distinct progression titles unlock from the first scanword mil
   expect(result.firstUnlocked).toBe(true);
   expect(result.defaultTitle).toBe("Новичок");
 });
+
+
+test("the secret straw-hat counter works across different game screens", async ({ page }) => {
+  await enterGuest(page);
+  for (let i = 0; i < 5; i++) {
+    await page.locator("[data-qq-straw-hat-trigger]").first().click({ force: true });
+  }
+  await page.locator("#playWordle").click();
+  const wordleHat = page.locator(".wordle-screen [data-qq-straw-hat-trigger]");
+  await expect(wordleHat).toBeVisible();
+  for (let i = 0; i < 5; i++) await wordleHat.click({ force: true });
+  await page.locator("#wordleBack").click();
+  await page.locator('[data-extra-game="search"]').click();
+  const extraHat = page.locator(".qq-extra-screen .qq-straw-hat");
+  await expect(extraHat).toBeVisible();
+  for (let i = 0; i < 5; i++) await extraHat.click({ force: true });
+  await page.locator('[data-tab="Профиль"]').click();
+  await expect(page.locator("#qqTitleInventory")).toContainText("Mugiwara");
+});
