@@ -259,3 +259,10 @@ test("late completion of an older daily challenge cannot rewind the current stre
   expect(result.lastAfterNext).toBe("2041-06-04");
   expect(result.streakAfterNext).toBe(2);
 });
+
+test("profile displays match losses and win percentage", async ({ page }) => {
+  await enterGuest(page);
+  await page.getByRole("button", { name: /Профиль/ }).click();
+  await expect(page.locator("#qqProgressionStats")).toContainText("поражения: 0");
+  await expect(page.locator("#qqProgressionStats")).toContainText("процент побед: 0%");
+});
