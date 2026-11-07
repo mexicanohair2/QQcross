@@ -20,7 +20,7 @@ async function loadLexicon() {
 }
 function sound(kind) {window.QQAudio?.play(({win:"word",hint:"wrong",good:"correct",letter:"letter",select:"select"})[kind]||"correct");}
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
-function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;}
+function bindStrawHat(root){root.querySelectorAll(".qq-straw-hat").forEach(hat=>{if(hat.dataset.qqHatBound)return;hat.dataset.qqHatBound="true";hat.dataset.qqStrawHatTrigger="";hat.setAttribute("role","button");hat.setAttribute("tabindex","0");const tap=()=>{const n=window.QQProgression?.tapHat?.()||0;if(n===15)hat.setAttribute("aria-label","Секретный титул Mugiwara открыт");};hat.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();tap()});hat.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();tap()}})})}\nfunction shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;bindStrawHat(root);}
 function pathBetween(a,b){
  const dx=b.x-a.x,dy=b.y-a.y,steps=Math.max(Math.abs(dx),Math.abs(dy));
  if(!steps||!(dx===0||dy===0||Math.abs(dx)===Math.abs(dy)))return [];
@@ -280,7 +280,7 @@ function mountCody(root,onExit,clues,words){
  function groupDone(group){for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(!isComplete(i))return false;return true;}
  function completedCount(group){let n=0;for(let i=group*PER_GROUP;i<(group+1)*PER_GROUP;i++)if(isComplete(i))n++;return n;}
  function getState(id){if(!progress.states[id])progress.states[id]={solved:[],revealed:{},drafts:{}};const s=progress.states[id];if(!Array.isArray(s.solved))s.solved=[];if(!s.revealed||typeof s.revealed!=="object")s.revealed={};if(!s.drafts||typeof s.drafts!=="object")s.drafts={};return s;}
- function renderTop(title,backLabel,backFn){root.innerHTML='<div class="screen qq-extra-screen qq-cody-app"><div class="top qq-extra-top"><button type="button" class="btn" id="qqCodyBack">← '+backLabel+'</button><b>'+escapeHtml(title)+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div><div id="qqCodyView"></div></div>';root.querySelector("#qqCodyBack").onclick=backFn;}
+ function renderTop(title,backLabel,backFn){root.innerHTML='<div class="screen qq-extra-screen qq-cody-app"><div class="top qq-extra-top"><button type="button" class="btn" id="qqCodyBack">← '+backLabel+'</button><b>'+escapeHtml(title)+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div><div id="qqCodyView"></div></div>';root.querySelector("#qqCodyBack").onclick=backFn;bindStrawHat(root);}
  function renderMap(){
   renderTop("Кроссворды","Назад",onExit);
   const view=root.querySelector("#qqCodyView");
