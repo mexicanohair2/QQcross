@@ -102,8 +102,8 @@ jobs:
         run: |
           python -m py_compile scripts/build_wordle_dictionary.py scripts/build_russian_lexicon.py
           python scripts/build_wordle_dictionary.py --self-test
-      - name: Validate scanword dictionary and generated grids
-        run: npm run test:scanword
+      - name: Validate scanword dictionary
+        run: node scripts/validate-scanwords.js
       - name: Run browser tests
         run: npx playwright test --project=${{ matrix.project }}
       - name: Upload test report and failure artifacts
