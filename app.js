@@ -86,7 +86,7 @@ function renderDaily(root){
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
-  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
+  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
  };
 }
 function startDailyScanword(d){
@@ -556,7 +556,7 @@ function checkWords(){
       state.completed.add(w.id);newlyCompleted.push(w);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
-  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");if(state.dailyMode)window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());applyProgressRewards()}\n  if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
+  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");newlyCompleted.forEach(w=>window.QQProgression?.recordWord?.(w.answer));if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}\n  if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
   else if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
     state.rewardSubmitted=true;
     persistCurrentMatch("completed");
