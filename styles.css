@@ -704,3 +704,10 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 
 .game-topbar{gap:10px;align-items:center}.game-topbar .small{flex:1;min-width:0}.delete-online-game{font-size:12px;padding:8px 10px;white-space:nowrap;background:rgba(180,85,85,.16);border:1px solid rgba(180,85,85,.35);color:var(--text)}
 .wordle-help{font-size:13px;padding:10px 12px;border-radius:10px;background:var(--panel);border:1px solid var(--line)}
+
+.game-topbar{gap:10px;align-items:center}
+.game-topbar>.small{flex:1;min-width:0}
+.game-topbar .btn{white-space:nowrap;font-size:12px;padding:9px 11px}
+.wordle-key.absent{background:#858d97;color:#fff;opacity:1;cursor:pointer}
+.wordle-key.absent:hover{background:#929ba5}
+.wordle-key:disabled{opacity:.5}

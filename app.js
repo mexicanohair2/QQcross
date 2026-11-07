@@ -218,8 +218,8 @@ function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWor
 });const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Оформление изменено")})}
 function renderLobby(root){
  if(state.pendingMatchId){
-  root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
-  $("#back").onclick=()=>{clearInterval(partyRefreshTimer);state.pendingMatchId=null;render()};$("#refreshParty").onclick=refreshPartyLobby;$("#startOnlineMatch").onclick=startOnlineMatch;clearInterval(partyRefreshTimer);partyRefreshTimer=setInterval(refreshPartyLobby,5000);refreshPartyLobby();return;
+  root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><button class="btn danger" id="deletePendingMatch">Удалить бой</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
+  $("#back").onclick=()=>{clearInterval(partyRefreshTimer);state.pendingMatchId=null;render()};$("#deletePendingMatch").onclick=async()=>{const id=state.pendingMatchId;if(!id||!confirm("Удалить эту дружескую партию? Она исчезнет у всех участников."))return;const b=$("#deletePendingMatch");b.disabled=true;b.textContent="Удаляем…";try{const {data,error}=await supabaseClient.rpc("delete_qqcross_match",{target_match_id:id});if(error)throw error;clearInterval(partyRefreshTimer);state.pendingMatchId=null;state.screen="";render();await loadMatchInbox();toast(data==="deleted"?"Бой удалён у всех":"Бой уже удалён")}catch(e){toast(e.message||"Не удалось удалить бой");b.disabled=false;b.textContent="Удалить бой"}};$("#refreshParty").onclick=refreshPartyLobby;$("#startOnlineMatch").onclick=startOnlineMatch;clearInterval(partyRefreshTimer);partyRefreshTimer=setInterval(refreshPartyLobby,5000);refreshPartyLobby();return;
  }
  root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button></div><h2>Новая онлайн-партия</h2><div class="card"><b>Выбери друзей</b><p class="small muted">От 1 до 3 друзей.</p><div id="lobbyFriends">Загружаем…</div><button class="btn primary full" id="createOnlineMatch">Создать партию и пригласить</button></div></div>';
  $("#back").onclick=()=>{state.screen="";render()};$("#createOnlineMatch").onclick=createOnlineMatch;loadLobbyFriends();
@@ -312,7 +312,7 @@ let partyRefreshTimer=null;
 function subscribeOnlineMatch(id){
  if(!supabaseClient||!id)return;
  if(onlineChannel)supabaseClient.removeChannel(onlineChannel).catch(()=>{});
- onlineChannel=supabaseClient.channel("qqcross-match-"+id)
+ onlineChannelId=id;onlineChannel=supabaseClient.channel("qqcross-match-"+id)
   .on("postgres_changes",{event:"UPDATE",schema:"public",table:"matches",filter:"id=eq."+id},()=>refreshOnlineMatch())
   .subscribe();
 }
@@ -964,7 +964,7 @@ function renderGame(root){
     try{
       const {data,error}=await supabaseClient.rpc("delete_qqcross_match",{target_match_id:id});if(error)throw error;
       clearInterval(state.interval);clearInterval(partyRefreshTimer);
-      if(onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null}
+      if(onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}
       state.onlineMatchId=null;state.matchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.pendingMatchId=null;
       state.screen="";state.tab="Главная";state.turn=0;state.pendingMoves=[];render();
       toast(data==="deleted"?"Дружеский бой удалён":data==="left"?"Ты вышел из дружеского боя":"Бой уже не найден");

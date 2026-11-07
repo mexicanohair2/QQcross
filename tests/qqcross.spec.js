@@ -73,13 +73,20 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   expect(dictionary.valid).toContain("ТУНЕЦ");
   expect(dictionary.answers).toContain("ТУНЕЦ");
   expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);
-  for (const letter of ["Т","У","Н","Е","Ц"]) {
-    await page.locator('.wordle-key[data-key="' + letter + '"]').click();
+  let greyKeyCount = 0;
+  for (let attempt = 0; attempt < 8 && greyKeyCount === 0; attempt++) {
+    for (const letter of ["Т","У","Н","Е","Ц"]) {
+      await page.locator('.wordle-key[data-key="' + letter + '"]').click();
+    }
+    await page.locator('.wordle-key[data-key="ENTER"]').click();
+    await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
+    greyKeyCount = await page.locator(".wordle-key.absent").count();
+    if (greyKeyCount === 0 && attempt < 7) await page.locator("#wordleNew").click();
   }
-  await page.locator('.wordle-key[data-key="ENTER"]').click();
-  await expect(page.locator(".wordle-tile.correct, .wordle-tile.present, .wordle-tile.absent")).toHaveCount(5, { timeout: 5_000 });
+  expect(greyKeyCount).toBeGreaterThan(0);
   const greyKey = page.locator(".wordle-key.absent").first();
   await expect(greyKey).toBeEnabled();
+  await expect(greyKey).toHaveAttribute("aria-disabled", "false");
   await expect(greyKey).toHaveAttribute("aria-label", /можно вводить/);
   const greyLetter = await greyKey.getAttribute("data-key");
   await greyKey.click();
