@@ -649,3 +649,9 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 .chatgpt-play-option{border-color:#9b82c4!important;background:linear-gradient(135deg,#39284f,#241b32)!important}
 .chatgpt-note{padding:12px 14px;border:1px solid #6f5a8b;border-radius:12px;background:linear-gradient(145deg,#261d34,#1b1525);color:var(--text);font-size:13px;line-height:1.45}
 .chatgpt-note[hidden]{display:none}
+
+
+/* ChatGPT opponent turn: clear status and lock the shared board while the model decides. */
+.ai-turn-status{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:8px 0 12px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--card);font-size:13px;text-align:center}
+.ai-turn-status .btn{padding:7px 12px;font-size:12px}
+.ai-opponent-turn .board-wrap,.ai-opponent-turn .game-tools{pointer-events:none;opacity:.58}
