@@ -253,7 +253,7 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
   expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
   const normalize = value => String(value || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
   const blocked = new Set(["БЛЯДЬ","БЛЯТЬ","ЕБАТЬ","ЕБАЛО","ХУЙНЯ","ПИЗДА","ГОВНО","МУДАК","ДЕРЬМО","ПИЗДЕЦ","НАХУЙ","СУКА","МРАЗЬ"]);
-  const cleanWord = word => /^[А-Я]{2,18}$/.test(word) && !blocked.has(word) && !/(.)\\1\\1/.test(word);
+  const cleanWord = word => /^[А-Я]{2,18}$/.test(word) && !blocked.has(word) && !/(.)\1\1/.test(word);
   expect(wordle.valid.map(normalize).filter(cleanWord).every(word => master.has(word))).toBe(true);
   expect(scanwords.map(entry => normalize(entry.answer)).filter(cleanWord).every(word => master.has(word))).toBe(true);
 });
