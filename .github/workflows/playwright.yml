@@ -33,10 +33,12 @@ jobs:
         run: python scripts/build_russian_lexicon.py
       - name: Strictly validate the 100k lexicon against game dictionaries
         run: python scripts/validate_russian_lexicon.py
+      - name: Generate and validate 50 prebuilt scanword puzzles
+        run: node scripts/verify-scanword.cjs --write-pack
       - name: Publish the generated 100k lexicon to the GitHub Pages source
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
-          git add data/russian-words-100000.json
+          git add data/russian-words-100000.json data/scanword-puzzles.json
           if git diff --cached --quiet; then
             echo "The 100k lexicon is already current."
           else
@@ -56,6 +58,12 @@ jobs:
         with:
           name: russian-lexicon
           path: data/russian-words-100000.json
+          retention-days: 1
+      - name: Upload prebuilt scanword puzzle pack
+        uses: actions/upload-artifact@v4
+        with:
+          name: scanword-puzzle-pack
+          path: data/scanword-puzzles.json
           retention-days: 1
 
   e2e:
@@ -79,6 +87,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: russian-lexicon
+          path: data
+      - name: Download prebuilt scanword puzzle pack
+        uses: actions/download-artifact@v4
+        with:
+          name: scanword-puzzle-pack
           path: data
       - name: Set up Node.js
         uses: actions/setup-node@v4
