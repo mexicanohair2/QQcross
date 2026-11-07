@@ -917,12 +917,16 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<8;attempt++){
+  // Retry substantially more often, but stop immediately once a fully valid
+  // grid is found with at most one unavoidable single-letter fallback.
+  // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
+  for(let attempt=0;attempt<32;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с тремя разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
