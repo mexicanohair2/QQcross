@@ -45,7 +45,7 @@ function readUnlocked(key){try{return Math.max(1,Math.min(LEVEL_TOTAL,Number(loc
 function unlockNext(key,level){try{localStorage.setItem(key,String(Math.max(readUnlocked(key),Math.min(LEVEL_TOTAL,level+1))));}catch(_){}}
 function renderLevelMap(root,title,onExit,key,openLevel){
  const unlocked=readUnlocked(key);
- shell(root,title,onExit,'<section class="qq-level-intro"><b>ПУТЕШЕСТВИЕ ПО СЛОВАМ</b><span>Открыто до '+unlocked+' уровня из '+LEVEL_TOTAL+'</span></section><div class="qq-level-grid" aria-label="Выбор уровня">'+Array.from({length:LEVEL_TOTAL},(_,i)=>{const n=i+1,done=n<unlocked,locked=n>unlocked;return '<button type="button" class="qq-level-dot '+(done?"done":"")+' '+(locked?"locked":"current")+'" data-level="'+n+'" '+(locked?"disabled":"")+' aria-label="Уровень '+n+'">'+n+'</button>';}).join("")+'</div>');
+ shell(root,title,onExit,'<section class="qq-level-intro"><b>ПУТЕШЕСТВИЕ ПО СЛОВАМ</b><span>Открыто до '+unlocked+' уровня из '+LEVEL_TOTAL+'</span></section><div class="qq-level-grid" aria-label="Выбор уровня">'+Array.from({length:LEVEL_TOTAL},(_,i)=>{const n=i+1,done=n<unlocked,locked=n>unlocked;return '<button type="button" class="qq-level-dot '+(done?"done":locked?"locked":"current")+'" data-level="'+n+'" '+(locked?"disabled":"")+' aria-label="Уровень '+n+'">'+n+'</button>';}).join("")+'</div>');
  root.querySelector(".qq-extra-screen").classList.add("qq-level-screen");
  root.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>openLevel(+b.dataset.level));
  root.querySelector(".qq-level-dot.current")?.scrollIntoView({block:"center"});
