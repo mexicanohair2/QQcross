@@ -118,7 +118,9 @@ for (let run = 1; run <= 50; run++) {
   vm.createContext(context);
   vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
   const t0 = performance.now();
-  const puzzle = context.__buildScanword(dictionary);
+  let puzzle;
+  try { puzzle = context.__buildScanword(dictionary); }
+  catch (error) { throw new Error("Seed " + run + " (" + (run * 7919) + ") failed: " + error.message); }
   const elapsed = performance.now() - t0;
   timings.push(elapsed);
   summaries.push({ run, ...validate(puzzle, run), ms: Math.round(elapsed) });
