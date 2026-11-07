@@ -69,6 +69,7 @@ let letterBag=[];
 let scanwordCandidateCache=null;
 let preparedScanword=null;
 let scanwordPreparing=false;
+let scanwordPreparePromise=null;
 let draggingLetter=false;
 let suppressCellClick=false;
 
@@ -105,7 +106,7 @@ $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password
 }
 function renderShell(root){const tabs=["Главная","История","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","◷","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${avatarMarkup()}</div><div><b>${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
 function content(){if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
-function home(){return '<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа">👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice">Играть одному</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section><h3 class="section-title">Другие игры</h3><div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="wheel"><span class="qq-game-icon">◉</span><b>Word of Wonders</b><small>Составляй слова из круга и открывай кроссворд</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button></div><h3 class="section-title">Приглашения в партии</h3><div id="matchInvites"><p class="small muted">Загрузка…</p></div><h3 class="section-title">Мои онлайн-партии</h3><div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>'}
+function home(){return '<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа">👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section><h3 class="section-title">Другие игры</h3><div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="wheel"><span class="qq-game-icon">◉</span><b>Word of Wonders</b><small>Составляй слова из круга и открывай кроссворд</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button></div><h3 class="section-title">Приглашения в партии</h3><div id="matchInvites"><p class="small muted">Загрузка…</p></div><h3 class="section-title">Мои онлайн-партии</h3><div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>'}
 
 function friends(){return `
   <h2>Друзья</h2>
@@ -249,7 +250,7 @@ function settings(){
       </div>
     </section>`;
 }
-function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
+function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
   if(state.profile.coins<cost){toast("Не хватает монет");return}
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
@@ -298,6 +299,7 @@ async function createOnlineMatch(){
  button.disabled=true;button.textContent="Создаём…";
  try{
   if(!window.QQCROSS_DICTIONARY?.length)await preloadScanwordDictionary();
+  if(!preparedScanword)await prepareNextScanword();
   if(!loadPuzzle())throw new Error("Не удалось собрать сканворд");
   const {data,error}=await supabaseClient.rpc("create_qqcross_match",{invited_user_ids:ids,puzzle_data:puzzleSnapshot()});
   if(error)throw error;state.pendingMatchId=data;renderLobby($("#app"));
@@ -717,7 +719,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
-  let bestCoverage=0,bestImageCount=-1,best=null;
+  let bestCoverage=0,bestImageCount=-1,bestSingleCount=Infinity,best=null;
   const buildAttempt=()=>{
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
     const addFrontier=(y,x)=>{
@@ -866,13 +868,12 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<400;attempt++){
+  for(let attempt=0;attempt<8;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
-    if(result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage))){
-      bestImageCount=imageCount;bestCoverage=result.coverage;best=result;
-    }
-    if(result?.coverage===TOTAL&&imageCount===3)break;
+    const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
+    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
+    if(better){bestImageCount=imageCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с тремя разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
@@ -883,14 +884,32 @@ function buildScanword(entries){
 function clonePreparedScanword(source){
   return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),coverage:source.coverage};
 }
+function refreshPracticeButton(){
+  const button=$("#practice");
+  if(!button)return;
+  button.disabled=scanwordPreparing;
+  button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
+}
 function prepareNextScanword(){
-  if(scanwordPreparing||preparedScanword||!getScanwordDictionary().length)return;
+  if(preparedScanword)return Promise.resolve(preparedScanword);
+  if(scanwordPreparePromise)return scanwordPreparePromise;
+  const dictionary=getScanwordDictionary();
+  if(!dictionary.length)return Promise.resolve(null);
   scanwordPreparing=true;
-  setTimeout(()=>{
-    try{preparedScanword=buildScanword(getScanwordDictionary())}
-    catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error)}
-    finally{scanwordPreparing=false}
-  },40);
+  refreshPracticeButton();
+  scanwordPreparePromise=new Promise(resolve=>{
+    setTimeout(()=>{
+      try{preparedScanword=buildScanword(dictionary)}
+      catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error);preparedScanword=null}
+      finally{
+        scanwordPreparing=false;
+        scanwordPreparePromise=null;
+        refreshPracticeButton();
+        resolve(preparedScanword);
+      }
+    },40);
+  });
+  return scanwordPreparePromise;
 }
 function makeRandomPuzzle(){
   Object.keys(expected).forEach(k=>delete expected[k]);
@@ -982,6 +1001,8 @@ async function begin(size=1,chatGPT=false){
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
     }
+    if(!preparedScanword)await prepareNextScanword();
+    if(!preparedScanword)throw new Error("Не удалось подготовить сканворд. Нажми «Повторить подготовку».");
     let loaded=false,lastError=null;
     for(let attempt=0;attempt<2&&!loaded;attempt++){
       try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQCross: puzzle start failed",error)}
