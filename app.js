@@ -43,7 +43,7 @@ function defaultItems(){return {magnifier:5,clock:5,trash:5}}
 function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(state.profile))}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
 function renderWordle(root){if(!window.QQWordle){root.innerHTML='<div class="screen"><p>Не удалось загрузить Wordle.</p><button class="btn" id="wordleBackFallback">Назад</button></div>';$("#wordleBackFallback").onclick=()=>{state.screen="";render()};return}window.QQWordle.mount(root,()=>{state.screen="";render()})}
 function renderRegister(root){root.innerHTML=`<div class="screen register-screen"><div class="splash register-splash"><div class="logo">QQ</div><h1>QQCross</h1><p class="muted">Сканворды для одного, друзей и игры с ChatGPT</p></div><div class="card register-card"><div class="grid2"><button class="btn ${authMode==="signup"?"primary":""}" id="showSignup">Регистрация</button><button class="btn ${authMode==="login"?"primary":""}" id="showLogin">Войти</button></div><h2>${authMode==="signup"?"Создать аккаунт":"Войти в аккаунт"}</h2>${authMode==="signup"?`<label class="small muted">Имя игрока (3–16 символов)</label><input id="username" class="input" maxlength="16" placeholder="Например, wordmaster" autocomplete="username"><h3>Выбери аватарку</h3><div class="avatar-grid">${AVATARS.map((a,i)=>`<button type="button" class="avatar-choice ${i===state.selectedAvatar?"selected":""}" data-avatar="${i}" aria-label="${NAMES[i]}" aria-pressed="${i===state.selectedAvatar}">${a}</button>`).join("")}</div>`: ""}<label class="small muted">Электронная почта</label><input id="email" class="input" type="email" placeholder="name@example.com" autocomplete="email"><label class="small muted">Пароль (минимум 8 символов)</label><input id="password" class="input" type="password" placeholder="Пароль" autocomplete="${authMode==="signup"?"new-password":"current-password"}"><button class="btn primary full" id="authSubmit">${authMode==="signup"?"Создать аккаунт":"Войти"}</button><button class="btn full" type="button" id="guestPlay">Играть без регистрации</button><p class="small muted auth-message" id="authMessage" aria-live="polite">${esc(authNotice)}</p>${authMode==="login"?'<button class="btn full" type="button" id="resendConfirm">Отправить письмо подтверждения повторно</button><button class="btn full" type="button" id="forgotPassword">Забыли пароль?</button>':""}</div></div>`;
 $("#showSignup").onclick=()=>{authMode="signup";renderRegister(root)};$("#showLogin").onclick=()=>{authMode="login";renderRegister(root)};$("#guestPlay").onclick=()=>{const username="Игрок"+String(Date.now()).slice(-4);state.profile={id:"local-"+Date.now(),username,avatar:state.selectedAvatar,coins:0,wins:0,games:0,points:0,items:defaultItems(),friends:[]};save();render();toast("Ты вошёл в гостевом режиме")};
@@ -496,7 +496,7 @@ function checkWords(){
   }
   return newlyCompleted;
 }
-async function loadCloudProfile(userId){
+async function loadCloudProfile(userId,generation=null){
   const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
   if(error)throw error;
   const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
@@ -504,8 +504,16 @@ async function loadCloudProfile(userId){
   let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
   const items=defaultItems();
   (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
+  if(generation!==null&&generation!==authGeneration)return;
   state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
+  authRestoreError="";
   save();watchSocialUpdates();
+}
+
+function renderAuthRestore(root){
+  root.innerHTML='<div class="screen register-screen"><div class="splash register-splash"><div class="logo">QQ</div><h1>QQCross</h1><p class="muted">Не удалось загрузить данные аккаунта</p></div><div class="card register-card"><h2>Аккаунт не потерян</h2><p class="small muted">Сохранённая сессия найдена, но QQCross пока не смог получить профиль с сервера. Не создавай новый аккаунт и не очищай данные сайта — попробуй загрузить профиль ещё раз.</p><p class="small muted" id="authRestoreMessage"></p><button class="btn primary full" id="retryAuthRestore">Повторить загрузку</button></div></div>';
+  const button=$("#retryAuthRestore");
+  if(button)button.onclick=()=>{button.disabled=true;button.textContent="Проверяем…";authRestoreError="";initAuth()};
 }
 
 function renderRecovery(root){
@@ -534,32 +542,58 @@ function readAuthRedirectError(){
   return description||"Не удалось подтвердить почту. Запроси новое письмо.";
 }
 
+let authRestoreError="";
+let authGeneration=0;
 async function initAuth(){
-  if(!supabaseClient){render();return}
+  const generation=++authGeneration;
+  if(!supabaseClient){
+    authRestoreError="Сервис авторизации пока не загрузился. Проверь интернет и повтори попытку.";
+    render();
+    return;
+  }
+  authRestoreError="";
   const authHashParams=new URLSearchParams((location.hash||"").replace(/^#/,""));
   authRecoveryMode=authHashParams.get("type")==="recovery";
   authNotice=readAuthRedirectError();
-  let timedOut=false,timer;
+  let timer;
   const authTask=(async()=>{
     const {data,error}=await supabaseClient.auth.getSession();
     if(error)throw error;
-    if(data.session){await loadCloudProfile(data.session.user.id);authNotice="";}
+    if(generation!==authGeneration)return;
+    if(data.session){
+      await loadCloudProfile(data.session.user.id,generation);
+      if(generation===authGeneration)authNotice="";
+    }else if(generation===authGeneration){
+      state.profile=null;
+    }
   })();
-  authTask.catch(e=>console.error("QQCross auth:",e));
+  authTask.catch(()=>{});
   try{
     await Promise.race([
       authTask,
-      new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;reject(new Error("Авторизация не ответила за 6 секунд"))},6000)})
+      new Promise((_,reject)=>{timer=setTimeout(()=>reject(new Error("Сервер не ответил за 6 секунд")),6000)})
     ]);
   }catch(e){
-    console.error("QQCross auth:",e);
-    if(timedOut)authNotice="Сервис аккаунта отвечает слишком долго. Можно продолжить как гость.";
-    else authNotice="Не удалось восстановить аккаунт. Попробуй войти ещё раз.";
+    if(generation===authGeneration){
+      console.error("QQCross auth:",e);
+      authRestoreError="Не удалось получить профиль с сервера. Сессия не удалена. Проверь соединение и нажми «Повторить загрузку».";
+    }
   }finally{
     clearTimeout(timer);
-    render();
+    if(generation===authGeneration)render();
   }
-  if(timedOut)authTask.then(()=>render()).catch(()=>{});
+  authTask.then(()=>{
+    if(generation===authGeneration){
+      authRestoreError="";
+      render();
+    }
+  }).catch(e=>{
+    if(generation===authGeneration){
+      console.error("QQCross auth:",e);
+      authRestoreError="Не удалось восстановить профиль: "+(e?.message||"ошибка сервера")+". Сессия сохранена — попробуй ещё раз.";
+      render();
+    }
+  });
 }
 
 /* ===== Scanword engine v1: dictionary-driven layout ===== */
