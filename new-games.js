@@ -7,12 +7,15 @@ const shuffle = values => { const a = [...values]; for (let i=a.length-1;i>0;i--
 const counts = word => [...norm(word)].reduce((m,c)=>(m[c]=(m[c]||0)+1,m),{});
 function canBuild(word, bag) { const a=counts(word), b=counts(bag); return Object.keys(a).every(k=>(b[k]||0)>=a[k]); }
 async function loadLexicon() {
-  if (!lexiconPromise) lexiconPromise = fetch("./data/russian-words-50000.json").then(r=>{if(!r.ok)throw new Error("Не удалось загрузить словарь");return r.json();}).then(d=>{
-    if(d.language!=="ru"||d.count!==50000||!Array.isArray(d.words)||d.words.length!==50000)throw new Error("Словарь не прошёл проверку количества слов");
+  if (!lexiconPromise) lexiconPromise = (async()=>{
+    let d;
+    try{const r=await fetch("./data/russian-words-100000.json");if(!r.ok)throw new Error("100k lexicon unavailable");d=await r.json();}
+    catch(_){const r=await fetch("./data/russian-words-50000.json");if(!r.ok)throw new Error("Не удалось загрузить словарь");d=await r.json();}
+    if(d.language!=="ru"||![50000,100000].includes(d.count)||!Array.isArray(d.words)||d.words.length!==d.count)throw new Error("Словарь не прошёл проверку количества слов");
     const words=[...new Set(d.words.map(norm).filter(w=>/^[А-Я]{2,18}$/.test(w)))];
-    if(words.length!==50000)throw new Error("В словаре обнаружены дубликаты или некорректные записи");
+    if(words.length!==d.count)throw new Error("В словаре обнаружены дубликаты или некорректные записи");
     return words;
-  }).catch(e=>{lexiconPromise=null;throw e;});
+  })().catch(e=>{lexiconPromise=null;throw e;});
   return lexiconPromise;
 }
 function sound(kind) {window.QQAudio?.play(({win:"word",hint:"wrong",good:"correct",letter:"letter",select:"select"})[kind]||"correct");}
