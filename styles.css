@@ -1202,3 +1202,14 @@ html[data-qq-ambience="sakura"] body::before{content:"";position:fixed;inset:-15
 .qq-forest-hat{position:absolute;right:27px;bottom:43px;z-index:3;font-size:15px;transform:rotate(-13deg);filter:saturate(.7);pointer-events:none}
 .qq-forest-hat::after{content:"";position:absolute;right:0;top:13px;width:18px;height:1.5px;border-radius:2px;background:#394047;transform:rotate(17deg);opacity:.8}
 .qq-straw-hat{font-size:12px;vertical-align:middle;opacity:.82}
+
+/* Final compact-but-larger mobile game boards */
+.qq-wow-screen .qq-cross-board{width:min(100%,374px)!important;grid-template-rows:repeat(var(--qq-cols),clamp(11px,2.1vh,17px))!important;grid-auto-rows:clamp(11px,2.1vh,17px)!important}
+.qq-wow-screen .qq-wheel{width:clamp(108px,31vw,128px)!important;height:clamp(108px,31vw,128px)!important;overflow:visible!important}
+.qq-wow-screen .qq-wheel-letter{width:clamp(29px,8vw,34px)!important;height:clamp(29px,8vw,34px)!important;font-size:14px!important}
+.qq-wow-screen .qq-wheel-letter[style]{transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(-44px) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important}
+.qq-wow-screen .qq-wheel-actions{width:84px!important;flex-basis:84px!important;gap:5px!important}
+.qq-wow-screen .qq-wheel-actions .btn{min-height:30px!important;padding:4px!important;font-size:10px!important}
+.qq-search-screen .qq-search-grid{width:min(100%,min(52vh,500px))!important;max-width:100%!important}
+.qq-search-screen .qq-search-cell{font-size:clamp(9px,2.8vw,16px)!important}
+@media(max-height:680px){.qq-wow-screen .qq-cross-board{grid-template-rows:repeat(var(--qq-cols),clamp(10px,2.05vh,14px))!important;grid-auto-rows:clamp(10px,2.05vh,14px)!important}.qq-search-screen .qq-search-grid{width:min(100%,min(49vh,500px))!important}}
