@@ -680,7 +680,7 @@ function normalizeScanwordEntry(item){
   if(answer.length<1||answer.length>12||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
-function buildScanword(entries,attemptLimit=64){
+function buildScanword(entries,attemptLimit=16){
   const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
@@ -865,7 +865,7 @@ function buildScanword(entries,attemptLimit=64){
       }
     }
     const coverage=occupied.size+clueAt.size;
-    return {coverage,occupied,clueAt,words};
+    return {coverage,occupied,clueAt,words,used};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
   for(let attempt=0;attempt<attemptLimit;attempt++){
@@ -874,6 +874,59 @@ function buildScanword(entries,attemptLimit=64){
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
+  }
+  // If greedy placement leaves a single isolated gap, shift a crossing clue one cell
+  // backward. The old final letter must be shared by another answer, so no occupied
+  // cell is lost; the replacement answer is looked up by its matching suffix.
+  if(best&&bestCoverage<TOTAL){
+    let repaired=true;
+    while(repaired&&best.coverage<TOTAL){
+      repaired=false;
+      const owners=new Map();
+      best.words.forEach((word,index)=>word.cells.forEach(cell=>{
+        const key=cell.join(","),set=owners.get(key)||new Set();
+        set.add(index);owners.set(key,set);
+      }));
+      for(let gy=0;gy<N&&!repaired;gy++)for(let gx=0;gx<N&&!repaired;gx++){
+        const gapKey=gy+","+gx;
+        if(best.occupied.has(gapKey)||best.clueAt.has(gapKey))continue;
+        for(let di=0;di<dirs.length&&!repaired;di++){
+          const dir=dirs[di],ay=gy+dir.dy,ax=gx+dir.dx;
+          if(ay<0||ax<0||ay>=N||ax>=N)continue;
+          const anchorKey=ay+","+ax,at=best.clueAt.get(anchorKey)||[];
+          if(at.length!==1)continue;
+          const word=at[0],length=word.answer.length;
+          if(word.imageKey||word.dirIndex!==di||length<2)continue;
+          const lastKey=word.cells[length-1].join(",");
+          if((owners.get(lastKey)?.size||0)<2)continue;
+          if(!word.cells.slice(0,-1).some(cell=>(owners.get(cell.join(","))?.size||0)>1))continue;
+          const candidates=byLength.get(length)?.[1]?.get(word.answer[0])||[];
+          const replacement=candidates.find(entry=>
+            !entry.imageKey&&
+            !best.used.has(entry.key)&&
+            entry.answer.slice(1)===word.answer.slice(0,-1)
+          );
+          if(!replacement)continue;
+          const oldAnswer=word.answer;
+          best.used.delete(oldAnswer);
+          best.used.add(replacement.key);
+          word.answer=replacement.answer;
+          word.sourceAnswer=replacement.answer;
+          word.clue=replacement.clue;
+          word.clueShort=replacement.clueShort;
+          word.isEmoji=replacement.emoji;
+          word.imageKey=replacement.imageKey||null;
+          word.clueCell=[gy,gx];
+          word.cells=[[ay,ax],...word.cells.slice(0,-1)];
+          best.occupied.set(anchorKey,replacement.answer[0]);
+          best.clueAt.delete(anchorKey);
+          best.clueAt.set(gapKey,[word]);
+          best.coverage=best.occupied.size+best.clueAt.size;
+          repaired=true;
+          bestCoverage=best.coverage;
+        }
+      }
+    }
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с тремя разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
