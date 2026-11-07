@@ -745,8 +745,8 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 
 
 /* CodyCross-inspired mode v2: real horizontal answers crossing a hidden vertical word. */
-.qq-cody-app{max-width:780px;margin:0 auto;padding-bottom:28px}
-.qq-cody-app .qq-extra-top{position:sticky;top:0;z-index:4;padding:8px 0;background:linear-gradient(180deg,#100d17 82%,transparent);margin-bottom:12px}
+.qq-cody-app.qq-cody-playing{max-width:780px;margin:0 auto;padding-bottom:28px}
+.qq-cody-app.qq-cody-playing .qq-extra-top{position:sticky;top:0;z-index:4;padding:8px 0;background:linear-gradient(180deg,#100d17 82%,transparent);margin-bottom:12px}
 .qq-cody-world{padding:20px 17px;margin:4px 0 16px;border:1px solid #51435f;border-radius:18px;background:radial-gradient(circle at 85% 8%,#49395d 0,#292134 40%,#1b1624 100%);color:#f1eaf7}
 .qq-cody-world-mark{font-size:10px;letter-spacing:.2em;font-weight:900;color:#bba6d4}
 .qq-cody-world h2{margin:7px 0;font-size:23px}.qq-cody-world p{margin:0;color:#c5b9d0;font-size:13px;line-height:1.5}
@@ -955,9 +955,9 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 .scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-arrow{width:28%;height:28%;font-size:clamp(7px,1vw,11px)!important;}
 
 /* CodyCross: questions at the side, crossword rows beside them, viewport-fitted. */
-.qq-cody-app{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:0 6px max(3px,env(safe-area-inset-bottom))!important}
-.qq-cody-app>.qq-extra-top{flex:0 0 auto!important;margin:0!important;padding:4px 0!important;min-height:30px!important}
-.qq-cody-app #qqCodyView{flex:1 1 0!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:clamp(2px,.45vh,5px)!important}
+.qq-cody-app.qq-cody-playing{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:0 6px max(3px,env(safe-area-inset-bottom))!important}
+.qq-cody-app.qq-cody-playing>.qq-extra-top{flex:0 0 auto!important;margin:0!important;padding:4px 0!important;min-height:30px!important}
+.qq-cody-app.qq-cody-playing #qqCodyView.qq-cody-puzzle-view{flex:1 1 0!important;min-height:0!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;gap:clamp(2px,.45vh,5px)!important}
 .qq-cody-level-top{flex:0 0 auto!important;font-size:9px!important}
 .qq-cody-progress-track{flex:0 0 4px!important;height:4px!important;margin:0!important}
 .qq-cody-secret-wrap{flex:0 0 auto!important;margin:0!important;padding:4px 7px!important;min-height:0!important}
@@ -987,5 +987,5 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 .qq-cody-key-row button{height:clamp(25px,4.2vh,36px)!important;min-height:0!important;border-radius:5px!important;font-size:clamp(10px,2.9vw,14px)!important}
 .qq-cody-key-row.special button{height:clamp(25px,4vh,33px)!important;font-size:10px!important}
 .qq-cody-message{flex:0 0 auto!important;min-height:12px!important;margin:0!important;font-size:9px!important;line-height:1.15!important}
-@media(max-width:390px){.qq-cody-app{padding-left:4px!important;padding-right:4px!important}.qq-cody-play-layout{grid-template-columns:minmax(0,44%) minmax(0,56%)!important;gap:3px!important}.qq-cody-question-side .qq-cody-question{padding:5px!important}.qq-cody-question-item{grid-template-columns:16px minmax(0,1fr) auto!important;padding:3px 2px!important;gap:2px!important}.qq-cody-question-index{width:15px!important;height:15px!important;font-size:8px!important}}
-@media(max-height:680px){.qq-cody-app>.qq-extra-top{min-height:25px!important;padding:2px 0!important}.qq-cody-secret-wrap{padding:2px 5px!important}.qq-cody-question-side .qq-cody-question>p{font-size:10px!important}.qq-cody-key-row button{height:24px!important}.qq-cody-key-row.special button{height:23px!important}.qq-cody-tools .btn{min-height:23px!important;padding:2px 4px!important}.qq-cody-message{min-height:10px!important}}
+@media(max-width:390px){.qq-cody-app.qq-cody-playing{padding-left:4px!important;padding-right:4px!important}.qq-cody-play-layout{grid-template-columns:minmax(0,44%) minmax(0,56%)!important;gap:3px!important}.qq-cody-question-side .qq-cody-question{padding:5px!important}.qq-cody-question-item{grid-template-columns:16px minmax(0,1fr) auto!important;padding:3px 2px!important;gap:2px!important}.qq-cody-question-index{width:15px!important;height:15px!important;font-size:8px!important}}
+@media(max-height:680px){.qq-cody-app.qq-cody-playing>.qq-extra-top{min-height:25px!important;padding:2px 0!important}.qq-cody-secret-wrap{padding:2px 5px!important}.qq-cody-question-side .qq-cody-question>p{font-size:10px!important}.qq-cody-key-row button{height:24px!important}.qq-cody-key-row.special button{height:23px!important}.qq-cody-tools .btn{min-height:23px!important;padding:2px 4px!important}.qq-cody-message{min-height:10px!important}}
