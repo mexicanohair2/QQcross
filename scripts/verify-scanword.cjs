@@ -77,9 +77,24 @@ function validate(puzzle, run) {
   }
   if (seen.size !== puzzle.words.length) throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + ")");
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
-  const pictureCount = puzzle.words.filter(word => word.imageKey).length;
-  if (pictureCount !== 5) throw new Error("Run " + run + ": expected exactly five picture clues, found " + pictureCount);
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size };
+  const pictureWords = puzzle.words.filter(word => word.imageKey);
+  const pictureKeys = pictureWords.map(word => word.imageKey);
+  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
+    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
+  }
+  const pictureAnswers = new Map([
+    ["apple", "ЯБЛОКО"],
+    ["tomato", "ТОМАТ"],
+    ["cat", "КОТ"],
+    ["bicycle", "ВЕЛОСИПЕД"],
+    ["clock", "ЧАСЫ"]
+  ]);
+  for (const word of pictureWords) {
+    if (pictureAnswers.get(word.imageKey) !== word.answer) {
+      throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
+    }
+  }
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys };
 }
 
 const timings = [];
