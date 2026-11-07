@@ -140,3 +140,19 @@ test("the secret straw-hat counter works across different game screens", async (
   await page.locator('[data-tab="Профиль"]').click();
   await expect(page.locator("#qqTitleInventory")).toContainText("Mugiwara");
 });
+
+
+test("unique level completions cannot be farmed by replaying the same level", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    const first = p.recordUnique("wowLevels", "wow:1");
+    const replay = p.recordUnique("wowLevels", "wow:1");
+    const next = p.recordUnique("wowLevels", "wow:2");
+    return { first, replay, next, count: p.get().stats.wowLevels };
+  });
+  expect(result.first).toBe(true);
+  expect(result.replay).toBe(false);
+  expect(result.next).toBe(true);
+  expect(result.count).toBe(2);
+});
