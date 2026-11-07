@@ -42,8 +42,11 @@ jobs:
         run: |
           git add data/wordle-words.json data/russian-words-100000.json
           if git diff --cached --quiet; then
-            echo "The 100k lexicon is already current."
+            echo "The Russian dictionaries are already current."
           else
+            cache_version=$(date -u +%Y%m%d%H%M%S)
+            sed -i "s/^const CACHE_NAME=.*/const CACHE_NAME=\"qqcross-${cache_version}\";/" sw.js
+            git add sw.js
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "Publish 100,000-word Russian lexicon [skip ci]"
