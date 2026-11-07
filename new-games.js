@@ -96,14 +96,14 @@ function mountWheel(root,onExit,words){
  let puzzle=null;
  for(let tries=0;tries<35&&!puzzle;tries++){
   const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8&&new Set(w).size>=5))[0];if(!seed)break;
-  const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&canBuild(w,seed))).slice(0,24);
+  const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&canBuild(w,seed))).slice(0,40);
   const selected=[seed,...candidates.filter(w=>w!==seed)].slice(0,8);
-  const layout=layoutWords(selected,13);if(layout.placed.length>=4)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
+  const layout=layoutWords(selected,13);if(layout.placed.length>=6)puzzle={seed,layout,words:layout.placed.map(p=>p.word)};
  }
  if(!puzzle){const seed=shuffle(words.filter(w=>w.length>=6&&w.length<=8))[0]||"КОРАБЛЬ";const candidates=words.filter(w=>w.length>=3&&canBuild(w,seed)).slice(0,6);const layout=layoutWords(candidates,13);puzzle={seed,layout,words:layout.placed.map(p=>p.word)};}
  let selected=[],solved=new Set(),dragging=false,dragPath=false,suppressClick=false;
- const body='<p class="qq-extra-sub">Соединяй буквы в круге, составляй слова и открывай клетки кроссворда.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+[...puzzle.seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("")+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. За дополнительные слова начисляются бонусы.</p>';
- shell(root,"Поиск слов из букв",onExit,body);
+ const body='<p class="qq-extra-sub">Соединяй буквы в круге, находи все спрятанные слова и открывай кроссворд.</p><div class="qq-wheel-progress" id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-wheel" id="qqWheel">'+[...puzzle.seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'">'+l+'</button>').join("")+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn primary" id="qqWheelSubmit">Проверить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div><p class="qq-extra-small">Каждую букву можно использовать один раз в одном слове. За дополнительные слова начисляются бонусы.</p>';
+ shell(root,"Word of Wonders",onExit,body);
  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
  function refresh(){answer.textContent=selected.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",selected.includes(+b.dataset.index)));}
  function submit(){
@@ -132,7 +132,7 @@ async function loadClues(){
 function mountCody(root,onExit,clues,words){
  const COLS=9,CENTER=4,GROUPS=20,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
  const STORAGE_KEY="qqcross.cody.progress.v3";
- const SECRET_WORDS=["ПРИРОДА","КОСМОС","ИСТОРИЯ","МУЗЫКА","ПЛАНЕТА","ЖИВОТНЫЕ","СПОРТ","КНИГА","ГОРОД","МАШИНА","ВРЕМЯ","СЕМЬЯ","ШКОЛА","ДРУЖБА","МОРЕ","РАСТЕНИЯ","ТЕХНИКА","ИСКУССТВО","ЗВЕЗДЫ","ПРОФЕССИЯ","КУЛЬТУРА","НАУКА","ПТИЦЫ","ЦВЕТЫ","ЭНЕРГИЯ","ПУТЕШЕСТВИЕ","ЗДОРОВЬЕ"];
+ const SECRET_WORDS=["ПУТЕШЕСТВИЕ","ПРИКЛЮЧЕНИЕ","ВООБРАЖЕНИЕ","ОБРАЗОВАНИЕ","ТЕЛЕВИДЕНИЕ","АРХИТЕКТУРА","ЛИТЕРАТУРА","ФОТОГРАФИЯ","БИБЛИОТЕКА","МАТЕМАТИКА","ГЕОГРАФИЯ","ЭКОНОМИКА","ТЕХНОЛОГИЯ","ЭНЦИКЛОПЕДИЯ","КОМПЬЮТЕРЫ","ИЗОБРАЖЕНИЕ","УВЛЕЧЕНИЕ","ПРОИЗВЕДЕНИЕ","СОЗВЕЗДИЕ","ИССЛЕДОВАНИЕ","ПРЕДПРИЯТИЕ","САМОРАЗВИТИЕ","КОНСТРУКЦИЯ","НАБЛЮДЕНИЕ","ПРОФЕССИЯ","СОРЕВНОВАНИЕ","МОРЕПЛАВАНИЕ","ПЕРЕПЛЕТЕНИЕ","ПЕРЕМЕЩЕНИЕ","УДИВЛЕНИЕ","ЗНАМЕНИТОСТЬ","ВЫРАЖЕНИЕ","СОДЕРЖАНИЕ"];
  const GROUP_NAMES=["Первые шаги","Словесная тропа","Новые загадки","Путь эрудита","Первые открытия","Мир вопросов","Загадки вокруг","Продолжаем путь","Сложнее и интереснее","Словесный маршрут","Новые горизонты","Проверка знаний","Дальняя дорога","Большая экспедиция","Мастер слова","Секреты букв","Трудные вопросы","Высший уровень","Финальные загадки","Последний рубеж"];
  const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&/[А-Яа-яЁёA-Za-z]/.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,9}$/.test(x.answer)&&x.clue.length>3);
  const pool=[...new Map(cleanClues.map(x=>[x.answer,x])).values()].sort((a,b)=>a.answer.localeCompare(b.answer,"ru"));
@@ -150,10 +150,11 @@ function mountCody(root,onExit,clues,words){
     const letter=secret[row];
     const candidates=shuffleSeed(pool.filter(x=>x.answer.includes(letter)&&!used.has(x.answer)),rng);
     const fitsAt=(word,at)=>word[at]===letter&&CENTER-at>=0&&CENTER-at+word.length<=COLS;
-    const chosen=candidates.find(x=>[...x.answer].some((ch,at)=>fitsAt(x.answer,at)));
+    const options=candidates.map(entry=>({entry,positions:[...entry.answer].map((ch,at)=>at).filter(at=>fitsAt(entry.answer,at))})).filter(x=>x.positions.length).sort((a,b)=>Math.min(...a.positions.map(p=>Math.abs(p-(a.entry.answer.length-1)/2)))-Math.min(...b.positions.map(p=>Math.abs(p-(b.entry.answer.length-1)/2))));
+    const chosen=options[0]?.entry;
     if(!chosen){ok=false;break;}
     used.add(chosen.answer);
-    const crossIndex=[...chosen.answer].findIndex((ch,at)=>fitsAt(chosen.answer,at));
+    const crossIndex=options[0].positions.sort((a,b)=>Math.abs(a-(chosen.answer.length-1)/2)-Math.abs(b-(chosen.answer.length-1)/2))[0];
     items.push({...chosen,crossIndex,row,cells:[...chosen.answer].map((ch,i)=>({x:CENTER-crossIndex+i,y:row,letter:ch}))});
    }
    if(ok&&items.length>=4)return{id:puzzleId(level),level,secret,items,cols:COLS,rows:secret.length};
