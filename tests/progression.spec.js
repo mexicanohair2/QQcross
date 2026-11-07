@@ -266,3 +266,35 @@ test("profile displays match losses and win percentage", async ({ page }) => {
   await expect(page.locator("#qqProgressionStats")).toContainText("поражения: 0");
   await expect(page.locator("#qqProgressionStats")).toContainText("процент побед: 0%");
 });
+
+test("encyclopedia falls back to a fuller Wiktionary definition and preserves stress", async ({ page }) => {
+  await enterGuest(page);
+  await page.route("https://ru.wikipedia.org/w/api.php**", async route => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("list") === "search") {
+      return route.fulfill({ json: { query: { search: [{ title: "Тунец" }] } } });
+    }
+    return route.fulfill({ json: { query: { pages: [{
+      title: "Тунец",
+      extract: "Тунец — крупная морская рыба.",
+      fullurl: "https://ru.wikipedia.org/wiki/Тунец",
+      links: []
+    }] } } });
+  });
+  await page.route("https://ru.wiktionary.org/w/api.php**", async route => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.get("list") === "search") {
+      return route.fulfill({ json: { query: { search: [{ title: "тунец" }] } } });
+    }
+    return route.fulfill({ json: { query: { pages: [{
+      title: "тунец",
+      extract: "Туне́ц — род морских рыб семейства скумбриевых. Эти рыбы обитают в тёплых морях и имеют большое значение для промысла.",
+      fullurl: "https://ru.wiktionary.org/wiki/тунец",
+      links: []
+    }] } } });
+  });
+  const result = await page.evaluate(() => window.QQEncyclopedia.search("ТУНЕЦ"));
+  expect(result.article.sourceLabel).toBe("Викисловаре");
+  expect(result.article.sentences).toHaveLength(2);
+  expect(result.stress).toBe("Туне́ц");
+});
