@@ -147,6 +147,19 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-side-clue")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   await expect(page.locator(".qq-cody-side-clue.active")).toBeVisible();
   await expect(page.locator(".qq-cody-side-clue.active p")).not.toBeEmpty();
+  for (const width of [320, 360, 390]) {
+    await page.setViewportSize({ width, height: 800 });
+    const layout = await page.evaluate(() => ({
+      viewport: document.documentElement.clientWidth,
+      page: document.documentElement.scrollWidth,
+      board: document.querySelector(".qq-cody-board").getBoundingClientRect().width,
+      boardContent: document.querySelector(".qq-cody-board").scrollWidth,
+      clue: document.querySelector(".qq-cody-side-clue").getBoundingClientRect().width
+    }));
+    expect(layout.page, "Page should not scroll horizontally at " + width + "px").toBeLessThanOrEqual(layout.viewport + 1);
+    expect(layout.boardContent, "CodyCross grid should fit its container at " + width + "px").toBeLessThanOrEqual(layout.board + 1);
+    expect(layout.clue, "Side clue should remain visible at " + width + "px").toBeGreaterThanOrEqual(95);
+  }
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
   await expect(page.locator("input")).toHaveCount(0);
