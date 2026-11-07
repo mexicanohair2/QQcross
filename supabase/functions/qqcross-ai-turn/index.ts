@@ -15,8 +15,9 @@ Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return json(405, { error: "Метод не поддерживается." });
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const openAIKey = Deno.env.get("OPENAI_API_KEY");
-  if (!supabaseUrl || !supabaseAnonKey) return json(500, { error: "Сервер не настроен." });
+  if (!supabaseUrl || !supabaseAnonKey || !serviceRoleKey) return json(500, { error: "Сервер не настроен." });
   if (!openAIKey) return json(503, { error: "Для ChatGPT ещё не подключён серверный API-ключ. Обычные режимы игры работают независимо." });
   const authorization = req.headers.get("Authorization") || "";
   if (!authorization.startsWith("Bearer ")) return json(401, { error: "Нужна авторизация." });
@@ -33,6 +34,13 @@ Deno.serve(async (req: Request) => {
   const completed = Array.isArray(body.completed) ? body.completed : [];
   if (rack.length > 12 || rack.some((x: unknown) => typeof x !== "string" || !/^[А-ЯЁ]$/i.test(x))) return json(400, { error: "Некорректный набор букв." });
   if (!words.length || words.length > 120 || words.some((w: any) => !w || typeof w.id !== "string" || typeof w.clue !== "string" || typeof w.length !== "number" || w.length < 1 || w.length > 24)) return json(400, { error: "Некорректный список вопросов." });
+  const adminClient = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: allowed, error: limitError } = await adminClient.rpc("consume_qqcross_ai_turn_limit", { p_user_id: userData.user.id });
+  if (limitError) {
+    console.error("AI rate-limit check failed:", limitError.message);
+    return json(500, { error: "Не удалось проверить лимит ходов. Попробуй позже." });
+  }
+  if (allowed !== true) return json(429, { error: "Лимит ходов ChatGPT на этот час исчерпан. Попробуй позже." });
   const candidates = words.filter((w: any) => !completed.includes(w.id) && w.clue.trim() && w.clue !== "Что изображено на картинке?");
   if (!candidates.length) return json(200, { wordId: null, answer: null, reason: "no_candidates" });
   try {
