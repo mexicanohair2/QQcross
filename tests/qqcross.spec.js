@@ -143,7 +143,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-board")).toBeVisible();
   await expect(page.locator(".qq-cody-cell.secret")).toHaveCount(await page.locator(".qq-cody-secret span").count(), { timeout: 5_000 });
   expect(await page.locator(".qq-cody-secret span").count()).toBeGreaterThanOrEqual(4);
-  await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(31);
+  await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(32);
   await expect(page.locator(".qq-cody-question")).toBeVisible();
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
