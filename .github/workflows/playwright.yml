@@ -94,7 +94,7 @@ jobs:
         run: python scripts/scanword_audit.py
       - name: Check Wordle dictionary builder
         run: |
-          python -m py_compile scripts/build_wordle_dictionary.py
+          python -m py_compile scripts/build_wordle_dictionary.py scripts/build_russian_lexicon.py
           python scripts/build_wordle_dictionary.py --self-test
       - name: Validate scanword dictionary and generated grids
         run: npm run test:scanword
