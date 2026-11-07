@@ -29,11 +29,19 @@ jobs:
           key: qqcross-wordle-source-v2
       - name: Build Wordle dictionary
         run: python scripts/build_wordle_dictionary.py
+      - name: Build 100k Russian lexicon
+        run: python scripts/build_russian_lexicon.py
       - name: Upload generated Wordle dictionary
         uses: actions/upload-artifact@v4
         with:
           name: wordle-dictionary
           path: data/wordle-words.json
+          retention-days: 1
+      - name: Upload 100k Russian lexicon
+        uses: actions/upload-artifact@v4
+        with:
+          name: russian-lexicon
+          path: data/russian-words-100000.json
           retention-days: 1
 
   e2e:
@@ -52,6 +60,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: wordle-dictionary
+          path: data
+      - name: Download 100k Russian lexicon
+        uses: actions/download-artifact@v4
+        with:
+          name: russian-lexicon
           path: data
       - name: Set up Node.js
         uses: actions/setup-node@v4
