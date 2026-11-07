@@ -88,12 +88,12 @@ function validate(puzzle, run) {
       throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
     }
   }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys };
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, oneLetterAnswers: puzzle.words.filter(word => word.answer.length === 1).length, pictureKeys };
 }
 
 const timings = [];
 const summaries = [];
-for (let run = 1; run <= 20; run++) {
+for (let run = 1; run <= 30; run++) {
   const math = Object.create(Math);
   math.random = seededRandom(run * 7919);
   const context = {
