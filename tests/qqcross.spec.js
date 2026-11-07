@@ -188,6 +188,7 @@ test("difficulty grows through level 1000 in Word of Wonders and word search", a
   expect(wowFit.s).toBeLessThanOrEqual(wowFit.h + 1);
 
   await page.locator(".qq-extra-top [data-exit]").click();
+  await page.locator(".qq-extra-top [data-exit]").click();
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="20"]').click();
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
