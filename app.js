@@ -647,9 +647,11 @@ function buildScanword(entries){
     // Two crossing seed words create the first connected component.
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
     if(!firstPool.length)return null;
+    // All five distinct picture clues must be inserted; selecting only one
+    // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    const firstPoolPreferred=pictureSeeds.length?pictureSeeds:firstPool;
-    const first=firstPoolPreferred[Math.floor(Math.random()*firstPoolPreferred.length)];
+    if(pictureSeeds.length!==5)return null;
+    const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     const seedChoices=[];
@@ -760,7 +762,7 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<80;attempt++){
+  for(let attempt=0;attempt<400;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     if(result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage))){
