@@ -9,7 +9,7 @@ function canBuild(word, bag) { const a=counts(word), b=counts(bag); return Objec
 async function loadLexicon() {
   if (!lexiconPromise) lexiconPromise = fetch("./data/russian-words-50000.json").then(r=>{if(!r.ok)throw new Error("Не удалось загрузить словарь");return r.json();}).then(d=>{
     if(d.language!=="ru"||d.count!==50000||!Array.isArray(d.words)||d.words.length!==50000)throw new Error("Словарь не прошёл проверку количества слов");
-    const words=[...new Set(d.words.map(norm).filter(w=>/^[А-Я]{3,18}$/.test(w)))];
+    const words=[...new Set(d.words.map(norm).filter(w=>/^[А-Я]{2,18}$/.test(w)))];
     if(words.length!==50000)throw new Error("В словаре обнаружены дубликаты или некорректные записи");
     return words;
   }).catch(e=>{lexiconPromise=null;throw e;});
