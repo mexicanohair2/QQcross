@@ -120,6 +120,7 @@ test("opens the letter-wheel crossword game and accepts letter selection", async
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="wheel"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
+  await expect(page.locator(".qq-extra-screen")).toContainText("Word of Wonders");
   await expect(page.locator(".qq-wheel-letter").first()).toBeVisible();
   await page.locator(".qq-wheel-letter").first().click();
   await expect(page.locator("#qqWheelAnswer")).not.toBeEmpty();
@@ -144,7 +145,9 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-cell.secret")).toHaveCount(await page.locator(".qq-cody-secret span").count(), { timeout: 5_000 });
   expect(await page.locator(".qq-cody-secret span").count()).toBeGreaterThanOrEqual(4);
   await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(32);
-  await expect(page.locator(".qq-cody-question")).toBeVisible();
+  await expect(page.locator(".qq-cody-row-clue-text")).toHaveCount(await page.locator(".qq-cody-secret span").count());
+  await expect(page.locator(".qq-cody-row")).toHaveCount(await page.locator(".qq-cody-secret span").count());
+  expect(await page.locator(".qq-cody-row").count()).toBeGreaterThanOrEqual(9);
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
   await expect(page.locator("input")).toHaveCount(0);
