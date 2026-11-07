@@ -24,7 +24,7 @@ def download(url: str) -> bytes:
 
 def clean_required(raw: str) -> str | None:
     word = str(raw or "").strip().lower().replace("ё", "е")
-    if not re.fullmatch(r"[а-я]{2,18}", word) or word in BAD or re.search(r"(.)\\1\\1", word):
+    if not re.fullmatch(r"[а-я]{2,18}", word) or word in BAD or re.search(r"(.)\1\1", word):
         return None
     return word.upper()
 
