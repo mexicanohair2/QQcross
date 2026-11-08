@@ -997,7 +997,7 @@ function buildScanword(entries){
       return true;
     };
     // Two crossing seed words create the first connected component.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=12);
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=10);
     if(!firstPool.length)return null;
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
@@ -1038,7 +1038,7 @@ function buildScanword(entries){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size<TOTAL;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1073,7 +1073,9 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
+              const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
+              const terminalBlocked=terminalY<0||terminalX<0||terminalY>=N||terminalX>=N||occupied.has(terminalY+","+terminalX);
+              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
             }
           }
         }
