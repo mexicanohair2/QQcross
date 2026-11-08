@@ -398,7 +398,7 @@ test("word search shows a question for every target and the bulb marks a startin
   await expect(page.locator("#qqSearchClues .qq-search-word")).not.toHaveCount(0);
   await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
   const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
-  await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
+  await expect(page.locator("#qqSearchClues .qq-search-word")).toHaveCount(targets);
   const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   await page.locator("#qqSearchBulb").click();
   await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
