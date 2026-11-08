@@ -133,7 +133,7 @@ function mountSearch(root,onExit,words){
    }else{path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),300);sound("hint");}
    clear();
   }
-  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
+  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);try{grid.setPointerCapture(e.pointerId)}catch(_){}});
   const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;if(last.x===target.x&&last.y===target.y)return;const segment=pathBetween(last,target);if(!segment.length)return;const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));if(next.some(p=>seen.has(p.x+","+p.y)))return;markPath([...selection,...next]);};
   const end=e=>{if(!drag)return;track(e);drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
   grid.addEventListener("pointermove",track);grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
