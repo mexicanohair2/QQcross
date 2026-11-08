@@ -11,7 +11,7 @@ function updateThemeColor(){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta)meta.setAttribute("content",activeMode==="light"?"#f4eee9":({gray:"#101318",purple:"#171020",burgundy:"#24151d"})[activeTheme]||"#24151d");
 }
-let activeMode=(()=>{try{return localStorage.getItem("qqcross_appearance_mode_v1")==="light"?"light":"dark"}catch{return "dark"}})();
+let activeMode=(()=>{try{const saved=localStorage.getItem("qqcross_appearance_mode_v1");return saved==="light"||saved==="dark"?saved:(localStorage.getItem(THEME_KEY)==="light"?"light":"dark")}catch{return "dark"}})();
 function applyTheme(theme=activeTheme){
   activeTheme=THEME_PRESETS[theme]?theme:"burgundy";
   document.documentElement.dataset.qqTheme=activeTheme;
