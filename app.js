@@ -1064,7 +1064,7 @@ function buildScanword(entries){
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
     let closing=true;
-    while(closing&&occupied.size+clueAt.size<TOTAL-1){
+    while(closing&&[...clueAt.values()].some(list=>!list.length)){
       closing=false;
       const anchors=[];
       const emptyQuestions=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key,list])=>{
