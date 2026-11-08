@@ -959,7 +959,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
-  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,best=null;
+  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,best=null;
   const buildAttempt=()=>{
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
     const addFrontier=(y,x)=>{
@@ -1152,8 +1152,8 @@ function buildScanword(entries){
         }
       }
     }
-    const coverage=occupied.size+clueAt.size;
-    return {coverage,occupied,clueAt,words};
+    const coverage=occupied.size+clueAt.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
+    return {coverage,dangling,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
   // Retry substantially more often, but stop immediately once a fully valid
@@ -1164,11 +1164,11 @@ function buildScanword(entries){
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
-    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
-    if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
+    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling<bestDangling)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
+    if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestDangling===0&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);throw new Error("Не удалось собрать поле с тремя разными картинками (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3; пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3||bestDangling!==0){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3; пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const [key,list] of best.clueAt)if(!list.length)throw new Error("После ответа нет следующего вопроса в клетке "+key);
   for(const word of best.words){
