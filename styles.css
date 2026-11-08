@@ -1817,3 +1817,54 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
 /* Final phone fit: no directional glyphs or question-number pseudo badges. */
 .scanword-board>.scan-cell.scan-clue::before,
 .scanword-board>.scan-cell.scan-clue::after{content:none!important;display:none!important}
+
+
+/* QQCross — redesigned animated startup screen */
+.boot-splash{
+  position:relative;isolation:isolate;overflow:hidden;min-height:100svh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:28px 22px calc(28px + env(safe-area-inset-bottom));
+  text-align:center;color:var(--qq-theme-text,#f8f4ff);
+  background:radial-gradient(ellipse at 50% 42%,#51365d 0%,#2a1b31 34%,#17111d 69%,#0c0910 100%);
+}
+.boot-splash:before,.boot-splash:after{
+  content:"";position:absolute;z-index:-1;border-radius:50%;filter:blur(2px);pointer-events:none;
+}
+.boot-splash:before{width:74vw;height:74vw;max-width:440px;max-height:440px;border:1px solid #d7b6ff22;box-shadow:0 0 90px #bd91ff18,inset 0 0 70px #bd91ff12;animation:boot-breathe 5s ease-in-out infinite}
+.boot-splash:after{width:120vw;height:120vw;max-width:680px;max-height:680px;border:1px solid #fff1;animation:boot-rotate 28s linear infinite}
+.boot-scene{position:relative;width:190px;height:190px;display:grid;place-items:center;margin-bottom:22px}
+.boot-orbit{position:absolute;inset:8px;border:1px solid #d7b6ff35;border-radius:34%;transform:rotate(25deg);animation:boot-rotate 16s linear infinite}
+.boot-orbit-two{inset:23px;border-color:#f4d8e72c;border-radius:40%;transform:rotate(-35deg);animation:boot-rotate 22s linear infinite reverse}
+.boot-mark{
+  width:104px;height:104px;display:flex;align-items:center;justify-content:center;gap:0;
+  border:1px solid #ffffff65;border-radius:32px;
+  background:linear-gradient(145deg,#c5a2dc 0%,#865c9c 48%,#54385f 100%);
+  box-shadow:0 18px 55px #08040d99,inset 0 1px 1px #ffffff88;
+  font-size:43px;font-weight:950;letter-spacing:-9px;padding-right:8px;
+  animation:boot-float 3s ease-in-out infinite;
+}
+.boot-mark span:last-child{color:#f5e7ff}
+.boot-tiles{position:absolute;bottom:0;display:flex;gap:7px}
+.boot-tiles i{
+  width:30px;height:32px;display:grid;place-items:center;border-radius:8px;
+  border:1px solid #e8d4f477;background:linear-gradient(145deg,#f5eaff,#c9addb);
+  color:#493052;font-size:14px;font-style:normal;font-weight:900;
+  box-shadow:0 5px 12px #08040d66;animation:boot-tile 1.8s ease-in-out infinite;
+}
+.boot-tiles i:nth-child(2){animation-delay:.12s}.boot-tiles i:nth-child(3){animation-delay:.24s}
+.boot-tiles i:nth-child(4){animation-delay:.36s}.boot-tiles i:nth-child(5){animation-delay:.48s}
+.boot-brand{font-size:34px;font-weight:900;letter-spacing:-1.5px}
+.boot-brand span{color:#d7b6ed}
+.boot-caption{margin:9px 0 22px;color:#e0d2e8;font-size:14px;letter-spacing:.02em}
+.boot-progress{width:min(220px,68vw);height:4px;overflow:hidden;border-radius:99px;background:#ffffff24}
+.boot-progress span{display:block;width:38%;height:100%;border-radius:99px;background:linear-gradient(90deg,#c8a3df,#fff0ff);box-shadow:0 0 14px #e3c4ff;animation:boot-loading 1.65s ease-in-out infinite}
+.boot-footnote{margin-top:15px;color:#b9a7c1;font-size:11px;letter-spacing:.04em}
+@keyframes boot-rotate{to{transform:rotate(385deg)}}
+@keyframes boot-breathe{0%,100%{transform:scale(.94);opacity:.55}50%{transform:scale(1.05);opacity:1}}
+@keyframes boot-float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-7px) rotate(2deg)}}
+@keyframes boot-tile{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes boot-loading{0%{transform:translateX(-120%)}55%{transform:translateX(115%)}100%{transform:translateX(300%)}}
+html[data-qq-theme="purple"] .boot-splash{background:radial-gradient(ellipse at 50% 42%,#51415f 0%,#292332 40%,#121016 100%)}
+html[data-qq-theme="burgundy"] .boot-splash{background:radial-gradient(ellipse at 50% 42%,#593743 0%,#302027 40%,#130e12 100%)}
+html[data-qq-theme="black"] .boot-splash{background:radial-gradient(ellipse at 50% 42%,#414141 0%,#242424 40%,#0c0c0c 100%)}
+@media(prefers-reduced-motion:reduce){.boot-splash:before,.boot-splash:after,.boot-orbit,.boot-mark,.boot-tiles i,.boot-progress span{animation:none!important}.boot-progress span{width:65%;transform:none}}
