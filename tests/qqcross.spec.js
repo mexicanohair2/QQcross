@@ -26,6 +26,9 @@ test("loads a fully occupied 15x15 scanword with three distinct picture clues", 
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(225);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
+  await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
+  const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
+  expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(3);
@@ -62,6 +65,41 @@ test("opens the question popup from a picture clue cell without a permanent ques
   await pictureClue.click();
   await expect(page.locator(".clue-popup-text")).toHaveText("Что изображено на картинке?");
   await expect(page.locator(".scanword-question-list")).toHaveCount(0);
+  await expect(page.locator(".scanword-board")).toBeVisible();
+});
+
+test("keeps clue text readable and the letter rack crisp on a phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const layout = await page.evaluate(() => {
+    const board = document.querySelector(".scanword-board").getBoundingClientRect();
+    const tools = document.querySelector(".game-tools").getBoundingClientRect();
+    const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
+    return { board, tools, viewport, scrollWidth: document.documentElement.scrollWidth };
+  });
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
+  expect(layout.board.left).toBeGreaterThanOrEqual(-1);
+  expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
+  expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
+  const letterStyle = await page.locator(".letter").first().evaluate(async node => {
+    node.classList.add("letter-enter");
+    await Promise.all(node.getAnimations().map(animation => animation.finished.catch(() => {})));
+    const style = getComputedStyle(node);
+    return { filter: style.filter, transform: style.transform };
+  });
+  expect(letterStyle.filter).toBe("none");
+  expect(letterStyle.transform).toBe("none");
+  const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
+  expect(clueSizes.length).toBeGreaterThan(0);
+  expect(clueSizes.every(size => size >= 8)).toBeTruthy();
+});
+
+test("opens full text for an ordinary text clue from its cell", async ({ page }) => {
+  await startGuestGame(page);
+  const clue = page.locator(".scan-clue:not(.scan-clue-picture)").first();
+  await clue.click();
+  await expect(page.locator(".clue-popup-text")).not.toBeEmpty();
+  await expect(page.locator(".clue-popup-length")).toContainText("Ответ:");
   await expect(page.locator(".scanword-board")).toBeVisible();
 });
 
