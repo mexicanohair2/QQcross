@@ -3,7 +3,37 @@
 const LETTERS = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 let lexiconPromise = null;
 let clueIndex = new Map();
-const clueFor = word => clueIndex.get(norm(word)) || "Подумай, что обозначает это слово.";
+const EXTRA_CLUES={
+ "МОНИТОР":"Экран компьютера, на котором отображается изображение.",
+ "МЫШКА":"Устройство для управления курсором на компьютере.",
+ "ПЛАНШЕТ":"Портативное устройство с сенсорным экраном.",
+ "ПРИНТЕР":"Устройство, которое печатает документы и изображения.",
+ "НАУШНИКИ":"Аксессуар, через который слушают звук лично.",
+ "ДИНАМИК":"Устройство, превращающее сигнал в звук.",
+ "ПРОЦЕССОР":"Главный вычислительный компонент компьютера.",
+ "КАБЕЛЬ":"Провод для передачи электричества или данных.",
+ "СЕРВЕР":"Компьютер или программа, предоставляющие данные другим.",
+ "НОУТБУК":"Переносной компьютер с экраном и клавиатурой.",
+ "СМАРТФОН":"Мобильный телефон с операционной системой и приложениями.",
+ "ПРИЛОЖЕНИЕ":"Программа для выполнения определённой задачи.",
+ "ИНТЕРНЕТ":"Глобальная сеть, соединяющая компьютеры.",
+ "ДИСПЛЕЙ":"Экран электронного устройства.",
+ "КОРПУС":"Внешняя оболочка устройства или компьютера.",
+ "ПАМЯТЬ":"Компонент, где компьютер хранит данные.",
+ "ФАЙЛ":"Именованный набор данных на устройстве.",
+ "САЙТ":"Набор связанных веб-страниц.",
+ "СЕТЬ":"Соединение устройств для обмена данными.",
+ "МОДЕМ":"Устройство для подключения к сети передачи данных.",
+ "ЗАРЯДКА":"Устройство для пополнения энергии аккумулятора.",
+ "КОЛОНКА":"Акустическое устройство для воспроизведения звука.",
+ "ПЛАТА":"Основа с электронными компонентами и дорожками.",
+ "ЧИП":"Миниатюрная электронная микросхема.",
+ "КОД":"Запись команд или данных с помощью символов.",
+ "ДАННЫЕ":"Информация, которую можно хранить и обрабатывать.",
+ "СЕРВИС":"Онлайн-служба или функция, доступная пользователю.",
+ "АНТЕННА":"Устройство для приёма или передачи радиосигнала."
+};
+const clueFor = word => clueIndex.get(norm(word)) || EXTRA_CLUES[norm(word)] || "Подумай, что обозначает это слово.";
 const norm = value => String(value || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
 const shuffle = values => { const a = [...values]; for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 const counts = word => [...norm(word)].reduce((m,c)=>(m[c]=(m[c]||0)+1,m),{});
@@ -69,11 +99,11 @@ function levelComplete(root,key,level,next){
 }
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
- const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&clueIndex.has(w)));
+ const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w])));
  const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
  let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
  let chosen=pool.slice(0,count);
- if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&clueIndex.has(w))).slice(0,Math.max(5,count));
+ if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w]))).slice(0,Math.max(5,count));
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
  for(let grow=0;grow<8;grow++){
@@ -381,13 +411,14 @@ function mountCody(root,onExit,clues,words){
    const view=root.querySelector("#qqCodyView");view.className="qq-cody-puzzle-view";root.querySelector(".qq-cody-app").classList.add("qq-cody-playing");const draft=s.drafts[active]||{};
    view.classList.add("qq-cody-puzzle-view");
    const secretView=puzzle.secret.split("").map((ch,i)=>{const row=puzzle.items[i],j=row.crossIndex;return '<span class="'+(revealed(i,j)?"open":"")+'">'+(revealed(i,j)?ch:"·")+'</span>';}).join("");
-   view.innerHTML='<div class="qq-cody-level-top"><span>ГРУППА '+(group+1)+' · УРОВЕНЬ '+((puzzle.level%PER_GROUP)+1)+'</span><b>'+s.solved.length+' / '+puzzle.items.length+'</b></div><div class="qq-cody-progress-track"><span style="width:'+s.solved.length/puzzle.items.length*100+'%"></span></div><div class="qq-cody-secret-wrap"><div class="qq-cody-secret-label">СЕКРЕТНОЕ СЛОВО</div><div class="qq-cody-secret">'+secretView+'</div></div><div class="qq-cody-play-layout" style="--qq-cody-rows:'+puzzle.rows+'">'+puzzle.items.map((x,i)=>rowMarkup(i)).join("")+'</div><div class="qq-cody-tools"><button type="button" class="btn" id="qqCodyHint">💡 Подсказка</button></div><div class="qq-cody-keyboard" aria-label="Русская клавиатура"><div class="qq-cody-key-row">'+("ЙЦУКЕНГШЩЗХЪ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ФЫВАПРОЛДЖЭ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ЯЧСМИТЬБЮ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row special"><button type="button" data-action="delete">⌫</button><button type="button" data-action="clear">Очистить</button><button type="button" data-action="check">Проверить</button></div></div><p class="qq-cody-message" id="qqCodyMessage" aria-live="polite">'+escapeHtml(message)+'</p>';
+   view.innerHTML='<div class="qq-cody-level-top"><span>ГРУППА '+(group+1)+' · УРОВЕНЬ '+((puzzle.level%PER_GROUP)+1)+'</span><b>'+s.solved.length+' / '+puzzle.items.length+'</b></div><div class="qq-cody-progress-track"><span style="width:'+s.solved.length/puzzle.items.length*100+'%"></span></div><div class="qq-cody-secret-wrap"><div class="qq-cody-secret-label">СЕКРЕТНОЕ СЛОВО</div><div class="qq-cody-secret">'+secretView+'</div></div><div class="qq-cody-play-layout" style="--qq-cody-rows:'+puzzle.rows+'">'+puzzle.items.map((x,i)=>rowMarkup(i)).join("")+'</div><div class="qq-cody-tools"><button type="button" class="btn" id="qqCodyLoupe">⌕ Лупа</button><button type="button" class="btn" id="qqCodyHint">💡 Подсказка</button></div><div class="qq-cody-keyboard" aria-label="Русская клавиатура"><div class="qq-cody-key-row">'+("ЙЦУКЕНГШЩЗХЪ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ФЫВАПРОЛДЖЭ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ЯЧСМИТЬБЮ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row special"><button type="button" data-action="delete">⌫</button><button type="button" data-action="clear">Очистить</button><button type="button" data-action="check">Проверить</button></div></div><p class="qq-cody-message" id="qqCodyMessage" aria-live="polite">'+escapeHtml(message)+'</p>';
    view.querySelectorAll("[data-word]").forEach(b=>b.onclick=()=>{active=+b.dataset.word;cursor=+b.dataset.slot;message="Выбрана клетка "+(cursor+1)+" из "+puzzle.items[active].answer.length+".";render();});
    view.querySelectorAll("[data-clue]").forEach(b=>b.onclick=()=>{active=+b.dataset.clue;cursor=firstMissing(active);message="Вопрос выбран.";render();});
    view.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>enterLetter(b.dataset.letter));
    view.querySelector('[data-action="delete"]').onclick=deleteLetter;
    view.querySelector('[data-action="clear"]').onclick=()=>{s.drafts[active]={};cursor=firstMissing(active);message="Введённые буквы очищены.";persist();render();};
    view.querySelector('[data-action="check"]').onclick=checkAnswer;
+   view.querySelector("#qqCodyLoupe").onclick=()=>revealLetter(cursor);
    view.querySelector("#qqCodyHint").onclick=()=>{if(window.QQEconomy?.useBulb?.())revealLetter(firstMissing(active));};
   }
   function firstMissing(i){const item=puzzle.items[i],draft=s.drafts[i]||{};for(let j=0;j<item.answer.length;j++)if(!revealed(i,j)&&!draft[j])return j;for(let j=0;j<item.answer.length;j++)if(!revealed(i,j))return j;return 0;}
