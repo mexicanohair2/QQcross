@@ -1640,3 +1640,38 @@ html[data-qq-mode="light"] .boot-logo{background:var(--qq-theme-panel-strong)!im
 html[data-qq-mode="light"] .qq-mode-switch button{background:var(--qq-theme-panel)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-border)!important}
 html[data-qq-mode="light"] .qq-mode-switch button.selected{background:var(--qq-theme-panel-strong)!important;color:#fff!important}
 @media(max-width:390px){.qq-mode-switch button{font-size:12px;padding:8px 5px}}
+
+
+/* Final theme pass for shared game controls and feedback states. */
+html[data-qq-theme] .letter,
+html[data-qq-theme] .qq-drag-ghost{
+ background:var(--qq-theme-panel-strong)!important;color:#fff!important;
+ border-color:var(--qq-theme-accent)!important;box-shadow:0 3px 0 var(--qq-theme-block)!important;
+}
+html[data-qq-theme] .cell.feedback-correct{background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .clue-popup-backdrop{background:#08050bbd!important}
+html[data-qq-theme] .clue-popup{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .clue-popup-number{color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .clue-popup-text{color:var(--qq-theme-text)!important}
+html[data-qq-theme] .clue-popup-length{color:var(--qq-theme-muted)!important}
+html[data-qq-theme] .clue-popup-close{background:var(--qq-theme-panel-strong)!important;color:#fff!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .qq-title-chip{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .qq-title-chip.is-unlocked{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-mode="light"] .letter,
+html[data-qq-mode="light"] .qq-drag-ghost{
+ background:var(--qq-theme-filled)!important;color:var(--qq-theme-text)!important;
+ border-color:var(--qq-theme-accent)!important;box-shadow:0 3px 0 var(--qq-theme-border)!important;
+}
+html[data-qq-mode="light"] .clue-popup-backdrop{background:#ded4d0bb!important}
+html[data-qq-mode="light"] .clue-popup{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-accent)!important;box-shadow:0 18px 50px #59433c22!important}
+html[data-qq-mode="light"] .clue-popup-number{color:var(--qq-theme-accent)!important}
+html[data-qq-mode="light"] .clue-popup-text{color:var(--qq-theme-text)!important}
+html[data-qq-mode="light"] .clue-popup-length{color:var(--qq-theme-muted)!important}
+html[data-qq-mode="light"] .clue-popup-close{background:var(--qq-theme-panel-strong)!important;color:#fff!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-mode="light"] .cell-letter,
+html[data-qq-mode="light"] .scanword-board>.scan-cell .cell-letter{color:var(--qq-theme-text)!important;text-shadow:none!important}
+html[data-qq-mode="light"] .qq-title-chip{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-mode="light"] .qq-title-chip.is-unlocked{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-empty{background:var(--qq-theme-block)!important}
+html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-clue{background:var(--qq-theme-clue)!important;color:var(--qq-theme-text)!important}
+html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-filler{background:var(--qq-theme-block)!important;color:var(--qq-theme-muted)!important}
