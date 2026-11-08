@@ -1143,7 +1143,7 @@ function buildScanword(entries){
               cells.push([yy,xx]);
             }
             const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
-            if(!valid||(!crosses&&!attachedQuestionStart))continue;
+            if(!valid||(!crosses&&!attachedQuestionStart&&!(length===1&&anchor.existing)))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             if(crosses){
