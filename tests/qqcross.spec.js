@@ -494,6 +494,9 @@ test("scanword clue cells show clue text without direction arrows or number badg
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".scanword-board > .scan-cell")).toHaveCount(144);
+  await expect(page.locator(".scanword-board > .scan-cell").first()).toHaveClass(/scan-empty/);
+  await expect(page.locator(".scanword-board > .scan-cell").first()).not.toHaveClass(/scan-clue|\bcell\b/);
   await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
   const cluePseudo = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.every(node =>
     getComputedStyle(node, "::before").content === "none" && getComputedStyle(node, "::after").content === "none"
