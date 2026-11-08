@@ -22,6 +22,12 @@ test("loads a fully occupied 12x12 scanword with three distinct picture clues", 
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(144);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
+  const scanBoard = page.locator(".scanword-board");
+  await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
+  const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
+  const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
+  expect(terminalAnswerCount).toBe(answerCount);
+  await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(144);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
