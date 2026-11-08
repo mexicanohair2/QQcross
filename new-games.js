@@ -133,10 +133,43 @@ function mountSearch(root,onExit,words){
    }else{path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),300);sound("hint");}
    clear();
   }
-  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);try{grid.setPointerCapture(e.pointerId)}catch(_){}});
-  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;if(last.x===target.x&&last.y===target.y)return;const segment=pathBetween(last,target);if(!segment.length)return;const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));if(next.some(p=>seen.has(p.x+","+p.y)))return;markPath([...selection,...next]);};
-  const end=e=>{if(!drag)return;track(e);drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
-  grid.addEventListener("pointermove",track);grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
+  function cellFromPoint(clientX,clientY){
+   const cells=grid.querySelectorAll("[data-x]");let best=null,bestDistance=Infinity;
+   for(const cell of cells){
+    const rect=cell.getBoundingClientRect(),cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+    const dx=Math.abs(clientX-cx),dy=Math.abs(clientY-cy);
+    if(dx>rect.width*.68+8||dy>rect.height*.68+8)continue;
+    const distance=dx*dx+dy*dy;
+    if(distance<bestDistance){bestDistance=distance;best=cell;}
+   }
+   return best;
+  }
+  grid.addEventListener("pointerdown",e=>{
+   const c=e.target.closest("[data-x]");if(!c||completed)return;
+   e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);
+   grid.classList.add("qq-search-dragging");try{grid.setPointerCapture(e.pointerId)}catch(_){}
+  });
+  const track=e=>{
+   if(!drag||!start)return;e.preventDefault();
+   const c=cellFromPoint(e.clientX,e.clientY);if(!c)return;
+   const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;
+   if(last.x===target.x&&last.y===target.y)return;
+   const segment=pathBetween(last,target);if(!segment.length)return;
+   const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));
+   if(next.some(p=>seen.has(p.x+","+p.y)))return;
+   markPath([...selection,...next]);
+  };
+  const end=e=>{
+   if(!drag)return;if(e)track(e);drag=false;grid.classList.remove("qq-search-dragging");
+   if(selection.length>1){finish(selection);tapStart=null;}
+   else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}
+   start=null;
+  };
+  const cancel=()=>{if(!drag)return;drag=false;start=null;grid.classList.remove("qq-search-dragging");clear();};
+  grid.addEventListener("pointermove",track,{passive:false});
+  grid.addEventListener("pointerup",end);
+  grid.addEventListener("pointercancel",cancel);
+  grid.addEventListener("lostpointercapture",cancel);
  }
  showMap();
 }
