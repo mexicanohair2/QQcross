@@ -21,7 +21,7 @@ jobs:
           python scripts/validate_russian_lexicon.py
       - name: Commit generated dictionary
         run: |
-          git add data/russian-words-100000.json
+          git add data/russian-words-100000.json data/russian-words-common-25000.json
           if git diff --cached --quiet; then
             echo "The 100k lexicon is already current."
           else
