@@ -1429,7 +1429,7 @@ function renderGame(root){
         const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
         if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
         if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-        state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
+        state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");popup.remove();renderGame(root);toast("Подсказка использована: открыта правильная буква");
       });
       const close=()=>popup.remove();
       const showQuestion=word=>{
