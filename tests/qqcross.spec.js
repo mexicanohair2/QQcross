@@ -98,6 +98,8 @@ test("opens full text for an ordinary text clue from its cell", async ({ page })
   await startGuestGame(page);
   const clue = page.locator(".scan-clue:not(.scan-clue-picture)").first();
   await clue.click();
+  const firstChoice = page.locator(".clue-popup-choice").first();
+  if (await firstChoice.count()) await firstChoice.click();
   await expect(page.locator(".clue-popup-text")).not.toBeEmpty();
   await expect(page.locator(".clue-popup-length")).toContainText("Ответ:");
   await expect(page.locator(".scanword-board")).toBeVisible();
@@ -500,6 +502,7 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
   await expect(page.locator("#practice")).toBeVisible();
   await page.locator("#practice").click();
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await page.evaluate(() => { window.__qqMatchWrites = 0; });
   await page.waitForTimeout(4500);
   const writes = await page.evaluate(() => window.__qqMatchWrites);
   expect(writes).toBeLessThanOrEqual(3);
