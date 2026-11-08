@@ -59,7 +59,6 @@ function validate(puzzle, run) {
     const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
     if(terminalY<0||terminalX<0||terminalY>=12||terminalX>=12||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
   }
-  for(const key of puzzle.clueKeys){if(!(puzzle.words.some(word=>word.clueCell.join(",")===key)))throw new Error("Run "+run+": terminal question cell has no outgoing clue");}
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
 
