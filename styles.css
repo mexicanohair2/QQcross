@@ -1103,7 +1103,7 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 
 /* Word of Wonders: compact mobile-first board and functional letter-wheel. */
 .qq-wow-screen{height:100dvh!important;max-height:100dvh!important;min-height:0!important;overflow:hidden!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;padding:4px 8px max(4px,env(safe-area-inset-bottom))!important;gap:2px!important}
-.qq-wow-screen>.qq-extra-top{flex:0 0 auto!important;min-height:32px!important;margin:0!important;padding:2px 0!important}
+.qq-wow-screen>.qq-extra-top{position:relative!important;z-index:30!important;flex:0 0 auto!important;min-height:32px!important;margin:0!important;padding:2px 0!important}.qq-wow-screen .qq-cross-board,.qq-wow-screen .qq-cross-board *{pointer-events:none!important}
 .qq-wow-screen .qq-extra-sub{flex:0 0 auto!important;margin:0!important;text-align:center!important;font-size:11px!important;line-height:1.2!important}
 .qq-wow-screen .qq-wheel-progress{flex:0 0 auto!important;margin:2px auto!important;padding:5px 9px!important;font-size:11px!important;width:min(100%,280px)!important}
 .qq-wow-screen .qq-cross-board{flex:0 0 auto!important;width:min(100%,340px)!important;max-width:100%!important;aspect-ratio:auto!important;grid-template-rows:repeat(var(--qq-cols),clamp(12px,2.45vh,18px))!important;grid-auto-rows:clamp(12px,2.45vh,18px)!important;gap:2px!important;margin:2px auto!important}
