@@ -998,9 +998,9 @@ function buildScanword(entries){
     }
     if(!imageSeedChoices.length&&!regularSeedChoices.length)return null;
     let seeded=false;
-    regularSeedChoices.sort((a,b)=>Number(!!b.entry.logic)-Number(!!a.entry.logic));
-    const seedCandidates=regularSeedChoices.filter(choice=>choice.entry.logic)
-      .concat(imageSeedChoices,regularSeedChoices.filter(choice=>!choice.entry.logic));
+    const seedCandidates=imageSeedChoices.length
+      ?imageSeedChoices.concat(regularSeedChoices.slice(0,60))
+      :regularSeedChoices;
     for(const choice of seedCandidates){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
@@ -1040,7 +1040,7 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+(entry.logic?24:0)+Math.random()*3});
+              if(valid&&crosses)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
             }
           }
         }
@@ -1112,7 +1112,7 @@ function buildScanword(entries){
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
-    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&logicCount===bestLogicCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&logicCount===bestLogicCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
+    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestLogicCount>=3&&bestSingleCount<=1)break;
   }
