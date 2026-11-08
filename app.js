@@ -1117,14 +1117,13 @@ function buildScanword(entries){
         anchors.push(...emptyQuestions);
       }else{
         [...clueAt.entries()].reverse().forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          const key=y+","+x;
-          if(occupied.has(key)||clueAt.has(key))continue;
-          // A new question cell may connect to an existing answer farther
-          // than one square away. Restrict candidates to aligned frontier
-          // cells; addWord still requires a real letter crossing.
-          if(frontier.has(key))anchors.push({y,x,existing:false,list:[]});
-        }
+      }
+      // Also consider empty aligned frontier cells when terminal questions
+      // remain open. Otherwise the generator can get stuck repairing only
+      // dangling clue cells while leaving nearby holes unreachable.
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const key=y+","+x;
+        if(!occupied.has(key)&&!clueAt.has(key)&&frontier.has(key))anchors.push({y,x,existing:false,list:[]});
       }
       anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
