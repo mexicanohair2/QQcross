@@ -17,9 +17,9 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 12x12");
+  if (!puzzle || puzzle.w !== 8 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 8x12");
   const total = puzzle.w * puzzle.h;
-  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total) {
+  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total - 1 || puzzle.used.has("0,0") || puzzle.clueKeys.has("0,0")) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size) + "/" + total);
   }
   for (const key of puzzle.clueKeys) {
@@ -35,7 +35,7 @@ function validate(puzzle, run) {
     if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
     answers.add(word.answer);
     const [cy, cx] = word.clueCell;
-    const directions = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
+    const directions = { right: [0, 1], down: [1, 0] };
     const delta = directions[word.dir];
     if (!delta) throw new Error("Run " + run + ": invalid direction " + word.dir + " for " + word.id);
     for (let k = 0; k < word.cells.length; k++) {
@@ -45,10 +45,10 @@ function validate(puzzle, run) {
       }
       if (word.answer[k] < "А" || word.answer[k] > "Я") throw new Error("Run " + run + ": invalid answer character in " + word.id);
     }
-    if (cy < 0 || cx < 0 || cy >= 12 || cx >= 12 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
+    if (cy < 0 || cx < 0 || cy >= 12 || cx >= 8 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
     for (let k = 0; k < word.cells.length; k++) {
       const [y, x] = word.cells[k];
-      if (y < 0 || x < 0 || y >= 12 || x >= 12) throw new Error("Run " + run + ": out-of-bounds letter");
+      if (y < 0 || x < 0 || y >= 12 || x >= 8) throw new Error("Run " + run + ": out-of-bounds letter");
       const key = y + "," + x;
       if (puzzle.clueKeys.has(key)) throw new Error("Run " + run + ": answer crosses a clue cell");
       if (letters.has(key) && letters.get(key) !== word.answer[k]) throw new Error("Run " + run + ": conflicting letter at " + key);
@@ -57,7 +57,8 @@ function validate(puzzle, run) {
       owners.get(key).add(i);
     }
     const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(terminalY<0||terminalX<0||terminalY>=12||terminalX>=12||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    const boundaryEnd=terminalY===12||terminalX===8;
+    if(terminalY<0||terminalX<0||terminalY>12||terminalX>8||(!boundaryEnd&&!puzzle.clueKeys.has(terminalKey)))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell or board edge");
   }
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
@@ -88,11 +89,18 @@ function validate(puzzle, run) {
     for (const j of graph[i]) if (!seen.has(j)) { seen.add(j); stack.push(j); }
   }
   if (seen.size !== puzzle.words.length) throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + ")");
-  if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
+  if (puzzle.words.length < 18) throw new Error("Run " + run + ": suspiciously few questions");
+  const borderKeys = [...Array.from({length:7},(_,i)=>"0,"+(i+1)), ...Array.from({length:11},(_,i)=>(i+1)+",0")];
+  for (const key of borderKeys) if (!puzzle.words.some(word => word.clueCell.join(",") === key)) {
+    throw new Error("Run " + run + ": missing top/left border clue at " + key);
+  }
+  for (const key of puzzle.clueKeys) if (!puzzle.words.some(word => word.clueCell.join(",") === key)) {
+    throw new Error("Run " + run + ": terminal clue cell has no outgoing question at " + key);
+  }
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
-    throw new Error("Run " + run + ": expected three distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
+    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
   }
   const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
   if (logicClueCells.size < 3) {

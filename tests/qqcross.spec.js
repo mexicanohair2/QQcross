@@ -17,27 +17,33 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12x12 scanword with three distinct picture clues", async ({ page }) => {
+test("loads the 8x12 reference scanword with a blank corner and five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  await expect(page.locator(".scan-grid-cell")).toHaveCount(144);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
+  const gridShape = await scanBoard.evaluate(node => ({ columns: getComputedStyle(node).gridTemplateColumns.split(" ").length, rows: getComputedStyle(node).gridTemplateRows.split(" ").length }));
+  expect(gridShape).toEqual({ columns: 8, rows: 12 });
+  const cluePositions = await scanBoard.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => node.dataset.clueCell));
+  for (let x = 1; x < 8; x++) expect(cluePositions).toContain("0," + x);
+  for (let y = 1; y < 12; y++) expect(cluePositions).toContain(y + ",0");
+  await expect(scanBoard.locator(".scan-clue-arrow")).not.toHaveCount(0);
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
   expect(terminalAnswerCount).toBe(answerCount);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
-  await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(144);
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(3);
+  await expect(page.locator(".scan-filler")).toHaveCount(1);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(95);
+  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 6)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(3);
+  expect(new Set(pictureSources).size).toBe(5);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -179,7 +185,7 @@ test("Wordle supports 4, 6, 7 and 8 letter modes on a phone viewport", async ({ 
   expect(dimensions.s).toBeLessThanOrEqual(dimensions.h + 1);
 });
 
-test("opens the 100-level Russian word-search map and mobile board", async ({ page }) => {
+test("opens the 1000-level Russian word-search map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -188,7 +194,7 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   await page.locator("#guestPlay").click();
   await expect(page.locator(".qq-game-launch")).toHaveCount(4);
   await page.locator('[data-extra-game="search"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
   await expect(page.locator('[data-level="2"]')).toBeDisabled();
   await page.locator('[data-level="1"]').click();
@@ -201,7 +207,7 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   expect(errors).toEqual([]);
 });
 
-test("opens the 100-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
+test("opens the 1000-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -209,7 +215,7 @@ test("opens the 100-level Word of Wonders map and joins the wheel letters by dra
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="wheel"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
@@ -246,12 +252,12 @@ test("opens the 100-level Word of Wonders map and joins the wheel letters by dra
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
-test("difficulty grows through level 100 in Word of Wonders and word search", async ({ page }) => {
+test("difficulty grows through level 1000 in Word of Wonders and word search", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => {
-    localStorage.setItem("qqcross.wow.unlocked.v1", "100");
-    localStorage.setItem("qqcross.search.unlocked.v1", "100");
+    localStorage.setItem("qqcross.wow.unlocked.v1", "1000");
+    localStorage.setItem("qqcross.search.unlocked.v1", "1000");
   });
   await page.reload();
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -262,7 +268,7 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="100"]').click();
+  await page.locator('[data-level="1000"]').click();
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const wowFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqWheelBoard").getBoundingClientRect().bottom }));
@@ -276,7 +282,7 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="100"]').click();
+  await page.locator('[data-level="1000"]').click();
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
@@ -303,6 +309,16 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-row-clue-text")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   await expect(page.locator(".qq-cody-row")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   expect(await page.locator(".qq-cody-row").count()).toBeGreaterThanOrEqual(9);
+  const clueGeometry = await page.locator(".qq-cody-row").first().evaluate(row => {
+    const clue = row.querySelector(".qq-cody-row-clue").getBoundingClientRect();
+    const cells = row.querySelector(".qq-cody-row-cells").getBoundingClientRect();
+    return { clueRight: clue.right, cellsLeft: cells.left, clueHeight: clue.height, cellsHeight: cells.height };
+  });
+  expect(clueGeometry.clueRight).toBeLessThanOrEqual(clueGeometry.cellsLeft + 1);
+  expect(clueGeometry.clueHeight).toBeGreaterThan(0);
+  expect(clueGeometry.cellsHeight).toBeGreaterThan(0);
+  const codyViewport = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(codyViewport.s).toBeLessThanOrEqual(codyViewport.h + 1);
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
   await expect(page.locator("input")).toHaveCount(0);
@@ -484,6 +500,9 @@ test("scanword clue cells show clue text without direction arrows or number badg
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".scanword-board > .scan-cell")).toHaveCount(96);
+  await expect(page.locator(".scanword-board > .scan-cell").first()).toHaveClass(/scan-filler/);
+  await expect(page.locator(".scanword-board > .scan-cell").first()).not.toHaveClass(/scan-clue|\bcell\b/);
   await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
   const cluePseudo = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.every(node =>
     getComputedStyle(node, "::before").content === "none" && getComputedStyle(node, "::after").content === "none"
@@ -527,11 +546,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five distinct pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(3);
+  await expect(images).toHaveCount(5);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
@@ -542,4 +561,77 @@ test("scanword always includes three pictures and at least three logical questio
   expect(clueLayout.length).toBeGreaterThan(0);
   expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
+});
+
+
+test("logic scanword clue cells wrap within their three-line mobile layout", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const logicCells = page.locator(".scanword-board > .scan-clue-logic:not(.scan-clue-picture):not(.scan-clue-emoji)");
+  await expect.poll(() => logicCells.count()).toBeGreaterThanOrEqual(3);
+  const layouts = await logicCells.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => {
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return {
+      whiteSpace: style.whiteSpace,
+      lineClamp: style.webkitLineClamp,
+      lineHeight: parseFloat(style.lineHeight),
+      height: rect.height,
+      width: rect.width,
+      text: node.textContent.trim()
+    };
+  }));
+  expect(layouts.every(item => item.whiteSpace === "normal" && item.lineClamp === "3")).toBeTruthy();
+  expect(layouts.every(item => item.height > 0 && item.width > 0 && item.text.length > 8)).toBeTruthy();
+});
+
+
+test("Wordle places Enter before the letters and Delete after them", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator("#playWordle").click();
+  const keys = await page.locator("#wordleKeyboard .wordle-key-row").last().locator("button").evaluateAll(nodes => nodes.map(node => node.dataset.key));
+  expect(keys[0]).toBe("ENTER");
+  expect(keys[keys.length - 1]).toBe("BACKSPACE");
+});
+
+test("Cody keyboard places Delete before Check", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="cody"]').click();
+  await page.locator('[data-group="0"]').click();
+  await page.locator('[data-level="0"]').click();
+  const actions = await page.locator(".qq-cody-key-row.special button").evaluateAll(nodes => nodes.map(node => node.dataset.action));
+  expect(actions).toEqual(["delete", "clear", "check"]);
+});
+
+test("word search supports selecting a word by tapping its letters one by one", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  const path = await page.evaluate(() => {
+    const target = document.querySelector(".qq-search-word")?.dataset.clueWord;
+    const cells = [...document.querySelectorAll(".qq-search-cell")];
+    const grid = new Map(cells.map(cell => [cell.dataset.x + "," + cell.dataset.y, cell.textContent.trim()]));
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+    for (const cell of cells) {
+      const x = Number(cell.dataset.x), y = Number(cell.dataset.y);
+      for (const [dx,dy] of dirs) {
+        const points = [...target].map((_,i) => ({x:x+dx*i,y:y+dy*i}));
+        if (points.map(p => grid.get(p.x + "," + p.y) || "").join("") === target) return points;
+      }
+    }
+    return [];
+  });
+  expect(path.length).toBeGreaterThan(2);
+  for (const point of path) {
+    await page.locator('.qq-search-cell[data-x="' + point.x + '"][data-y="' + point.y + '"]').click();
+  }
+  await expect(page.locator(".qq-search-word").first()).toHaveClass(/done/);
+  await expect(page.locator("#qqProgress")).toContainText("Найдено: 1 /");
 });

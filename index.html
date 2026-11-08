@@ -22,7 +22,7 @@
 <link rel="icon" href="./icon.svg?v=cozy-20261108" type="image/svg+xml">
 <meta name="description" content="QQCross — играй в сканворды">
 <link rel="manifest" href="./manifest.json?v=cozy-20261108">
-<link rel="stylesheet" href="./styles.css?v=20261108-feedback-pass7">
+<link rel="stylesheet" href="./styles.css?v=20261109-feedback-pass10">
 <title>QQCross</title>
 </head>
 <body>
@@ -50,8 +50,8 @@
 })();
 </script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
-<script src="./wordle.js?v=20261108-key-order-v2"></script>
-<script src="./new-games.js?v=20261108-feedback-pass7"></script>
+<script src="./wordle.js?v=20261109-feedback-pass10"></script>
+<script src="./new-games.js?v=20261109-feedback-pass10"></script>
 <script src="./progression.js?v=20261108-hint-achievements-v1"></script>
 <script src="./encyclopedia.js?v=20261108-feedback-pass7"></script>
 <script>
@@ -63,7 +63,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261108-feedback-pass7";
+    app.src="./app.js?v=20261109-feedback-pass10";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
