@@ -1675,3 +1675,19 @@ html[data-qq-mode="light"] .qq-title-chip.is-unlocked{background:var(--qq-theme-
 html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-empty{background:var(--qq-theme-block)!important}
 html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-clue{background:var(--qq-theme-clue)!important;color:var(--qq-theme-text)!important}
 html[data-qq-mode="light"] .scanword-board>.scan-cell.scan-filler{background:var(--qq-theme-block)!important;color:var(--qq-theme-muted)!important}
+
+
+/* Keep the selected ambient background visible beneath themed, readable surfaces. */
+html[data-qq-theme] body{
+ background:
+  radial-gradient(ellipse at 14% 12%,color-mix(in srgb,var(--qq-bg-c,#7890a0) 34%,transparent) 0%,transparent 56%),
+  radial-gradient(ellipse at 88% 82%,color-mix(in srgb,var(--qq-bg-b,#526878) 30%,transparent) 0%,transparent 58%),
+  var(--qq-theme-page)!important;
+ background-attachment:fixed!important;
+}
+html[data-qq-theme] .screen,
+html[data-qq-theme] .game-screen,
+html[data-qq-theme] .qq-extra-screen,
+html[data-qq-theme] .qq-search-screen,
+html[data-qq-theme] .qq-cody-app,
+html[data-qq-theme] .qq-wow-screen{background:transparent!important}
