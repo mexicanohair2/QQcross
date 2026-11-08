@@ -1691,3 +1691,5 @@ html[data-qq-theme] .qq-extra-screen,
 html[data-qq-theme] .qq-search-screen,
 html[data-qq-theme] .qq-cody-app,
 html[data-qq-theme] .qq-wow-screen{background:transparent!important}
+
+html[data-qq-mode="dark"]{color-scheme:dark}
