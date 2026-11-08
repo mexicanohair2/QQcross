@@ -620,7 +620,7 @@ function useItem(key){
 }
 function awardGameLevel(game,level){
  const n=Number(level);if(!Number.isSafeInteger(n)||n<1||n>2147483647||!["scanword","search","wow","cody","wordle"].includes(game))return Promise.resolve(false);
- const key=game+":"+n;
+ const key=String(state.profile?.id||"guest")+":"+game+":"+n;
  if(supabaseClient&&state.profile?.id&&!String(state.profile.id).startsWith("local-")){
   return supabaseClient.rpc("award_qqcross_level_reward",{p_game_key:game,p_level:n}).then(({data,error})=>{
    if(error)throw error;
