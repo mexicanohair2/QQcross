@@ -47,9 +47,10 @@ function canBuild(word, bag) { const a=counts(word), b=counts(bag); return Objec
 async function loadLexicon() {
   if (!lexiconPromise) lexiconPromise = (async()=>{
     let d;
-    try{const r=await fetch("./data/russian-words-100000.json");if(!r.ok)throw new Error("100k lexicon unavailable");d=await r.json();}
-    catch(_){const r=await fetch("./data/russian-words-50000.json");if(!r.ok)throw new Error("Не удалось загрузить словарь");d=await r.json();}
-    if(d.language!=="ru"||![50000,100000].includes(d.count)||!Array.isArray(d.words)||d.words.length!==d.count)throw new Error("Словарь не прошёл проверку количества слов");
+    try{const r=await fetch("./data/russian-words-common-25000.json");if(!r.ok)throw new Error("25k common lexicon unavailable");d=await r.json();}
+    catch(_){try{const r=await fetch("./data/russian-words-100000.json");if(!r.ok)throw new Error("100k lexicon unavailable");d=await r.json();}
+      catch(__){const r=await fetch("./data/russian-words-50000.json");if(!r.ok)throw new Error("Не удалось загрузить словарь");d=await r.json();}}
+    if(d.language!=="ru"||![25000,50000,100000].includes(d.count)||!Array.isArray(d.words)||d.words.length!==d.count)throw new Error("Словарь не прошёл проверку количества слов");
     const words=[...new Set(d.words.map(norm).filter(w=>/^[А-Я]{2,18}$/.test(w)))];
     if(words.length!==d.count)throw new Error("В словаре обнаружены дубликаты или некорректные записи");
     return words;
