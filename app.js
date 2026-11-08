@@ -1128,7 +1128,7 @@ function buildScanword(entries){
             }else{
               // A word may begin at the terminal question cell of the previous
               // answer. This keeps every answer connected to the next clue cell.
-              normalized.filter(entry=>entry.answer.length===length).slice(0,80).forEach(entry=>possible.add(entry));
+              normalized.filter(entry=>entry.answer.length===length).slice(0,length===1?32:80).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
               (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&anchor.list.length===0))&&
