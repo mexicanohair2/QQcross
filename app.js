@@ -1376,6 +1376,22 @@ function renderGame(root){
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
       popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Открыть букву</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
       const options=popup.querySelector(".clue-popup-options");
+      popup.addEventListener("click",event=>{
+        const button=event.target.closest("[data-smart-hint]");
+        if(!button)return;
+        const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
+        const out=popup.querySelector("#scanwordHintMessage");
+        if(!hintWord||!out)return;
+        const level=button.dataset.smartHint;
+        if(level!=="strong"){
+          if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
+          out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
+        }
+        const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
+        if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
+        if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
+        state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
+      });
       const close=()=>popup.remove();
       const showQuestion=word=>{
         state.selectedWord=word.id;
