@@ -1810,5 +1810,10 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
   max-width:100%!important;max-height:100%!important;object-fit:contain!important;filter:none!important;
 }
 @media(max-width:420px){
-  .scanword-board{width:min(95vw,calc(100dvh - 190px))!important;height:min(95vw,calc(100dvh - 190px))!important}
+  .scanword-board{width:min(85vw,calc(100dvh - 190px))!important;height:min(85vw,calc(100dvh - 190px))!important}
 }
+
+
+/* Final phone fit: no directional glyphs or question-number pseudo badges. */
+.scanword-board>.scan-cell.scan-clue::before,
+.scanword-board>.scan-cell.scan-clue::after{content:none!important;display:none!important}
