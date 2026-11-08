@@ -909,7 +909,7 @@ function assertValidScanwordLayout(result,N,TOTAL){
   while(stack.length){const i=stack.pop();for(const j of graph[i])if(!seen.has(j)){seen.add(j);stack.push(j)}}
   if(seen.size!==result.words.length)fail("обнаружены несвязанные слова");
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
-  if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
+  if(pictures.length!==5||new Set(pictures).size!==5)fail("нужно ровно пять разных картинок");
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   return true;
 }
@@ -921,7 +921,7 @@ function buildScanword(entries){
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
-    // Preserve the three distinct picture clues required in every puzzle.
+    // Preserve the five distinct picture clues required in every puzzle.
     if(entry.imageKey)score+=1000;
     if(words>=3&&words<=8)score+=8;else if(words>11)score-=6;else if(words<=2&&!entry.emoji)score-=8;
     if(entry.clue.length>=20&&entry.clue.length<=85)score+=5;else if(entry.clue.length>110)score-=7;
@@ -971,7 +971,7 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(y<0||x<0||y>=N||x>=N||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(y<0||x<0||y>=N||x>=N||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
@@ -1001,7 +1001,7 @@ function buildScanword(entries){
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<3)return null;
+    if(pictureSeeds.length<5)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=5,firstX=Math.max(0,Math.floor((N-first.answer.length-1)/2));
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
@@ -1065,7 +1065,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3||at.length>0)))continue;
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -1155,7 +1155,7 @@ function buildScanword(entries){
               normalized.filter(entry=>entry.answer.length===length).slice(0,length===1?32:80).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
-              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&anchor.list.length===0))&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<5&&anchor.list.length===0))&&
               cells.every((cell,k)=>{
                 const old=occupied.get(cell.join(","));
                 return old===undefined||old===entry.answer[k];
@@ -1185,9 +1185,9 @@ function buildScanword(entries){
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling<bestDangling)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==5){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
