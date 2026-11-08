@@ -28,6 +28,16 @@ test("daily challenges expose one stable scanword and a seeded 4–8 letter Word
   await expect(page.locator("[data-qq-daily-open]")).toHaveAttribute("data-daily-date", dayBefore);
 });
 
+test("profile lists the full 100-title catalogue with locked progress and hides the secret title", async ({ page }) => {
+  await enterGuest(page);
+  await page.locator("[data-tab='Профиль']").click();
+  await expect(page.locator("#qqTitleInventory")).toContainText("0 / 100");
+  await expect(page.locator(".qq-title-chip")).toHaveCount(101);
+  await expect(page.locator(".qq-title-chip.is-locked").first()).toContainText("0 / 5 сканвордов");
+  await expect(page.locator(".qq-title-chip.is-secret")).toContainText("Секретный титул");
+  await expect(page.locator(".qq-title-chip.is-secret")).not.toContainText("Mugiwara");
+});
+
 test("profile shows unified progression, a title inventory and daily streak", async ({ page }) => {
   await enterGuest(page);
   await page.locator("[data-tab='Профиль']").click();
