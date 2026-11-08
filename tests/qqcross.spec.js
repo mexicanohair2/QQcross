@@ -565,3 +565,53 @@ test("logic scanword clue cells wrap within their three-line mobile layout", asy
   expect(layouts.every(item => item.whiteSpace === "normal" && item.lineClamp === "3")).toBeTruthy();
   expect(layouts.every(item => item.height > 0 && item.width > 0 && item.text.length > 8)).toBeTruthy();
 });
+
+
+test("Wordle places Enter before the letters and Delete after them", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-tab="Wordle"]').click();
+  const keys = await page.locator("#wordleKeyboard .wordle-key-row").last().locator("button").evaluateAll(nodes => nodes.map(node => node.dataset.key));
+  expect(keys[0]).toBe("ENTER");
+  expect(keys[keys.length - 1]).toBe("BACKSPACE");
+});
+
+test("Cody keyboard places Delete before Check", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="cody"]').click();
+  await page.locator(".qq-cody-level-card").first().click();
+  const actions = await page.locator(".qq-cody-key-row.special button").evaluateAll(nodes => nodes.map(node => node.dataset.action));
+  expect(actions).toEqual(["delete", "clear", "check"]);
+});
+
+test("word search supports selecting a word by tapping its letters one by one", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  const path = await page.evaluate(() => {
+    const target = document.querySelector(".qq-search-word")?.dataset.clueWord;
+    const cells = [...document.querySelectorAll(".qq-search-cell")];
+    const grid = new Map(cells.map(cell => [cell.dataset.x + "," + cell.dataset.y, cell.textContent.trim()]));
+    const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
+    for (const cell of cells) {
+      const x = Number(cell.dataset.x), y = Number(cell.dataset.y);
+      for (const [dx,dy] of dirs) {
+        const points = [...target].map((_,i) => ({x:x+dx*i,y:y+dy*i}));
+        if (points.map(p => grid.get(p.x + "," + p.y) || "").join("") === target) return points;
+      }
+    }
+    return [];
+  });
+  expect(path.length).toBeGreaterThan(2);
+  for (const point of path) {
+    await page.locator('.qq-search-cell[data-x="' + point.x + '"][data-y="' + point.y + '"]').click();
+  }
+  await expect(page.locator(".qq-search-word").first()).toHaveClass(/done/);
+  await expect(page.locator("#qqProgress")).toContainText("Найдено: 1 /");
+});
