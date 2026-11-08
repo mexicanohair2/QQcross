@@ -891,7 +891,6 @@ function assertValidScanwordLayout(result,N,TOTAL){
     const terminalY=cy+delta[0]*(answer.length+1),terminalX=cx+delta[1]*(answer.length+1),terminalKey=terminalY+","+terminalX;
     if(terminalY<0||terminalX<0||terminalY>=N||terminalX>=N||!(result.clueAt.get(terminalKey)||[]).length)fail("ответ "+answer+" не заканчивается новой ячейкой вопроса");
   }
-  for(const [key,list] of result.clueAt)if(!list.length)fail("пустая ячейка вопроса после ответа: "+key);
   if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
   for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
   for(const key of result.occupied.keys())if(!letters.has(key))fail("пустая занятая клетка: "+key);
@@ -976,14 +975,7 @@ function buildScanword(entries){
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
-      const terminalKey=endY+","+endX,terminalWords=clueAt.get(terminalKey)||[];
-      let terminalCanContinue=terminalWords.length>0;
-      if(!terminalCanContinue)for(const nextDir of dirs){
-        const p1=[endY+nextDir.dy,endX+nextDir.dx],p2=[endY+nextDir.dy*2,endX+nextDir.dx*2],p3=[endY+nextDir.dy*3,endX+nextDir.dx*3];
-        const inside=[p1,p2,p3].every(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N);
-        if(inside&&!clueAt.has(p1[0]+","+p1[1])&&!clueAt.has(p2[0]+","+p2[1])&&!occupied.has(p1[0]+","+p1[1])&&!occupied.has(p2[0]+","+p2[1])&&!occupied.has(p3[0]+","+p3[1])){terminalCanContinue=true;break;}
-      }
-      if(!terminalCanContinue)return false;
+      const terminalKey=endY+","+endX;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=N||xx>=N)return false;
@@ -1169,11 +1161,10 @@ function buildScanword(entries){
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling<bestDangling)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&result.dangling===bestDangling&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestDangling===0&&bestSingleCount<=1)break;
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3||bestDangling!==0){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
-  for(const [key,list] of best.clueAt)if(!list.length)throw new Error("После ответа нет следующего вопроса в клетке "+key);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
     const terminal=(last[0]+dir.dy)+","+(last[1]+dir.dx);
@@ -1383,17 +1374,14 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list)});
+  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
+  for(const [key,ended] of wordTerminals)if(!clueAt.has(key)){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
   state.selectedWord=activeWord?.id||"";
   const activeWordCells=new Set((activeWord?.cells||[]).map(c=>c.join(",")));
-  const wordEnds=new Map(),wordTerminals=new Map();
-  const directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
-  puzzle.words.forEach(w=>{
-    const last=w.cells[w.cells.length-1];if(!last)return;
-    const k=last.join(","),dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs);
-    const delta=directionDelta[w.dir],terminal=(last[0]+delta[0])+","+(last[1]+delta[1]),ended=wordTerminals.get(terminal)||[];
-    ended.push(w.id);wordTerminals.set(terminal,ended);
-  });
+  const wordEnds=new Map();
+  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1];if(!last)return;const k=last.join(","),dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs)});
   const cells=[];
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
@@ -1480,7 +1468,8 @@ function renderGame(root){
         options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[word.dir])+" · Ответ: "+count+" "+form;
+        const shownDirection=terminalOnly.has(button.dataset.clueCell)?({right:"left",left:"right",down:"up",up:"down"}[word.dir]):word.dir;
+        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[shownDirection])+" · Ответ: "+count+" "+form;
         options.querySelector(".clue-popup-back").onclick=()=>showChoices();
       };
       const showChoices=()=>{
