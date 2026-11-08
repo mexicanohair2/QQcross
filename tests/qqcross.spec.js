@@ -262,8 +262,11 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(0);
   await page.locator("#qqCodyLoupe").click();
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(1);
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   await page.locator("#qqCodyHint").click();
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(2);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator("#qqCodyBack").click();
@@ -356,8 +359,11 @@ test("word search shows a question for every target and the bulb marks a startin
   await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
   const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
   await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   await page.locator("#qqSearchBulb").click();
   await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
 });
@@ -372,8 +378,11 @@ test("Word of Wonders shows clue prompts and uses the bulb to highlight a letter
   const total = Number((await page.locator("#qqWheelProgress").textContent()).split("/")[1].trim());
   await expect(page.locator("#qqWowClues .qq-wow-clue")).toHaveCount(total);
   await expect(page.locator("#qqWowClues")).not.toContainText("Что изображено");
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   await page.locator("#qqWheelBulb").click();
   await expect(page.locator(".qq-wheel-letter.qq-wheel-hinted")).toHaveCount(1);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
 });
