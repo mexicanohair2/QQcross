@@ -1665,3 +1665,8 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
 .qq-search-word.done{border-color:#54856c;background:#1c3028;color:#d8f0df;opacity:.72;text-decoration:line-through;text-decoration-thickness:1.5px}
 .qq-search-word.hinted{border-color:#d6b85d;box-shadow:inset 0 0 0 1px #d6b85d}
 @media(max-height:680px){.qq-search-screen .qq-search-targets{max-height:10vh}.qq-search-targets-wrap{margin-top:0}}
+
+/* Hints live inside the clue popup; the full board stays unobstructed until a clue is tapped. */
+.clue-popup .scanword-smart-hints{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0 4px}
+.clue-popup .scanword-smart-hints button{min-width:0;padding:9px 4px;border:1px solid var(--qq-theme-border,#74515e);border-radius:9px;background:var(--qq-theme-panel,#33232d);color:var(--qq-theme-text,#fff);font-size:11px;font-weight:700}
+.clue-popup .scanword-hint-message{min-height:18px;margin:4px 0 8px;color:var(--qq-theme-muted,#c3adb5);font-size:11px;line-height:1.3}
