@@ -819,18 +819,15 @@ function compactScanwordClue(value){
 function fitScanwordClue(value){
   const clue=compactScanwordClue(value);
   if(!clue||clue.length<=23)return clue;
-  const hasEnding=/[?!…]$/.test(clue);
-  const ending=hasEnding?clue.slice(-1):"…";
-  const budget=23-ending.length;
-  const words=(hasEnding?clue.slice(0,-1):clue).split(/\s+/);
+  const words=clue.split(/\s+/);
   let result="";
   for(const word of words){
     const next=result?result+" "+word:word;
-    if(next.length>budget)break;
+    if(next.length>22)break;
     result=next;
   }
-  if(!result)result=clue.slice(0,budget);
-  return result.replace(/[\s.,;:—-]+$/,"")+ending;
+  if(!result)result=clue.slice(0,22);
+  return result.replace(/[\s.,;:?!—-]+$/,"")+"…";
 }
 const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
 function normalizeScanwordEntry(item){
@@ -1337,7 +1334,7 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(pictureWord?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+'</button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
