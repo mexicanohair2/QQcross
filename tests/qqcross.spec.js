@@ -179,7 +179,7 @@ test("Wordle supports 4, 6, 7 and 8 letter modes on a phone viewport", async ({ 
   expect(dimensions.s).toBeLessThanOrEqual(dimensions.h + 1);
 });
 
-test("opens the 100-level Russian word-search map and mobile board", async ({ page }) => {
+test("opens the 1000-level Russian word-search map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -188,7 +188,7 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   await page.locator("#guestPlay").click();
   await expect(page.locator(".qq-game-launch")).toHaveCount(4);
   await page.locator('[data-extra-game="search"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
   await expect(page.locator('[data-level="2"]')).toBeDisabled();
   await page.locator('[data-level="1"]').click();
@@ -201,7 +201,7 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   expect(errors).toEqual([]);
 });
 
-test("opens the 100-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
+test("opens the 1000-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -246,12 +246,12 @@ test("opens the 100-level Word of Wonders map and joins the wheel letters by dra
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
-test("difficulty grows through level 100 in Word of Wonders and word search", async ({ page }) => {
+test("difficulty grows through level 1000 in Word of Wonders and word search", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => {
-    localStorage.setItem("qqcross.wow.unlocked.v1", "100");
-    localStorage.setItem("qqcross.search.unlocked.v1", "100");
+    localStorage.setItem("qqcross.wow.unlocked.v1", "1000");
+    localStorage.setItem("qqcross.search.unlocked.v1", "1000");
   });
   await page.reload();
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -262,7 +262,7 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="100"]').click();
+  await page.locator('[data-level="1000"]').click();
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const wowFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqWheelBoard").getBoundingClientRect().bottom }));
