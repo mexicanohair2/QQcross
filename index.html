@@ -9,13 +9,13 @@
   try{
     var palette=localStorage.getItem("qqcross_theme_v1");
     var savedMode=localStorage.getItem("qqcross_appearance_mode_v1");
-    var theme=["burgundy","purple","gray"].indexOf(palette)>=0?palette:"burgundy";
-    var mode=savedMode==="light"||savedMode==="dark"?savedMode:(palette==="light"?"light":"dark");
+    var theme=palette==="purple"?"purple":"burgundy";
+    var mode="dark";
     document.documentElement.dataset.qqTheme=theme;
     document.documentElement.dataset.qqMode=mode;
     document.documentElement.style.colorScheme=mode;
     var meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="light"?"#f4eee9":({burgundy:"#24151d",purple:"#171020",gray:"#101318"})[theme]);
+    if(meta)meta.setAttribute("content",mode==="light"?"#f4eee9":({burgundy:"#1b0e13",purple:"#100b19"})[theme]);
   }catch(_){}
 })();
 </script>
@@ -63,7 +63,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261108-clue-popup-v1";
+    app.src="./app.js?v=20261108-feedback-pass1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
