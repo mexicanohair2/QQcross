@@ -1120,8 +1120,10 @@ function buildScanword(entries){
         for(let y=0;y<N;y++)for(let x=0;x<N;x++){
           const key=y+","+x;
           if(occupied.has(key)||clueAt.has(key))continue;
-          const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
-          if(adjacent)anchors.push({y,x,existing:false,list:[]});
+          // A new question cell may connect to an existing answer farther
+          // than one square away. Restrict candidates to aligned frontier
+          // cells; addWord still requires a real letter crossing.
+          if(frontier.has(key))anchors.push({y,x,existing:false,list:[]});
         }
       }
       anchorLoop: for(const anchor of anchors){
