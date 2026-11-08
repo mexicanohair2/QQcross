@@ -637,7 +637,7 @@ function awardGameLevel(game,level){
  const coins=document.querySelector(".coins");if(coins)coins.textContent="🪙 "+state.profile.coins;
  toast("Уровень пройден · +5 🪙");return Promise.resolve(true);
 }
-window.QQEconomy={awardLevel:awardGameLevel,useBulb:()=>useItem("bulb")};
+window.QQEconomy={awardLevel:awardGameLevel,useBulb:()=>useItem("bulb"),useMagnifier:()=>useItem("magnifier")};
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
   if(expected[k]===undefined)return;
@@ -1345,11 +1345,14 @@ function renderGame(root){
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
     if(!activeWord)return;
     const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
-    if(level!=="strong"){out.textContent=getScanwordHint(activeWord,level);window.QQProgression?.record?.("hintsUsed");return;}
+    if(level!=="strong"){
+      if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
+      out.textContent=getScanwordHint(activeWord,level);window.QQProgression?.record?.("hintsUsed");return;
+    }
     const key=activeWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
     if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-    if(!useItem("magnifier")){out.textContent="Для сильной подсказки нужна лупа из инвентаря.";return;}
-    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Открыта одна правильная буква");
+    if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
+    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
   });
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
