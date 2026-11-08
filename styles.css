@@ -1868,3 +1868,20 @@ html[data-qq-theme="purple"] .boot-splash{background:radial-gradient(ellipse at 
 html[data-qq-theme="burgundy"] .boot-splash{background:radial-gradient(ellipse at 50% 42%,#593743 0%,#302027 40%,#130e12 100%)}
 html[data-qq-theme="black"] .boot-splash{background:radial-gradient(ellipse at 50% 42%,#414141 0%,#242424 40%,#0c0c0c 100%)}
 @media(prefers-reduced-motion:reduce){.boot-splash:before,.boot-splash:after,.boot-orbit,.boot-mark,.boot-tiles i,.boot-progress span{animation:none!important}.boot-progress span{width:65%;transform:none}}
+
+
+/* QQCross clue popup: open above the full mobile game screen when a clue cell is tapped. */
+.clue-popup-backdrop{
+  position:fixed!important;inset:0!important;z-index:100000!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  padding:18px!important;border-radius:0!important;overflow-y:auto!important;
+  background:rgba(8,5,13,.82)!important;backdrop-filter:blur(7px)!important;
+  -webkit-backdrop-filter:blur(7px)!important;
+}
+.clue-popup{
+  width:min(100%,380px)!important;max-height:min(82vh,680px)!important;
+  overflow-y:auto!important;overscroll-behavior:contain!important;
+  margin:auto!important;padding:22px!important;
+}
+.clue-popup-text{overflow-wrap:anywhere!important;word-break:normal!important}
+@media(max-width:420px){.clue-popup{padding:18px!important}.clue-popup-text{font-size:18px!important}}
