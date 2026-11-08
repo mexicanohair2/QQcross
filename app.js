@@ -976,6 +976,14 @@ function buildScanword(entries){
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
+      const terminalKey=endY+","+endX,terminalWords=clueAt.get(terminalKey)||[];
+      let terminalCanContinue=terminalWords.length>0;
+      if(!terminalCanContinue)for(const nextDir of dirs){
+        const p1=[endY+nextDir.dy,endX+nextDir.dx],p2=[endY+nextDir.dy*2,endX+nextDir.dx*2],p3=[endY+nextDir.dy*3,endX+nextDir.dx*3];
+        const inside=p3[0]>=0&&p3[1]>=0&&p3[0]<N&&p3[1]<N;
+        if(inside&&!clueAt.has(p1[0]+","+p1[1])&&!clueAt.has(p2[0]+","+p2[1])&&!occupied.has(p3[0]+","+p3[1])){terminalCanContinue=true;break;}
+      }
+      if(!terminalCanContinue)return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=N||xx>=N)return false;
@@ -988,7 +996,6 @@ function buildScanword(entries){
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
-      const terminalKey=endY+","+endX;
       if(!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
       frontier.add(key);frontier.add(terminalKey);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
