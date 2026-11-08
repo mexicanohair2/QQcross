@@ -841,7 +841,7 @@ function normalizeScanwordEntry(item){
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
   if(answer.length<1||answer.length>12||!clue)return null;
-  return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic&&/[?？]/.test(clue)};
+  return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic&&!imageKey&&/[?？]/.test(clue)};
 }
 function assertValidScanwordLayout(result,N,TOTAL){
   const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
