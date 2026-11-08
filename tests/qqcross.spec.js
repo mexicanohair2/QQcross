@@ -20,10 +20,10 @@ async function startGuestGame(page) {
 test("loads a fully occupied 13x13 scanword with three distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  await expect(page.locator(".scan-grid-cell")).toHaveCount(225);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(169);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(225);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(169);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
@@ -171,7 +171,7 @@ test("Wordle supports 4, 6, 7 and 8 letter modes on a phone viewport", async ({ 
   expect(dimensions.s).toBeLessThanOrEqual(dimensions.h + 1);
 });
 
-test("opens the 1000-level Russian word-search map and mobile board", async ({ page }) => {
+test("opens the 100-level Russian word-search map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -180,7 +180,7 @@ test("opens the 1000-level Russian word-search map and mobile board", async ({ p
   await page.locator("#guestPlay").click();
   await expect(page.locator(".qq-game-launch")).toHaveCount(4);
   await page.locator('[data-extra-game="search"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
   await expect(page.locator('[data-level="2"]')).toBeDisabled();
   await page.locator('[data-level="1"]').click();
@@ -193,7 +193,7 @@ test("opens the 1000-level Russian word-search map and mobile board", async ({ p
   expect(errors).toEqual([]);
 });
 
-test("opens the 1000-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
+test("opens the 100-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
@@ -201,7 +201,7 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="wheel"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
@@ -238,7 +238,7 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
 });
-test("difficulty grows through level 1000 in Word of Wonders and word search", async ({ page }) => {
+test("difficulty grows through level 100 in Word of Wonders and word search", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => {
@@ -254,7 +254,7 @@ test("difficulty grows through level 1000 in Word of Wonders and word search", a
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="1000"]').click();
+  await page.locator('[data-level="100"]').click();
   await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "25");
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ (2[6-9]|30)/);
   const wowFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqWheelBoard").getBoundingClientRect().bottom }));
@@ -268,7 +268,7 @@ test("difficulty grows through level 1000 in Word of Wonders and word search", a
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="1000"]').click();
+  await page.locator('[data-level="100"]').click();
   await expect(page.locator(".qq-search-cell")).toHaveCount(625);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (2[4-9]|30)/);
   const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
@@ -284,7 +284,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="cody"]').click();
   await expect(page.locator(".qq-cody-world")).toBeVisible();
-  await expect(page.locator(".qq-cody-group")).toHaveCount(220);
+  await expect(page.locator(".qq-cody-group")).toHaveCount(50);
   await page.locator('[data-group="0"]').click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator('[data-level="0"]').click();
@@ -312,7 +312,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator("#qqCodyBack").click();
-  await expect(page.locator(".qq-cody-group")).toHaveCount(220);
+  await expect(page.locator(".qq-cody-group")).toHaveCount(50);
   expect(errors).toEqual([]);
 });
 
@@ -348,11 +348,11 @@ test("all four direct themes apply globally and persist across games", async ({ 
   await expect(page.locator('.nav [data-tab="Настройки"]')).toHaveCount(0);
   await page.locator("#qqSettingsGear").click();
   await expect(page.getByRole("heading", { name: "Настройки" })).toBeVisible();
-  await expect(page.locator("[data-theme-choice]")).toHaveCount(4);
+  await expect(page.locator("[data-theme-choice]")).toHaveCount(2);
   await expect(page.locator("[data-mode-choice]")).toHaveCount(0);
 
   const root = page.locator("html");
-  for (const theme of ["burgundy", "purple", "dark", "light"]) {
+  for (const theme of ["burgundy", "purple"]) {
     await page.locator('[data-theme-choice="' + theme + '"]').click();
     await expect(root).toHaveAttribute("data-qq-theme", theme);
     await expect(page.locator('[data-theme-choice="' + theme + '"]')).toHaveClass(/selected/);
@@ -367,11 +367,11 @@ test("all four direct themes apply globally and persist across games", async ({ 
     expect(tokens.page).not.toBe("");
     expect(tokens.card).not.toBe("");
     expect(tokens.text).not.toBe("");
-    expect(tokens.scheme).toBe(theme === "light" ? "light" : "dark");
+    expect(tokens.scheme).toBe("dark");
   }
 
   const saved = await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"));
-  expect(saved).toBe("light");
+  expect(saved).toBe("purple");
 
   await page.locator('[data-theme-choice="purple"]').click();
   await page.locator('[data-tab="Главная"]').click();
