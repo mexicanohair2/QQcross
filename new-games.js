@@ -24,9 +24,16 @@ function bindStrawHat(root){root.querySelectorAll(".qq-straw-hat").forEach(hat=>
 function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;bindStrawHat(root);}
 function pathBetween(a,b){
  const dx=b.x-a.x,dy=b.y-a.y,steps=Math.max(Math.abs(dx),Math.abs(dy));
- if(!steps||!(dx===0||dy===0||Math.abs(dx)===Math.abs(dy)))return [];
- const sx=Math.sign(dx),sy=Math.sign(dy),out=[];
- for(let i=0;i<=steps;i++)out.push({x:a.x+sx*i,y:a.y+sy*i});
+ if(!steps)return [{x:a.x,y:a.y}];
+ const out=[];let x=a.x,y=a.y,ix=0,iy=0;
+ out.push({x,y});
+ while(ix<Math.abs(dx)||iy<Math.abs(dy)){
+  const lhs=(1+2*ix)*Math.abs(dy),rhs=(1+2*iy)*Math.abs(dx);
+  if(lhs===rhs){x+=Math.sign(dx);y+=Math.sign(dy);ix++;iy++;}
+  else if(lhs<rhs){x+=Math.sign(dx);ix++;}
+  else{y+=Math.sign(dy);iy++;}
+  out.push({x,y});
+ }
  return out;
 }
 const LEVEL_TOTAL=1000;
@@ -127,7 +134,7 @@ function mountSearch(root,onExit,words){
    clear();
   }
   grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
-  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const path=pathBetween(start,{x:+c.dataset.x,y:+c.dataset.y});if(path.length)markPath(path);};
+  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;if(last.x===target.x&&last.y===target.y)return;const segment=pathBetween(last,target);if(!segment.length)return;const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));if(next.some(p=>seen.has(p.x+","+p.y)))return;markPath([...selection,...next]);};
   const end=e=>{if(!drag)return;track(e);drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
   grid.addEventListener("pointermove",track);grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
  }
@@ -245,7 +252,7 @@ async function loadClues(){
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
 }
 function mountCody(root,onExit,clues,words){
- const COLS=9,CENTER=4,GROUPS=20,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
+ const COLS=9,CENTER=4,GROUPS=220,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
  const STORAGE_KEY="qqcross.cody.progress.v3";
  const SECRET_WORDS=["ПУТЕШЕСТВИЕ","ПРИКЛЮЧЕНИЕ","ВООБРАЖЕНИЕ","ОБРАЗОВАНИЕ","ТЕЛЕВИДЕНИЕ","АРХИТЕКТУРА","ЛИТЕРАТУРА","ФОТОГРАФИЯ","БИБЛИОТЕКА","МАТЕМАТИКА","ГЕОГРАФИЯ","ЭКОНОМИКА","ТЕХНОЛОГИЯ","ЭНЦИКЛОПЕДИЯ","КОМПЬЮТЕРЫ","ИЗОБРАЖЕНИЕ","УВЛЕЧЕНИЕ","ПРОИЗВЕДЕНИЕ","СОЗВЕЗДИЕ","ИССЛЕДОВАНИЕ","ПРЕДПРИЯТИЕ","САМОРАЗВИТИЕ","КОНСТРУКЦИЯ","НАБЛЮДЕНИЕ","ПРОФЕССИЯ","СОРЕВНОВАНИЕ","МОРЕПЛАВАНИЕ","ПЕРЕПЛЕТЕНИЕ","ПЕРЕМЕЩЕНИЕ","УДИВЛЕНИЕ","ЗНАМЕНИТОСТЬ","ВЫРАЖЕНИЕ","СОДЕРЖАНИЕ"];
  const GROUP_NAMES=["Первые шаги","Словесная тропа","Новые загадки","Путь эрудита","Первые открытия","Мир вопросов","Загадки вокруг","Продолжаем путь","Сложнее и интереснее","Словесный маршрут","Новые горизонты","Проверка знаний","Дальняя дорога","Большая экспедиция","Мастер слова","Секреты букв","Трудные вопросы","Высший уровень","Финальные загадки","Последний рубеж"];
