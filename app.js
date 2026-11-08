@@ -1114,23 +1114,31 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            if(!valid||(!crosses&&!(length===1&&anchor.existing)))continue;
+            const continuesFromAnswer=anchor.existing&&anchor.list.length===0;
+            if(!valid||(!crosses&&!continuesFromAnswer))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
-            cells.forEach((cell,k)=>{
-              const old=occupied.get(cell.join(","));
-              if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
-            });
-            if(length===1&&!crosses&&anchor.existing){for(const bucket of positions[0].values())for(const entry of bucket)possible.add(entry)}
-            const pool=[...possible].filter(entry=>!used.has(entry.key)&&cells.every((cell,k)=>{
-              const old=occupied.get(cell.join(","));
-              return old===undefined||old===entry.answer[k];
-            }));
+            if(crosses){
+              cells.forEach((cell,k)=>{
+                const old=occupied.get(cell.join(","));
+                if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
+              });
+            }else{
+              // A word may begin at the terminal question cell of the previous
+              // answer. This keeps every answer connected to the next clue cell.
+              normalized.filter(entry=>entry.answer.length===length).slice(0,80).forEach(entry=>possible.add(entry));
+            }
+            const pool=[...possible].filter(entry=>!used.has(entry.key)&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&anchor.list.length===0))&&
+              cells.every((cell,k)=>{
+                const old=occupied.get(cell.join(","));
+                return old===undefined||old===entry.answer[k];
+              }));
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            // A one-cell answer is allowed only here, after every longer fit has failed.
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1)){closing=true;break}
+            // One-letter answers remain a last-resort repair only.
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,continuesFromAnswer,length===1)){closing=true;break}
           }
         }
       }
