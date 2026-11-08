@@ -24,9 +24,16 @@ function bindStrawHat(root){root.querySelectorAll(".qq-straw-hat").forEach(hat=>
 function shell(root,title,onExit,body){root.innerHTML='<div class="screen qq-extra-screen"><div class="top qq-extra-top"><button type="button" class="btn" data-exit>← Назад</button><b>'+title+'</b><span class="qq-extra-mark">QQ <span class="qq-straw-hat" title="Сенная шляпа">👒</span></span></div>'+body+'</div>';root.querySelector("[data-exit]").onclick=onExit;bindStrawHat(root);}
 function pathBetween(a,b){
  const dx=b.x-a.x,dy=b.y-a.y,steps=Math.max(Math.abs(dx),Math.abs(dy));
- if(!steps||!(dx===0||dy===0||Math.abs(dx)===Math.abs(dy)))return [];
- const sx=Math.sign(dx),sy=Math.sign(dy),out=[];
- for(let i=0;i<=steps;i++)out.push({x:a.x+sx*i,y:a.y+sy*i});
+ if(!steps)return [{x:a.x,y:a.y}];
+ const out=[];let x=a.x,y=a.y,ix=0,iy=0;
+ out.push({x,y});
+ while(ix<Math.abs(dx)||iy<Math.abs(dy)){
+  const lhs=(1+2*ix)*Math.abs(dy),rhs=(1+2*iy)*Math.abs(dx);
+  if(lhs===rhs){x+=Math.sign(dx);y+=Math.sign(dy);ix++;iy++;}
+  else if(lhs<rhs){x+=Math.sign(dx);ix++;}
+  else{y+=Math.sign(dy);iy++;}
+  out.push({x,y});
+ }
  return out;
 }
 const LEVEL_TOTAL=1000;
@@ -126,8 +133,8 @@ function mountSearch(root,onExit,words){
    }else{path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),300);sound("hint");}
    clear();
   }
-  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);});
-  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const path=pathBetween(start,{x:+c.dataset.x,y:+c.dataset.y});if(path.length)markPath(path);};
+  grid.addEventListener("pointerdown",e=>{const c=e.target.closest("[data-x]");if(!c)return;e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);try{grid.setPointerCapture(e.pointerId)}catch(_){}});
+  const track=e=>{if(!drag||!start)return;const c=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqSearchGrid [data-x]");if(!c)return;const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;if(last.x===target.x&&last.y===target.y)return;const segment=pathBetween(last,target);if(!segment.length)return;const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));if(next.some(p=>seen.has(p.x+","+p.y)))return;markPath([...selection,...next]);};
   const end=e=>{if(!drag)return;track(e);drag=false;if(selection.length>1){finish(selection);tapStart=null;}else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}start=null;};
   grid.addEventListener("pointermove",track);grid.addEventListener("pointerup",end);grid.addEventListener("pointercancel",end);
  }
@@ -221,9 +228,19 @@ function mountWheel(root,onExit,words){
    e.preventDefault();dragging=true;dragPath=false;dragSelection=[+b.dataset.index];lastDragIndex=+b.dataset.index;
    try{wheel.setPointerCapture(e.pointerId);}catch(_){}
   });
+  const wheelButtonAt=(x,y)=>{
+   const direct=document.elementFromPoint(x,y)?.closest("#qqWheel [data-index]");
+   if(direct)return direct;
+   let nearest=null,best=Infinity;
+   wheel.querySelectorAll("[data-index]").forEach(button=>{
+    const r=button.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(cx-x,cy-y);
+    if(d<best){best=d;nearest=button;}
+   });
+   return nearest&&best<=Math.max(24,Math.min(nearest.getBoundingClientRect().width,nearest.getBoundingClientRect().height)*.72)?nearest:null;
+  };
   const track=e=>{
    if(!dragging)return;
-   const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(!b)return;
+   const b=wheelButtonAt(e.clientX,e.clientY);if(!b)return;
    const i=+b.dataset.index;
    if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i)){dragSelection.push(i);refresh(dragSelection);}}
   };
@@ -245,7 +262,7 @@ async function loadClues(){
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
 }
 function mountCody(root,onExit,clues,words){
- const COLS=9,CENTER=4,GROUPS=20,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
+ const COLS=9,CENTER=4,GROUPS=220,PER_GROUP=5,TOTAL=GROUPS*PER_GROUP;
  const STORAGE_KEY="qqcross.cody.progress.v3";
  const SECRET_WORDS=["ПУТЕШЕСТВИЕ","ПРИКЛЮЧЕНИЕ","ВООБРАЖЕНИЕ","ОБРАЗОВАНИЕ","ТЕЛЕВИДЕНИЕ","АРХИТЕКТУРА","ЛИТЕРАТУРА","ФОТОГРАФИЯ","БИБЛИОТЕКА","МАТЕМАТИКА","ГЕОГРАФИЯ","ЭКОНОМИКА","ТЕХНОЛОГИЯ","ЭНЦИКЛОПЕДИЯ","КОМПЬЮТЕРЫ","ИЗОБРАЖЕНИЕ","УВЛЕЧЕНИЕ","ПРОИЗВЕДЕНИЕ","СОЗВЕЗДИЕ","ИССЛЕДОВАНИЕ","ПРЕДПРИЯТИЕ","САМОРАЗВИТИЕ","КОНСТРУКЦИЯ","НАБЛЮДЕНИЕ","ПРОФЕССИЯ","СОРЕВНОВАНИЕ","МОРЕПЛАВАНИЕ","ПЕРЕПЛЕТЕНИЕ","ПЕРЕМЕЩЕНИЕ","УДИВЛЕНИЕ","ЗНАМЕНИТОСТЬ","ВЫРАЖЕНИЕ","СОДЕРЖАНИЕ"];
  const GROUP_NAMES=["Первые шаги","Словесная тропа","Новые загадки","Путь эрудита","Первые открытия","Мир вопросов","Загадки вокруг","Продолжаем путь","Сложнее и интереснее","Словесный маршрут","Новые горизонты","Проверка знаний","Дальняя дорога","Большая экспедиция","Мастер слова","Секреты букв","Трудные вопросы","Высший уровень","Финальные загадки","Последний рубеж"];
@@ -285,13 +302,13 @@ function mountCody(root,onExit,clues,words){
  function renderMap(){
   renderTop("Кроссворды","Назад",onExit);
   const view=root.querySelector("#qqCodyView");
-  view.innerHTML='<section class="qq-cody-world"><div class="qq-cody-world-mark">МИР СЛОВ</div><h2>Путешествие по словам</h2><p>20 групп · 5 головоломок в каждой. Внутри группы можно выбирать любой открытый уровень.</p><div class="qq-cody-total">'+progress.completed.length+' / '+TOTAL+' решено</div><div class="qq-cody-total-track"><span style="width:'+Math.min(100,progress.completed.length/TOTAL*100)+'%"></span></div></section><div class="qq-cody-group-grid">'+GROUP_NAMES.map((name,g)=>{const done=completedCount(g),unlocked=groupUnlocked(g);return '<button type="button" class="qq-cody-group '+(unlocked?"":"locked")+' '+(groupDone(g)?"complete":"")+'" data-group="'+g+'" '+(unlocked?"":"disabled")+'><span class="qq-cody-group-no">ГРУППА '+(g+1)+'</span><b>'+escapeHtml(name)+'</b><span class="qq-cody-group-progress">'+done+' / '+PER_GROUP+' уровней</span><span class="qq-cody-dots">'+Array.from({length:PER_GROUP},(_,i)=>'<i class="'+(isComplete(g*PER_GROUP+i)?"done":"")+'"></i>').join("")+'</span>'+(unlocked?"":'<span class="qq-cody-lock">Закрыта</span>')+'</button>';}).join("")+'</div><p class="qq-extra-small qq-cody-footnote">Прогресс сохраняется на этом устройстве. Все вопросы берутся из проверенного словаря QQCross.</p>';
+  view.innerHTML='<section class="qq-cody-world"><div class="qq-cody-world-mark">МИР СЛОВ</div><h2>Путешествие по словам</h2><p>220 групп · 5 головоломок в каждой. Внутри группы можно выбирать любой открытый уровень.</p><div class="qq-cody-total">'+progress.completed.length+' / '+TOTAL+' решено</div><div class="qq-cody-total-track"><span style="width:'+Math.min(100,progress.completed.length/TOTAL*100)+'%"></span></div></section><div class="qq-cody-group-grid">'+Array.from({length:GROUPS},(_,g)=>{const name=GROUP_NAMES[g]||("Новые горизонты "+(g+1)),done=completedCount(g),unlocked=groupUnlocked(g);return '<button type="button" class="qq-cody-group '+(unlocked?"":"locked")+' '+(groupDone(g)?"complete":"")+'" data-group="'+g+'" '+(unlocked?"":"disabled")+'><span class="qq-cody-group-no">ГРУППА '+(g+1)+'</span><b>'+escapeHtml(name)+'</b><span class="qq-cody-group-progress">'+done+' / '+PER_GROUP+' уровней</span><span class="qq-cody-dots">'+Array.from({length:PER_GROUP},(_,i)=>'<i class="'+(isComplete(g*PER_GROUP+i)?"done":"")+'"></i>').join("")+'</span>'+(unlocked?"":'<span class="qq-cody-lock">Закрыта</span>')+'</button>';}).join("")+'</div><p class="qq-extra-small qq-cody-footnote">Прогресс сохраняется на этом устройстве. Все вопросы берутся из проверенного словаря QQCross.</p>';
   view.querySelectorAll("[data-group]").forEach(b=>b.onclick=()=>renderGroup(+b.dataset.group));
  }
  function renderGroup(group){
   renderTop("Группа "+(group+1),"Миры",renderMap);
   const view=root.querySelector("#qqCodyView"),done=completedCount(group);
-  view.innerHTML='<section class="qq-cody-group-head"><span>МИР СЛОВ</span><h2>'+escapeHtml(GROUP_NAMES[group])+'</h2><p>Реши пять кроссвордов, чтобы открыть следующую группу.</p><b>'+done+' / 5 завершено</b></section><div class="qq-cody-level-grid">'+Array.from({length:PER_GROUP},(_,i)=>{const n=group*PER_GROUP+i,complete=isComplete(n);return '<button type="button" class="qq-cody-level '+(complete?"complete":"")+'" data-level="'+n+'"><span class="qq-cody-level-number">'+(i+1)+'</span><span><b>Кроссворд '+(i+1)+'</b><small>'+(complete?"Решён": "Секретное слово · "+"в сетке")+'</small></span><strong>'+(complete?"✓":"→")+'</strong></button>';}).join("")+'</div>'+(groupDone(group)&&group<GROUPS-1?'<button class="btn primary full qq-cody-next-group" id="qqCodyNextGroup">Открыть следующую группу</button>':"");
+  view.innerHTML='<section class="qq-cody-group-head"><span>МИР СЛОВ</span><h2>'+escapeHtml(GROUP_NAMES[group]||("Новые горизонты "+(group+1)))+'</h2><p>Реши пять кроссвордов, чтобы открыть следующую группу.</p><b>'+done+' / 5 завершено</b></section><div class="qq-cody-level-grid">'+Array.from({length:PER_GROUP},(_,i)=>{const n=group*PER_GROUP+i,complete=isComplete(n);return '<button type="button" class="qq-cody-level '+(complete?"complete":"")+'" data-level="'+n+'"><span class="qq-cody-level-number">'+(i+1)+'</span><span><b>Кроссворд '+(i+1)+'</b><small>'+(complete?"Решён": "Секретное слово · "+"в сетке")+'</small></span><strong>'+(complete?"✓":"→")+'</strong></button>';}).join("")+'</div>'+(groupDone(group)&&group<GROUPS-1?'<button class="btn primary full qq-cody-next-group" id="qqCodyNextGroup">Открыть следующую группу</button>':"");
   view.querySelectorAll("[data-level]").forEach(b=>b.onclick=()=>startPuzzle(+b.dataset.level,group));
   const next=view.querySelector("#qqCodyNextGroup");if(next)next.onclick=()=>renderGroup(group+1);
  }
