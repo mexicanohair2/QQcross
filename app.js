@@ -1161,7 +1161,7 @@ function buildScanword(entries){
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать поле с тремя разными картинками (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);throw new Error("Не удалось собрать поле с тремя разными картинками (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3; пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const [key,list] of best.clueAt)if(!list.length)throw new Error("После ответа нет следующего вопроса в клетке "+key);
   for(const word of best.words){
