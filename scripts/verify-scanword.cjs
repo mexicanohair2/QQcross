@@ -17,7 +17,7 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 13 || puzzle.h !== 13) throw new Error("Run " + run + ": grid is not 13x13");
+  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 12x12");
   const total = puzzle.w * puzzle.h;
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size) + "/" + total);
@@ -45,10 +45,10 @@ function validate(puzzle, run) {
       }
       if (word.answer[k] < "А" || word.answer[k] > "Я") throw new Error("Run " + run + ": invalid answer character in " + word.id);
     }
-    if (cy < 0 || cx < 0 || cy >= 15 || cx >= 15 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
+    if (cy < 0 || cx < 0 || cy >= 12 || cx >= 12 || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
     for (let k = 0; k < word.cells.length; k++) {
       const [y, x] = word.cells[k];
-      if (y < 0 || x < 0 || y >= 15 || x >= 15) throw new Error("Run " + run + ": out-of-bounds letter");
+      if (y < 0 || x < 0 || y >= 12 || x >= 12) throw new Error("Run " + run + ": out-of-bounds letter");
       const key = y + "," + x;
       if (puzzle.clueKeys.has(key)) throw new Error("Run " + run + ": answer crosses a clue cell");
       if (letters.has(key) && letters.get(key) !== word.answer[k]) throw new Error("Run " + run + ": conflicting letter at " + key);
@@ -56,7 +56,10 @@ function validate(puzzle, run) {
       if (!owners.has(key)) owners.set(key, new Set());
       owners.get(key).add(i);
     }
+    const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
+    if(terminalY<0||terminalX<0||terminalY>=12||terminalX>=12||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
   }
+  for(const key of puzzle.clueKeys){if(!(puzzle.words.some(word=>word.clueCell.join(",")===key)))throw new Error("Run "+run+": terminal question cell has no outgoing clue");}
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
 
