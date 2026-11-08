@@ -1408,9 +1408,21 @@ html[data-qq-theme="purple"]{
  --qq-theme-accent:#c8b1ee;--qq-theme-muted:#c5b8d6;--qq-theme-border:#57446f;
  --qq-theme-panel-strong:linear-gradient(135deg,#8062a9,#594174);
 }
-html[data-qq-theme="gray"]{
- --qq-theme-accent:#c2cbd8;--qq-theme-muted:#b9c1cd;--qq-theme-border:#505968;
+html[data-qq-theme="dark"]{
+ --qq-theme-page:linear-gradient(155deg,#252a31 0%,#181d24 54%,#101318 100%);
+ --qq-theme-card:linear-gradient(145deg,#303741,#20262e);
+ --qq-theme-panel:linear-gradient(145deg,#292f38,#1c222a);
  --qq-theme-panel-strong:linear-gradient(135deg,#707d91,#4a5668);
+ --qq-theme-border:#505968;--qq-theme-accent:#c2cbd8;--qq-theme-text:#f0f3f7;--qq-theme-muted:#b9c1cd;
+ --qq-theme-cell:linear-gradient(145deg,#343c47,#252c35);
+ --qq-theme-block:linear-gradient(145deg,#191e25,#11161c);
+ --qq-theme-filled:linear-gradient(145deg,#606f82,#465364);
+ --qq-theme-pending:linear-gradient(145deg,#505d6d,#394451);
+ --qq-theme-clue:linear-gradient(145deg,#566171,#3c4653);--qq-theme-chip:#303844;--qq-theme-field:#191f27;
+}
+html[data-qq-theme="light"]{
+ --qq-theme-accent:#9a756b;--qq-theme-muted:#786b68;--qq-theme-border:#c9bcb5;
+ --qq-theme-panel-strong:linear-gradient(135deg,#b98f86,#96716b);
 }
 html[data-qq-theme]{
  --qq-theme-focus:color-mix(in srgb,var(--qq-theme-accent) 42%,transparent);
@@ -1637,9 +1649,7 @@ html[data-qq-mode="light"] .qq-settings-gear{
 html[data-qq-mode="light"] .logo,
 html[data-qq-mode="light"] .home-mark,
 html[data-qq-mode="light"] .boot-logo{background:var(--qq-theme-panel-strong)!important;color:#fff!important}
-html[data-qq-mode="light"] .qq-mode-switch button{background:var(--qq-theme-panel)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-border)!important}
-html[data-qq-mode="light"] .qq-mode-switch button.selected{background:var(--qq-theme-panel-strong)!important;color:#fff!important}
-@media(max-width:390px){.qq-mode-switch button{font-size:12px;padding:8px 5px}}
+
 
 
 /* Final theme pass for shared game controls and feedback states. */
