@@ -1040,7 +1040,11 @@ function buildScanword(entries){
               availableCrosses++;
               for(const entry of positions[p].get(old)||[])possible.add(entry);
             }
-            if(!availableCrosses)continue;
+            const isOpenQuestion=clueAt.has(clueKey)&&at.length===0;
+            if(!availableCrosses&&!isOpenQuestion)continue;
+            const adjacentToOccupied=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&occupied.has(yy+","+xx));
+            if(!availableCrosses&&(!isOpenQuestion||!adjacentToOccupied))continue;
+            if(!availableCrosses)normalized.filter(entry=>entry.answer.length===length).slice(0,100).forEach(entry=>possible.add(entry));
             for(const entry of possible){
               if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
@@ -1052,14 +1056,14 @@ function buildScanword(entries){
               const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
               const boundaryEnd=terminalY===H||terminalX===W;
               const terminalBlocked=terminalY<0||terminalX<0||terminalY>H||terminalX>W||(!boundaryEnd&&occupied.has(terminalY+","+terminalX));
-              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*12+newCells*2+Math.min(crosses,4)*4+length*.2+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
+              if(valid&&(crosses||(isOpenQuestion&&adjacentToOccupied))&&!terminalBlocked)addOption({entry,y,x,di,allowSeed:isOpenQuestion&&!crosses,score:crosses*12+newCells*2+Math.min(crosses,4)*4+length*.2+(isOpenQuestion?120:0)+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
             }
           }
         }
       }
       if(!options.length)break;
       const pick=options[Math.floor(Math.random()*options.length)];
-      if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
+      if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length,!!pick.allowSeed))break;
     }
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
