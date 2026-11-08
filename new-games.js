@@ -75,7 +75,7 @@ function pathBetween(a,b){
  }
  return out;
 }
-const LEVEL_TOTAL=100;
+const LEVEL_TOTAL=1000;
 const SEARCH_THEMES=[
 {name:"Животный мир",words:"КОШКА СОБАКА ЛОШАДЬ КОРОВА ОВЦА КОЗА ЗАЯЦ БЕЛКА ЛИСИЦА ВОЛК МЕДВЕДЬ ТИГР ЛЕВ ЖИРАФ СЛОН ЗЕБРА ПАНДА ЕНОТ ХОМЯК ВЫДРА ОРЕЛ ВОРОНА ЛЕБЕДЬ УТКА ПИНГВИН ДЕЛЬФИН КИТ АКУЛА КРОЛИК БАРСУК БОБР КРОТ ЕЖ БУЙВОЛ АНТИЛОПА ЛЕОПАРД КРОКОДИЛ ЧЕРЕПАХА ЯЩЕРИЦА ЗМЕЯ ЛЯГУШКА ПЧЕЛА МУРАВЕЙ БАБОЧКА СТРЕКОЗА КОМАР МУХА ОСА ПАУК ГОЛУБЬ ГУСЬ ИНДЮК ПЕТУХ КУРИЦА".split(" ")},
 {name:"Зимний лес",words:"ЕЛЬ СОСНА БЕРЕЗА ОСИНА КЕДР ЛИСТВА ВЕТКА КОРЕНЬ СНЕГ МОРОЗ ИНЕЙ СУГРОБ ШИШКА ТРОПА ПОЛЯНА РУЧЕЙ ЗАЙЦЫ ЛИСА ВОЛК СОВА ДЯТЕЛ ЛОСЬ ОЛЕНЬ ЛЕС ПИХТА ЛИПА ДУБ КЛЕН РЯБИНА ЧЕРЕМУХА ОРЕШНИК БУК ЯСЕНЬ ОПУШКА БУРЕЛОМ СНЕГОПАД МЕТЕЛЬ ВЬЮГА СНЕГОВИК КОРЯГА ЗИМА ЛЕД ХОЛОД".split(" ")},
@@ -109,7 +109,7 @@ function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
  const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w])));
  const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
- let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
+ let size=level<=20?9+Math.floor((level-1)/2):18;
  let chosen=pool.slice(0,count);
  if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w]))).slice(0,Math.max(5,count));
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
@@ -306,7 +306,7 @@ function mountWheel(root,onExit,words){
  })).sort((a,b)=>b.candidates.length-a.candidates.length);
  function build(level){
   const targetCount=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
-  const size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
+  const size=level<=20?9+Math.floor((level-1)/2):18;
   let best=null;
   for(const item of rankedSeeds.slice(0,48)){
    if(item.candidates.length<targetCount-1&&best&&item.candidates.length<best.words.length-1)break;
