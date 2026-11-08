@@ -334,7 +334,7 @@ test("word search shows a question for every target and the bulb marks a startin
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
-  const targets = Number((await page.locator("#qqProgress").textContent()).match(/\\/ (\\d+)/)?.[1]);
+  const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
   await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
   await page.locator("#qqSearchBulb").click();
   await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
