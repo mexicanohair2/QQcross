@@ -329,3 +329,10 @@ test("encyclopedia falls back to a fuller Wiktionary definition and preserves st
   expect(result.article.sentences).toHaveLength(2);
   expect(result.stress).toBe("Туне́ц");
 });
+
+
+test("exact common-word spelling is never replaced by a nearby word", async ({ page }) => {
+  await page.goto("/");
+  const result = await page.evaluate(() => window.QQEncyclopedia.suggest("ЗМЕЯ"));
+  expect(result).toEqual({ word: "ЗМЕЯ", distance: 0 });
+});
