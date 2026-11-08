@@ -17,19 +17,21 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12x12 scanword with three distinct picture clues", async ({ page }) => {
+test("loads the 8x12 reference scanword with a blank corner and five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  await expect(page.locator(".scan-grid-cell")).toHaveCount(144);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
+  const gridShape = await scanBoard.evaluate(node => ({ columns: getComputedStyle(node).gridTemplateColumns.split(" ").length, rows: getComputedStyle(node).gridTemplateRows.split(" ").length }));
+  expect(gridShape).toEqual({ columns: 8, rows: 12 });
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
   expect(terminalAnswerCount).toBe(answerCount);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(144);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(96);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
@@ -494,7 +496,7 @@ test("scanword clue cells show clue text without direction arrows or number badg
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator(".scanword-board > .scan-cell")).toHaveCount(144);
+  await expect(page.locator(".scanword-board > .scan-cell")).toHaveCount(96);
   await expect(page.locator(".scanword-board > .scan-cell").first()).toHaveClass(/scan-filler/);
   await expect(page.locator(".scanword-board > .scan-cell").first()).not.toHaveClass(/scan-clue|\bcell\b/);
   await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
@@ -540,11 +542,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five distinct pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(3);
+  await expect(images).toHaveCount(5);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
