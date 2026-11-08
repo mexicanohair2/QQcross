@@ -26,7 +26,17 @@
 <title>QQCross</title>
 </head>
 <body>
-<div id="app"><div class="boot-splash"><div class="boot-logo">QQ</div><p>Загрузка игры…</p></div></div>
+<div id="app"><div class="boot-splash" role="status" aria-live="polite">
+  <div class="boot-scene" aria-hidden="true">
+    <span class="boot-orbit boot-orbit-one"></span><span class="boot-orbit boot-orbit-two"></span>
+    <div class="boot-mark"><span>Q</span><span>Q</span></div>
+    <div class="boot-tiles"><i>С</i><i>Л</i><i>О</i><i>В</i><i>А</i></div>
+  </div>
+  <div class="boot-brand">QQ<span>Cross</span></div>
+  <p class="boot-caption">Загрузка игры…</p>
+  <div class="boot-progress" aria-hidden="true"><span></span></div>
+  <div class="boot-footnote">Собираем слова и готовим поле</div>
+</div></div>
 <script>
 (function(){
   function showBootError(message){
