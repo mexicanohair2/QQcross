@@ -899,9 +899,10 @@ function buildScanword(entries){
     let score=entry.logic?18:0;
     // Preserve the three distinct picture clues required in every puzzle.
     if(entry.imageKey)score+=1000;
-    if(words>=6)score+=5;else if(words<=3&&!entry.emoji)score-=7;
-    if(entry.clue.length>=42&&entry.clue.length<=150)score+=4;
+    if(words>=3&&words<=8)score+=8;else if(words>11)score-=6;else if(words<=2&&!entry.emoji)score-=8;
+    if(entry.clue.length>=20&&entry.clue.length<=85)score+=5;else if(entry.clue.length>110)score-=7;
     if(/сколько будет|чему равно|вычисли|посчитай/i.test(entry.clue))score-=30;
+    if(/кто первым|первым стал|стал бизнесменом|предпринимател|дата основания|в каком году|историческ(ая|ий) личност|кто основал|первый суд|первым начал/i.test(entry.clue))score-=55;
     // Prefer a precise definition over a fill-in-the-blank variant when the
     // same answer has both; the latter often makes neighboring clues alike.
     if(entry.clue.includes("…")||entry.clue.includes("..."))score-=35;
