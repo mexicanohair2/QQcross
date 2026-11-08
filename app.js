@@ -819,9 +819,10 @@ function compactScanwordClue(value){
 function fitScanwordClue(value){
   const clue=compactScanwordClue(value);
   if(!clue||clue.length<=23)return clue;
-  const ending=/[?!…]$/.test(clue)?clue.slice(-1):"…";
+  const hasEnding=/[?!…]$/.test(clue);
+  const ending=hasEnding?clue.slice(-1):"…";
   const budget=23-ending.length;
-  const words=clue.slice(0,clue.length-ending.length).split(/\s+/);
+  const words=(hasEnding?clue.slice(0,-1):clue).split(/\s+/);
   let result="";
   for(const word of words){
     const next=result?result+" "+word:word;
@@ -889,7 +890,7 @@ function assertValidScanwordLayout(result,N,TOTAL){
   if(seen.size!==result.words.length)fail("обнаружены несвязанные слова");
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
   if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
-  if(result.words.filter(word=>word.logic).length<3)fail("нужно не менее трёх логических вопросов");
+  if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   return true;
 }
 function buildScanword(entries){
@@ -1109,7 +1110,7 @@ function buildScanword(entries){
   for(let attempt=0;attempt<32;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
-    const logicCount=result?.words.filter(w=>w.logic).length||0;
+    const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&logicCount===bestLogicCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&logicCount===bestLogicCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
@@ -1330,7 +1331,7 @@ function renderGame(root){
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
     if(wordsAt){
-      const displayWord=wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
+      const displayWord=wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>w.logic&&!state.completed?.has(w.id))||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
       const pictureWord=wordsAt.find(w=>w.imageKey)||null;
       const single=displayWord&&!displayWord.imageKey?(displayWord.isEmoji?(displayWord.clueShort||displayWord.clue):fitScanwordClue(displayWord.clueShort||displayWord.clue)):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
