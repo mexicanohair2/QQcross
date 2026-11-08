@@ -47,7 +47,9 @@ test("three scanword hint levels are available and successful hints are counted"
   await page.locator("[data-smart-hint='medium']").click();
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
+  const bulbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   expect(count).toBe(2);
+  expect(bulbs).toBe(3);
 });
 
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
@@ -319,4 +321,68 @@ test("all four direct themes apply globally and persist across games", async ({ 
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-qq-theme", "purple");
+});
+
+
+test("shows clue questions below every target word and keeps the search level on a phone screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  const questions = page.locator("#qqSearchQuestions .qq-word-question");
+  await expect(questions).toHaveCount(5);
+  await expect(page.locator("#qqSearchQuestions .qq-word-question-copy small")).toHaveCount(5);
+  const fit = await page.evaluate(() => ({
+    h: document.documentElement.clientHeight,
+    s: document.documentElement.scrollHeight,
+    panel: document.querySelector("#qqSearchQuestions").getBoundingClientRect()
+  }));
+  expect(fit.panel.bottom).toBeLessThanOrEqual(fit.h + 1);
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("shows clue questions and charges one bulb for a Word of Wonders hint", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="wheel"]').click();
+  await page.locator('[data-level="1"]').click();
+  const questions = page.locator("#qqWowQuestions .qq-word-question");
+  await expect(questions).not.toHaveCount(0);
+  await expect(page.locator("#qqWowQuestions .qq-word-question-copy small")).toHaveCount(await questions.count());
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  await page.locator("#qqWowHint").click();
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(after).toBe(before - 1);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, q: document.querySelector("#qqWowQuestions").getBoundingClientRect() }));
+  expect(fit.q.bottom).toBeLessThanOrEqual(fit.h + 1);
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("awards exactly five coins once per completed level", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.evaluate(() => localStorage.removeItem("qqcross_level_rewards_v1"));
+  const before = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).coins);
+  await page.evaluate(async () => {
+    await window.QQCrossEconomy.awardLevelCoins("search", 987654321);
+    await window.QQCrossEconomy.awardLevelCoins("search", 987654321);
+  });
+  const after = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).coins);
+  expect(after - before).toBe(5);
+});
+
+test("the redesigned shop sells bulbs at the same 20-coin unit price", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-tab="Магазин"]').click();
+  const bulb = page.locator(".qq-shop-item").filter({ hasText: "Лампочки-подсказки" });
+  await expect(bulb).toBeVisible();
+  await expect(bulb).toContainText("5 шт. · 100");
+  await expect(bulb).toContainText("10 шт. · 200");
 });
