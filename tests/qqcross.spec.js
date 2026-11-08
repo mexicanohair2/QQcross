@@ -462,3 +462,45 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
   const repaired = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: -1, clock: "2", trash: 1 }));
   expect(repaired).toEqual({ magnifier: 0, clock: 0, trash: 1, bulb: 5 });
 });
+
+
+test("scanword clue cells show clue text without direction arrows or number badges", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator("#practice").click();
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
+  const clueCells = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
+    const text = node.querySelector(".scan-clue-text");
+    if (!text) return { image: !!node.querySelector(".scan-clue-image"), text: "" };
+    const style = getComputedStyle(text), rect = text.getBoundingClientRect();
+    return { text: text.textContent.trim(), visible: style.display !== "none" && rect.width > 0 && rect.height > 0 };
+  }));
+  expect(clueCells.length).toBeGreaterThan(10);
+  expect(clueCells.filter(cell => cell.text).every(cell => cell.visible && cell.text.length > 2)).toBeTruthy();
+  expect(clueCells.some(cell => cell.image)).toBeTruthy();
+  await page.locator(".scanword-board .scan-clue").first().click();
+  await expect(page.locator(".clue-popup")).toBeVisible();
+});
+
+test("scanword autosave avoids writing the full match snapshot on every timer tick", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.evaluate(() => {
+    window.__qqMatchWrites = 0;
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === "qqcross_local_matches_v1") window.__qqMatchWrites++;
+      return original.call(this, key, value);
+    };
+  });
+  await page.locator("#guestPlay").click();
+  await page.locator("#practice").click();
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await page.waitForTimeout(4500);
+  const writes = await page.evaluate(() => window.__qqMatchWrites);
+  expect(writes).toBeLessThanOrEqual(3);
+});
