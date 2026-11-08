@@ -1,5 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect width="512" height="512" rx="112" fill="#030207"/>
-<path d="M108 112h78v117l112-117h96L270 252l132 148h-99L216 298l-30 31v71h-78z" fill="#b99bea"/>
-<path d="M304 183c0-42 33-73 79-73 42 0 72 25 78 63h-69c-3-9-7-13-14-13-10 0-16 9-16 25v94c0 17 6 25 16 25 8 0 12-5 14-14h69c-6 39-36 64-78 64-46 0-79-31-79-73z" fill="#8e6bc2"/>
+<defs>
+ <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#170b2d"/><stop offset=".55" stop-color="#38115e"/><stop offset="1" stop-color="#170d36"/></linearGradient>
+ <linearGradient id="rim" x2="1" y2="1"><stop stop-color="#fa82e8"/><stop offset=".5" stop-color="#8d36ee"/><stop offset="1" stop-color="#d65bff"/></linearGradient>
+ <linearGradient id="tile" x2="0" y2="1"><stop stop-color="#fff8ed"/><stop offset="1" stop-color="#efc9d0"/></linearGradient>
+ <linearGradient id="gold" x2="0" y2="1"><stop stop-color="#fff0a0"/><stop offset=".55" stop-color="#ffb62e"/><stop offset="1" stop-color="#d87516"/></linearGradient>
+ <linearGradient id="book" x2="0" y2="1"><stop stop-color="#fff4d8"/><stop offset="1" stop-color="#e7a8b7"/></linearGradient>
+ <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%"><feGaussianBlur in="SourceAlpha" stdDeviation="8"/><feOffset dy="9"/><feComponentTransfer><feFuncA type="linear" slope=".5"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<rect x="12" y="12" width="488" height="488" rx="100" fill="none" stroke="url(#rim)" stroke-width="9"/>
+<g opacity=".18" fill="#bd78ed">
+ <path d="M42 195h70v70H42zM114 195h70v70h-70zM186 195h70v70h-70zM258 195h70v70h-70zM330 195h70v70h-70zM402 195h68v70h-68z"/>
+ <path d="M42 267h70v70H42zM114 267h70v70h-70zM186 267h70v70h-70zM258 267h70v70h-70zM330 267h70v70h-70zM402 267h68v70h-68z"/>
+</g>
+<g fill="#ffd8f5" opacity=".9"><path d="M73 83l5 14 14 5-14 5-5 14-5-14-14-5 14-5z"/><path d="M430 156l4 11 11 4-11 4-4 11-4-11-11-4 11-4z"/><circle cx="116" cy="150" r="3"/><circle cx="386" cy="83" r="3"/></g>
+<!-- sakura -->
+<g transform="translate(397 76)" fill="#f58ad0"><path d="M0 0c-26-38-49-9-22 10-39-4-38 29-1 24-18 31 12 43 26 7 19 30 47 10 21-14 35-9 21-40-15-27C20-37-5-33 0 0z"/><circle r="5" fill="#ffd96d"/></g>
+<g transform="translate(463 129) scale(.65)" fill="#f5a1dc"><path d="M0 0c-26-38-49-9-22 10-39-4-38 29-1 24-18 31 12 43 26 7 19 30 47 10 21-14 35-9 21-40-15-27C20-37-5-33 0 0z"/><circle r="5" fill="#ffe17c"/></g>
+<!-- crown -->
+<g filter="url(#shadow)" transform="translate(128 71)">
+ <path d="M10 52l48 32 41-60 42 60 47-32-12 95H23z" fill="url(#gold)" stroke="#ffdc78" stroke-width="7" stroke-linejoin="round"/>
+ <path d="M23 145h153v19H23z" rx="8" fill="#d97a20"/>
+ <circle cx="10" cy="51" r="11" fill="#fff0a0"/><circle cx="99" cy="24" r="11" fill="#fff0a0"/><circle cx="188" cy="51" r="11" fill="#fff0a0"/>
+ <path d="M99 76l13 17-13 18-13-18z" fill="#b33fe3" stroke="#fff0c4" stroke-width="4"/>
+</g>
+<!-- crossword word tiles -->
+<g filter="url(#shadow)" font-family="system-ui, sans-serif" font-weight="900" text-anchor="middle" fill="#39104f">
+ <g transform="translate(38 234) rotate(-4 38 38)"><rect width="76" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="38" y="55" font-size="49">Q</text></g>
+ <g transform="translate(119 229) rotate(-2 38 38)"><rect width="76" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="38" y="55" font-size="49">Q</text></g>
+ <g transform="translate(200 226)"><rect width="76" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="38" y="55" font-size="49">C</text></g>
+ <g transform="translate(281 226) rotate(1 38 38)"><rect width="76" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="38" y="55" font-size="49">R</text></g>
+ <g transform="translate(362 229) rotate(2 38 38)"><rect width="76" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="38" y="55" font-size="49">O</text></g>
+ <g transform="translate(443 234) rotate(4 38 38)"><rect width="31" height="76" rx="12" fill="url(#tile)" stroke="#fff" stroke-width="3" opacity=".0"/></g>
+</g>
+<g filter="url(#shadow)" font-family="system-ui, sans-serif" font-weight="900" text-anchor="middle" fill="#39104f">
+ <g transform="translate(405 234)"><rect width="69" height="76" rx="15" fill="url(#tile)" stroke="#fff" stroke-width="3"/><text x="34" y="55" font-size="47">S</text></g>
+</g>
+<!-- book -->
+<g filter="url(#shadow)">
+ <path d="M45 403q88-39 164 3 44 23 47 35v31q-70-43-211-4z" fill="url(#book)" stroke="#f6b6d6" stroke-width="5"/>
+ <path d="M467 403q-88-39-164 3-44 23-47 35v31q70-43 211-4z" fill="url(#book)" stroke="#f6b6d6" stroke-width="5"/>
+ <path d="M256 439v34" stroke="#b66acb" stroke-width="6"/>
+ <path d="M75 414q63-19 112-3M75 432q63-19 112-3M437 414q-63-19-112-3M437 432q-63-19-112-3" fill="none" stroke="#d99bb9" stroke-width="5" stroke-linecap="round"/>
+ <path d="M252 472q-4 15 12 22 16-7 12-22" fill="#9a39d4"/>
+</g>
+<g fill="#f7a4dc" opacity=".9"><path d="M82 350q-24-21-32 3 18 4 32-3z"/><path d="M434 347q23-21 31 3-18 4-31-3z"/></g>
 </svg>
