@@ -14,14 +14,23 @@ function applyTheme(theme=activeTheme){
   const meta=document.querySelector('meta[name="theme-color"]');
   if(meta)meta.setAttribute("content",({gray:"#0b0d12",purple:"#090610",burgundy:"#10070d",light:"#f4f9fd"})[activeTheme]||"#090610");
 }
+const BACKGROUNDS=[["misty-forest","Туманный лес","nature"],["sakura-dawn","Сакуровый рассвет","nature"],["starry-night","Звёздная ночь","nature"],["autumn-grove","Осенняя роща","nature"],["winter-pines","Зимние ели","nature"],["mountain-lake","Горное озеро","nature"],["ocean-shore","Морской берег","nature"],["lavender-field","Лавандовое поле","nature"],["mossy-stones","Мох и камни","nature"],["moonlit-meadow","Лунный луг","nature"],["spring-rain","Весенний дождь","nature"],["golden-dusk","Золотые сумерки","nature"],["cloud-sea","Море облаков","nature"],["pine-valley","Сосновая долина","nature"],["coral-sunset","Коралловый закат","nature"],["snowy-hills","Снежные холмы","nature"],["fern-shade","Папоротниковая тень","nature"],["river-fog","Туман над рекой","nature"],["desert-dawn","Рассвет в пустыне","nature"],["wildflower","Полевые цветы","nature"],["moon-snow","Лунный снег","nature"],["waterfall","Тихий водопад","nature"],["autumn-leaves","Осенние листья","nature"],["night-garden","Ночной сад","nature"],["aurora","Северное сияние","nature"],["amethyst-waves","Аметистовые волны","abstract"],["lilac-haze","Сиреневая дымка","abstract"],["blue-orbits","Синие орбиты","abstract"],["rose-quartz","Розовый кварц","abstract"],["northern-ribbons","Северные ленты","abstract"],["cosmic-dust","Космическая пыль","abstract"],["pastel-clouds","Пастельные облака","abstract"],["soft-circles","Мягкие круги","abstract"],["deep-indigo","Глубокий индиго","abstract"],["purple-wave","Пурпурная волна","abstract"],["mint-mist","Мятный туман","abstract"],["lagoon-glow","Свечение лагуны","abstract"],["peach-light","Персиковый свет","abstract"],["ink-night","Чернильная ночь","abstract"],["glowing-dots","Светящиеся точки","abstract"],["petal-layers","Слои лепестков","abstract"],["lilac-layers","Сиреневые слои","abstract"],["twilight-gradient","Сумеречный градиент","abstract"],["sea-abstract","Морская абстракция","abstract"],["star-vortex","Звёздный вихрь","abstract"],["warm-amber","Тёплый янтарь","abstract"],["watercolor","Нежная акварель","abstract"],["light-flow","Световой поток","abstract"],["lavender-space","Лавандовый космос","abstract"],["quiet-gradient","Спокойный градиент","abstract"]];
+const BACKGROUND_KEY="qqcross_background_v1";
+let abstractEnabled=(()=>{try{return localStorage.getItem("qqcross_abstract_enabled")!=="false"}catch{return true}})();
+let activeBackground=(()=>{try{const v=localStorage.getItem(BACKGROUND_KEY);return BACKGROUNDS.some(x=>x[0]===v)?v:"misty-forest"}catch{return "misty-forest"}})();
+function applyBackground(value=activeBackground){const candidate=BACKGROUNDS.some(x=>x[0]===value)?value:"misty-forest";activeBackground=!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===candidate)?.[2]==="abstract"?"misty-forest":candidate;document.documentElement.dataset.qqBackground=activeBackground;try{localStorage.setItem(BACKGROUND_KEY,activeBackground)}catch{}}
+applyBackground();
 const AMBIENCE_KEY="qqcross_ambience_v1";
-let activeAmbience=(()=>{try{const v=localStorage.getItem(AMBIENCE_KEY);return ["forest","sakura","none"].includes(v)?v:"forest"}catch{return "forest"}})();
+let activeAmbience=(()=>{try{const v=localStorage.getItem(AMBIENCE_KEY);return ["forest","sakura","autumn","rain","fireflies","stars","fog","none"].includes(v)?v:"forest"}catch{return "forest"}})();
 function applyAmbience(value=activeAmbience){
-  activeAmbience=["forest","sakura","none"].includes(value)?value:"forest";
+  activeAmbience=["forest","sakura","autumn","rain","fireflies","stars","fog","none"].includes(value)?value:"forest";
   document.documentElement.dataset.qqAmbience=activeAmbience;
   try{localStorage.setItem(AMBIENCE_KEY,activeAmbience)}catch{}
 }
 applyAmbience();
+// Restore accessibility preferences on every launch, not only after changing the controls.
+document.documentElement.dataset.qqFontSize=localStorage.getItem("qqcross_font_size")||"normal";
+document.documentElement.dataset.qqReduceMotion=localStorage.getItem("qqcross_reduce_motion")==="true"?"true":"false";
 function avatarStorageKey(){return "qqcross_avatar_image_"+String(state.profile?.id||"guest");}
 function getAvatarImage(){try{const v=localStorage.getItem(avatarStorageKey());return v&&/^data:image\/(webp|png|jpeg);base64,/.test(v)?v:"";}catch{return "";}}
 function avatarMarkup(size=""){
@@ -62,7 +71,7 @@ let authMode="signup";
 let authNotice="";
 let authRecoveryMode=false;
 let socialChannel=null;
-const state={profile:null,tab:"Главная",screen:"",selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null,playMenuOpen:false,aiMatch:false,aiThinkingTurn:null,aiError:"",matchInvites:[],myOnlineMatches:[],selectedInviteIds:[],pendingMatchId:null,onlineMatchId:null,onlinePlayers:[],onlineVersion:0,onlineFinished:false,rewardSubmitted:false};
+const state={profile:null,tab:"Главная",screen:"",dailyMode:false,dailyScanwordDate:null,progressRecorded:false,selectedAvatar:0,selectedLetter:-1,selectedCell:null,selectedWord:"w1",letters:[],scores:0,turn:0,seconds:60,interval:null,filled:{},wrong:null,feedback:{},hints:{},loupeActive:false,completed:new Set(),partySize:2,inviteName:"",invite:null,playMenuOpen:false,aiMatch:false,aiThinkingTurn:null,aiError:"",matchInvites:[],myOnlineMatches:[],selectedInviteIds:[],pendingMatchId:null,onlineMatchId:null,onlinePlayers:[],onlineVersion:0,onlineFinished:false,rewardSubmitted:false};
 let puzzle=null;
 const expected={};
 let letterBag=[];
@@ -75,10 +84,70 @@ let suppressCellClick=false;
 
 
 function defaultItems(){return {magnifier:5,clock:5,trash:5}}
-function save(){if(state.profile)localStorage.setItem(STORE_KEY,JSON.stringify(state.profile))}
+function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+function renderDaily(root){
+ const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
+ const done=d.completed||{},stats=p?.get?.().daily||{};
+ root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 15 × 15</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
+ $("#dailyBack").onclick=()=>{state.screen="";render()};
+ root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
+ root.querySelector("[data-daily-game=wordle]").onclick=()=>{
+  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
+ };
+}
+async function startDailyScanword(d){
+ try{
+  if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length)await preloadScanwordDictionary();
+  if(scanwordPreparePromise)await scanwordPreparePromise;
+  const original=Math.random;
+  try{Math.random=window.QQProgression.randomFor(d.scanwordSeed);preparedScanword=buildScanword(getScanwordDictionary())}
+  finally{Math.random=original}
+  if(!preparedScanword)throw new Error("Не удалось подготовить ежедневное поле");
+  state.screen="";
+  await begin(1,false,{date:d.date,completed:!!d.completed?.scanword});
+ }catch(e){toast(e.message||"Не удалось открыть ежедневный сканворд")}
+}
+let progressRewardApplyPromise=null;
+async function applyProgressRewards(){
+ if(!state.profile)return false;
+ if(progressRewardApplyPromise)return progressRewardApplyPromise;
+ const rewards=window.QQProgression?.peekPendingRewards?.()||[];
+ if(!rewards.length)return false;
+ progressRewardApplyPromise=(async()=>{
+  const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
+  if(cloud){
+   try{await window.QQProgression.syncCloud()}
+   catch(error){toast("Не удалось синхронизировать награду. Она останется в ожидании и будет повторена позже.");return false}
+  }
+  let changed=false;
+  for(const reward of rewards){
+   if(cloud){
+    try{
+     const {data,error}=await supabaseClient.rpc("claim_qqcross_progress_reward",{p_reward_key:reward.id});
+     if(error)throw error;
+     const result=Array.isArray(data)?data[0]:data;
+     const item=result?.item_type;
+     if(item&&state.profile.items)state.profile.items[item]=Number(result.current_quantity)||0;
+     window.QQProgression.ackPendingReward(reward.id);
+     changed=true;
+    }catch(error){
+     toast("Не удалось начислить облачную награду. Она останется в ожидании и будет повторена позже.");
+     break;
+    }
+   }else if(state.profile.items&&Object.prototype.hasOwnProperty.call(state.profile.items,reward.item)){
+    state.profile.items[reward.item]+=reward.quantity;
+    window.QQProgression.ackPendingReward(reward.id);
+    changed=true;
+   }
+  }
+  if(changed){save();toast("Награда за достижение добавлена в инвентарь");if(state.tab==="Профиль"&&!state.screen)render()}
+  return changed;
+ })().finally(()=>{progressRewardApplyPromise=null});
+ return progressRewardApplyPromise;
+}
 function renderWordle(root){if(!window.QQWordle){root.innerHTML='<div class="screen"><p>Не удалось загрузить Wordle.</p><button class="btn" id="wordleBackFallback">Назад</button></div>';$("#wordleBackFallback").onclick=()=>{state.screen="";render()};return}window.QQWordle.mount(root,()=>{state.screen="";render()})}
 function renderRegister(root){root.innerHTML=`<div class="screen register-screen"><div class="splash register-splash"><div class="logo">QQ</div><h1>QQCross</h1><p class="muted">Сканворды для одного, друзей и игры с ChatGPT</p></div><div class="card register-card"><div class="grid2"><button class="btn ${authMode==="signup"?"primary":""}" id="showSignup">Регистрация</button><button class="btn ${authMode==="login"?"primary":""}" id="showLogin">Войти</button></div><h2>${authMode==="signup"?"Создать аккаунт":"Войти в аккаунт"}</h2>${authMode==="signup"?`<label class="small muted">Имя игрока (3–16 символов)</label><input id="username" class="input" maxlength="16" placeholder="Например, wordmaster" autocomplete="username"><h3>Выбери аватарку</h3><div class="avatar-grid">${AVATARS.map((a,i)=>`<button type="button" class="avatar-choice ${i===state.selectedAvatar?"selected":""}" data-avatar="${i}" aria-label="${NAMES[i]}" aria-pressed="${i===state.selectedAvatar}">${a}</button>`).join("")}</div>`: ""}<label class="small muted">Электронная почта</label><input id="email" class="input" type="email" placeholder="name@example.com" autocomplete="email"><label class="small muted">Пароль (минимум 8 символов)</label><input id="password" class="input" type="password" placeholder="Пароль" autocomplete="${authMode==="signup"?"new-password":"current-password"}"><button class="btn primary full" id="authSubmit">${authMode==="signup"?"Создать аккаунт":"Войти"}</button><button class="btn full" type="button" id="guestPlay">Играть без регистрации</button><p class="small muted auth-message" id="authMessage" aria-live="polite">${esc(authNotice)}</p>${authMode==="login"?'<button class="btn full" type="button" id="resendConfirm">Отправить письмо подтверждения повторно</button><button class="btn full" type="button" id="forgotPassword">Забыли пароль?</button>':""}</div></div>`;
 $("#showSignup").onclick=()=>{authMode="signup";renderRegister(root)};$("#showLogin").onclick=()=>{authMode="login";renderRegister(root)};$("#guestPlay").onclick=()=>{const username="Игрок"+String(Date.now()).slice(-4);state.profile={id:"local-"+Date.now(),username,avatar:state.selectedAvatar,coins:0,wins:0,games:0,points:0,items:defaultItems(),friends:[]};save();render();toast("Ты вошёл в гостевом режиме")};
@@ -104,9 +173,9 @@ const forgotButton=$("#forgotPassword");if(forgotButton)forgotButton.onclick=asy
 const resendButton=$("#resendConfirm");if(resendButton)resendButton.onclick=async()=>{const email=$("#email").value.trim(),msg=$("#authMessage");if(!email){msg.textContent="Сначала введи электронную почту.";return}resendButton.disabled=true;try{const {error}=await supabaseClient.auth.resend({type:"signup",email,options:{emailRedirectTo:AUTH_REDIRECT_URL}});if(error)throw error;msg.textContent="Письмо отправлено повторно. Проверь входящие и папку «Спам»."}catch(e){msg.textContent=e.message||"Не удалось отправить письмо."}finally{resendButton.disabled=false}};
 $("#authSubmit").onclick=async()=>{const email=$("#email").value.trim(),password=$("#password").value;const msg=$("#authMessage");if(!supabaseClient){msg.textContent="Не загрузился сервис авторизации. Проверь интернет и обнови страницу.";return}if(!email||!password){msg.textContent="Введи почту и пароль.";return}if(password.length<8){msg.textContent="Пароль должен быть не короче 8 символов.";return}const btn=$("#authSubmit");btn.disabled=true;btn.setAttribute("aria-busy","true");btn.textContent=authMode==="signup"?"Создаём аккаунт…":"Входим…";msg.textContent=authMode==="signup"?"Отправляем данные. Это может занять несколько секунд.":"Проверяем данные…";try{if(authMode==="signup"){const username=$("#username").value.trim();if(!/^[A-Za-z0-9_]{3,16}$/.test(username)){msg.textContent="Имя: 3–16 символов, латиница, цифры или _";btn.disabled=false;btn.textContent="Создать аккаунт";return}const {data,error}=await supabaseClient.auth.signUp({email,password,options:{data:{username,avatar:state.selectedAvatar},emailRedirectTo:AUTH_REDIRECT_URL}});if(error)throw error;if(data.session){await loadCloudProfile(data.user.id);authNotice="";render()}else{authNotice="Аккаунт создан. Проверь почту и перейди по ссылке из письма. После подтверждения вернись сюда и войди.";authMode="login";renderRegister(root);}}else{const {data,error}=await supabaseClient.auth.signInWithPassword({email,password});if(error)throw error;await loadCloudProfile(data.user.id);render()}}catch(e){const raw=String(e.message||"");try{const {data}=await supabaseClient.auth.getSession();if(data?.session){authRestoreError="Вход выполнен, но профиль не загрузился: "+(raw||"ошибка сервера")+". Сессия сохранена — повтори загрузку.";render();return}}catch{}msg.textContent=/email not confirmed/i.test(raw)?"Почта ещё не подтверждена. Открой ссылку из письма или нажми «Отправить письмо подтверждения повторно».":raw||"Не удалось выполнить вход.";btn.disabled=false;btn.textContent=authMode==="signup"?"Создать аккаунт":"Войти"}};
 }
-function renderShell(root){const tabs=["Главная","История","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","◷","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${avatarMarkup()}</div><div><b>${esc(state.profile.username)}</b></div></div><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
-function content(){if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
-function home(){return '<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа">👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section><h3 class="section-title">Другие игры</h3><div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="wheel"><span class="qq-game-icon">◉</span><b>Word of Wonders</b><small>Составляй слова из круга и открывай кроссворд</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button></div><h3 class="section-title">Приглашения в партии</h3><div id="matchInvites"><p class="small muted">Загрузка…</p></div><h3 class="section-title">Мои онлайн-партии</h3><div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>'}
+function renderShell(root){applyProgressRewards();const tabs=["Главная","Энциклопедия","История","Друзья","Магазин","Профиль","Настройки"],icons=["⌂","⌕","◷","♧","🛍","◉","⚙"];root.innerHTML=`<div class="screen"><div class="top"><div class="user"><div class="avatar">${avatarMarkup()}</div><div><b>${esc(state.profile.username)}</b><small class="qq-active-title">${esc(window.QQProgression?.get?.().activeTitle||"Новичок")}</small></div></div><button class="qq-header-hat" type="button" data-qq-straw-hat-trigger aria-label="Сенная шляпа">👒</button><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav">${tabs.map((t,i)=>`<button class="${state.tab===t?"active":""}" data-tab="${t}"><span class="ni">${icons[i]}</span>${t}</button>`).join("")}</nav>`;root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});wireContent()}
+function content(){if(state.tab==="Энциклопедия")return encyclopedia();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
+function home(){return '<section class="card qq-daily-entry"><div><span class="pill">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневные испытания</h3><p class="small muted">Сканворд и Wordle · серия прохождений</p></div><button class="btn primary" type="button" data-qq-daily-open data-daily-date="'+(window.QQProgression?.daily?.().date||"") +'">Открыть</button></section><section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа" data-qq-straw-hat-trigger>👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section><h3 class="section-title">Другие игры</h3><div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="wheel"><span class="qq-game-icon">◉</span><b>Word of Wonders</b><small>Составляй слова из круга и открывай кроссворд</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button></div><h3 class="section-title">Приглашения в партии</h3><div id="matchInvites"><p class="small muted">Загрузка…</p></div><h3 class="section-title">Мои онлайн-партии</h3><div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>'}
 
 function friends(){return `
   <h2>Друзья</h2>
@@ -219,38 +288,82 @@ async function watchSocialUpdates(){
     });
 }
 function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
-function profile(){return `<h2>Профиль</h2><div class="card row qq-profile-avatar-card"><div class="avatar big">${avatarMarkup("big")}</div><div><h3>${esc(state.profile.username)}</h3><span class="muted small">Игрок QQCross</span><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Загрузить свою аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">Квадратное изображение до 8 МБ. Сохраняется на этом устройстве.</small></div></div><div class="grid2"><div class="card"><b>${state.profile.wins}</b><div class="muted small">Победы</div></div><div class="card"><b>${state.profile.games}</b><div class="muted small">Матчи</div></div><div class="card"><b>${state.profile.points}</b><div class="muted small">Очки</div></div><div class="card"><b>${state.profile.coins}</b><div class="muted small">Монеты</div></div></div><div class="card"><b>Мои предметы</b><p class="small">🔎 Лупы: ${state.profile.items.magnifier}　⏱ Часы: ${state.profile.items.clock}　🗑️ Мусорки: ${state.profile.items.trash}</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>`}
-function settings(){
-  const themes=[["light","Светлая · голубая","Белый фон и мягкие голубые ячейки"],["gray","Тёмно-серый","Графитовые оттенки"],["purple","Тёмно-фиолетовый","Глубокие фиолетовые оттенки"],["burgundy","Тёмно-бордовый","Тёмные винные оттенки"]];
-  const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
-  return `<h2>Настройки</h2>
-    <section class="card settings-card">
-      <span class="pill">Звук</span>
-      <h3>Музыка и эффекты</h3>
-      <label class="audio-setting"><span><b>Фоновая мелодия</b><small>Тихая спокойная мелодия во время игры</small></span><input type="checkbox" id="qqMusicToggle" ${audio.music?"checked":""}></label>
-      <label class="audio-setting"><span><b>Звуки действий</b><small>Буквы, слова, правильные и неверные ответы</small></span><input type="checkbox" id="qqEffectsToggle" ${audio.effects?"checked":""}></label>
-      <p class="small muted settings-note">Настройки звука сохраняются на этом устройстве. Музыка включается после первого касания экрана.</p>
-    </section>
-    <section class="card settings-card">
-      <span class="pill">Персонализация · 👒</span>
-      <h3>Цвет интерфейса</h3>
-      <div class="theme-list">${themes.map(([key,name,desc])=>`<button class="theme-choice ${activeTheme===key?"selected":""}" data-theme-choice="${key}" aria-pressed="${activeTheme===key}">
-        <span class="theme-swatch theme-swatch-${key}"></span>
-        <span class="theme-copy"><b>${name}</b></span>
-        <span class="theme-check">${activeTheme===key?"✓":""}</span>
-      </button>`).join("")}</div>
-    </section>
-    <section class="card settings-card qq-ambience-card">
-      <span class="pill">Атмосфера</span>
-      <h3>Сезонное оформление</h3>
-      <div class="ambience-list">
-        <button class="ambience-choice ${activeAmbience==="forest"?"selected":""}" data-ambience-choice="forest"><span class="ambience-preview forest-preview">❄</span><b>Зимний лес</b><small>Тихий снег и тёмные силуэты деревьев</small></button>
-        <button class="ambience-choice ${activeAmbience==="sakura"?"selected":""}" data-ambience-choice="sakura"><span class="ambience-preview sakura-preview">🌸</span><b>Сакура</b><small>Нежные лепестки и спокойные оттенки</small></button>
-        <button class="ambience-choice ${activeAmbience==="none"?"selected":""}" data-ambience-choice="none"><span class="ambience-preview none-preview">○</span><b>Без оформления</b><small>Чистый фон без анимации</small></button>
-      </div>
-    </section>`;
+function encyclopedia(){
+ const p=window.QQProgression?.get?.()||{discoveredWords:[]},words=p.discoveredWords||[],history=window.QQEncyclopedia?.history?.()||[];
+ return '<h2>Энциклопедия</h2><section class="card qq-encyclopedia-search"><p class="muted small">Ищи значение слова, исправляй опечатки и открывай связанные понятия.</p><form id="encyclopediaForm"><input id="encyclopediaInput" class="input" type="search" placeholder="Например, тунец" autocomplete="off"><button class="btn primary" type="submit">Найти</button></form><div id="encyclopediaResult" aria-live="polite"></div></section><section class="card"><h3>Мои изученные слова · '+words.length+'</h3><div class="qq-word-chips">'+(words.length?words.slice(-80).reverse().map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<p class="muted small">Пока нет изученных слов. Открывай слова в Wordle и других режимах двойным нажатием.</p>')+'</div></section><section class="card"><h3>Недавний поиск</h3><div class="qq-word-chips">'+(history.length?history.slice(0,12).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<span class="muted small">История появится после первого поиска.</span>')+'</div></section>';
 }
-function wireContent(){rootMatchHistoryBindings();const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
+async function lookupEncyclopediaWord(word){
+ const out=$("#encyclopediaResult");if(!out)return;
+ out.innerHTML='<p class="muted small">Ищу статью и проверяю написание…</p>';
+ try{
+  const result=await window.QQEncyclopedia.search(word);
+  if(!out.isConnected)return;
+  if(result.error){out.innerHTML='<p class="muted">'+esc(result.error)+'</p>';return}
+  let correction=result.correction?'<p class="qq-word-correction">Возможно, ты имел в виду: <button type="button" data-encyclopedia-word="'+esc(result.correction.word)+'">'+esc(result.correction.word)+'</button></p>':'';
+  if(!result.article){out.innerHTML=correction+'<p>Статью не удалось найти. Проверь написание или попробуй похожее слово.</p>';return}
+  const a=result.article;
+  const stress=result.stress?'<p class="qq-word-stress">Ударение по Викисловарю: <b>'+esc(result.stress)+'</b></p>':'';
+  const related=(a.related||[]).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join("");
+  out.innerHTML=correction+'<h3>'+esc(a.title)+'</h3>'+stress+'<p class="qq-encyclopedia-extract">'+esc(a.extract||"В статье нет краткого описания.")+'</p><div class="qq-related"><b>Связанные понятия</b><div class="qq-word-chips">'+(related||'<span class="muted small">Связанные понятия не найдены.</span>')+'</div></div><a class="qq-wiki-link" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">Открыть полную статью в '+esc(a.sourceLabel||"Википедии")+' ↗</a>';
+  out.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));
+ }catch(e){if(out.isConnected)out.innerHTML='<p class="muted">Не удалось получить статью. Проверь подключение и попробуй ещё раз.</p>'}
+}
+function openWordInfo(word){state.screen="";state.tab="Энциклопедия";render();setTimeout(()=>{const input=$("#encyclopediaInput");if(input){input.value=word;lookupEncyclopediaWord(word)}},0)}
+let qqWordInfoBound=false;
+function bindWordInfo(){
+ if(qqWordInfoBound)return;
+ qqWordInfoBound=true;
+ let lastTapTarget=null,lastTapAt=0,lastOpenedTarget=null,lastOpenedAt=0;
+ const open=target=>{
+  const now=Date.now();
+  if(lastOpenedTarget===target&&now-lastOpenedAt<450)return;
+  lastOpenedTarget=target;lastOpenedAt=now;
+  openWordInfo(target.dataset.qqWord||target.textContent);
+ };
+ document.addEventListener("dblclick",e=>{
+  const target=e.target.closest("[data-qq-word]");
+  if(target){e.preventDefault();open(target)}
+ });
+ // Mobile browsers do not consistently emit dblclick for touch, so detect a
+ // second tap on the same discovered word while keeping single taps inert.
+ document.addEventListener("pointerup",e=>{
+  if(e.pointerType!=="touch")return;
+  const target=e.target.closest("[data-qq-word]");
+  if(!target){lastTapTarget=null;lastTapAt=0;return;}
+  const now=Date.now();
+  if(target===lastTapTarget&&now-lastTapAt<=450)open(target);
+  lastTapTarget=target;lastTapAt=now;
+ });
+}
+bindWordInfo();
+function profile(){
+ const p=window.QQProgression?.get?.()||{stats:{},daily:{},titles:["Новичок"],activeTitle:"Новичок"};
+ const matches=Number(state.profile.games)||0,wins=Number(state.profile.wins)||0,losses=Math.max(0,matches-wins),winRate=matches?Math.round(wins/matches*100):0;
+ const achievements=window.QQProgression?.achievements?.()||[];
+ const titleOptions=(p.titles||["Новичок"]).map(t=>'<option value="'+esc(t)+'" '+(t===p.activeTitle?"selected":"")+'>'+esc(t)+'</option>').join("");
+ const titleList=(p.titles||[]).map(t=>'<span class="pill">'+esc(t)+'</span>').join("");
+ const achievementList=achievements.map(a=>'<div class="qq-achievement '+(a.unlocked?"unlocked":"")+'"><div><b>'+esc(a.name)+'</b><p class="small muted">'+esc(a.desc)+'</p></div><span>'+(a.unlocked?"✓":Math.min(a.value,a.target)+" / "+a.target)+'</span></div>').join("");
+ return '<h2>Профиль</h2><div class="card row qq-profile-avatar-card"><div class="avatar big">'+avatarMarkup("big")+'</div><div><h3>'+esc(state.profile.username)+'</h3><span class="muted small">Игрок QQCross · '+esc(p.activeTitle||"Новичок")+'</span><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Загрузить свою аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">Квадратное изображение до 8 МБ. Сохраняется на этом устройстве.</small></div></div>'+
+ '<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.wowLevels||0)+'</b><div class="muted small">Word of Wonders</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>'+
+ '<section class="card" id="qqTitleInventory"><h3>Титулы</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул Mugiwara открывается после 15 нажатий на соломенную шляпу.</p></section>'+
+ '<section class="card" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>'+
+ '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
+}
+function settings(){
+ const themes=[["light","Светлая · голубая","Белый фон и мягкие голубые ячейки"],["gray","Тёмно-серый","Графитовые оттенки"],["purple","Тёмно-фиолетовый","Глубокие фиолетовые оттенки"],["burgundy","Тёмно-бордовый","Тёмные винные оттенки"]];
+ const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
+ const choices=BACKGROUNDS.filter(x=>abstractEnabled||x[2]!=="abstract");
+ const ambiences=[["forest","Зимний лес","Снег и тихие деревья","❄"],["sakura","Сакура","Падающие лепестки","🌸"],["autumn","Осень","Медленные листья клёна","🍁"],["rain","Дождь","Тихие дождевые линии","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
+ return `<h2>Настройки</h2>
+ <section class="card settings-card"><span class="pill">Звук</span><h3>Музыка и эффекты</h3>
+ <label class="audio-setting"><span><b>Фоновая мелодия</b><small>Тихая спокойная мелодия во время игры</small></span><input type="checkbox" id="qqMusicToggle" ${audio.music?"checked":""}></label>
+ <label class="audio-setting"><span><b>Звуки действий</b><small>Буквы, слова, правильные и неверные ответы</small></span><input type="checkbox" id="qqEffectsToggle" ${audio.effects?"checked":""}></label></section>
+ <section class="card settings-card"><span class="pill">Персонализация</span><h3>Цвет интерфейса</h3><div class="theme-list">${themes.map(([key,name])=>`<button class="theme-choice ${activeTheme===key?"selected":""}" data-theme-choice="${key}" aria-pressed="${activeTheme===key}"><span class="theme-swatch theme-swatch-${key}"></span><span class="theme-copy"><b>${name}</b></span><span class="theme-check">${activeTheme===key?"✓":""}</span></button>`).join("")}</div></section>
+ <section class="card settings-card"><span class="pill">Фон игры · 50 вариантов</span><h3>Атмосферные фоны</h3><label class="audio-setting"><span><b>Абстрактные фоны</b><small>Можно скрыть и оставить только природные</small></span><input type="checkbox" id="qqAbstractToggle" ${abstractEnabled?"checked":""}></label><div class="background-grid">${choices.map(([id,name,type])=>`<button type="button" class="background-choice ${activeBackground===id?"selected":""}" data-background-choice="${id}" aria-pressed="${activeBackground===id}"><span class="background-preview" data-background-preview="${id}"></span><b>${name}</b><small>${type==="nature"?"Природа":"Абстракция"}</small></button>`).join("")}</div></section>
+ <section class="card settings-card"><span class="pill">Атмосфера</span><h3>Анимации и сезонные эффекты</h3><div class="ambience-list">${ambiences.map(([key,name,desc,icon])=>`<button class="ambience-choice ${activeAmbience===key?"selected":""}" data-ambience-choice="${key}" aria-pressed="${activeAmbience===key}"><span class="ambience-preview">${icon}</span><b>${name}</b><small>${desc}</small></button>`).join("")}</div></section>
+ <section class="card settings-card"><span class="pill">Удобство</span><h3>Размер текста и анимации</h3><label class="audio-setting"><span><b>Размер текста</b><small>Можно увеличить подписи и вопросы</small></span><select id="qqFontSize" class="input"><option value="normal" ${localStorage.getItem("qqcross_font_size")!=="large"&&localStorage.getItem("qqcross_font_size")!=="small"?"selected":""}>Обычный</option><option value="large" ${localStorage.getItem("qqcross_font_size")==="large"?"selected":""}>Крупный</option><option value="small" ${localStorage.getItem("qqcross_font_size")==="small"?"selected":""}>Компактный</option></select></label><label class="audio-setting"><span><b>Уменьшить анимации</b><small>Отключает движение для более спокойного интерфейса</small></span><input type="checkbox" id="qqReduceMotion" ${localStorage.getItem("qqcross_reduce_motion")==="true"?"checked":""}></label></section>`;
+}
+function wireContent(){rootMatchHistoryBindings();const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=()=>{window.QQProgression?.setActiveTitle(activeTitle.value);render()};const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
   if(state.profile.coins<cost){toast("Не хватает монет");return}
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
@@ -517,9 +630,10 @@ function checkWords(){
   const newlyCompleted=[];
   puzzle.words.forEach(w=>{
     if(!state.completed.has(w.id)&&w.cells.every(c=>state.filled[c.join(",")]===expected[c.join(",")])){
-      state.completed.add(w.id);newlyCompleted.push(w);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
+      state.completed.add(w.id);newlyCompleted.push(w);window.QQProgression?.recordWord?.(w.answer);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
+  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
   if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
   else if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
     state.rewardSubmitted=true;
@@ -566,6 +680,8 @@ async function loadCloudProfile(userId,generation=null){
   if(generation!==null&&generation!==authGeneration)return;
   state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
   authRestoreError="";
+  await window.QQProgression?.setCloud?.(supabaseClient,userId);
+  await applyProgressRewards();
   save();watchSocialUpdates();
 }
 
@@ -680,6 +796,55 @@ function normalizeScanwordEntry(item){
   if(answer.length<1||answer.length>12||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
 }
+function assertValidScanwordLayout(result,N,TOTAL){
+  const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
+  if(!result||!Array.isArray(result.words)||result.words.length<10)fail("слишком мало вопросов");
+  if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size!==TOTAL)fail("поле заполнено не полностью");
+  for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
+  const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
+  for(let i=0;i<result.words.length;i++){
+    const word=result.words[i],answer=String(word.answer||"");
+    if(!word.clue||!answer||answer.length!==word.cells.length)fail("неверный ответ или подсказка у "+word.id);
+    if(answers.has(answer))fail("повтор ответа "+answer);
+    answers.add(answer);
+    const delta=directions[word.dir],cell=word.clueCell;
+    if(!delta||!Array.isArray(cell)||cell.length!==2)fail("неверное направление или координаты вопроса");
+    const [cy,cx]=cell,clueKey=cy+","+cx;
+    if(cy<0||cx<0||cy>=N||cx>=N||!(result.clueAt.get(clueKey)||[]).includes(word))fail("вопрос находится вне поля");
+    for(let k=0;k<word.cells.length;k++){
+      const [y,x]=word.cells[k],expectedY=cy+delta[0]*(k+1),expectedX=cx+delta[1]*(k+1);
+      if(y!==expectedY||x!==expectedX||y<0||x<0||y>=N||x>=N)fail("слово "+word.id+" расположено с разрывом или неверным направлением");
+      if(answer[k]<"А"||answer[k]>"Я")fail("недопустимая буква в ответе "+word.id);
+      const key=y+","+x;
+      if(result.clueAt.has(key))fail("ответ пересекает клетку вопроса");
+      if(letters.has(key)&&letters.get(key)!==answer[k])fail("конфликт букв в клетке "+key);
+      letters.set(key,answer[k]);
+      if(!owners.has(key))owners.set(key,new Set());
+      owners.get(key).add(i);
+    }
+  }
+  if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
+  for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
+  for(const key of result.occupied.keys())if(!letters.has(key))fail("пустая занятая клетка: "+key);
+  for(const set of owners.values()){
+    const ids=[...set];
+    for(let i=0;i<ids.length;i++)for(let j=i+1;j<ids.length;j++){graph[ids[i]].add(ids[j]);graph[ids[j]].add(ids[i])}
+  }
+  for(let i=0;i<result.words.length;i++)for(let j=i+1;j<result.words.length;j++){
+    const a=result.words[i],b=result.words[j],aKey=a.clueCell.join(","),bKey=b.clueCell.join(",");
+    const [ay,ax]=a.clueCell,[by,bx]=b.clueCell;
+    const touches=b.cells.some(([y,x])=>Math.abs(y-ay)+Math.abs(x-ax)===1)||
+      a.cells.some(([y,x])=>Math.abs(y-by)+Math.abs(x-bx)===1);
+    if(aKey===bKey||touches){graph[i].add(j);graph[j].add(i)}
+  }
+  const seen=new Set([0]),stack=[0];
+  while(stack.length){const i=stack.pop();for(const j of graph[i])if(!seen.has(j)){seen.add(j);stack.push(j)}}
+  if(seen.size!==result.words.length)fail("обнаружены несвязанные слова");
+  const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
+  if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
+  return true;
+}
 function buildScanword(entries){
   const N=15,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
@@ -760,25 +925,48 @@ function buildScanword(entries){
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
-    const seedChoices=[];
+    // Reservoir-sample seed placements instead of sorting a potentially huge
+    // list with a random comparator. The old sort was O(n log n) per restart.
+    const imageSeedChoices=[],regularSeedChoices=[];
+    let imageSeedSeen=0,regularSeedSeen=0;
+    const keepRandom=(pool,item,seen,limit)=>{
+      seen++;
+      if(pool.length<limit)pool.push(item);
+      else{const index=Math.floor(Math.random()*seen);if(index<limit)pool[index]=item;}
+      return seen;
+    };
     for(let cross=0;cross<first.answer.length;cross++){
       const x=firstX+cross+1,letter=first.answer[cross];
       for(const e of normalized){
         if(e.answer===first.answer||e.answer.length<3)continue;
         for(let p=0;p<Math.min(7,e.answer.length);p++){
-          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N)seedChoices.push({entry:e,x,y:firstY-p-1});
+          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N){
+            const choice={entry:e,x,y:firstY-p-1};
+            if(e.imageKey)imageSeedSeen=keepRandom(imageSeedChoices,choice,imageSeedSeen,60);
+            else regularSeedSeen=keepRandom(regularSeedChoices,choice,regularSeedSeen,120);
+          }
         }
       }
     }
-    if(!seedChoices.length)return null;
+    if(!imageSeedChoices.length&&!regularSeedChoices.length)return null;
     let seeded=false;
-    seedChoices.sort((a,b)=>(Number(!!b.entry.imageKey)-Number(!!a.entry.imageKey))+(Math.random()-.5));
-    for(const choice of seedChoices.slice(0,120)){
+    const seedCandidates=imageSeedChoices.length
+      ?imageSeedChoices.concat(regularSeedChoices.slice(0,60))
+      :regularSeedChoices;
+    for(const choice of seedCandidates){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
     for(let round=0;round<280&&occupied.size+clueAt.size<TOTAL;round++){
+      // Keep only the best 18 candidates while scanning. Sorting the full
+      // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
+      const addOption=option=>{
+        let index=options.findIndex(current=>current.score<option.score);
+        if(index<0){if(options.length<18)options.push(option);return}
+        options.splice(index,0,option);
+        if(options.length>18)options.pop();
+      };
       for(const clueKey of frontier){
         const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
         if(occupied.has(clueKey)||at.length>=4||at.some(w=>w.imageKey))continue;
@@ -804,15 +992,13 @@ function buildScanword(entries){
                 if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[p])){valid=false;break}
                 if(old===undefined)newCells++;else crosses++;
               }
-              if(valid&&crosses)options.push({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
+              if(valid&&crosses)addOption({entry,y,x,di,score:newCells*8+crosses*8+Math.min(crosses,3)*2+length*.1+(entry.imageKey?1000:0)+Math.random()*3});
             }
           }
         }
       }
       if(!options.length)break;
-      options.sort((a,b)=>b.score-a.score);
-      const pool=options.slice(0,Math.min(18,options.length));
-      const pick=pool[Math.floor(Math.random()*pool.length)];
+      const pick=options[Math.floor(Math.random()*options.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
     // Repair residual gaps only with words that genuinely cross existing letters.
@@ -830,8 +1016,10 @@ function buildScanword(entries){
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       for(const anchor of anchors){
-        if(closing)break;
-        for(let di=0;di<4&&!closing;di++){
+        // Process every independent anchor in this pass. Restarting after each
+        // single placement rescanned the whole 15x15 frontier repeatedly and
+        // made both page startup and the 50-seed verifier stall for minutes.
+        for(let di=0;di<4;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
@@ -868,17 +1056,22 @@ function buildScanword(entries){
     return {coverage,occupied,clueAt,words};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
-  for(let attempt=0;attempt<8;attempt++){
+  // Retry substantially more often, but stop immediately once a fully valid
+  // grid is found with at most one unavoidable single-letter fallback.
+  // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
+  for(let attempt=0;attempt<32;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать полностью заполненный сканворд с тремя разными картинками (лучший результат: "+bestCoverage+"/225, картинок: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
+  assertValidScanwordLayout(best,N,TOTAL);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
 function clonePreparedScanword(source){
@@ -948,6 +1141,22 @@ async function startChatGPTGame(button){
     if(button){button.disabled=false;button.textContent="Играть с ChatGPT"}
   }
 }
+function chooseLocalAIMove(){
+ const rack=state.playerRacks[1]||[],candidates=[];
+ for(const word of puzzle.words){
+  if(state.completed.has(word.id)||word.imageKey)continue;
+  const missing=word.cells.map(([y,x],i)=>({k:y+","+x,letter:String(expected[y+","+x]||"").toUpperCase().replace(/Ё/g,"Е")})).filter(x=>!state.filled[x.k]);
+  const used=[],moves=[];let possible=true;
+  for(const cell of missing){
+   const index=rack.findIndex((value,i)=>!used.includes(i)&&String(value).toUpperCase().replace(/Ё/g,"Е")===cell.letter);
+   if(index<0){possible=false;break}
+   used.push(index);moves.push({k:cell.k,l:rack[index]});
+  }
+  if(possible)candidates.push({word,moves,used,score:missing.length*10+word.cells.length*2+Math.random()});
+ }
+ candidates.sort((a,b)=>b.score-a.score);
+ return candidates[0]||null;
+}
 async function runChatGPTTurn(root,turnKey){
   if(!state.aiMatch||state.turn!==1||state.screen!=="game")return;
   try{
@@ -982,13 +1191,23 @@ async function runChatGPTTurn(root,turnKey){
   }catch(error){
     console.error("QQCross ChatGPT turn:",error);
     if(state.screen!=="game"||state.turn!==1)return;
+    const fallback=chooseLocalAIMove();
+    if(fallback){
+      const rack=state.playerRacks[1]||[];
+      state.pendingMoves=fallback.moves;
+      fallback.used.sort((a,b)=>b-a).forEach(index=>rack.splice(index,1));
+      state.playerRacks[1]=rack;state.letters=rack;
+      state.aiError="GPT сейчас недоступен — этот ход сделал встроенный словарный помощник.";
+    }else{
+      state.pendingMoves=[];
+      state.aiError="GPT сейчас недоступен — встроенный помощник пропустил ход.";
+    }
     state.aiThinkingTurn=null;
-    state.aiError=error.message||"Не удалось получить ход ChatGPT.";
-    renderGame(root);
+    await finishTurn(root);
   }
 }
 
-async function begin(size=1,chatGPT=false){
+async function begin(size=1,chatGPT=false,dailyChallenge=null){
   const qqDebugTiming=new URLSearchParams(location.search).has("debugTiming");
   const qqStartTime=performance.now();
   let qqGenerationMs=0;
@@ -1009,7 +1228,7 @@ async function begin(size=1,chatGPT=false){
     }
     qqGenerationMs=performance.now()-qqStartTime;
     if(!loaded)throw lastError||new Error("Не удалось собрать полностью заполненное поле 15×15. Попробуй ещё раз.");
-    state.screen="game";state.partySize=size;state.aiMatch=!!chatGPT;state.aiThinkingTurn=null;state.aiError="";state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
+    state.screen="game";state.dailyMode=!!dailyChallenge;state.dailyScanwordDate=dailyChallenge?.date||null;state.progressRecorded=!!dailyChallenge?.completed;state.partySize=size;state.aiMatch=!!chatGPT;state.aiThinkingTurn=null;state.aiError="";state.filled={};state.owners={};state.feedback={};state.hints={};state.loupeActive=false;
     state.onlineMatchId=null;state.onlinePlayers=[];state.onlineVersion=0;state.onlineFinished=false;state.completed=new Set();state.rewardSubmitted=false;state.scores=0;state.playerScores=Array(size).fill(0);state.turn=0;state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;
     state.rackNeedsRefill=Array(size).fill(false);state.playerRacks=Array.from({length:size},()=>drawLetters(7));state.letters=state.playerRacks[0];ensureWordLetter(0);state.selectedLetter=-1;state.selectedCell=null;state.selectedWord="w1";state.rackNewIndices=state.partySize===1?[0,1,2,3,4,5,6]:[];state.wordFlashKeys=new Set();state.pendingMoves=[];state.matchId="match-"+Date.now()+"-"+Math.random().toString(36).slice(2,8);
     pushGameHistoryEntry();render();if(qqDebugTiming)window.__qqcrossTiming={generationMs:Math.round(qqGenerationMs),totalMs:Math.round(performance.now()-qqStartTime)};if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")render()},520)}
@@ -1018,6 +1237,21 @@ async function begin(size=1,chatGPT=false){
     toast(error&&error.message?error.message:"Не удалось запустить игру. Попробуй ещё раз.");
     if(playButton){playButton.disabled=false;playButton.textContent="Играть одному"}
   }
+}
+function getScanwordHint(word,level){
+ const clue=String(word?.clue||"").trim(),lower=clue.toLowerCase();
+ if(level==="light"){
+  const groups=[[/животн|звер|птиц|насеком|рыб|хищник/,"животный мир"],[/дерев|цвет|ягод|растени|куст|лист/,"растения"],[/фрукт|овощ|пищ|напит|блюд|выпеч|сладк/,"еда и напитки"],[/стран|город|река|гора|остров|столиц|океан/,"география"],[/прибор|устройств|аппарат|инструмент|механизм|машин|транспорт/,"техника и предметы"],[/величин|частиц|атом|энерг|физик|хим|математ|геометр/,"наука"],[/музык|мелод|песн|струн|ударн|нота/,"музыка"],[/професс|работник|человек|оратор|пассажир/,"люди и профессии"],[/мебел|посуда|одежд|комнат|сосуд/,"бытовые предметы"]];
+  const found=groups.find(([re])=>re.test(lower));
+  return "Тема ответа: "+(found?found[1]:"предмет или понятие из описания")+". В слове "+word.answer.length+" букв.";
+ }
+ if(level==="medium"){
+  if(word.logic)return "Подсказка к загадке: выдели главное свойство в вопросе и подумай, какой предмет или понятие ему соответствует.";
+  const short=String(word.clueShort||"").trim();
+  if(short&&short.toLowerCase()!==clue.toLowerCase())return "Коротко: "+short;
+  return "Иными словами: "+clue.replace(/[.!?]+$/,"").toLowerCase()+". Какое одно слово лучше всего это обозначает?";
+ }
+ return "";
 }
 function renderGame(root){
   clearInterval(state.interval);
@@ -1054,6 +1288,7 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
       const picture=wordsAt.length===1&&wordsAt[0].imageKey?'<img class="scan-clue-image" src="./assets/scanword/'+esc(wordsAt[0].imageKey)+'.svg" alt="'+esc(wordsAt[0].answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=wordsAt.length===1&&wordsAt[0].imageKey?"Что изображено на картинке?":fullClueTitle;
+      const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(wordsAt.length===1&&wordsAt[0].imageKey?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
@@ -1072,9 +1307,18 @@ function renderGame(root){
   const questionList=puzzle.words.map((word,index)=>'<button type="button" class="scanword-question-item '+(word.id===activeWord?.id?'active':'')+(state.completed?.has(word.id)?' done':'')+'" data-word-clue="'+esc(word.id)+'"><span class="scanword-question-index">'+(index+1)+'</span><span class="scanword-question-short">'+esc(word.clueShort||word.clue)+'</span><span class="scanword-question-status">'+(state.completed?.has(word.id)?'✓':({right:'→',left:'←',down:'↓',up:'↑'}[word.dir]||''))+'</span></button>').join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Твой ход — выбери вопрос слева.')+'</div>':'')+
-    '<div class="scanword-play-area"><aside class="scanword-questions" aria-label="Вопросы сканворда"><div class="scanword-question-current"><div class="scanword-question-kicker">ТЕКУЩИЙ ВОПРОС</div><div class="scanword-question-full">'+(activeWord?(activeWord.imageKey?'Что изображено на картинке?':esc(activeWord.clue)):'Все вопросы решены')+'</div><div class="scanword-question-meta">'+(activeWord?((activeDirection?activeDirection+" · ":"")+"Ответ: "+activeLength+" "+(activeLength===1?"буква":activeLength<5?"буквы":"букв")):"Отличная работа!")+'</div></div><div class="scanword-question-list">'+questionList+'</div></aside><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div></div>'+
+    '<div class="scanword-play-area"><aside class="scanword-questions" aria-label="Вопросы сканворда"><div class="scanword-question-current"><div class="scanword-question-kicker">ТЕКУЩИЙ ВОПРОС</div><div class="scanword-question-full">'+(activeWord?(activeWord.imageKey?'Что изображено на картинке?':esc(activeWord.clue)):'Все вопросы решены')+'</div><div class="scanword-question-meta">'+(activeWord?((activeDirection?activeDirection+" · ":"")+"Ответ: "+activeLength+" "+(activeLength===1?"буква":activeLength<5?"буквы":"букв")):"Отличная работа!")+'</div></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Сильная</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div></div><div class="scanword-question-list">'+questionList+'</div></aside><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
+  root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
+    if(!activeWord)return;
+    const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
+    if(level!=="strong"){out.textContent=getScanwordHint(activeWord,level);return;}
+    const key=activeWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
+    if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
+    if(!useItem("magnifier")){out.textContent="Для сильной подсказки нужна лупа из инвентаря.";return;}
+    state.hints=state.hints||{};state.hints[key]=expected[key];renderGame(root);toast("Открыта одна правильная буква");
+  });
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
     const id=state.onlineMatchId;if(!id)return;
