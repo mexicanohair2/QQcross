@@ -841,7 +841,7 @@ function normalizeScanwordEntry(item){
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
   if(answer.length<1||answer.length>12||!clue)return null;
-  return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic};
+  return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic&&/[?？]/.test(clue)};
 }
 function assertValidScanwordLayout(result,N,TOTAL){
   const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
@@ -1331,7 +1331,7 @@ function renderGame(root){
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
     if(wordsAt){
-      const displayWord=wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>w.logic&&!state.completed?.has(w.id))||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
+      const displayWord=wordsAt.find(w=>w.logic&&!state.completed?.has(w.id))||wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
       const pictureWord=wordsAt.find(w=>w.imageKey)||null;
       const single=displayWord&&!displayWord.imageKey?(displayWord.isEmoji?(displayWord.clueShort||displayWord.clue):fitScanwordClue(displayWord.clueShort||displayWord.clue)):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
