@@ -46,8 +46,13 @@ test("three scanword hint levels are available and successful hints are counted"
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
   await page.locator("[data-smart-hint='medium']").click();
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
+  await page.locator("[data-smart-hint='strong']").click();
+  await page.locator("#bulb").click();
+  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(2);
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
-  expect(count).toBe(2);
+  const bulbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(count).toBe(4);
+  expect(bulbs).toBe(1);
 });
 
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
@@ -160,14 +165,30 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
   await expect(page.locator("#qqWheelProgress")).toContainText("/ " + count);
   const letters = page.locator(".qq-wheel-letter");
-  const first = await letters.nth(0).boundingBox();
-  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2);
-  await page.mouse.down();
-  for (let i = 1; i < await letters.count(); i++) {
-    const box = await letters.nth(i).boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
-  }
-  await page.mouse.up();
+  const target = await page.locator("#qqWowClues .qq-wow-clue").first().getAttribute("data-wow-clue");
+  const available = await letters.allTextContents();
+  const used = new Set();
+  const indexes = [...target].map(char => {
+    const index = available.findIndex((letter, i) => letter === char && !used.has(i));
+    used.add(index);
+    return index;
+  });
+  expect(indexes.every(index => index >= 0)).toBeTruthy();
+  await page.evaluate((path) => {
+    const wheel = document.querySelector("#qqWheel");
+    const buttons = [...wheel.querySelectorAll(".qq-wheel-letter")];
+    const points = path.map(index => {
+      const rect = buttons[index].getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    const send = (target, type, point) => target.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 77, pointerType: "touch", isPrimary: true,
+      clientX: point.x, clientY: point.y, buttons: type === "pointerup" ? 0 : 1
+    }));
+    send(buttons[path[0]], "pointerdown", points[0]);
+    for (let i = 1; i < points.length; i++) send(wheel, "pointermove", points[i]);
+    send(wheel, "pointerup", points[points.length - 1]);
+  }, indexes);
   await expect(page.locator("#qqWheelProgress")).toContainText("Найдено: 1 / " + count);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector("#qqWheelBoard").getBoundingClientRect(), c: document.querySelector(".qq-wow-controls").getBoundingClientRect() }));
   expect(fit.b.width).toBeGreaterThan(250);
@@ -241,6 +262,11 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(0);
   await page.locator("#qqCodyLoupe").click();
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(1);
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  await page.locator("#qqCodyHint").click();
+  await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(2);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator("#qqCodyBack").click();
@@ -319,4 +345,80 @@ test("all four direct themes apply globally and persist across games", async ({ 
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-qq-theme", "purple");
+});
+
+
+test("word search shows a question for every target and the bulb marks a starting letter", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
+  await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
+  const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
+  await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  await page.locator("#qqSearchBulb").click();
+  await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("Word of Wonders shows clue prompts and uses the bulb to highlight a letter", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="wheel"]').click();
+  await page.locator('[data-level="1"]').click();
+  const total = Number((await page.locator("#qqWheelProgress").textContent()).split("/")[1].trim());
+  await expect(page.locator("#qqWowClues .qq-wow-clue")).toHaveCount(total);
+  await expect(page.locator("#qqWowClues")).not.toContainText("Что изображено");
+  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  await page.locator("#qqWheelBulb").click();
+  await expect(page.locator(".qq-wheel-letter.qq-wheel-hinted")).toHaveCount(1);
+  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
+  expect(bulbsAfter).toBe(bulbsBefore - 1);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("the redesigned shop contains the bulb item and level rewards are idempotent", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-tab="Магазин"]').click();
+  await expect(page.locator(".qq-shop-item")).toHaveCount(4);
+  const bulb = page.locator('.qq-shop-item:has(button[data-item="bulb"])');
+  await expect(bulb).toContainText("💡");
+  await expect(bulb).toContainText("5 · 100");
+  await expect(bulb).toContainText("10 · 200");
+  await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
+  await expect(page.locator(".coins")).toContainText("5");
+  await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
+  await expect(page.locator(".coins")).toContainText("5");
+});
+
+
+test("Cody crossword awards the actual one-based puzzle level", async ({ page }) => {
+  const response = await page.request.get("/new-games.js");
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  expect(source).toContain('awardLevel?.("cody",Number(id.slice(1)))');
+  expect(source).not.toContain('awardLevel?.("cody",Number(id.slice(1))+1)');
+});
+
+
+test("legacy inventory normalization adds a bulb slot and preserves existing counts", async ({ page }) => {
+  await startGuestGame(page);
+  const result = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: 3, clock: 2, trash: 1 }));
+  expect(result).toEqual({ magnifier: 3, clock: 2, trash: 1, bulb: 5 });
+  const preserved = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: 3, clock: 2, trash: 1, bulb: 7 }));
+  expect(preserved.bulb).toBe(7);
+  const repaired = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: -1, clock: "2", trash: 1 }));
+  expect(repaired).toEqual({ magnifier: 0, clock: 0, trash: 1, bulb: 5 });
 });

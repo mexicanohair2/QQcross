@@ -2,6 +2,38 @@
 "use strict";
 const LETTERS = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ";
 let lexiconPromise = null;
+let clueIndex = new Map();
+const EXTRA_CLUES={
+ "МОНИТОР":"Экран компьютера, на котором отображается изображение.",
+ "МЫШКА":"Устройство для управления курсором на компьютере.",
+ "ПЛАНШЕТ":"Портативное устройство с сенсорным экраном.",
+ "ПРИНТЕР":"Устройство, которое печатает документы и изображения.",
+ "НАУШНИКИ":"Аксессуар, через который слушают звук лично.",
+ "ДИНАМИК":"Устройство, превращающее сигнал в звук.",
+ "ПРОЦЕССОР":"Главный вычислительный компонент компьютера.",
+ "КАБЕЛЬ":"Провод для передачи электричества или данных.",
+ "СЕРВЕР":"Компьютер или программа, предоставляющие данные другим.",
+ "НОУТБУК":"Переносной компьютер с экраном и клавиатурой.",
+ "СМАРТФОН":"Мобильный телефон с операционной системой и приложениями.",
+ "ПРИЛОЖЕНИЕ":"Программа для выполнения определённой задачи.",
+ "ИНТЕРНЕТ":"Глобальная сеть, соединяющая компьютеры.",
+ "ДИСПЛЕЙ":"Экран электронного устройства.",
+ "КОРПУС":"Внешняя оболочка устройства или компьютера.",
+ "ПАМЯТЬ":"Компонент, где компьютер хранит данные.",
+ "ФАЙЛ":"Именованный набор данных на устройстве.",
+ "САЙТ":"Набор связанных веб-страниц.",
+ "СЕТЬ":"Соединение устройств для обмена данными.",
+ "МОДЕМ":"Устройство для подключения к сети передачи данных.",
+ "ЗАРЯДКА":"Устройство для пополнения энергии аккумулятора.",
+ "КОЛОНКА":"Акустическое устройство для воспроизведения звука.",
+ "ПЛАТА":"Основа с электронными компонентами и дорожками.",
+ "ЧИП":"Миниатюрная электронная микросхема.",
+ "КОД":"Запись команд или данных с помощью символов.",
+ "ДАННЫЕ":"Информация, которую можно хранить и обрабатывать.",
+ "СЕРВИС":"Онлайн-служба или функция, доступная пользователю.",
+ "АНТЕННА":"Устройство для приёма или передачи радиосигнала."
+};
+const clueFor = word => clueIndex.get(norm(word)) || EXTRA_CLUES[norm(word)] || "Подумай, что обозначает это слово.";
 const norm = value => String(value || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
 const shuffle = values => { const a = [...values]; for (let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
 const counts = word => [...norm(word)].reduce((m,c)=>(m[c]=(m[c]||0)+1,m),{});
@@ -67,11 +99,11 @@ function levelComplete(root,key,level,next){
 }
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
- const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)));
+ const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w])));
  const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
  let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
  let chosen=pool.slice(0,count);
- if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w))).slice(0,Math.max(5,count));
+ if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w]))).slice(0,Math.max(5,count));
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
  for(let grow=0;grow<8;grow++){
@@ -117,7 +149,7 @@ function mountSearch(root,onExit,words){
  const showMap=()=>renderLevelMap(root,"Поиск слов",onExit,KEY,playLevel);
  function playLevel(level){
   const puzzle=buildSearchPuzzle(words,level);let start=null,drag=false,solved=new Set(),selection=[],tapStart=null,completed=false;
-  const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><div class="qq-search-hint">Ищи слова по горизонтали, вертикали и диагонали — в обе стороны.</div><div class="qq-word-discovery-list" id="qqSearchFoundList"></div>';
+  const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><div class="qq-search-clues" id="qqSearchClues" aria-label="Вопросы к словам">'+puzzle.placed.map((p,i)=>'<div class="qq-search-clue" data-clue-word="'+p.word+'"><b>'+(i+1)+'.</b><span>'+escapeHtml(clueFor(p.word))+'</span></div>').join("")+'</div><div class="qq-search-actions"><span class="qq-search-hint">Ищи слова по горизонтали, вертикали и диагонали.</span><button type="button" class="btn" id="qqSearchBulb">💡 Подсказка</button></div><div class="qq-word-discovery-list" id="qqSearchFoundList"></div>';
   shell(root,"Поиск слов · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-search-screen");
   const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
   function clear(){grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];}
@@ -127,9 +159,9 @@ function mountSearch(root,onExit,words){
    const value=path.map(p=>puzzle.grid[p.y][p.x]).join(""),reverse=[...value].reverse().join("");
    const found=puzzle.placed.find(p=>!p.found&&(p.word===value||p.word===reverse));
    if(found){
-    found.found=true;solved.add(found.word);window.QQProgression?.recordWord?.(found.word);const chip=document.createElement("button");chip.type="button";chip.className="pill";chip.dataset.qqWord=found.word;chip.textContent=found.word;root.querySelector("#qqSearchFoundList")?.append(chip);found.cells.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-found"));
+    found.found=true;solved.add(found.word);window.QQProgression?.recordWord?.(found.word);const chip=document.createElement("button");chip.type="button";chip.className="pill";chip.dataset.qqWord=found.word;chip.textContent=found.word;root.querySelector("#qqSearchFoundList")?.append(chip);found.cells.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-found"));root.querySelector('[data-clue-word="'+found.word+'"]')?.classList.add("done");
     progress.textContent="Найдено: "+solved.size+" / "+puzzle.placed.length;sound(solved.size===puzzle.placed.length?"win":"good");
-    if(solved.size===puzzle.placed.length){completed=true;window.QQProgression?.recordUnique("searchLevels","search:"+level);unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),250);}
+    if(solved.size===puzzle.placed.length){completed=true;window.QQEconomy?.awardLevel?.("search",level);window.QQProgression?.recordUnique("searchLevels","search:"+level);unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),250);}
    }else{path.forEach(p=>cellAt(p.x,p.y)?.classList.add("qq-miss"));setTimeout(()=>path.forEach(p=>cellAt(p.x,p.y)?.classList.remove("qq-miss")),300);sound("hint");}
    clear();
   }
@@ -144,6 +176,12 @@ function mountSearch(root,onExit,words){
    }
    return best;
   }
+  root.querySelector("#qqSearchBulb").onclick=()=>{
+   const target=puzzle.placed.find(p=>!p.found);if(!target){return;}
+   if(!window.QQEconomy?.useBulb?.()){return;}
+   const cell=target.cells[0],node=cellAt(cell.x,cell.y);node?.classList.add("qq-search-hinted");node?.scrollIntoView({block:"nearest",inline:"nearest"});
+   root.querySelector('[data-clue-word="'+target.word+'"]')?.classList.add("hinted");
+  };
   grid.addEventListener("pointerdown",e=>{
    const c=e.target.closest("[data-x]");if(!c||completed)return;
    e.preventDefault();drag=true;start={x:+c.dataset.x,y:+c.dataset.y};markPath([start]);
@@ -213,36 +251,41 @@ function drawCrossword(layout,rootId){
 function mountWheel(root,onExit,words){
  const KEY="qqcross.wow.unlocked.v1";
  const showMap=()=>renderLevelMap(root,"Word of Wonders",onExit,KEY,playLevel);
+ const clueWords=words.filter(w=>clueIndex.has(w)||EXTRA_CLUES[w]);
+ const rankedSeeds=clueWords.filter(w=>w.length>=6&&w.length<=9&&new Set(w).size>=5).map(seed=>({
+  seed,
+  candidates:clueWords.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))
+ })).sort((a,b)=>b.candidates.length-a.candidates.length);
  function build(level){
   const targetCount=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
   const size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
-  let result=null,best=null;
-  const seeds=shuffle(words.filter(w=>w.length>=6&&w.length<=9&&new Set(w).size>=5));
-  for(const seed of seeds.slice(0,24)){
-   const candidates=shuffle(words.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))).slice(0,140).sort((a,b)=>b.length-a.length);
-   const layout=layoutWords([seed,...candidates].slice(0,targetCount),size);
+  let best=null;
+  for(const item of rankedSeeds.slice(0,48)){
+   if(item.candidates.length<targetCount-1&&best&&item.candidates.length<best.words.length-1)break;
+   const candidates=shuffle(item.candidates).sort((a,b)=>b.length-a.length);
+   const layout=layoutWords([item.seed,...candidates].slice(0,targetCount),size);
    const actual=layout.placed.map(p=>p.word);
-   if(!best||actual.length>best.words.length)best={seed,layout,words:actual};
-   if(actual.length>=Math.max(5,Math.ceil(targetCount*.85))){result={seed,layout,words:actual};break;}
+   if(!best||actual.length>best.words.length)best={seed:item.seed,layout,words:actual};
+   if(actual.length>=targetCount)break;
   }
-  return result||best||{seed:"КОРАБЛЬ",layout:layoutWords(["КОРАБЛЬ"],size),words:["КОРАБЛЬ"]};
+  return best||{seed:"КОРАБЛЬ",layout:layoutWords(["КОРАБЛЬ"],size),words:["КОРАБЛЬ"]};
  }
  function playLevel(level){
   const puzzle=build(level);
   let selected=[],solved=new Set(),dragging=false,dragPath=false,dragSelection=[],lastDragIndex=-1,completed=false,suppressClick=false;
   const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
-  const body='<div class="qq-wow-level-meta"><span>УРОВЕНЬ '+level+'</span><b id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</b></div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-word-discovery-list" id="qqWowFoundWords"></div><div class="qq-wow-controls"><div class="qq-wheel" id="qqWheel" style="--qq-wheel-radius:48px">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button></div></div>';
+  const body='<div class="qq-wow-level-meta"><span>УРОВЕНЬ '+level+'</span><b id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</b></div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wow-clues" id="qqWowClues" aria-label="Вопросы к словам">'+puzzle.words.map((w,i)=>'<div class="qq-wow-clue" data-wow-clue="'+w+'"><b>'+(i+1)+'.</b><span>'+escapeHtml(clueFor(w))+'</span></div>').join("")+'</div><div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-word-discovery-list" id="qqWowFoundWords"></div><div class="qq-wow-controls"><div class="qq-wheel" id="qqWheel" style="--qq-wheel-radius:48px">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button><button type="button" class="btn" id="qqWheelBulb">💡</button></div></div>';
   shell(root,"Word of Wonders · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
   const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
   function refresh(show=selected){answer.textContent=show.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",show.includes(+b.dataset.index)));}
-  function complete(){if(completed)return;completed=true;window.QQProgression?.recordUnique("wowLevels","wow:"+level);unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),350);}
+  function complete(){if(completed)return;completed=true;window.QQEconomy?.awardLevel?.("wow",level);window.QQProgression?.recordUnique("wowLevels","wow:"+level);unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),350);}
   function solveWord(indices,feedback=true){
    const word=indices.map(i=>puzzle.seed[i]).join("");if(!word)return false;
    const target=puzzle.words.find(w=>w===word&&!solved.has(w));
    if(target){
     solved.add(target);window.QQProgression?.recordWord?.(target);const chip=document.createElement("button");chip.type="button";chip.className="pill";chip.dataset.qqWord=target;chip.textContent=target;root.querySelector("#qqWowFoundWords")?.append(chip);const entry=puzzle.layout.placed.find(p=>p.word===target);
     entry?.cells.forEach(p=>{const c=board.querySelector('[data-pos="'+p.x+','+p.y+'"]');if(c){c.textContent=puzzle.layout.grid[p.y][p.x];c.classList.add("revealed");}});
-    progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;sound(solved.size===puzzle.words.length?"win":"good");
+    progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;root.querySelector('[data-wow-clue="'+target+'"]')?.classList.add("done");sound(solved.size===puzzle.words.length?"win":"good");
     selected=[];refresh();if(solved.size===puzzle.words.length)complete();return true;
    }
    if(puzzle.words.includes(word))answer.textContent="Уже найдено";
@@ -256,6 +299,13 @@ function mountWheel(root,onExit,words){
    if(puzzle.words.includes(word)){solveWord(selected,false);return;}
    if(selected.length>=puzzle.seed.length)solveWord(selected,true);
   }
+  root.querySelector("#qqWheelBulb").onclick=()=>{
+   const target=puzzle.words.find(w=>!solved.has(w));if(!target)return;
+   if(!window.QQEconomy?.useBulb?.())return;
+   const index=puzzle.seed.indexOf(target[0]),button=wheel.querySelector('[data-index="'+index+'"]');
+   button?.classList.add("qq-wheel-hinted");button?.scrollIntoView({block:"nearest",inline:"nearest"});
+   answer.textContent="Начни с подсвеченной буквы";
+  };
   wheel.addEventListener("pointerdown",e=>{
    const b=e.target.closest("[data-index]");if(!b||completed)return;
    e.preventDefault();dragging=true;dragPath=false;dragSelection=[+b.dataset.index];lastDragIndex=+b.dataset.index;
@@ -299,7 +349,7 @@ function mountCody(root,onExit,clues,words){
  const STORAGE_KEY="qqcross.cody.progress.v3";
  const SECRET_WORDS=["ПУТЕШЕСТВИЕ","ПРИКЛЮЧЕНИЕ","ВООБРАЖЕНИЕ","ОБРАЗОВАНИЕ","ТЕЛЕВИДЕНИЕ","АРХИТЕКТУРА","ЛИТЕРАТУРА","ФОТОГРАФИЯ","БИБЛИОТЕКА","МАТЕМАТИКА","ГЕОГРАФИЯ","ЭКОНОМИКА","ТЕХНОЛОГИЯ","ЭНЦИКЛОПЕДИЯ","КОМПЬЮТЕРЫ","ИЗОБРАЖЕНИЕ","УВЛЕЧЕНИЕ","ПРОИЗВЕДЕНИЕ","СОЗВЕЗДИЕ","ИССЛЕДОВАНИЕ","ПРЕДПРИЯТИЕ","САМОРАЗВИТИЕ","КОНСТРУКЦИЯ","НАБЛЮДЕНИЕ","ПРОФЕССИЯ","СОРЕВНОВАНИЕ","МОРЕПЛАВАНИЕ","ПЕРЕПЛЕТЕНИЕ","ПЕРЕМЕЩЕНИЕ","УДИВЛЕНИЕ","ЗНАМЕНИТОСТЬ","ВЫРАЖЕНИЕ","СОДЕРЖАНИЕ"];
  const GROUP_NAMES=["Первые шаги","Словесная тропа","Новые загадки","Путь эрудита","Первые открытия","Мир вопросов","Загадки вокруг","Продолжаем путь","Сложнее и интереснее","Словесный маршрут","Новые горизонты","Проверка знаний","Дальняя дорога","Большая экспедиция","Мастер слова","Секреты букв","Трудные вопросы","Высший уровень","Финальные загадки","Последний рубеж"];
- const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&/[А-Яа-яЁёA-Za-z]/.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,9}$/.test(x.answer)&&x.clue.length>3);
+ const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&!/^что изображено\b/i.test(x.clue.trim())&&/[А-Яа-яЁёA-Za-z]/.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,9}$/.test(x.answer)&&x.clue.length>3);
  const pool=[...new Map(cleanClues.map(x=>[x.answer,x])).values()].sort((a,b)=>a.answer.localeCompare(b.answer,"ru"));
  const randomFor=seed=>{let x=(seed>>>0)||1;return()=>{x=(x+0x6D2B79F5)>>>0;let t=x;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
  const shuffleSeed=(arr,rng)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -366,21 +416,21 @@ function mountCody(root,onExit,clues,words){
    const view=root.querySelector("#qqCodyView");view.className="qq-cody-puzzle-view";root.querySelector(".qq-cody-app").classList.add("qq-cody-playing");const draft=s.drafts[active]||{};
    view.classList.add("qq-cody-puzzle-view");
    const secretView=puzzle.secret.split("").map((ch,i)=>{const row=puzzle.items[i],j=row.crossIndex;return '<span class="'+(revealed(i,j)?"open":"")+'">'+(revealed(i,j)?ch:"·")+'</span>';}).join("");
-   view.innerHTML='<div class="qq-cody-level-top"><span>ГРУППА '+(group+1)+' · УРОВЕНЬ '+((puzzle.level%PER_GROUP)+1)+'</span><b>'+s.solved.length+' / '+puzzle.items.length+'</b></div><div class="qq-cody-progress-track"><span style="width:'+s.solved.length/puzzle.items.length*100+'%"></span></div><div class="qq-cody-secret-wrap"><div class="qq-cody-secret-label">СЕКРЕТНОЕ СЛОВО</div><div class="qq-cody-secret">'+secretView+'</div></div><div class="qq-cody-play-layout" style="--qq-cody-rows:'+puzzle.rows+'">'+puzzle.items.map((x,i)=>rowMarkup(i)).join("")+'</div><div class="qq-cody-tools"><button type="button" class="btn" id="qqCodyLoupe">⌕ Лупа</button><button type="button" class="btn" id="qqCodyHint">Подсказка</button></div><div class="qq-cody-keyboard" aria-label="Русская клавиатура"><div class="qq-cody-key-row">'+("ЙЦУКЕНГШЩЗХЪ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ФЫВАПРОЛДЖЭ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ЯЧСМИТЬБЮ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row special"><button type="button" data-action="delete">⌫</button><button type="button" data-action="clear">Очистить</button><button type="button" data-action="check">Проверить</button></div></div><p class="qq-cody-message" id="qqCodyMessage" aria-live="polite">'+escapeHtml(message)+'</p>';
+   view.innerHTML='<div class="qq-cody-level-top"><span>ГРУППА '+(group+1)+' · УРОВЕНЬ '+((puzzle.level%PER_GROUP)+1)+'</span><b>'+s.solved.length+' / '+puzzle.items.length+'</b></div><div class="qq-cody-progress-track"><span style="width:'+s.solved.length/puzzle.items.length*100+'%"></span></div><div class="qq-cody-secret-wrap"><div class="qq-cody-secret-label">СЕКРЕТНОЕ СЛОВО</div><div class="qq-cody-secret">'+secretView+'</div></div><div class="qq-cody-play-layout" style="--qq-cody-rows:'+puzzle.rows+'">'+puzzle.items.map((x,i)=>rowMarkup(i)).join("")+'</div><div class="qq-cody-tools"><button type="button" class="btn" id="qqCodyLoupe">⌕ Лупа</button><button type="button" class="btn" id="qqCodyHint">💡 Подсказка</button></div><div class="qq-cody-keyboard" aria-label="Русская клавиатура"><div class="qq-cody-key-row">'+("ЙЦУКЕНГШЩЗХЪ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ФЫВАПРОЛДЖЭ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row">'+("ЯЧСМИТЬБЮ").split("").map(k=>'<button type="button" data-letter="'+k+'">'+k+'</button>').join("")+'</div><div class="qq-cody-key-row special"><button type="button" data-action="delete">⌫</button><button type="button" data-action="clear">Очистить</button><button type="button" data-action="check">Проверить</button></div></div><p class="qq-cody-message" id="qqCodyMessage" aria-live="polite">'+escapeHtml(message)+'</p>';
    view.querySelectorAll("[data-word]").forEach(b=>b.onclick=()=>{active=+b.dataset.word;cursor=+b.dataset.slot;message="Выбрана клетка "+(cursor+1)+" из "+puzzle.items[active].answer.length+".";render();});
    view.querySelectorAll("[data-clue]").forEach(b=>b.onclick=()=>{active=+b.dataset.clue;cursor=firstMissing(active);message="Вопрос выбран.";render();});
    view.querySelectorAll("[data-letter]").forEach(b=>b.onclick=()=>enterLetter(b.dataset.letter));
    view.querySelector('[data-action="delete"]').onclick=deleteLetter;
    view.querySelector('[data-action="clear"]').onclick=()=>{s.drafts[active]={};cursor=firstMissing(active);message="Введённые буквы очищены.";persist();render();};
    view.querySelector('[data-action="check"]').onclick=checkAnswer;
-   view.querySelector("#qqCodyLoupe").onclick=()=>revealLetter(cursor);
-   view.querySelector("#qqCodyHint").onclick=()=>revealLetter(firstMissing(active));
+   view.querySelector("#qqCodyLoupe").onclick=()=>{if(window.QQEconomy?.useMagnifier?.())revealLetter(cursor);};
+   view.querySelector("#qqCodyHint").onclick=()=>{if(window.QQEconomy?.useBulb?.())revealLetter(firstMissing(active));};
   }
   function firstMissing(i){const item=puzzle.items[i],draft=s.drafts[i]||{};for(let j=0;j<item.answer.length;j++)if(!revealed(i,j)&&!draft[j])return j;for(let j=0;j<item.answer.length;j++)if(!revealed(i,j))return j;return 0;}
   function enterLetter(letter){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||(s.drafts[active]={});let pos=cursor;while(pos<item.answer.length&&(revealed(active,pos)||draft[pos]))pos++;if(pos>=item.answer.length)pos=firstMissing(active);if(revealed(active,pos))return;draft[pos]=letter;cursor=Math.min(item.answer.length-1,pos+1);message="";sound("letter");persist();render();}
   function deleteLetter(){if(isSolved(active))return;const draft=s.drafts[active]||(s.drafts[active]={});let pos=Math.min(cursor,puzzle.items[active].answer.length-1);while(pos>=0&&(!draft[pos]||revealed(active,pos)))pos--;if(pos<0)pos=firstMissing(active);delete draft[pos];cursor=Math.max(0,pos);message="";persist();render();}
   function revealLetter(pos){if(isSolved(active))return;const item=puzzle.items[active];if(pos<0||pos>=item.answer.length||revealed(active,pos)){pos=firstMissing(active);if(revealed(active,pos)){message="В этом слове все буквы уже открыты.";render();return;}}const list=s.revealed[active]||(s.revealed[active]=[]);if(!list.includes(pos))list.push(pos);if(s.drafts[active])delete s.drafts[active][pos];cursor=firstMissing(active);message="Открыта буква «"+item.answer[pos]+"».";sound("hint");persist();render();}
-  function checkAnswer(){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||{};let typed="";for(let j=0;j<item.answer.length;j++)typed+=revealed(active,j)?item.answer[j]:(draft[j]||"");if(typed.length!==item.answer.length){message="Заполни все клетки слова.";render();return;}if(typed!==item.answer){message="Ответ не совпал. Попробуй ещё раз.";s.drafts[active]={};cursor=0;sound("hint");persist();render();return;}s.solved.push(item.answer);window.QQProgression?.recordWord?.(item.answer);delete s.drafts[active];const next=puzzle.items.findIndex((x,i)=>!isSolved(i));if(next>=0){const target=puzzle.items[next],hidden=target.answer.split("").map((_,i)=>i).filter(i=>i!==target.crossIndex&&!revealed(next,i));if(hidden.length){const rng=randomFor(7000+puzzle.level*31+s.solved.length);const pos=hidden[Math.floor(rng()*hidden.length)];const arr=s.revealed[next]||(s.revealed[next]=[]);if(!arr.includes(pos))arr.push(pos);}}message="Верно! Буквы появились в пересекающихся клетках.";sound(s.solved.length===puzzle.items.length?"win":"good");persist();if(s.solved.length===puzzle.items.length){window.QQProgression?.recordUnique("codyLevels","cody:"+id);if(!progress.completed.includes(id))progress.completed.push(id);if(groupDone(group))window.QQProgression?.recordUnique("groups","cody-group:"+group);save();renderComplete();return;}active=next;cursor=firstMissing(active);render();}
+  function checkAnswer(){if(isSolved(active))return;const item=puzzle.items[active],draft=s.drafts[active]||{};let typed="";for(let j=0;j<item.answer.length;j++)typed+=revealed(active,j)?item.answer[j]:(draft[j]||"");if(typed.length!==item.answer.length){message="Заполни все клетки слова.";render();return;}if(typed!==item.answer){message="Ответ не совпал. Попробуй ещё раз.";s.drafts[active]={};cursor=0;sound("hint");persist();render();return;}s.solved.push(item.answer);window.QQProgression?.recordWord?.(item.answer);delete s.drafts[active];const next=puzzle.items.findIndex((x,i)=>!isSolved(i));if(next>=0){const target=puzzle.items[next],hidden=target.answer.split("").map((_,i)=>i).filter(i=>i!==target.crossIndex&&!revealed(next,i));if(hidden.length){const rng=randomFor(7000+puzzle.level*31+s.solved.length);const pos=hidden[Math.floor(rng()*hidden.length)];const arr=s.revealed[next]||(s.revealed[next]=[]);if(!arr.includes(pos))arr.push(pos);}}message="Верно! Буквы появились в пересекающихся клетках.";sound(s.solved.length===puzzle.items.length?"win":"good");persist();if(s.solved.length===puzzle.items.length){window.QQEconomy?.awardLevel?.("cody",Number(id.slice(1)));window.QQProgression?.recordUnique("codyLevels","cody:"+id);if(!progress.completed.includes(id))progress.completed.push(id);if(groupDone(group))window.QQProgression?.recordUnique("groups","cody-group:"+group);save();renderComplete();return;}active=next;cursor=firstMissing(active);render();}
   renderTop("Кроссворд "+((puzzle.level%PER_GROUP)+1),"Группа",()=>renderGroup(group));render();if(s.solved.length===puzzle.items.length)renderComplete();
  }
  function renderComplete(){
@@ -397,10 +447,12 @@ function mountCody(root,onExit,clues,words){
 }
 async function mount(root,mode,onExit){
  try{
-  const words=await loadLexicon();
+  const words=await loadLexicon(),clues=await loadClues();
+  clueIndex=new Map();
+  clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&!/^что изображено\b/i.test(clue)&&!/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
   if(mode==="search")mountSearch(root,onExit,words);
   else if(mode==="wheel")mountWheel(root,onExit,words);
-  else if(mode==="cody")mountCody(root,onExit,await loadClues(),words);
+  else if(mode==="cody")mountCody(root,onExit,clues,words);
   else throw new Error("Неизвестный режим");
  }catch(error){
   shell(root,"QQCross",onExit,'<div class="card"><h3>Не удалось открыть игру</h3><p class="muted">'+escapeHtml(error.message||"Ошибка загрузки данных")+'</p><p class="qq-extra-small">Проверь подключение и обнови приложение. Игровые данные не изменены.</p><button class="btn primary full" id="qqExtraRetry">Повторить</button></div>');

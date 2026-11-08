@@ -1103,7 +1103,7 @@ html[data-qq-theme="light"] .scanword-question-index{background:#dceefa!importan
 
 /* Word of Wonders: compact mobile-first board and functional letter-wheel. */
 .qq-wow-screen{height:100dvh!important;max-height:100dvh!important;min-height:0!important;overflow:hidden!important;box-sizing:border-box!important;display:flex!important;flex-direction:column!important;padding:4px 8px max(4px,env(safe-area-inset-bottom))!important;gap:2px!important}
-.qq-wow-screen>.qq-extra-top{flex:0 0 auto!important;min-height:32px!important;margin:0!important;padding:2px 0!important}
+.qq-wow-screen>.qq-extra-top{position:relative!important;z-index:30!important;flex:0 0 auto!important;min-height:32px!important;margin:0!important;padding:2px 0!important}.qq-wow-screen .qq-cross-board,.qq-wow-screen .qq-cross-board *{pointer-events:none!important}
 .qq-wow-screen .qq-extra-sub{flex:0 0 auto!important;margin:0!important;text-align:center!important;font-size:11px!important;line-height:1.2!important}
 .qq-wow-screen .qq-wheel-progress{flex:0 0 auto!important;margin:2px auto!important;padding:5px 9px!important;font-size:11px!important;width:min(100%,280px)!important}
 .qq-wow-screen .qq-cross-board{flex:0 0 auto!important;width:min(100%,340px)!important;max-width:100%!important;aspect-ratio:auto!important;grid-template-rows:repeat(var(--qq-cols),clamp(12px,2.45vh,18px))!important;grid-auto-rows:clamp(12px,2.45vh,18px)!important;gap:2px!important;margin:2px auto!important}
@@ -1739,3 +1739,43 @@ html[data-qq-theme] .wordle-key.present,
 html[data-qq-theme] .wordle-tile.present{background:#b18b35!important;border-color:#b18b35!important;color:#fff!important}
 html[data-qq-theme] .wordle-key.absent,
 html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-muted)!important}
+
+/* Compact in-game shop and clue panels */
+.qq-shop-note{margin:-6px 0 12px}
+.qq-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.qq-shop-item{min-width:0;padding:11px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-panel,var(--panel));display:flex;flex-direction:column;gap:8px}
+.qq-shop-item-head{display:flex;align-items:center;gap:9px;min-width:0}
+.qq-shop-icon{width:38px;height:38px;flex:0 0 38px;border-radius:11px;display:grid;place-items:center;background:var(--qq-theme-panel-2,var(--panel2));font-size:22px}
+.qq-shop-item-copy{min-width:0;display:flex;flex-direction:column;gap:3px}
+.qq-shop-item-copy b{font-size:13px;line-height:1.15}
+.qq-shop-item-copy small{font-size:10px;line-height:1.25;color:var(--qq-theme-muted,var(--muted))}
+.qq-shop-stock{font-size:11px;color:var(--qq-theme-muted,var(--muted))}
+.qq-shop-stock b{color:var(--qq-theme-text,var(--text))}
+.qq-shop-buy{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.qq-shop-buy .btn{min-width:0;padding:8px 3px;font-size:10px;white-space:nowrap}
+.qq-search-clues{width:min(100%,560px);max-height:17vh;overflow-y:auto;overscroll-behavior:contain;margin:7px auto 5px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.qq-search-clue,.qq-wow-clue{min-width:0;display:flex;align-items:flex-start;gap:5px;padding:5px 7px;border:1px solid var(--qq-theme-border,var(--line));border-radius:7px;background:var(--qq-theme-panel,var(--panel));color:var(--qq-theme-text,var(--text));font-size:10px;line-height:1.22}
+.qq-search-clue>b,.qq-wow-clue>b{flex:0 0 auto;color:var(--qq-theme-accent,var(--purple))}
+.qq-search-clue.done,.qq-wow-clue.done{opacity:.58;border-color:#54856c;background:#1c3028}
+.qq-search-clue.hinted{border-color:#d6b85d;box-shadow:inset 0 0 0 1px #d6b85d}
+.qq-search-actions{width:min(100%,560px);margin:4px auto;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.qq-search-actions .qq-search-hint{flex:1;text-align:left}
+.qq-search-actions .btn{flex:0 0 auto;padding:7px 10px;font-size:11px}
+.qq-search-cell.qq-search-hinted{outline:3px solid #e7c65e;outline-offset:-3px;background:#6c5930;color:#fff}
+.qq-wow-clues{width:min(100%,560px);max-height:13vh;overflow-y:auto;overscroll-behavior:contain;margin:7px auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+.qq-wheel-actions{grid-template-columns:1fr 1.2fr .8fr}
+.qq-wheel-letter.qq-wheel-hinted{outline:3px solid #e7c65e;outline-offset:2px;box-shadow:0 0 0 5px #e7c65e33}
+#bulb{border-color:#b89b4b}
+@media(max-width:380px){
+ .qq-shop-grid{gap:7px}.qq-shop-item{padding:9px}.qq-shop-icon{width:33px;height:33px;flex-basis:33px;font-size:19px}
+ .qq-shop-buy .btn{font-size:9px;padding:7px 1px}
+ .qq-search-clues,.qq-wow-clues{grid-template-columns:1fr;max-height:16vh}
+ .qq-search-actions .btn{padding:6px 8px}
+}
+@media(max-height:760px){
+ .qq-search-screen .qq-search-grid{width:min(100%,42vh,500px)!important;max-height:42vh!important}
+ .qq-search-clues{max-height:15vh}
+ .qq-wow-clues{max-height:11vh}
+}
+
+.qq-search-screen .qq-search-grid{width:min(100%,44vh,520px)!important;max-height:44vh!important}
