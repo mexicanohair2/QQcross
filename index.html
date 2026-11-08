@@ -17,7 +17,7 @@
   function showBootError(message){
     var root=document.getElementById("app");
     if(!root || !root.textContent.includes("Загрузка игры")) return;
-    root.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#08060f;color:#e5dce0;font:16px system-ui;text-align:center"><div><div style="font-size:42px;font-weight:800;color:#b9a4ed">QQ</div><h2>Не удалось запустить QQCross</h2><p style="color:#b9b2c5;max-width:320px">'+String(message||"Скрипт игры не запустился").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+'</p><button onclick="location.reload()" style="border:0;border-radius:12px;padding:13px 22px;background:#8b70c9;color:#f0e5e8;font-weight:700">Обновить игру</button></div></div>';
+    root.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#24151d;color:#f7edf0;font:16px system-ui;text-align:center"><div><div style="font-size:42px;font-weight:800;color:#d4b6a7">QQ</div><h2>Не удалось запустить QQCross</h2><p style="color:#b9b2c5;max-width:320px">'+String(message||"Скрипт игры не запустился").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+'</p><button onclick="location.reload()" style="border:0;border-radius:12px;padding:13px 22px;background:#8c586b;color:#f0e5e8;font-weight:700">Обновить игру</button></div></div>';
   }
   window.addEventListener("error",function(e){showBootError(e.message+" ("+(e.filename||"")+(e.lineno?":"+e.lineno:"")+")")});
   window.addEventListener("unhandledrejection",function(e){var r=e.reason;showBootError(r&&r.message?r.message:String(r||"Ошибка запуска"))});
