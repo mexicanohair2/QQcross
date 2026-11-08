@@ -1789,24 +1789,3 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
 .qq-search-word.done{border-color:#54856c;background:#1c3028;color:#d8f0df;opacity:.72;text-decoration:line-through;text-decoration-thickness:1.5px}
 .qq-search-word.hinted{border-color:#d6b85d;box-shadow:inset 0 0 0 1px #d6b85d}
 @media(max-height:680px){.qq-search-screen .qq-search-targets{max-height:10vh}.qq-search-targets-wrap{margin-top:0}}
-
-
-/* Scanword: full-width 15x15 board and a real modal opened from clue cells. */
-.game-screen .scanword-play-area{display:block!important;position:relative!important;flex:1 1 0!important;width:100%!important;min-width:0!important;min-height:0!important;overflow:hidden!important}
-.game-screen .scanword-wrap{width:100%!important;min-width:0!important;min-height:0!important;flex:1 1 auto!important}
-.game-screen .scanword-board{width:min(96vw,calc(100dvh - 185px),860px)!important;height:min(96vw,calc(100dvh - 185px),860px)!important;max-width:100%!important;max-height:100%!important;margin:auto!important}
-.game-screen .scanword-questions{display:none!important}
-.game-screen .scanword-questions.is-open{display:flex!important;position:fixed!important;z-index:10020!important;inset:0!important;width:100vw!important;height:100dvh!important;max-height:100dvh!important;min-width:0!important;min-height:0!important;box-sizing:border-box!important;padding:20px!important;border:0!important;border-radius:0!important;background:#09070bd9!important;backdrop-filter:blur(5px)!important;align-items:center!important;justify-content:center!important;overflow:auto!important}
-.game-screen .scanword-questions.is-open .scanword-question-current{width:min(100%,420px)!important;max-height:none!important;flex:0 1 auto!important;padding:22px!important;border-radius:18px!important;background:var(--qq-theme-card,#261b23)!important;border:1px solid var(--qq-theme-accent,#87566a)!important;box-shadow:0 18px 60px #0009!important}
-.game-screen .scanword-questions.is-open .scanword-question-kicker{font-size:10px!important;letter-spacing:.12em!important}
-.game-screen .scanword-questions.is-open .scanword-question-full{font-size:clamp(17px,4.5vw,22px)!important;line-height:1.35!important;max-height:45dvh!important;overflow:auto!important}
-.game-screen .scanword-questions.is-open .scanword-question-meta{font-size:12px!important;margin-top:12px!important}
-.game-screen .scanword-questions.is-open .scanword-smart-hints{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;width:min(100%,420px)!important;gap:7px!important}
-.game-screen .scanword-questions.is-open .scanword-smart-hints button{min-width:0!important;padding:11px 5px!important;font-size:11px!important}
-.game-screen .scanword-questions.is-open .scanword-hint-message{width:min(100%,420px)!important;min-height:20px!important}
-.scanword-popup-close{position:absolute!important;top:calc(env(safe-area-inset-top) + 16px)!important;right:16px!important;width:42px!important;height:42px!important;border:1px solid var(--qq-theme-border,#74515e)!important;border-radius:50%!important;background:var(--qq-theme-panel,#33232d)!important;color:var(--qq-theme-text,#fff)!important;font-size:28px!important;line-height:1!important}
-@media(max-height:620px){.game-screen .scanword-board{width:min(96vw,calc(100dvh - 150px))!important;height:min(96vw,calc(100dvh - 150px))!important}.game-screen .scanword-questions.is-open{padding:12px!important}}
-
-.game-screen .scanword-popup-choices{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:7px!important;width:min(100%,420px)!important}
-.game-screen .scanword-popup-choice{border:1px solid var(--qq-theme-border,#74515e)!important;border-radius:10px!important;padding:8px 11px!important;background:var(--qq-theme-panel,#33232d)!important;color:var(--qq-theme-text,#fff)!important;font-size:11px!important}
-.game-screen .scanword-popup-choice.active{border-color:var(--qq-theme-accent,#a47a8b)!important;background:var(--qq-theme-panel-strong,#57404c)!important}
