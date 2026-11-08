@@ -221,7 +221,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="cody"]').click();
   await expect(page.locator(".qq-cody-world")).toBeVisible();
-  await expect(page.locator(".qq-cody-group")).toHaveCount(20);
+  await expect(page.locator(".qq-cody-group")).toHaveCount(220);
   await page.locator('[data-group="0"]').click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator('[data-level="0"]').click();
@@ -244,7 +244,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator("#qqCodyBack").click();
-  await expect(page.locator(".qq-cody-group")).toHaveCount(20);
+  await expect(page.locator(".qq-cody-group")).toHaveCount(220);
   expect(errors).toEqual([]);
 });
 
@@ -267,4 +267,55 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
   const cleanWord = word => /^[А-Я]{2,18}$/.test(word) && !blocked.has(word) && !/(.)\1\1/.test(word);
   expect(wordle.valid.map(normalize).filter(cleanWord).every(word => master.has(word))).toBe(true);
   expect(scanwords.map(entry => normalize(entry.answer)).filter(cleanWord).every(word => master.has(word))).toBe(true);
+});
+
+
+test("all palette and appearance combinations apply globally and persist", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+
+  await expect(page.locator("#qqSettingsGear")).toBeVisible();
+  await expect(page.locator('.nav [data-tab="Настройки"]')).toHaveCount(0);
+  await page.locator("#qqSettingsGear").click();
+  await expect(page.getByRole("heading", { name: "Настройки" })).toBeVisible();
+
+  const root = page.locator("html");
+  for (const palette of ["burgundy", "purple", "gray"]) {
+    await page.locator('[data-theme-choice="' + palette + '"]').click();
+    await expect(root).toHaveAttribute("data-qq-theme", palette);
+    await expect(page.locator('[data-theme-choice="' + palette + '"]')).toHaveClass(/selected/);
+    for (const mode of ["dark", "light"]) {
+      await page.locator('[data-mode-choice="' + mode + '"]').click();
+      await expect(root).toHaveAttribute("data-qq-mode", mode);
+      const tokens = await page.evaluate(() => ({
+        accent: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-accent").trim(),
+        text: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-text").trim(),
+        scheme: getComputedStyle(document.documentElement).colorScheme
+      }));
+      expect(tokens.accent).not.toBe("");
+      expect(tokens.text).not.toBe("");
+      expect(tokens.scheme).toBe(mode);
+    }
+  }
+
+  const saved = await page.evaluate(() => ({
+    palette: localStorage.getItem("qqcross_theme_v1"),
+    mode: localStorage.getItem("qqcross_appearance_mode_v1")
+  }));
+  expect(saved).toEqual({ palette: "gray", mode: "light" });
+
+  await page.locator('[data-theme-choice="purple"]').click();
+  await page.locator('[data-mode-choice="light"]').click();
+  await page.locator('[data-tab="Главная"]').click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  await expect(page.locator(".qq-search-cell")).toHaveCount(81);
+  const cellStyle = await page.locator(".qq-search-cell").first().evaluate(el => ({
+    background: getComputedStyle(el).backgroundImage,
+    color: getComputedStyle(el).color
+  }));
+  expect(cellStyle.background).not.toBe("none");
+  expect(cellStyle.color).not.toBe("rgb(255, 255, 255)");
 });
