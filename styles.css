@@ -1817,3 +1817,37 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
 /* Final phone fit: no directional glyphs or question-number pseudo badges. */
 .scanword-board>.scan-cell.scan-clue::before,
 .scanword-board>.scan-cell.scan-clue::after{content:none!important;display:none!important}
+
+
+/* Highest-priority text clue layout: logic clues must wrap, never inherit emoji nowrap. */
+html body .scanword-board > button.scan-cell.scan-clue.scan-clue-logic:not(.scan-clue-picture) > span.scan-clue-text,
+html body .scanword-board > button.scan-cell.scan-clue:not(.scan-clue-emoji):not(.scan-clue-picture) > span.scan-clue-text{
+  display:-webkit-box!important;
+  width:100%!important;
+  height:100%!important;
+  max-height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  padding:0 1px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  -webkit-box-orient:vertical!important;
+  -webkit-line-clamp:3!important;
+  line-clamp:3!important;
+  font-size:clamp(6px,1.75vw,7.5px)!important;
+  line-height:1.04!important;
+  letter-spacing:-.12px!important;
+  text-align:center!important;
+  font-weight:850!important;
+  color:var(--qq-theme-text,#fff)!important;
+  text-shadow:none!important;
+}
+html body .scanword-board > button.scan-cell.scan-clue.scan-clue-logic.scan-clue-multi:not(.scan-clue-picture) > span.scan-clue-text{
+  -webkit-line-clamp:3!important;
+  line-clamp:3!important;
+  white-space:normal!important;
+}
