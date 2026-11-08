@@ -29,6 +29,15 @@ def main() -> None:
     malformed = [w for w in words if TRIPLE.search(w)]
     if malformed:
         raise SystemExit(f"В словаре остались записи с тремя одинаковыми буквами подряд: {malformed[:10]}")
+    common_data = json.loads((ROOT / "data/russian-words-common-25000.json").read_text(encoding="utf-8"))
+    common_words = common_data.get("words")
+    if common_data.get("language") != "ru" or common_data.get("count") != 25_000:
+        raise SystemExit("Неверные метаданные частотного словаря: ожидалось ровно 25 000 слов.")
+    if not isinstance(common_words, list) or len(common_words) != 25_000 or len(set(common_words)) != 25_000:
+        raise SystemExit("Частотный словарь должен содержать ровно 25 000 уникальных слов.")
+    common_invalid = [w for w in common_words if not isinstance(w, str) or not WORD.fullmatch(w) or w in BAD or TRIPLE.search(w)]
+    if common_invalid:
+        raise SystemExit(f"Некорректные частотные записи: {common_invalid[:10]}")
     lexicon = set(words)
     wordle = json.loads((ROOT / "data/wordle-words.json").read_text(encoding="utf-8"))
     scanword = json.loads((ROOT / "data/scanword-dictionary.json").read_text(encoding="utf-8"))
@@ -37,6 +46,6 @@ def main() -> None:
     missing = (required_wordle | required_scanword) - lexicon
     if missing:
         raise SystemExit(f"Потеряны слова из игровых словарей: {sorted(missing)[:20]}")
-    print(f"OK: {len(words):,} уникальных русских записей; {len(required_wordle):,} слов Wordle и {len(required_scanword):,} ответов сканворда сохранены.".replace(",", " "))
+    print(f"OK: {len(words):,} слов в общей базе; {len(common_words):,} частотных слов; {len(required_wordle):,} слов Wordle и {len(required_scanword):,} ответов сканворда сохранены.".replace(",", " "))
 if __name__ == "__main__":
     main()
