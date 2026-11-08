@@ -303,6 +303,16 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-row-clue-text")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   await expect(page.locator(".qq-cody-row")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   expect(await page.locator(".qq-cody-row").count()).toBeGreaterThanOrEqual(9);
+  const clueGeometry = await page.locator(".qq-cody-row").first().evaluate(row => {
+    const clue = row.querySelector(".qq-cody-row-clue").getBoundingClientRect();
+    const cells = row.querySelector(".qq-cody-row-cells").getBoundingClientRect();
+    return { clueRight: clue.right, cellsLeft: cells.left, clueHeight: clue.height, cellsHeight: cells.height };
+  });
+  expect(clueGeometry.clueRight).toBeLessThanOrEqual(clueGeometry.cellsLeft + 1);
+  expect(clueGeometry.clueHeight).toBeGreaterThan(0);
+  expect(clueGeometry.cellsHeight).toBeGreaterThan(0);
+  const codyViewport = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(codyViewport.s).toBeLessThanOrEqual(codyViewport.h + 1);
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
   await expect(page.locator("input")).toHaveCount(0);
