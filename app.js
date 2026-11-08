@@ -972,7 +972,7 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(y<0||x<0||y>=N||x>=N||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
@@ -980,8 +980,8 @@ function buildScanword(entries){
       let terminalCanContinue=terminalWords.length>0;
       if(!terminalCanContinue)for(const nextDir of dirs){
         const p1=[endY+nextDir.dy,endX+nextDir.dx],p2=[endY+nextDir.dy*2,endX+nextDir.dx*2],p3=[endY+nextDir.dy*3,endX+nextDir.dx*3];
-        const inside=p3[0]>=0&&p3[1]>=0&&p3[0]<N&&p3[1]<N;
-        if(inside&&!clueAt.has(p1[0]+","+p1[1])&&!clueAt.has(p2[0]+","+p2[1])&&!occupied.has(p3[0]+","+p3[1])){terminalCanContinue=true;break;}
+        const inside=[p1,p2,p3].every(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N);
+        if(inside&&!clueAt.has(p1[0]+","+p1[1])&&!clueAt.has(p2[0]+","+p2[1])&&!occupied.has(p1[0]+","+p1[1])&&!occupied.has(p2[0]+","+p2[1])&&!occupied.has(p3[0]+","+p3[1])){terminalCanContinue=true;break;}
       }
       if(!terminalCanContinue)return false;
       for(let k=1;k<=entry.answer.length;k++){
@@ -1028,7 +1028,7 @@ function buildScanword(entries){
       for(const e of normalized){
         if(e.answer===first.answer||e.answer.length<3)continue;
         for(let p=0;p<Math.min(7,e.answer.length);p++){
-          if(e.answer[p]===letter&&firstY-p-1+e.answer.length<N){
+          if(e.answer[p]===letter&&firstY-p-1>=0&&firstY-p-1+e.answer.length<N){
             const choice={entry:e,x,y:firstY-p-1};
             if(e.imageKey)imageSeedSeen=keepRandom(imageSeedChoices,choice,imageSeedSeen,60);
             else regularSeedSeen=keepRandom(regularSeedChoices,choice,regularSeedSeen,120);
