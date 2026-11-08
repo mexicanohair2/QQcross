@@ -1114,8 +1114,10 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            const continuesFromAnswer=anchor.existing&&anchor.list.length===0;
-            if(!valid||(!crosses&&!continuesFromAnswer))continue;
+            // New clue cells may start a word when they touch an existing
+            // answer. Empty terminal clue cells are the normal continuation.
+            const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
+            if(!valid||(!crosses&&!attachedQuestionStart))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             if(crosses){
@@ -1138,7 +1140,7 @@ function buildScanword(entries){
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
             // One-letter answers remain a last-resort repair only.
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,continuesFromAnswer,length===1)){closing=true;break}
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1)){closing=true;break}
           }
         }
       }
