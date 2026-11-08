@@ -1341,13 +1341,14 @@ function renderGame(root){
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
-    if(!activeWord)return;
+    const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
+    if(!hintWord)return;
     const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
     if(level!=="strong"){
       if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-      out.textContent=getScanwordHint(activeWord,level);window.QQProgression?.record?.("hintsUsed");return;
+      out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
     }
-    const key=activeWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
+    const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
     if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
     if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
     state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
@@ -1373,7 +1374,7 @@ function renderGame(root){
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
+      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Открыть букву</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
       const options=popup.querySelector(".clue-popup-options");
       const close=()=>popup.remove();
       const showQuestion=word=>{
