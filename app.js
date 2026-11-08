@@ -1002,7 +1002,10 @@ function buildScanword(entries){
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
     if(pictureSeeds.length<3)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=5,firstX=Math.max(0,Math.floor((N-first.answer.length-1)/2));
+    // Vary the initial anchor on each restart; a fixed middle row repeatedly
+    // creates the same two-cell dead ends near the upper-left edge.
+    const firstY=1+Math.floor(Math.random()*(N-2));
+    const firstX=Math.floor(Math.random()*(N-first.answer.length-1));
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
