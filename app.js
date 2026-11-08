@@ -1003,7 +1003,8 @@ function buildScanword(entries){
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
     if(pictureSeeds.length<3)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=5,firstX=Math.max(0,Math.floor((N-first.answer.length-1)/2));
+    const firstY=1+Math.floor(Math.random()*(N-2));
+    const firstX=Math.floor(Math.random()*(N-first.answer.length-1));
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
@@ -1115,12 +1116,13 @@ function buildScanword(entries){
         anchors.push(...emptyQuestions);
       }else{
         [...clueAt.entries()].reverse().forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
-        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-          const key=y+","+x;
-          if(occupied.has(key)||clueAt.has(key))continue;
-          const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
-          if(adjacent)anchors.push({y,x,existing:false,list:[]});
-        }
+      }
+      // Consider the full aligned frontier so the last narrow gaps remain reachable.
+      // A candidate still must cross existing letters or start next to an existing
+      // answer; distant frontier cells may never create disconnected word islands.
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+        const key=y+","+x;
+        if(!occupied.has(key)&&!clueAt.has(key)&&frontier.has(key))anchors.push({y,x,existing:false,list:[]});
       }
       anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
@@ -1142,7 +1144,8 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
+            const adjacentToOccupied=[[anchor.y-1,anchor.x],[anchor.y+1,anchor.x],[anchor.y,anchor.x-1],[anchor.y,anchor.x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
+            const attachedQuestionStart=((anchor.existing&&anchor.list.length===0)||!anchor.existing)&&adjacentToOccupied;
             if(!valid||(!crosses&&!attachedQuestionStart&&!(length===1&&anchor.existing)))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
