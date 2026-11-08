@@ -21,7 +21,7 @@ function applyTheme(theme=activeTheme){
 applyTheme(activeTheme);
 const BACKGROUNDS=[["misty-forest","Туманный лес","nature"],["sakura-dawn","Сакуровый рассвет","nature"],["starry-night","Звёздная ночь","nature"],["autumn-grove","Осенняя роща","nature"],["winter-pines","Зимние ели","nature"],["mountain-lake","Горное озеро","nature"],["ocean-shore","Морской берег","nature"],["spring-rain","Весенний дождь","nature"],["golden-dusk","Золотые сумерки","nature"],["coral-sunset","Коралловый закат","nature"],["desert-dawn","Рассвет в пустыне","nature"],["waterfall","Тихий водопад","nature"],["blue-orbits","Синие орбиты","abstract"],["mint-mist","Мятный туман","abstract"],["peach-light","Персиковый свет","abstract"],["lagoon-glow","Бирюзовая лагуна","abstract"],["warm-amber","Тёплый янтарь","abstract"],["ink-night","Чернильная ночь","abstract"],["rose-quartz","Розовый кварц","abstract"],["watercolor","Акварель","abstract"]];
 const BACKGROUND_KEY="qqcross_background_v1";
-let abstractEnabled=(()=>{try{return localStorage.getItem("qqcross_abstract_enabled")!=="false"}catch{return true}})();
+let abstractEnabled=true;
 let activeBackground=(()=>{try{const v=localStorage.getItem(BACKGROUND_KEY);return BACKGROUNDS.some(x=>x[0]===v)?v:"misty-forest"}catch{return "misty-forest"}})();
 function applyBackground(value=activeBackground){const candidate=BACKGROUNDS.some(x=>x[0]===value)?value:"misty-forest";activeBackground=!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===candidate)?.[2]==="abstract"?"misty-forest":candidate;document.documentElement.dataset.qqBackground=activeBackground;try{localStorage.setItem(BACKGROUND_KEY,activeBackground)}catch{}}
 applyBackground();
@@ -364,7 +364,7 @@ function profile(){
 function settings(){
  const themes=[["burgundy","Бордовая","Глубокий винный оттенок"],["purple","Фиолетовая","Затемнённый сливовый оттенок"]];
  const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
- const choices=BACKGROUNDS.filter(x=>abstractEnabled||x[2]!=="abstract");
+ const choices=BACKGROUNDS;
  const ambiences=[["forest","Зимний лес","Снег и тихие деревья","❄"],["sakura","Сакура","Падающие лепестки","🌸"],["autumn","Осень","Медленные листья клёна","🍁"],["rain","Дождь","Тихие дождевые линии","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
  return `<h2>Настройки</h2>
  <section class="card settings-card"><span class="pill">Звук</span><h3>Музыка и эффекты</h3>
