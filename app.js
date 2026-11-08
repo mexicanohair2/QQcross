@@ -340,7 +340,7 @@ function profile(){
  const p=window.QQProgression?.get?.()||{stats:{},daily:{},titles:["Новичок"],activeTitle:"Новичок"};
  const matches=Number(state.profile.games)||0,wins=Number(state.profile.wins)||0,losses=Math.max(0,matches-wins),winRate=matches?Math.round(wins/matches*100):0;
  const achievements=window.QQProgression?.achievements?.()||[];
- const titleOptions=(p.titles||["Новичок"]).map(t=>'<option value="'+esc(t)+'" '+(t===p.activeTitle?"selected":"")+' >'+esc(t)+'</option>').join("");
+ const titleOptions=(p.titles||["Новичок"]).map(t=>'<option value="'+esc(t)+'" '+(t===p.activeTitle?"selected":"")+'>'+esc(t)+'</option>').join("");
  const catalog=window.QQProgression?.titleCatalog?.()||[];
  const unlockedCount=catalog.filter(t=>t.unlocked&&!t.secret).length;
  const titleList=catalog.map(t=>'<span class="qq-title-chip '+(t.unlocked?"is-unlocked":"is-locked")+(t.secret?" is-secret":"")+'" title="'+(t.secret&&!t.unlocked?"Секрет: нажми 15 раз на соломенную шляпу":t.unlocked?"Титул открыт":"Откроется после "+t.target+" завершённых сканвордов")+'"><b>'+esc(t.name)+'</b>'+(t.unlocked?'<small>Открыт</small>':t.secret?'<small>'+t.progress+' / '+t.target+' нажатий</small>':'<small>'+t.progress+' / '+t.target+' сканвордов</small>')+'</span>').join("");
