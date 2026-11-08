@@ -209,7 +209,7 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="wheel"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
+  await expect(page.locator(".qq-level-dot")).toHaveCount(1000);
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqWheel")).toBeVisible();
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
@@ -276,7 +276,7 @@ test("difficulty grows through level 1000 in Word of Wonders and word search", a
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
-  await page.locator('[data-level="100"]').click();
+  await page.locator('[data-level="1000"]').click();
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
