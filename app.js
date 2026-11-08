@@ -975,14 +975,7 @@ function buildScanword(entries){
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
-      const terminalKey=endY+","+endX,terminalWords=clueAt.get(terminalKey)||[];
-      let terminalCanContinue=terminalWords.length>0;
-      if(!terminalCanContinue)for(const nextDir of dirs){
-        const p1=[endY+nextDir.dy,endX+nextDir.dx],p2=[endY+nextDir.dy*2,endX+nextDir.dx*2],p3=[endY+nextDir.dy*3,endX+nextDir.dx*3];
-        const inside=[p1,p2,p3].every(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N);
-        if(inside&&!clueAt.has(p1[0]+","+p1[1])&&!clueAt.has(p2[0]+","+p2[1])&&!occupied.has(p1[0]+","+p1[1])&&!occupied.has(p2[0]+","+p2[1])&&!occupied.has(p3[0]+","+p3[1])){terminalCanContinue=true;break;}
-      }
-      if(!terminalCanContinue)return false;
+      const terminalKey=endY+","+endX;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=N||xx>=N)return false;
