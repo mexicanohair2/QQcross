@@ -1366,8 +1366,14 @@ function renderGame(root){
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
   state.selectedWord=activeWord?.id||"";
   const activeWordCells=new Set((activeWord?.cells||[]).map(c=>c.join(",")));
-  const wordEnds=new Map();
-  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1];if(!last)return;const k=last.join(",");const dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs)});
+  const wordEnds=new Map(),wordTerminals=new Map();
+  const directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  puzzle.words.forEach(w=>{
+    const last=w.cells[w.cells.length-1];if(!last)return;
+    const k=last.join(","),dirs=wordEnds.get(k)||[];dirs.push(w.dir);wordEnds.set(k,dirs);
+    const delta=directionDelta[w.dir],terminal=(last[0]+delta[0])+","+(last[1]+delta[1]),ended=wordTerminals.get(terminal)||[];
+    ended.push(w.id);wordTerminals.set(terminal,ended);
+  });
   const cells=[];
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
@@ -1378,7 +1384,7 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+'</button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
@@ -1393,7 +1399,7 @@ function renderGame(root){
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
-    '<div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div>'+
+    '<div class="board-wrap scanword-wrap"><div class="scanword-board" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
