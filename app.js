@@ -1152,7 +1152,7 @@ function buildScanword(entries){
   // Retry substantially more often, but stop immediately once a fully valid
   // grid is found with at most one unavoidable single-letter fallback.
   // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
-  for(let attempt=0;attempt<32;attempt++){
+  for(let attempt=0;attempt<96;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
