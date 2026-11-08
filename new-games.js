@@ -190,12 +190,19 @@ function mountSearch(root,onExit,words){
   const track=e=>{
    if(!drag||!start)return;e.preventDefault();
    const c=cellFromPoint(e.clientX,e.clientY);if(!c)return;
-   const target={x:+c.dataset.x,y:+c.dataset.y},last=selection[selection.length-1]||start;
-   if(last.x===target.x&&last.y===target.y)return;
-   const segment=pathBetween(last,target);if(!segment.length)return;
-   const next=segment.slice(1),seen=new Set(selection.map(p=>p.x+","+p.y));
-   if(next.some(p=>seen.has(p.x+","+p.y)))return;
-   markPath([...selection,...next]);
+   const target={x:+c.dataset.x,y:+c.dataset.y};
+   let dx=target.x-start.x,dy=target.y-start.y;
+   if(dx===0&&dy===0){markPath([start]);return;}
+   // Snap the gesture to one of the eight legal word directions.
+   // Build the complete path from the original cell on every move;
+   // this prevents pointer-event sampling from creating bends or gaps.
+   if(dx!==0&&dy!==0){
+    if(Math.abs(dx)>Math.abs(dy)*1.5)dy=0;
+    else if(Math.abs(dy)>Math.abs(dx)*1.5)dx=0;
+    else{const steps=Math.min(Math.abs(dx),Math.abs(dy));dx=Math.sign(dx)*steps;dy=Math.sign(dy)*steps;}
+   }
+   const path=pathBetween(start,{x:start.x+dx,y:start.y+dy});
+   if(path.length)markPath(path);
   };
   const end=e=>{
    if(!drag)return;if(e)track(e);drag=false;grid.classList.remove("qq-search-dragging");
