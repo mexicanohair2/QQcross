@@ -1750,3 +1750,15 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
   text-shadow:none!important;
   filter:none!important;
 }
+
+/* Emoji and flag clues stay pictorial instead of inheriting the compact text size. */
+.scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  display:block!important;
+  width:100%!important;
+  padding:0!important;
+  font-size:clamp(13px,2.2vw,20px)!important;
+  line-height:1!important;
+  white-space:nowrap!important;
+  overflow-wrap:normal!important;
+  -webkit-line-clamp:unset!important;
+}
