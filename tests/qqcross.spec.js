@@ -55,12 +55,13 @@ test("three scanword hint levels are available and successful hints are counted"
   expect(bulbs).toBe(1);
 });
 
-test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
+test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
   await startGuestGame(page);
   const pictureClue = page.locator(".scan-clue-picture").first();
   await pictureClue.click();
-  await expect(page.locator(".scanword-question-full")).toHaveText("Что изображено на картинке?");
-  await expect(page.locator(".scan-clue-picture").first()).toHaveClass(/scan-clue-active/);
+  await expect(page.locator(".clue-popup-text")).toHaveText("Что изображено на картинке?");
+  await expect(page.locator(".scanword-question-list")).toHaveCount(0);
+  await expect(page.locator(".scanword-board")).toBeVisible();
 });
 
 test("keeps the landing page within the emulated device width", async ({ page }) => {
