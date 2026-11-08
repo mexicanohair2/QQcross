@@ -89,6 +89,7 @@ let suppressCellClick=false;
 
 
 function defaultItems(){return {magnifier:5,clock:5,trash:5,bulb:5}}
+function normalizeItems(items){const normalized={...defaultItems(),...(items||{})};for(const key of Object.keys(defaultItems()))if(!Number.isInteger(normalized[key])||normalized[key]<0)normalized[key]=0;return normalized}
 function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -375,8 +376,7 @@ function settings(){
 }
 function wireContent(){rootMatchHistoryBindings();const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=()=>{window.QQProgression?.setActiveTitle(activeTitle.value);render()};const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
-  state.profile.items={...defaultItems(),...(state.profile.items||{})};
-  for(const key of Object.keys(defaultItems()))if(!Number.isInteger(state.profile.items[key])||state.profile.items[key]<0)state.profile.items[key]=0;
+  state.profile.items=normalizeItems(state.profile.items);
   if(state.profile.coins<cost){toast("Не хватает монет");return}
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
     b.disabled=true;
@@ -607,8 +607,7 @@ async function finishTurn(root,timeout=false){
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);const count=Math.min(Math.max(0,7-rack.length),letterBag.length);if(!count)return [];const added=drawLetters(count);rack.push(...added);return added;}
 function useItem(key){
-  if(!state.profile.items)state.profile.items=defaultItems();
-  if(!Number.isInteger(state.profile.items[key]))state.profile.items[key]=0;
+  state.profile.items=normalizeItems(state.profile.items);
   if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return false}
   if(state.profile.items[key]<=0){toast("Предметы закончились — загляни в магазин");return false}
   state.profile.items[key]--;save();
@@ -639,7 +638,7 @@ function awardGameLevel(game,level){
  const coins=document.querySelector(".coins");if(coins)coins.textContent="🪙 "+state.profile.coins;
  toast("Уровень пройден · +5 🪙");return Promise.resolve(true);
 }
-window.QQEconomy={awardLevel:awardGameLevel,useBulb:()=>useItem("bulb"),useMagnifier:()=>useItem("magnifier")};
+window.QQEconomy={awardLevel:awardGameLevel,useBulb:()=>useItem("bulb"),useMagnifier:()=>useItem("magnifier"),normalizeItems};
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
   if(expected[k]===undefined)return;
