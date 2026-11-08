@@ -349,7 +349,7 @@ function mountCody(root,onExit,clues,words){
  const STORAGE_KEY="qqcross.cody.progress.v3";
  const SECRET_WORDS=["ПУТЕШЕСТВИЕ","ПРИКЛЮЧЕНИЕ","ВООБРАЖЕНИЕ","ОБРАЗОВАНИЕ","ТЕЛЕВИДЕНИЕ","АРХИТЕКТУРА","ЛИТЕРАТУРА","ФОТОГРАФИЯ","БИБЛИОТЕКА","МАТЕМАТИКА","ГЕОГРАФИЯ","ЭКОНОМИКА","ТЕХНОЛОГИЯ","ЭНЦИКЛОПЕДИЯ","КОМПЬЮТЕРЫ","ИЗОБРАЖЕНИЕ","УВЛЕЧЕНИЕ","ПРОИЗВЕДЕНИЕ","СОЗВЕЗДИЕ","ИССЛЕДОВАНИЕ","ПРЕДПРИЯТИЕ","САМОРАЗВИТИЕ","КОНСТРУКЦИЯ","НАБЛЮДЕНИЕ","ПРОФЕССИЯ","СОРЕВНОВАНИЕ","МОРЕПЛАВАНИЕ","ПЕРЕПЛЕТЕНИЕ","ПЕРЕМЕЩЕНИЕ","УДИВЛЕНИЕ","ЗНАМЕНИТОСТЬ","ВЫРАЖЕНИЕ","СОДЕРЖАНИЕ"];
  const GROUP_NAMES=["Первые шаги","Словесная тропа","Новые загадки","Путь эрудита","Первые открытия","Мир вопросов","Загадки вокруг","Продолжаем путь","Сложнее и интереснее","Словесный маршрут","Новые горизонты","Проверка знаний","Дальняя дорога","Большая экспедиция","Мастер слова","Секреты букв","Трудные вопросы","Высший уровень","Финальные загадки","Последний рубеж"];
- const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&/[А-Яа-яЁёA-Za-z]/.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,9}$/.test(x.answer)&&x.clue.length>3);
+ const cleanClues=clues.filter(x=>x&&x.answer&&typeof x.clue==="string"&&x.clue.trim()&&!/^что изображено\b/i.test(x.clue.trim())&&/[А-Яа-яЁёA-Za-z]/.test(x.clue.trim())).map(x=>({answer:norm(x.answer),clue:String(x.clue).trim(),hint:String(x.clueShort||"").trim()})).filter(x=>/^[А-Я]{3,9}$/.test(x.answer)&&x.clue.length>3);
  const pool=[...new Map(cleanClues.map(x=>[x.answer,x])).values()].sort((a,b)=>a.answer.localeCompare(b.answer,"ru"));
  const randomFor=seed=>{let x=(seed>>>0)||1;return()=>{x=(x+0x6D2B79F5)>>>0;let t=x;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return((t^(t>>>14))>>>0)/4294967296;};};
  const shuffleSeed=(arr,rng)=>{const a=[...arr];for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -449,7 +449,7 @@ async function mount(root,mode,onExit){
  try{
   const words=await loadLexicon(),clues=await loadClues();
   clueIndex=new Map();
-  clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&!/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
+  clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&!/^что изображено\b/i.test(clue)&&!/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
   if(mode==="search")mountSearch(root,onExit,words);
   else if(mode==="wheel")mountWheel(root,onExit,words);
   else if(mode==="cody")mountCody(root,onExit,clues,words);
