@@ -1711,3 +1711,31 @@ html[data-qq-theme] .qq-boot-error{min-height:100dvh;display:grid;place-items:ce
 html[data-qq-theme] .qq-boot-error-mark{font-size:42px;font-weight:900;color:var(--qq-theme-accent);letter-spacing:-2px}
 html[data-qq-theme] .qq-boot-error p{max-width:320px;color:var(--qq-theme-muted);line-height:1.5}
 html[data-qq-theme] .qq-boot-error button{border:1px solid var(--qq-theme-accent);border-radius:12px;padding:13px 22px;background:var(--qq-theme-panel-strong);color:#fff;font-weight:750}
+
+
+/* Wordle uses the same shared surfaces and typography as the rest of the app. */
+html[data-qq-theme] .wordle-screen{background:transparent!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .wordle-top,
+html[data-qq-theme] .wordle-lengths button,
+html[data-qq-theme] .wordle-tile,
+html[data-qq-theme] .wordle-key,
+html[data-qq-theme] .wordle-help,
+html[data-qq-theme] .wordle-message,
+html[data-qq-theme] .wordle-footer{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .wordle-tile.filled{border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .wordle-lengths button.active,
+html[data-qq-theme] .wordle-key-wide,
+html[data-qq-theme] .wordle-text-button{
+ background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important;
+}
+html[data-qq-theme] .wordle-subtitle,
+html[data-qq-theme] .wordle-help,
+html[data-qq-theme] .wordle-footer{color:var(--qq-theme-muted)!important}
+html[data-qq-theme] .wordle-key.correct,
+html[data-qq-theme] .wordle-tile.correct{background:#548d65!important;border-color:#548d65!important;color:#fff!important}
+html[data-qq-theme] .wordle-key.present,
+html[data-qq-theme] .wordle-tile.present{background:#b18b35!important;border-color:#b18b35!important;color:#fff!important}
+html[data-qq-theme] .wordle-key.absent,
+html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-muted)!important}
