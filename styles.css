@@ -1396,3 +1396,247 @@ html[data-qq-theme="burgundy"] .qq-cody-keyboard button{background:#593846!impor
 .qq-wow-screen .qq-cross-cell{font-size:clamp(10px,3vw,17px)!important;font-weight:850!important}
 html[data-qq-theme="burgundy"] .qq-wow-screen .qq-cross-cell{background:linear-gradient(145deg,#9b6a7a,#684352)!important;border-color:#d4b6a7!important;color:#fff7f3!important}
 html[data-qq-theme="burgundy"] .qq-wow-screen .qq-cross-empty{background:linear-gradient(145deg,#241720,#1b1117)!important;border-color:#3d2933!important}
+
+
+
+/* QQCross global theme contract: every screen consumes the same palette tokens. */
+html[data-qq-theme="burgundy"]{
+ --qq-theme-accent:#d4b6a7;--qq-theme-muted:#cbb2b6;--qq-theme-border:#76515e;
+ --qq-theme-panel-strong:linear-gradient(135deg,#9a6577,#744657);
+}
+html[data-qq-theme="purple"]{
+ --qq-theme-accent:#c8b1ee;--qq-theme-muted:#c5b8d6;--qq-theme-border:#57446f;
+ --qq-theme-panel-strong:linear-gradient(135deg,#8062a9,#594174);
+}
+html[data-qq-theme="gray"]{
+ --qq-theme-accent:#c2cbd8;--qq-theme-muted:#b9c1cd;--qq-theme-border:#505968;
+ --qq-theme-panel-strong:linear-gradient(135deg,#707d91,#4a5668);
+}
+html[data-qq-theme]{
+ --qq-theme-focus:color-mix(in srgb,var(--qq-theme-accent) 42%,transparent);
+}
+html[data-qq-theme] body,
+html[data-qq-theme] .screen,
+html[data-qq-theme] .game-screen,
+html[data-qq-theme] .qq-extra-screen,
+html[data-qq-theme] .qq-search-screen,
+html[data-qq-theme] .qq-cody-app,
+html[data-qq-theme] .qq-wow-screen{
+ background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .card,
+html[data-qq-theme] .notice,
+html[data-qq-theme] .hero,
+html[data-qq-theme] .register-card,
+html[data-qq-theme] .settings-card,
+html[data-qq-theme] .qq-game-launch,
+html[data-qq-theme] .qq-cody-world,
+html[data-qq-theme] .qq-cody-group,
+html[data-qq-theme] .qq-extra-card,
+html[data-qq-theme] .qq-search-panel,
+html[data-qq-theme] .qq-wow-panel{
+ background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .nav,
+html[data-qq-theme] .score-strip,
+html[data-qq-theme] .letter-area,
+html[data-qq-theme] .items,
+html[data-qq-theme] .coins,
+html[data-qq-theme] .pill,
+html[data-qq-theme] .timer,
+html[data-qq-theme] .qq-cody-keyboard,
+html[data-qq-theme] .qq-extra-toolbar{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .btn,
+html[data-qq-theme] .item,
+html[data-qq-theme] .avatar-choice,
+html[data-qq-theme] .party-option,
+html[data-qq-theme] .theme-choice,
+html[data-qq-theme] .background-choice,
+html[data-qq-theme] .ambience-choice,
+html[data-qq-theme] .qq-game-launch,
+html[data-qq-theme] .qq-cody-keyboard button,
+html[data-qq-theme] .qq-extra-screen button{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .btn.primary,
+html[data-qq-theme] .btn.blue,
+html[data-qq-theme] .party-option.selected,
+html[data-qq-theme] .theme-choice.selected,
+html[data-qq-theme] .background-choice.selected,
+html[data-qq-theme] .ambience-choice.selected,
+html[data-qq-theme] .qq-game-launch:focus-visible{
+ background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important;
+}
+html[data-qq-theme] input:not([type="checkbox"]):not([type="radio"]),
+html[data-qq-theme] select,
+html[data-qq-theme] textarea,
+html[data-qq-theme] .input{
+ background:var(--qq-theme-field)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] input::placeholder,
+html[data-qq-theme] textarea::placeholder{color:var(--qq-theme-muted)!important;opacity:.9}
+html[data-qq-theme] .nav button.active,
+html[data-qq-theme] a,
+html[data-qq-theme] .theme-check,
+html[data-qq-theme] .qq-word-correction button,
+html[data-qq-theme] .qq-wiki-link{color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .muted,
+html[data-qq-theme] .small.muted,
+html[data-qq-theme] .letter-label,
+html[data-qq-theme] .game-hint,
+html[data-qq-theme] .qq-extra-small,
+html[data-qq-theme] .qq-cody-footnote{color:var(--qq-theme-muted)!important}
+html[data-qq-theme] .qq-search-cell,
+html[data-qq-theme] .qq-cody-cell,
+html[data-qq-theme] .qq-wow-screen .qq-cross-cell{
+ background:var(--qq-theme-cell)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .qq-search-cell.qq-selected,
+html[data-qq-theme] .qq-search-cell.qq-found,
+html[data-qq-theme] .qq-cody-cell.solved,
+html[data-qq-theme] .qq-wow-screen .qq-cross-cell.filled{
+ background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .qq-search-cell.qq-miss,
+html[data-qq-theme] .cell.feedback-wrong,
+html[data-qq-theme] .scanword-board>.scan-cell.cell.wrong{
+ background:linear-gradient(145deg,#984c5d,#673342)!important;border-color:#d58b9b!important;
+}
+html[data-qq-theme] .qq-cody-row-clue,
+html[data-qq-theme] .qq-cody-row-clue.active,
+html[data-qq-theme] .qq-cody-row-clue.done{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .qq-settings-gear{
+ border-color:var(--qq-theme-border)!important;background:var(--qq-theme-panel)!important;color:var(--qq-theme-accent)!important;
+}
+html[data-qq-theme] .logo,
+html[data-qq-theme] .home-mark,
+html[data-qq-theme] .boot-logo{
+ background:var(--qq-theme-panel-strong)!important;color:#fff!important;border-color:var(--qq-theme-accent)!important;
+}
+html[data-qq-theme] :focus-visible{outline-color:var(--qq-theme-accent)!important}
+.qq-mode-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:10px}
+.qq-mode-switch button{min-height:46px;border:1px solid var(--qq-theme-border,#76515e);border-radius:12px;background:var(--qq-theme-panel);color:var(--qq-theme-text);font-weight:750}
+.qq-mode-switch button.selected{background:var(--qq-theme-panel-strong);border-color:var(--qq-theme-accent);box-shadow:0 0 0 2px var(--qq-theme-focus)}
+.theme-swatch-gray{background:linear-gradient(145deg,#aab3c1,#444e5d 58%,#171b22)!important}
+.theme-swatch-purple{background:linear-gradient(145deg,#c8b1ee,#60477f 58%,#1b1427)!important}
+.theme-swatch-burgundy{background:linear-gradient(145deg,#d4b6a7,#805263 58%,#24151d)!important}
+
+/* Light mode is independent from the chosen accent palette. */
+html[data-qq-mode="light"]{
+ color-scheme:light;
+ --qq-theme-page:linear-gradient(145deg,#f8f4f0 0%,#eee7e2 56%,#e5ddd8 100%);
+ --qq-theme-card:linear-gradient(145deg,#fffdfb,#f4eeea);
+ --qq-theme-panel:linear-gradient(145deg,#f0e9e4,#e7ded8);
+ --qq-theme-border:#c9bcb5;--qq-theme-text:#30262a;--qq-theme-muted:#6f6262;
+ --qq-theme-cell:linear-gradient(145deg,#fffdfb,#eee7e2);
+ --qq-theme-block:linear-gradient(145deg,#d9d0cb,#cfc4be);
+ --qq-theme-filled:linear-gradient(145deg,#e4c8bd,#d4b0a6);
+ --qq-theme-pending:linear-gradient(145deg,#eadbd4,#d9c4bb);
+ --qq-theme-clue:linear-gradient(145deg,#e8d8d1,#d9c4bb);
+ --qq-theme-chip:#e5dbd5;--qq-theme-field:#fffdfb;
+ --qq-theme-panel-strong:linear-gradient(135deg,#b98f86,#96716b);
+}
+html[data-qq-mode="light"] body,
+html[data-qq-mode="light"] .screen,
+html[data-qq-mode="light"] .game-screen,
+html[data-qq-mode="light"] .qq-extra-screen,
+html[data-qq-mode="light"] .qq-search-screen,
+html[data-qq-mode="light"] .qq-cody-app,
+html[data-qq-mode="light"] .qq-wow-screen{
+ background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .card,
+html[data-qq-mode="light"] .notice,
+html[data-qq-mode="light"] .hero,
+html[data-qq-mode="light"] .register-card,
+html[data-qq-mode="light"] .settings-card,
+html[data-qq-mode="light"] .qq-game-launch,
+html[data-qq-mode="light"] .qq-cody-world,
+html[data-qq-mode="light"] .qq-cody-group,
+html[data-qq-mode="light"] .qq-extra-card,
+html[data-qq-mode="light"] .qq-search-panel,
+html[data-qq-mode="light"] .qq-wow-panel{
+ background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .nav,
+html[data-qq-mode="light"] .score-strip,
+html[data-qq-mode="light"] .letter-area,
+html[data-qq-mode="light"] .items,
+html[data-qq-mode="light"] .coins,
+html[data-qq-mode="light"] .pill,
+html[data-qq-mode="light"] .timer,
+html[data-qq-mode="light"] .qq-cody-keyboard{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .btn,
+html[data-qq-mode="light"] .item,
+html[data-qq-mode="light"] .avatar-choice,
+html[data-qq-mode="light"] .party-option,
+html[data-qq-mode="light"] .theme-choice,
+html[data-qq-mode="light"] .background-choice,
+html[data-qq-mode="light"] .ambience-choice,
+html[data-qq-mode="light"] .qq-game-launch,
+html[data-qq-mode="light"] .qq-cody-keyboard button,
+html[data-qq-mode="light"] .qq-extra-screen button{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .btn.primary,
+html[data-qq-mode="light"] .btn.blue,
+html[data-qq-mode="light"] .party-option.selected,
+html[data-qq-mode="light"] .theme-choice.selected,
+html[data-qq-mode="light"] .background-choice.selected,
+html[data-qq-mode="light"] .ambience-choice.selected{
+ background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important;
+}
+html[data-qq-mode="light"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-qq-mode="light"] select,
+html[data-qq-mode="light"] textarea,
+html[data-qq-mode="light"] .input{
+ background:var(--qq-theme-field)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] input::placeholder,
+html[data-qq-mode="light"] textarea::placeholder{color:var(--qq-theme-muted)!important}
+html[data-qq-mode="light"] .nav button,
+html[data-qq-mode="light"] .nav button.active,
+html[data-qq-mode="light"] .muted,
+html[data-qq-mode="light"] .small.muted,
+html[data-qq-mode="light"] .letter-label,
+html[data-qq-mode="light"] .game-hint,
+html[data-qq-mode="light"] .qq-extra-small,
+html[data-qq-mode="light"] .qq-cody-footnote{color:var(--qq-theme-muted)!important}
+html[data-qq-mode="light"] .qq-search-cell,
+html[data-qq-mode="light"] .qq-cody-cell,
+html[data-qq-mode="light"] .qq-wow-screen .qq-cross-cell,
+html[data-qq-mode="light"] .scanword-board>.scan-cell{
+ background:var(--qq-theme-cell)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .qq-search-cell.qq-selected,
+html[data-qq-mode="light"] .qq-search-cell.qq-found,
+html[data-qq-mode="light"] .qq-cody-cell.solved,
+html[data-qq-mode="light"] .qq-wow-screen .qq-cross-cell.filled,
+html[data-qq-mode="light"] .scanword-board>.scan-cell.cell.filled{
+ background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .qq-search-cell.qq-miss,
+html[data-qq-mode="light"] .cell.feedback-wrong,
+html[data-qq-mode="light"] .scanword-board>.scan-cell.cell.wrong{
+ background:linear-gradient(145deg,#e7b9bd,#d58e9a)!important;border-color:#ad5968!important;color:#39262a!important;
+}
+html[data-qq-mode="light"] .qq-cody-row-clue,
+html[data-qq-mode="light"] .qq-cody-row-clue.active,
+html[data-qq-mode="light"] .qq-cody-row-clue.done{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important;
+}
+html[data-qq-mode="light"] .qq-settings-gear{
+ background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-accent)!important;
+}
+html[data-qq-mode="light"] .logo,
+html[data-qq-mode="light"] .home-mark,
+html[data-qq-mode="light"] .boot-logo{background:var(--qq-theme-panel-strong)!important;color:#fff!important}
+html[data-qq-mode="light"] .qq-mode-switch button{background:var(--qq-theme-panel)!important;color:var(--qq-theme-text)!important;border-color:var(--qq-theme-border)!important}
+html[data-qq-mode="light"] .qq-mode-switch button.selected{background:var(--qq-theme-panel-strong)!important;color:#fff!important}
+@media(max-width:390px){.qq-mode-switch button{font-size:12px;padding:8px 5px}}
