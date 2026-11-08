@@ -1382,7 +1382,7 @@ function renderGame(root){
   root.querySelectorAll("[data-clue-cell]").forEach(button=>{
     button.onclick=()=>{
       const wrap=root.querySelector(".board-wrap");if(!wrap)return;
-      wrap.querySelector(".clue-popup-backdrop")?.remove();
+      document.querySelector(".clue-popup-backdrop")?.remove();
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
@@ -1424,7 +1424,7 @@ function renderGame(root){
       };
       popup.querySelector(".clue-popup-close").onclick=close;
       popup.onclick=event=>{if(event.target===popup)close()};
-      showChoices();wrap.append(popup);
+      showChoices();document.body.append(popup);
     };
   });
   let activeDrag=null,dragGhost=null;
