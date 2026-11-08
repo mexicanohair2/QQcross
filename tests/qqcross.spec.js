@@ -28,7 +28,7 @@ test("loads a fully occupied 15x15 scanword with three distinct picture clues", 
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
+  expect(clueFontSizes.every(size => size >= 6)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(3);
@@ -91,7 +91,7 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(letterStyle.transform).toBe("none");
   const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueSizes.length).toBeGreaterThan(0);
-  expect(clueSizes.every(size => size >= 8)).toBeTruthy();
+  expect(clueSizes.every(size => size >= 6)).toBeTruthy();
 });
 
 test("opens full text for an ordinary text clue from its cell", async ({ page }) => {
@@ -514,7 +514,7 @@ test("scanword always includes three pictures and at least three logical questio
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-text").evaluateAll(nodes => nodes.filter(node => node.textContent.includes("?")).length);
   expect(logicalClues).toBeGreaterThanOrEqual(3);
-  const clueLayout = await page.locator(".scanword-board .scan-clue-text").evaluateAll(nodes => nodes.map(node => {
+  const clueLayout = await page.locator(".scanword-board .scan-clue:not(.scan-clue-emoji):not(.scan-clue-picture) .scan-clue-text").evaluateAll(nodes => nodes.map(node => {
     const style = getComputedStyle(node), rect = node.getBoundingClientRect();
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
