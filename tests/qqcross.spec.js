@@ -411,3 +411,23 @@ test("Cody crossword awards the actual one-based puzzle level", async ({ page })
   expect(source).toContain('awardLevel?.("cody",Number(id.slice(1)))');
   expect(source).not.toContain('awardLevel?.("cody",Number(id.slice(1))+1)');
 });
+
+
+test("the shop migrates old local inventories before buying bulbs", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.evaluate(() => {
+    const profile = JSON.parse(localStorage.getItem("qqcross_profile_v2"));
+    profile.coins = 100;
+    delete profile.items.bulb;
+    localStorage.setItem("qqcross_profile_v2", JSON.stringify(profile));
+  });
+  await page.reload();
+  await expect(page.locator(".coins")).toBeVisible();
+  await page.locator('[data-tab="Магазин"]').click();
+  await page.locator('button[data-item="bulb"][data-qty="5"]').click();
+  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")));
+  expect(profile.coins).toBe(0);
+  expect(profile.items.bulb).toBe(5);
+});
