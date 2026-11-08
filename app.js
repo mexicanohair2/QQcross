@@ -1091,29 +1091,34 @@ function buildScanword(entries){
       const pick=options[Math.floor(Math.random()*options.length)];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
-    // Repair residual gaps only with words that genuinely cross existing letters.
-    // This keeps every added word in the same connected scanword component.
+    // Fill terminal question cells before opening new branches. Work newest-first
+    // so each answer is immediately followed by a real playable question.
     let closing=true;
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
-      const remaining=TOTAL-occupied.size-clueAt.size;
       const anchors=[];
-      clueAt.forEach((list,key)=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
+      const clueEntries=[...clueAt.entries()].reverse();
+      clueEntries.sort((a,b)=>Number(a[1].length>0)-Number(b[1].length>0));
+      clueEntries.forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
       for(let y=0;y<N;y++)for(let x=0;x<N;x++){
         const key=y+","+x;
         if(occupied.has(key)||clueAt.has(key))continue;
         const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
-      for(const anchor of anchors){
-        // Process every independent anchor in this pass. Restarting after each
-        // single placement rescanned the whole 15x15 frontier repeatedly and
-        // made both page startup and the 50-seed verifier stall for minutes.
+      anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?N-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?N-1-anchor.x:anchor.x);
-          for(let length=max;length>=1;length--){
+          const lengths=Array.from({length:max},(_,index)=>max-index);
+          lengths.sort((a,b)=>{
+            const aKey=(anchor.y+dir.dy*(a+1))+","+(anchor.x+dir.dx*(a+1));
+            const bKey=(anchor.y+dir.dy*(b+1))+","+(anchor.x+dir.dx*(b+1));
+            const aCloses=(clueAt.get(aKey)||[]).length>0,bCloses=(clueAt.get(bKey)||[]).length>0;
+            return Number(bCloses)-Number(aCloses)||b-a;
+          });
+          for(const length of lengths){
             const cells=[];let valid=true,crosses=0;
             for(let k=1;k<=length;k++){
               const yy=anchor.y+dir.dy*k,xx=anchor.x+dir.dx*k,key=yy+","+xx;
@@ -1121,9 +1126,7 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            // Existing clue cells may carry several answer directions; this lets
-            // terminal questions continue without leaving dead-end cells.
-            const attachedQuestionStart=anchor.existing||!anchor.existing;
+            const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
             if(!valid||(!crosses&&!attachedQuestionStart))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
@@ -1133,8 +1136,6 @@ function buildScanword(entries){
                 if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
               });
             }else{
-              // A word may begin at the terminal question cell of the previous
-              // answer. This keeps every answer connected to the next clue cell.
               normalized.filter(entry=>entry.answer.length===length).slice(0,length===1?32:80).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
@@ -1146,8 +1147,10 @@ function buildScanword(entries){
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            // One-letter answers remain a last-resort repair only.
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1)){closing=true;break}
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1)){
+              closing=true;
+              break anchorLoop;
+            }
           }
         }
       }
