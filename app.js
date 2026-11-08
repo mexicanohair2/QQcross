@@ -86,6 +86,7 @@ let scanwordPreparing=false;
 let scanwordPreparePromise=null;
 let draggingLetter=false;
 let suppressCellClick=false;
+let lastMatchPersistAt=0;
 
 
 function defaultItems(){return {magnifier:5,clock:5,trash:5,bulb:5}}
@@ -1315,15 +1316,13 @@ function renderGame(root){
   for(let y=0;y<puzzle.h;y++)for(let x=0;x<puzzle.w;x++){
     const key=y+","+x,wordsAt=clueAt.get(key),position=' style="grid-column:'+(x+1)+';grid-row:'+(y+1)+'"';
     if(wordsAt){
-      const arrows=wordsAt.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'">'+({right:"→",left:"←",down:"↓",up:"↑"}[w.dir])+'</span>').join("");
       const displayWord=wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
       const pictureWord=wordsAt.find(w=>w.imageKey)||null;
       const single=displayWord&&!displayWord.imageKey?fitScanwordClue(displayWord.clueShort||displayWord.clue):"";
       const fullClueTitle=wordsAt.map((w,i)=>"Вопрос "+(i+1)+": "+w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const label=wordsAt.length>1?'<span class="scan-clue-count">'+wordsAt.length+'</span>':"";
-      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(wordsAt.length===1&&wordsAt[0].isEmoji?' scan-clue-emoji':'')+(pictureWord?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+label+'</button>');
+      cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(pictureWord?' scan-clue-picture':'')+'" data-clue-cell="'+key+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+'</button>');
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
       const hint=state.hints?.[key]||"";
@@ -1502,7 +1501,7 @@ function renderGame(root){
   };
   if(aiTurn&&state.aiError){const retry=root.querySelector("#retryAI");if(retry)retry.onclick=()=>{state.aiError="";state.aiThinkingTurn=null;renderGame(root)}}
   if(aiTurn&&!state.aiError){const turnKey=String(state.round||1)+":"+state.turn;if(state.aiThinkingTurn!==turnKey){state.aiThinkingTurn=turnKey;runChatGPTTurn(root,turnKey)}}
-  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
+  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(Date.now()-lastMatchPersistAt>=2000)persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
 }
 
 
@@ -1527,7 +1526,7 @@ function persistCurrentMatch(status="active"){
     }
   };
   const matches=matchesForThisDevice().filter(m=>m.id!==id);
-  matches.unshift(snapshot);saveMatchesForThisDevice(matches);
+  matches.unshift(snapshot);saveMatchesForThisDevice(matches);lastMatchPersistAt=Date.now();
 }
 function pushGameHistoryEntry(){
   try{history.pushState({qqcrossGame:true},"",location.pathname+location.search+"#game-"+Date.now())}catch{}
