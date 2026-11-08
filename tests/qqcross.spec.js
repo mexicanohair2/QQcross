@@ -529,3 +529,25 @@ test("scanword always includes three pictures and at least three logical questio
   expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
+
+
+test("logic scanword clue cells really wrap into three lines", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const logicCells = page.locator(".scanword-board > .scan-clue-logic:not(.scan-clue-picture):not(.scan-clue-emoji)");
+  await expect(logicCells).toHaveCount(3, { timeout: 20_000 });
+  const layouts = await logicCells.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => {
+    const style = getComputedStyle(node);
+    const rect = node.getBoundingClientRect();
+    return {
+      whiteSpace: style.whiteSpace,
+      lineClamp: style.webkitLineClamp,
+      lineHeight: parseFloat(style.lineHeight),
+      height: rect.height,
+      width: rect.width,
+      text: node.textContent.trim()
+    };
+  }));
+  expect(layouts.every(item => item.whiteSpace === "normal" && item.lineClamp === "3")).toBeTruthy();
+  expect(layouts.every(item => item.height >= item.lineHeight * 2.5 && item.width > 0 && item.text.length > 8)).toBeTruthy();
+});
