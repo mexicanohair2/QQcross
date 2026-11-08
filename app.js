@@ -88,8 +88,42 @@ let draggingLetter=false;
 let suppressCellClick=false;
 
 
-function defaultItems(){return {magnifier:5,clock:5,trash:5}}
+function defaultItems(){return {magnifier:5,clock:5,trash:5,bulb:5}}
 function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
+const LEVEL_REWARDS_KEY="qqcross_level_rewards_v1",PENDING_LEVEL_REWARDS_KEY="qqcross_level_rewards_pending_v1";
+function levelRewardHash(value){let h=2166136261;for(const ch of String(value)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619)}return(h>>>0)%2147483646+1}
+function readLevelRewardMap(key){try{const value=JSON.parse(localStorage.getItem(key)||"{}");return value&&typeof value==="object"?value:{}}catch{return {}}}
+async function awardLevelCoins(game,level){
+ if(!state.profile||!["scanword","search","wow","cody","wordle"].includes(game))return false;
+ const claimKey=game+":"+String(level),claims=readLevelRewardMap(LEVEL_REWARDS_KEY);
+ if(claims[claimKey])return false;
+ const cloud=!!(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-"));
+ if(cloud){
+  const numericLevel=Number.isSafeInteger(Number(level))&&Number(level)>0&&Number(level)<=2147483647?Number(level):levelRewardHash(claimKey);
+  try{
+   const {data,error}=await supabaseClient.rpc("award_qqcross_level_reward",{p_game_key:game,p_level:numericLevel});
+   if(error)throw error;
+   state.profile.coins=Number(data?.coins)||0;claims[claimKey]=true;localStorage.setItem(LEVEL_REWARDS_KEY,JSON.stringify(claims));
+   const pending=readLevelRewardMap(PENDING_LEVEL_REWARDS_KEY);delete pending[claimKey];localStorage.setItem(PENDING_LEVEL_REWARDS_KEY,JSON.stringify(pending));
+   save();if(Number(data?.reward)>0)toast("Уровень пройден · +5 монет");return Number(data?.reward)>0;
+  }catch(error){
+   const pending=readLevelRewardMap(PENDING_LEVEL_REWARDS_KEY);pending[claimKey]={game,level:String(level)};localStorage.setItem(PENDING_LEVEL_REWARDS_KEY,JSON.stringify(pending));
+   toast("Награда +5 сохранена и будет начислена после восстановления связи.");console.warn("QQCross level reward:",error);return false;
+  }
+ }
+ state.profile.coins=(Number(state.profile.coins)||0)+5;claims[claimKey]=true;localStorage.setItem(LEVEL_REWARDS_KEY,JSON.stringify(claims));save();toast("Уровень пройден · +5 монет");return true;
+}
+async function syncPendingLevelRewards(){
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-"))return;
+ const pending=readLevelRewardMap(PENDING_LEVEL_REWARDS_KEY),claims=readLevelRewardMap(LEVEL_REWARDS_KEY);
+ for(const [claimKey,item] of Object.entries(pending)){
+  if(claims[claimKey]){delete pending[claimKey];continue}
+  const level=Number.isSafeInteger(Number(item.level))&&Number(item.level)>0&&Number(item.level)<=2147483647?Number(item.level):levelRewardHash(claimKey);
+  try{const {data,error}=await supabaseClient.rpc("award_qqcross_level_reward",{p_game_key:item.game,p_level:level});if(error)throw error;state.profile.coins=Number(data?.coins)||0;claims[claimKey]=true;delete pending[claimKey];}
+  catch(error){console.warn("QQCross pending level reward:",error);break}
+ }
+ localStorage.setItem(LEVEL_REWARDS_KEY,JSON.stringify(claims));localStorage.setItem(PENDING_LEVEL_REWARDS_KEY,JSON.stringify(pending));save();
+}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
@@ -100,7 +134,7 @@ function renderDaily(root){
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
-  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
+  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();void awardLevelCoins("wordle","daily:"+d.date.replace(/-/g,""));toast("Ежедневный Wordle выполнен!")}})
  };
 }
 async function startDailyScanword(d){
@@ -153,7 +187,7 @@ async function applyProgressRewards(){
  })().finally(()=>{progressRewardApplyPromise=null});
  return progressRewardApplyPromise;
 }
-function renderWordle(root){if(!window.QQWordle){root.innerHTML='<div class="screen"><p>Не удалось загрузить Wordle.</p><button class="btn" id="wordleBackFallback">Назад</button></div>';$("#wordleBackFallback").onclick=()=>{state.screen="";render()};return}window.QQWordle.mount(root,()=>{state.screen="";render()})}
+function renderWordle(root){if(!window.QQWordle){root.innerHTML='<div class="screen"><p>Не удалось загрузить Wordle.</p><button class="btn" id="wordleBackFallback">Назад</button></div>';$("#wordleBackFallback").onclick=()=>{state.screen="";render()};return}const session=Math.floor(Date.now()/1000);window.QQWordle.mount(root,()=>{state.screen="";render()},{onWin:()=>void awardLevelCoins("wordle",session)})}
 function renderRegister(root){root.innerHTML=`<div class="screen register-screen"><div class="splash register-splash"><div class="logo">QQ</div><h1>QQCross</h1><p class="muted">Сканворды для одного, друзей и игры с ChatGPT</p></div><div class="card register-card"><div class="grid2"><button class="btn ${authMode==="signup"?"primary":""}" id="showSignup">Регистрация</button><button class="btn ${authMode==="login"?"primary":""}" id="showLogin">Войти</button></div><h2>${authMode==="signup"?"Создать аккаунт":"Войти в аккаунт"}</h2>${authMode==="signup"?`<label class="small muted">Имя игрока (3–16 символов)</label><input id="username" class="input" maxlength="16" placeholder="Например, wordmaster" autocomplete="username"><h3>Выбери аватарку</h3><div class="avatar-grid">${AVATARS.map((a,i)=>`<button type="button" class="avatar-choice ${i===state.selectedAvatar?"selected":""}" data-avatar="${i}" aria-label="${NAMES[i]}" aria-pressed="${i===state.selectedAvatar}">${a}</button>`).join("")}</div>`: ""}<label class="small muted">Электронная почта</label><input id="email" class="input" type="email" placeholder="name@example.com" autocomplete="email"><label class="small muted">Пароль (минимум 8 символов)</label><input id="password" class="input" type="password" placeholder="Пароль" autocomplete="${authMode==="signup"?"new-password":"current-password"}"><button class="btn primary full" id="authSubmit">${authMode==="signup"?"Создать аккаунт":"Войти"}</button><button class="btn full" type="button" id="guestPlay">Играть без регистрации</button><p class="small muted auth-message" id="authMessage" aria-live="polite">${esc(authNotice)}</p>${authMode==="login"?'<button class="btn full" type="button" id="resendConfirm">Отправить письмо подтверждения повторно</button><button class="btn full" type="button" id="forgotPassword">Забыли пароль?</button>':""}</div></div>`;
 $("#showSignup").onclick=()=>{authMode="signup";renderRegister(root)};$("#showLogin").onclick=()=>{authMode="login";renderRegister(root)};$("#guestPlay").onclick=()=>{const username="Игрок"+String(Date.now()).slice(-4);state.profile={id:"local-"+Date.now(),username,avatar:state.selectedAvatar,coins:0,wins:0,games:0,points:0,items:defaultItems(),friends:[]};save();render();toast("Ты вошёл в гостевом режиме")};
 root.querySelectorAll("[data-avatar]").forEach(b=>b.onclick=()=>{
@@ -292,7 +326,7 @@ async function watchSocialUpdates(){
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("QQCross social realtime:",status);
     });
 }
-function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
+function shop(){const products=[["bulb","💡","Лампочки-подсказки","Одна лампочка — одна подсказка любого уровня"],["magnifier","🔎","Лупы","Открывают правильную букву в сканворде"],["clock","⏱","Часы","Добавляют 20 секунд"],["trash","🗑️","Мусорки","Заменяют набор букв"]];return `<div class="qq-shop"><h2>Магазин</h2><section class="card qq-shop-wallet"><div><span class="small muted">ТВОЙ БАЛАНС</span><h3>🪙 ${Number(state.profile.coins)||0} монет</h3></div><p class="small muted">За каждый пройденный уровень в играх начисляется +5 монет.</p></section><h3 class="section-title">Предметы и помощь</h3><div class="qq-shop-grid">${products.map(([key,ico,name,desc])=>`<section class="card qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">${ico}</span><div class="grow"><b>${name}</b><div class="small muted">${desc}</div></div></div><div class="qq-shop-stock">В наличии <b>${Number(state.profile.items[key])||0}</b></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></section>`).join("")}</div><p class="small muted qq-shop-note">Цена одного предмета — 20 монет. Подсказки расходуют лампочки: лёгкая помогает вспомнить ответ, средняя уточняет смысл, сильная открывает букву.</p></div>`}
 function encyclopedia(){
  const p=window.QQProgression?.get?.()||{discoveredWords:[]},words=p.discoveredWords||[],history=window.QQEncyclopedia?.history?.()||[];
  return '<h2>Энциклопедия</h2><section class="card qq-encyclopedia-search"><p class="muted small">Ищи значение слова, исправляй опечатки и открывай связанные понятия.</p><form id="encyclopediaForm"><input id="encyclopediaInput" class="input" type="search" placeholder="Например, тунец" autocomplete="off"><button class="btn primary" type="submit">Найти</button></form><div id="encyclopediaResult" aria-live="polite"></div></section><section class="card"><h3>Мои изученные слова · '+words.length+'</h3><div class="qq-word-chips">'+(words.length?words.slice(-80).reverse().map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<p class="muted small">Пока нет изученных слов. Открывай слова в Wordle и других режимах двойным нажатием.</p>')+'</div></section><section class="card"><h3>Недавний поиск</h3><div class="qq-word-chips">'+(history.length?history.slice(0,12).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<span class="muted small">История появится после первого поиска.</span>')+'</div></section>';
@@ -354,7 +388,7 @@ function profile(){
  '<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.wowLevels||0)+'</b><div class="muted small">Word of Wonders</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div><div><b>'+(p.stats.hintsUsed||0)+'</b><div class="muted small">Подсказки</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>'+
  '<section class="card" id="qqTitleInventory"><h3>Коллекция титулов · '+unlockedCount+' / 100</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p></section>'+
  '<section class="card" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>'+
- '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
+ '<div class="card"><b>Мои предметы</b><p class="small">Лампочки: '+(state.profile.items.bulb||0)+'　Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
 }
 function settings(){
  const themes=[["burgundy","Бордовая","Винные, розовые и тёплые бежевые оттенки"],["purple","Фиолетовая","Глубокие сливовые и лавандовые оттенки"],["dark","Тёмная","Спокойная графитовая палитра"],["light","Светлая","Чистые светлые поверхности и мягкие акценты"]];
@@ -608,11 +642,12 @@ function useItem(key){
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
     supabaseClient.rpc("use_qqcross_item",{item_type:key}).then(({data,error})=>{
       if(error){state.profile.items[key]++;save();toast("Не удалось списать предмет: "+(error.message||"ошибка"));if(state.screen==="game")render()}
-      else{state.profile.items[key]=data;save();const el=document.querySelector("#"+key);if(el){const strong=el.querySelector("strong");if(strong)strong.textContent=(key==="magnifier"?"🔎 ":key==="clock"?"⏱ ":"🗑️ ")+data}}
+      else{state.profile.items[key]=data;save();const el=document.querySelector("#"+key);if(el){const strong=el.querySelector("strong");if(strong)strong.textContent=(key==="magnifier"?"🔎 ":key==="clock"?"⏱ ":key==="trash"?"🗑️ ":"💡 ")+data}}
     }).catch(error=>{console.warn("QQCross inventory:",error)});
   }
   return true;
 }
+window.QQCrossEconomy={awardLevelCoins,useHintItem:()=>useItem("bulb")};
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
   if(expected[k]===undefined)return;
@@ -640,7 +675,7 @@ function checkWords(){
       state.completed.add(w.id);newlyCompleted.push(w);window.QQProgression?.recordWord?.(w.answer);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
-  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
+  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");const scanwordRewardId=state.dailyMode?("daily:"+String(state.dailyScanwordDate||window.QQProgression?.today?.()||"")):("match:"+String(state.matchId||state.onlineMatchId||Math.floor(Date.now()/1000)));void awardLevelCoins("scanword",scanwordRewardId);if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
   if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
   else if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
     state.rewardSubmitted=true;
@@ -689,6 +724,7 @@ async function loadCloudProfile(userId,generation=null){
   authRestoreError="";
   await window.QQProgression?.setCloud?.(supabaseClient,userId);
   await applyProgressRewards();
+  await syncPendingLevelRewards();
   save();watchSocialUpdates();
 }
 
@@ -1320,11 +1356,12 @@ function renderGame(root){
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
     if(!activeWord)return;
     const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
-    if(level!=="strong"){out.textContent=getScanwordHint(activeWord,level);window.QQProgression?.record?.("hintsUsed");return;}
-    const key=activeWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
-    if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-    if(!useItem("magnifier")){out.textContent="Для сильной подсказки нужна лупа из инвентаря.";return;}
-    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Открыта одна правильная буква");
+    const key=level==="strong"?activeWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(","):null;
+    if(level==="strong"&&!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
+    if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
+    window.QQProgression?.record?.("hintsUsed");
+    if(level!=="strong"){out.textContent=getScanwordHint(activeWord,level);return;}
+    state.hints=state.hints||{};state.hints[key]=expected[key];renderGame(root);toast("Подсказка использована: открыта правильная буква");
   });
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
