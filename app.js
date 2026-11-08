@@ -1155,6 +1155,53 @@ function buildScanword(entries){
         }
       }
     }
+    // If a terminal cell has no outgoing clue, extend its incoming ordinary word
+    // through that cell to the next real clue or the board edge. This converts a
+    // dead-end question tile into a letter instead of displaying a duplicate clue.
+    let repaired=true;
+    while(repaired){
+      repaired=false;
+      const danglingKeys=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key])=>key);
+      for(const danglingKey of danglingKeys){
+        const [dy,dx]=danglingKey.split(",").map(Number);
+        if(dy===0||dx===0)continue;
+        const incoming=words.filter(word=>{
+          const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+          return last[0]+dir.dy===dy&&last[1]+dir.dx===dx;
+        });
+        if(incoming.length!==1)continue;
+        const word=incoming[0];
+        if(word.imageKey||word.logic)continue;
+        const oldLength=word.answer.length,dir=dirs.find(item=>item.name===word.dir);
+        const existingAnswers=new Set(words.filter(item=>item!==word).map(item=>item.answer));
+        const candidates=normalized.filter(entry=>!entry.imageKey&&!entry.logic&&entry.answer.length>oldLength&&entry.answer.startsWith(word.answer)&&!existingAnswers.has(entry.answer));
+        candidates.sort((a,b)=>a.answer.length-b.answer.length||quality(b)-quality(a));
+        let extended=false;
+        for(const entry of candidates){
+          const extraCells=[];let valid=true;
+          for(let k=oldLength+1;k<=entry.answer.length;k++){
+            const yy=word.clueCell[0]+dir.dy*(k+1),xx=word.clueCell[1]+dir.dx*(k+1),key=yy+","+xx;
+            if(yy<0||xx<0||yy>=H||xx>=W||(yy===0&&xx===0)){valid=false;break}
+            if(k===oldLength+1){
+              if(key!==danglingKey||!clueAt.has(key)||clueAt.get(key).length){valid=false;break}
+            }else if(clueAt.has(key)){valid=false;break}
+            const old=occupied.get(key);
+            if(old!==undefined&&old!==entry.answer[k-1]){valid=false;break}
+            extraCells.push([yy,xx]);
+          }
+          if(!valid)continue;
+          const terminalY=word.clueCell[0]+dir.dy*(entry.answer.length+1),terminalX=word.clueCell[1]+dir.dx*(entry.answer.length+1);
+          const boundaryEnd=terminalY===H||terminalX===W;
+          const terminalKey=terminalY+","+terminalX;
+          if(terminalY<0||terminalX<0||terminalY>H||terminalX>W||(!boundaryEnd&&(!clueAt.has(terminalKey)||occupied.has(terminalKey))))continue;
+          clueAt.delete(danglingKey);
+          extraCells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[oldLength+k]));
+          word.answer=entry.answer;word.sourceAnswer=entry.answer;word.clue=entry.clue;word.clueShort=entry.clueShort;word.isEmoji=entry.emoji;word.cells.push(...extraCells);
+          extended=true;repaired=true;break;
+        }
+        if(extended)break;
+      }
+    }
     const coverage=occupied.size+clueAt.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
     return {coverage,dangling,occupied,clueAt,words};
   };
