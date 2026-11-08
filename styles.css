@@ -530,7 +530,7 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-filler{background:re
 .clue-popup-back{margin-top:12px;text-align:center}
 
 /* 15 by 15 board dimensions */
-.scanword-board{grid-template-columns:repeat(15,minmax(0,1fr))!important;grid-template-rows:repeat(15,minmax(0,1fr))!important}
+.scanword-board{grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important}
 
 /* 15x15 scanword clue text: show the complete prompt, wrap it, and keep the full text available on tap. */
 .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(4px,.62vw,8px)!important;line-height:1!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important}
