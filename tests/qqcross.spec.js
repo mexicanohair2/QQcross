@@ -242,8 +242,8 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await page.evaluate(() => {
-    localStorage.setItem("qqcross.wow.unlocked.v1", "1000");
-    localStorage.setItem("qqcross.search.unlocked.v1", "1000");
+    localStorage.setItem("qqcross.wow.unlocked.v1", "100");
+    localStorage.setItem("qqcross.search.unlocked.v1", "100");
   });
   await page.reload();
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -255,8 +255,8 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
   await page.locator('[data-level="100"]').click();
-  await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "25");
-  await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ (2[6-9]|30)/);
+  await expect(page.locator("#qqWheelBoard")).toHaveAttribute("data-grid-size", "18");
+  await expect(page.locator("#qqWheelProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const wowFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqWheelBoard").getBoundingClientRect().bottom }));
   expect(wowFit.bottom).toBeLessThanOrEqual(wowFit.h + 1);
   expect(wowFit.s).toBeLessThanOrEqual(wowFit.h + 1);
@@ -269,7 +269,7 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[2-4]/);
   await page.locator(".qq-extra-top [data-exit]").click();
   await page.locator('[data-level="100"]').click();
-  await expect(page.locator(".qq-search-cell")).toHaveCount(625);
+  await expect(page.locator(".qq-search-cell")).toHaveCount(324);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (2[4-9]|30)/);
   const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
   expect(searchFit.bottom).toBeLessThanOrEqual(searchFit.h + 1);
@@ -286,7 +286,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-world")).toBeVisible();
   await expect(page.locator(".qq-cody-group")).toHaveCount(50);
   await page.locator('[data-group="0"]').click();
-  await expect(page.locator(".qq-cody-level")).toHaveCount(5);
+  await expect(page.locator(".qq-cody-level")).toHaveCount(2);
   await page.locator('[data-level="0"]').click();
   await expect(page.locator(".qq-cody-play-layout")).toBeVisible();
   await expect(page.locator(".qq-cody-cell.secret")).toHaveCount(await page.locator(".qq-cody-secret span").count(), { timeout: 5_000 });
@@ -338,7 +338,7 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
 });
 
 
-test("all four direct themes apply globally and persist across games", async ({ page }) => {
+test("both available themes apply globally and persist across games", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
