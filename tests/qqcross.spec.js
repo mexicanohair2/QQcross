@@ -512,7 +512,7 @@ test("scanword always includes three pictures and at least three logical questio
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
   await expect(images).toHaveCount(3);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
-  const logicalClues = await page.locator(".scanword-board .scan-clue-text").evaluateAll(nodes => nodes.filter(node => node.textContent.includes("?")).length);
+  const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
   const clueLayout = await page.locator(".scanword-board .scan-clue:not(.scan-clue-emoji):not(.scan-clue-picture) .scan-clue-text").evaluateAll(nodes => nodes.map(node => {
     const style = getComputedStyle(node), rect = node.getBoundingClientRect();
