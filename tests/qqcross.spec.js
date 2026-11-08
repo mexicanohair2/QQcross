@@ -46,8 +46,10 @@ test("three scanword hint levels are available and successful hints are counted"
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
   await page.locator("[data-smart-hint='medium']").click();
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
+  await page.locator("#bulb").click();
+  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(1);
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
-  expect(count).toBe(2);
+  expect(count).toBe(3);
 });
 
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
@@ -241,6 +243,8 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(0);
   await page.locator("#qqCodyLoupe").click();
   await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(1);
+  await page.locator("#qqCodyHint").click();
+  await expect(page.locator(".qq-cody-cell.filled")).toHaveCount(2);
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-level")).toHaveCount(5);
   await page.locator("#qqCodyBack").click();
@@ -319,4 +323,52 @@ test("all four direct themes apply globally and persist across games", async ({ 
 
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-qq-theme", "purple");
+});
+
+
+test("word search shows a question for every target and the bulb marks a starting letter", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="search"]').click();
+  await page.locator('[data-level="1"]').click();
+  await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
+  const targets = Number((await page.locator("#qqProgress").textContent()).match(/\\/ (\\d+)/)?.[1]);
+  await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
+  await page.locator("#qqSearchBulb").click();
+  await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("Word of Wonders shows clue prompts and uses the bulb to highlight a letter", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="wheel"]').click();
+  await page.locator('[data-level="1"]').click();
+  const total = Number((await page.locator("#qqWheelProgress").textContent()).split("/")[1].trim());
+  await expect(page.locator("#qqWowClues .qq-wow-clue")).toHaveCount(total);
+  await page.locator("#qqWheelBulb").click();
+  await expect(page.locator(".qq-wheel-letter.qq-wheel-hinted")).toHaveCount(1);
+  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
+  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
+});
+
+test("the redesigned shop contains the bulb item and level rewards are idempotent", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-tab="Магазин"]').click();
+  await expect(page.locator(".qq-shop-item")).toHaveCount(4);
+  const bulb = page.locator(".qq-shop-item").filter({ hasText: "Подсказка" });
+  await expect(bulb).toContainText("💡");
+  await expect(bulb).toContainText("5 · 100");
+  await expect(bulb).toContainText("10 · 200");
+  await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
+  await expect(page.locator(".coins")).toContainText("5");
+  await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
+  await expect(page.locator(".coins")).toContainText("5");
 });
