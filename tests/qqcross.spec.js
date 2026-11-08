@@ -348,6 +348,7 @@ test("word search shows a question for every target and the bulb marks a startin
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="1"]').click();
   await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
+  await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
   const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
   await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
   await page.locator("#qqSearchBulb").click();
@@ -365,6 +366,7 @@ test("Word of Wonders shows clue prompts and uses the bulb to highlight a letter
   await page.locator('[data-level="1"]').click();
   const total = Number((await page.locator("#qqWheelProgress").textContent()).split("/")[1].trim());
   await expect(page.locator("#qqWowClues .qq-wow-clue")).toHaveCount(total);
+  await expect(page.locator("#qqWowClues")).not.toContainText("Что изображено");
   await page.locator("#qqWheelBulb").click();
   await expect(page.locator(".qq-wheel-letter.qq-wheel-hinted")).toHaveCount(1);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
