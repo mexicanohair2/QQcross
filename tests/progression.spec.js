@@ -38,6 +38,27 @@ test("profile lists the full 100-title catalogue with locked progress and hides 
   await expect(page.locator(".qq-title-chip.is-secret")).not.toContainText("Mugiwara");
 });
 
+test("hint milestones are tracked and unlock profile achievements", async ({ page }) => {
+  await enterGuest(page);
+  const result = await page.evaluate(() => {
+    const p = window.QQProgression;
+    p.record("hintsUsed", 50);
+    return {
+      count: p.get().stats.hintsUsed,
+      milestones: p.achievements().filter(a => a.id.startsWith("hint_")).map(a => ({ id: a.id, unlocked: a.unlocked }))
+    };
+  });
+  expect(result.count).toBe(50);
+  expect(result.milestones).toEqual([
+    { id: "hint_10", unlocked: true },
+    { id: "hint_50", unlocked: true },
+    { id: "hint_100", unlocked: false }
+  ]);
+  await page.locator("[data-tab='Профиль']").click();
+  await expect(page.locator("#qqProgressionStats")).toContainText("Подсказки");
+  await expect(page.locator("#qqAchievements")).toContainText("Умный игрок");
+});
+
 test("profile shows unified progression, a title inventory and daily streak", async ({ page }) => {
   await enterGuest(page);
   await page.locator("[data-tab='Профиль']").click();
