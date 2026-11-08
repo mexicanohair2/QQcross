@@ -43,6 +43,8 @@ test("loads a fully occupied 13x13 scanword with three distinct picture clues", 
 test("three scanword hint levels are available and successful hints are counted", async ({ page }) => {
   await startGuestGame(page);
   await page.locator("[data-clue-cell]").first().click();
+  const clueChoices = page.locator(".clue-popup-choice");
+  if (await clueChoices.count()) await clueChoices.first().click();
   await expect(page.locator("[data-smart-hint='light']")).toBeVisible();
   await expect(page.locator("[data-smart-hint='medium']")).toBeVisible();
   await expect(page.locator("[data-smart-hint='strong']")).toBeVisible();
