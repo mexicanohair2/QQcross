@@ -1777,3 +1777,5 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
  .qq-search-clues{max-height:15vh}
  .qq-wow-clues{max-height:11vh}
 }
+
+.qq-search-screen .qq-search-grid{width:min(100%,44vh,520px)!important;max-height:44vh!important}
