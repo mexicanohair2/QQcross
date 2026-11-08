@@ -270,7 +270,7 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
 });
 
 
-test("all palette and appearance combinations apply globally and persist", async ({ page }) => {
+test("all four direct themes apply globally and persist across games", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -280,34 +280,32 @@ test("all palette and appearance combinations apply globally and persist", async
   await expect(page.locator('.nav [data-tab="Настройки"]')).toHaveCount(0);
   await page.locator("#qqSettingsGear").click();
   await expect(page.getByRole("heading", { name: "Настройки" })).toBeVisible();
+  await expect(page.locator("[data-theme-choice]")).toHaveCount(4);
+  await expect(page.locator("[data-mode-choice]")).toHaveCount(0);
 
   const root = page.locator("html");
-  for (const palette of ["burgundy", "purple", "gray"]) {
-    await page.locator('[data-theme-choice="' + palette + '"]').click();
-    await expect(root).toHaveAttribute("data-qq-theme", palette);
-    await expect(page.locator('[data-theme-choice="' + palette + '"]')).toHaveClass(/selected/);
-    for (const mode of ["dark", "light"]) {
-      await page.locator('[data-mode-choice="' + mode + '"]').click();
-      await expect(root).toHaveAttribute("data-qq-mode", mode);
-      const tokens = await page.evaluate(() => ({
-        accent: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-accent").trim(),
-        text: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-text").trim(),
-        scheme: getComputedStyle(document.documentElement).colorScheme
-      }));
-      expect(tokens.accent).not.toBe("");
-      expect(tokens.text).not.toBe("");
-      expect(tokens.scheme).toBe(mode);
-    }
+  for (const theme of ["burgundy", "purple", "dark", "light"]) {
+    await page.locator('[data-theme-choice="' + theme + '"]').click();
+    await expect(root).toHaveAttribute("data-qq-theme", theme);
+    await expect(page.locator('[data-theme-choice="' + theme + '"]')).toHaveClass(/selected/);
+    const tokens = await page.evaluate(() => ({
+      accent: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-accent").trim(),
+      page: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-page").trim(),
+      card: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-card").trim(),
+      text: getComputedStyle(document.documentElement).getPropertyValue("--qq-theme-text").trim(),
+      scheme: getComputedStyle(document.documentElement).colorScheme
+    }));
+    expect(tokens.accent).not.toBe("");
+    expect(tokens.page).not.toBe("");
+    expect(tokens.card).not.toBe("");
+    expect(tokens.text).not.toBe("");
+    expect(tokens.scheme).toBe(theme === "light" ? "light" : "dark");
   }
 
-  const saved = await page.evaluate(() => ({
-    palette: localStorage.getItem("qqcross_theme_v1"),
-    mode: localStorage.getItem("qqcross_appearance_mode_v1")
-  }));
-  expect(saved).toEqual({ palette: "gray", mode: "light" });
+  const saved = await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"));
+  expect(saved).toBe("light");
 
   await page.locator('[data-theme-choice="purple"]').click();
-  await page.locator('[data-mode-choice="light"]').click();
   await page.locator('[data-tab="Главная"]').click();
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="1"]').click();
@@ -318,4 +316,7 @@ test("all palette and appearance combinations apply globally and persist", async
   }));
   expect(cellStyle.background).not.toBe("none");
   expect(cellStyle.color).not.toBe("rgb(255, 255, 255)");
+
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-qq-theme", "purple");
 });
