@@ -19,7 +19,7 @@ function seededRandom(seed) {
 function validate(puzzle, run) {
   if (!puzzle || puzzle.w !== 12 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 12x12");
   const total = puzzle.w * puzzle.h;
-  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total) {
+  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total - 1 || puzzle.used.has("0,0") || puzzle.clueKeys.has("0,0")) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size) + "/" + total);
   }
   for (const key of puzzle.clueKeys) {
