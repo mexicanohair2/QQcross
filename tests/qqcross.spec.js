@@ -46,12 +46,13 @@ test("three scanword hint levels are available and successful hints are counted"
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
   await page.locator("[data-smart-hint='medium']").click();
   await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
+  await page.locator("[data-smart-hint='strong']").click();
   await page.locator("#bulb").click();
-  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(1);
+  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(2);
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
   const bulbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
-  expect(count).toBe(3);
-  expect(bulbs).toBe(2);
+  expect(count).toBe(4);
+  expect(bulbs).toBe(1);
 });
 
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
