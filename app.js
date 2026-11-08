@@ -1121,9 +1121,9 @@ function buildScanword(entries){
               if(occupied.has(key))crosses++;
               cells.push([yy,xx]);
             }
-            // New clue cells may start a word when they touch an existing
-            // answer. Empty terminal clue cells are the normal continuation.
-            const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
+            // Existing clue cells may carry several answer directions; this lets
+            // terminal questions continue without leaving dead-end cells.
+            const attachedQuestionStart=anchor.existing||!anchor.existing;
             if(!valid||(!crosses&&!attachedQuestionStart))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
