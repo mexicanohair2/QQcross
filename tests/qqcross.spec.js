@@ -393,3 +393,12 @@ test("the redesigned shop contains the bulb item and level rewards are idempoten
   await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
   await expect(page.locator(".coins")).toContainText("5");
 });
+
+
+test("Cody crossword awards the actual one-based puzzle level", async ({ page }) => {
+  const response = await page.request.get("/new-games.js");
+  expect(response.ok()).toBeTruthy();
+  const source = await response.text();
+  expect(source).toContain('awardLevel?.("cody",Number(id.slice(1)))');
+  expect(source).not.toContain('awardLevel?.("cody",Number(id.slice(1))+1)');
+});
