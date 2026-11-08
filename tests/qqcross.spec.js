@@ -49,7 +49,9 @@ test("three scanword hint levels are available and successful hints are counted"
   await page.locator("#bulb").click();
   await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(1);
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
+  const bulbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   expect(count).toBe(3);
+  expect(bulbs).toBe(2);
 });
 
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
@@ -162,12 +164,23 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
   const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
   await expect(page.locator("#qqWheelProgress")).toContainText("/ " + count);
   const letters = page.locator(".qq-wheel-letter");
-  const first = await letters.nth(0).boundingBox();
-  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2);
-  await page.mouse.down();
-  for (let i = 1; i < await letters.count(); i++) {
-    const box = await letters.nth(i).boundingBox();
-    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+  const target = await page.locator("#qqWowClues .qq-wow-clue").first().getAttribute("data-wow-clue");
+  const available = await letters.allTextContents();
+  const used = new Set();
+  const indexes = [...target].map(char => {
+    const index = available.findIndex((letter, i) => letter === char && !used.has(i));
+    used.add(index);
+    return index;
+  });
+  expect(indexes.every(index => index >= 0)).toBeTruthy();
+  for (let step = 0; step < indexes.length; step++) {
+    const box = await letters.nth(indexes[step]).boundingBox();
+    if (step === 0) {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+    } else {
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+    }
   }
   await page.mouse.up();
   await expect(page.locator("#qqWheelProgress")).toContainText("Найдено: 1 / " + count);
@@ -363,7 +376,7 @@ test("the redesigned shop contains the bulb item and level rewards are idempoten
   await page.locator("#guestPlay").click();
   await page.locator('[data-tab="Магазин"]').click();
   await expect(page.locator(".qq-shop-item")).toHaveCount(4);
-  const bulb = page.locator(".qq-shop-item").filter({ hasText: "Подсказка" });
+  const bulb = page.locator('.qq-shop-item:has(button[data-item="bulb"])');
   await expect(bulb).toContainText("💡");
   await expect(bulb).toContainText("5 · 100");
   await expect(bulb).toContainText("10 · 200");
