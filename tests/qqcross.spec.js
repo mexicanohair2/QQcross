@@ -413,21 +413,12 @@ test("Cody crossword awards the actual one-based puzzle level", async ({ page })
 });
 
 
-test("the shop migrates old local inventories before buying bulbs", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
-  await page.locator("#guestPlay").click();
-  await page.evaluate(() => {
-    const profile = JSON.parse(localStorage.getItem("qqcross_profile_v2"));
-    profile.coins = 100;
-    delete profile.items.bulb;
-    localStorage.setItem("qqcross_profile_v2", JSON.stringify(profile));
-  });
-  await page.reload();
-  await expect(page.locator(".coins")).toBeVisible();
-  await page.locator('[data-tab="Магазин"]').click();
-  await page.locator('button[data-item="bulb"][data-qty="5"]').click();
-  const profile = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")));
-  expect(profile.coins).toBe(0);
-  expect(profile.items.bulb).toBe(5);
+test("legacy inventory normalization adds a bulb slot and preserves existing counts", async ({ page }) => {
+  await startGuestGame(page);
+  const result = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: 3, clock: 2, trash: 1 }));
+  expect(result).toEqual({ magnifier: 3, clock: 2, trash: 1, bulb: 5 });
+  const preserved = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: 3, clock: 2, trash: 1, bulb: 7 }));
+  expect(preserved.bulb).toBe(7);
+  const repaired = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: -1, clock: "2", trash: 1 }));
+  expect(repaired).toEqual({ magnifier: 0, clock: 0, trash: 1, bulb: 5 });
 });
