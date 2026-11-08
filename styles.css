@@ -1934,3 +1934,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 /* 12×12 scanword board: larger clue cells on phone. */
 .scanword-board{grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important}
 .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(8px,1.8vw,13px)!important;line-height:1.1!important;padding:1px!important;overflow-wrap:anywhere!important}
+
+
+/* QQCross agreed scanword format: 12 columns × 8 rows, matching the reference layout. */
+.scanword-board{grid-template-columns:repeat(12,minmax(0,1fr))!important;grid-template-rows:repeat(8,minmax(0,1fr))!important;width:min(85vw,calc((100dvh - 205px)*1.5),860px)!important;height:auto!important;aspect-ratio:3/2!important;max-width:100%!important;max-height:100%!important}
