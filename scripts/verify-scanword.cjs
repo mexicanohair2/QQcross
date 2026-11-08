@@ -91,8 +91,8 @@ function validate(puzzle, run) {
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
-    throw new Error("Run " + run + ": expected three distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
+    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
   }
   const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
   if (logicClueCells.size < 3) {
@@ -109,7 +109,7 @@ function validate(puzzle, run) {
 
 const timings = [];
 const summaries = [];
-for (let run = 1; run <= 20; run++) {
+for (let run = 1; run <= 40; run++) {
   const math = Object.create(Math);
   math.random = seededRandom(run * 7919);
   const context = {
@@ -135,7 +135,7 @@ timings.sort((a, b) => a - b);
 console.log(JSON.stringify({
   dictionaryEntries: dictionary.length,
   validRuns: summaries.length,
-  seedsChecked: 20,
+  seedsChecked: 40,
   medianMs: Math.round((timings[3] + timings[4]) / 2),
   p95Ms: Math.round(timings[timings.length - 1]),
   runs: summaries
