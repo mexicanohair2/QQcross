@@ -88,7 +88,7 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
     return { filter: style.filter, transform: style.transform };
   });
   expect(letterStyle.filter).toBe("none");
-  expect(letterStyle.transform).toBe("none");
+  expect(["none","matrix(1, 0, 0, 1, 0, 0)"]).toContain(letterStyle.transform);
   const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueSizes.length).toBeGreaterThan(0);
   expect(clueSizes.every(size => size >= 6)).toBeTruthy();
@@ -395,7 +395,7 @@ test("word search shows a question for every target and the bulb marks a startin
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="1"]').click();
-  await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
+  await expect(page.locator("#qqSearchClues .qq-search-word")).not.toHaveCount(0);
   await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
   const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
   await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
@@ -466,10 +466,7 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 
 test("scanword clue cells show clue text without direction arrows or number badges", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
-  await page.locator("#guestPlay").click();
-  await page.locator("#practice").click();
+  await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
   const clueCells = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
@@ -487,7 +484,7 @@ test("scanword clue cells show clue text without direction arrows or number badg
 
 test("scanword autosave avoids writing the full match snapshot on every timer tick", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await page.goto("/?debugTiming=1");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.evaluate(() => {
     window.__qqMatchWrites = 0;
@@ -498,6 +495,9 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
     };
   });
   await page.locator("#guestPlay").click();
+  await expect(page.locator("#play-toggle")).toBeVisible();
+  await page.locator("#play-toggle").click();
+  await expect(page.locator("#practice")).toBeVisible();
   await page.locator("#practice").click();
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
   await page.waitForTimeout(4500);
