@@ -504,3 +504,21 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
   const writes = await page.evaluate(() => window.__qqMatchWrites);
   expect(writes).toBeLessThanOrEqual(3);
 });
+
+
+test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
+  await expect(images).toHaveCount(3);
+  await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+  const logicalClues = await page.locator(".scanword-board .scan-clue-text").evaluateAll(nodes => nodes.filter(node => node.textContent.includes("?")).length);
+  expect(logicalClues).toBeGreaterThanOrEqual(3);
+  const clueLayout = await page.locator(".scanword-board .scan-clue-text").evaluateAll(nodes => nodes.map(node => {
+    const style = getComputedStyle(node), rect = node.getBoundingClientRect();
+    return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
+  }));
+  expect(clueLayout.length).toBeGreaterThan(0);
+  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
+});
