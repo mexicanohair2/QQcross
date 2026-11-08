@@ -413,7 +413,7 @@ async function mount(root,mode,onExit){
  try{
   const words=await loadLexicon(),clues=await loadClues();
   clueIndex=new Map();
-  clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&!/[\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
+  clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&!/[ \u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
   if(mode==="search")mountSearch(root,onExit,words);
   else if(mode==="wheel")mountWheel(root,onExit,words);
   else if(mode==="cody")mountCody(root,onExit,clues,words);
