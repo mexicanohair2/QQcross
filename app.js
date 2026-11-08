@@ -700,7 +700,7 @@ async function loadCloudProfile(userId,generation=null){
   if(error)throw error;
   const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
   let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
-  const items=defaultItems();
+  const items=defaultItems();items.bulb=0;
   if(inventoryError){
     console.warn("QQCross inventory:",inventoryError);
     if(saved&&saved.id===userId&&saved.items&&typeof saved.items==="object"){
