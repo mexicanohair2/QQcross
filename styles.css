@@ -1345,3 +1345,46 @@ html[data-qq-ambience="fog"] body::before{opacity:.22;background:linear-gradient
 .qq-title-chip.is-unlocked{border-color:rgba(155,125,220,.48);background:rgba(139,112,201,.11)}
 .qq-title-chip.is-secret{border-style:dashed}
 @media(min-width:520px){.qq-title-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+
+/* QQCross · уютная бордовая система: единые оттенки на всех экранах */
+html[data-qq-theme="burgundy"]{
+ color-scheme:dark;
+ --qq-theme-page:radial-gradient(ellipse at 50% -12%,#56313d 0%,#321d27 42%,#1c1118 78%,#130b10 100%);
+ --qq-theme-card:linear-gradient(145deg,#49303a 0%,#35212a 58%,#2b1a22 100%);
+ --qq-theme-panel:linear-gradient(145deg,#3d2731,#2a1a22);
+ --qq-theme-panel-strong:linear-gradient(135deg,#9a6577,#744657);
+ --qq-theme-border:#76515e;--qq-theme-accent:#d4b6a7;--qq-theme-text:#f7edf0;--qq-theme-muted:#cbb2b6;
+ --qq-theme-cell:linear-gradient(145deg,#543744,#3c2731);
+ --qq-theme-block:linear-gradient(145deg,#21141b,#180f14);
+ --qq-theme-filled:linear-gradient(145deg,#986477,#754657);
+ --qq-theme-pending:linear-gradient(145deg,#805263,#5e3948);
+ --qq-theme-clue:linear-gradient(145deg,#805768,#5a3845);--qq-theme-chip:#4a2c38;--qq-theme-field:#25171e;
+ --qq-bg-glow:#754657;--qq-warm:#d4b6a7;--qq-rose:#bd8797;--qq-cocoa:#78564f;--qq-cream:#f2ded5;
+}
+html[data-qq-theme="burgundy"] body{background:var(--qq-theme-page)!important}
+html[data-qq-theme="burgundy"] .boot-splash{background:radial-gradient(ellipse at 50% 0%,#50303b,#21141b 70%,#160e13)!important;color:#f7edf0!important}
+html[data-qq-theme="burgundy"] .logo,html[data-qq-theme="burgundy"] .home-mark{background:linear-gradient(135deg,#d4b6a7,#a46d7c 48%,#673b4c)!important;box-shadow:0 8px 28px #8c536655!important;color:#24151c!important}
+html[data-qq-theme="burgundy"] .btn.primary,html[data-qq-theme="burgundy"] .btn.blue{background:linear-gradient(135deg,#b98291,#8c586b 58%,#68404f)!important;border-color:#d4b6a7!important;color:#fff7f4!important}
+html[data-qq-theme="burgundy"] .pill,html[data-qq-theme="burgundy"] .coins,html[data-qq-theme="burgundy"] .timer{background:linear-gradient(135deg,#65404e,#432a35)!important;border-color:#9a6b7a!important;color:#f4dfe2!important}
+html[data-qq-theme="burgundy"] .nav{background:linear-gradient(180deg,#291922f2,#1a1016f7)!important;border-color:#76515e!important;box-shadow:0 -10px 28px #10080d66!important}
+html[data-qq-theme="burgundy"] .nav button.active{color:#e6c7bb!important}
+html[data-qq-theme="burgundy"] .input,html[data-qq-theme="burgundy"] input,html[data-qq-theme="burgundy"] select{background:#25171e!important;border-color:#76515e!important;color:#f7edf0!important}
+html[data-qq-theme="burgundy"] .theme-choice,html[data-qq-theme="burgundy"] .background-choice,html[data-qq-theme="burgundy"] .ambience-choice{background:linear-gradient(145deg,#49303a,#2d1c24)!important;border-color:#76515e!important;color:#f7edf0!important}
+html[data-qq-theme="burgundy"] .qq-extra-screen,html[data-qq-theme="burgundy"] .qq-cody-app,html[data-qq-theme="burgundy"] .qq-search-screen{background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme="burgundy"] .qq-search-cell,html[data-qq-theme="burgundy"] .qq-cody-cell{background:linear-gradient(145deg,#654353,#432c38)!important;border-color:#9b7180!important;color:#fff3f1!important}
+html[data-qq-theme="burgundy"] .qq-search-cell.qq-found,html[data-qq-theme="burgundy"] .qq-cody-cell.solved{background:linear-gradient(145deg,#b98291,#805161)!important;border-color:#e0c2b5!important;color:#fff!important}
+html[data-qq-theme="burgundy"] .qq-settings-gear{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid #936a78;border-radius:14px;background:linear-gradient(145deg,#65404e,#39232d);color:#f4e4e2;font-size:21px;box-shadow:0 4px 14px #10080d55}
+.qq-settings-gear{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border:1px solid var(--qq-theme-border,#76515e);border-radius:14px;background:var(--qq-theme-panel);color:var(--qq-theme-text);font-size:21px}
+html[data-qq-theme="burgundy"] .screen .top{gap:10px}
+html[data-qq-theme="burgundy"] .qq-game-launch{background:linear-gradient(145deg,#49303a,#2d1c24)!important;border-color:#76515e!important;color:#f7edf0!important}
+html[data-qq-theme="burgundy"] .qq-game-icon{background:linear-gradient(145deg,#a87585,#714656)!important;color:#fff!important}
+html[data-qq-theme="burgundy"] .qq-level-dot.current{background:#a87585!important;border-color:#e2c3b8!important}
+html[data-qq-theme="burgundy"] .qq-level-dot.done{background:#684655!important;border-color:#a77a88!important}
+html[data-qq-theme="burgundy"] .qq-level-dot.locked{background:#241820!important;border-color:#49313b!important;color:#9d858c!important}
+html[data-qq-theme="burgundy"] .qq-search-cell.qq-selected{background:linear-gradient(145deg,#d4b6a7,#ad7a89)!important;color:#29171f!important;outline:2px solid #f2ded5!important}
+html[data-qq-theme="burgundy"] .qq-search-cell.qq-miss{background:#8c394c!important}
+html[data-qq-theme="burgundy"] .qq-cody-row-clue.active{border-color:#d4b6a7!important;background:#50313d!important}
+html[data-qq-theme="burgundy"] .qq-cody-row-clue.done{background:#684655!important}
+html[data-qq-theme="burgundy"] .qq-cody-keyboard button{background:#593846!important;border-color:#966878!important;color:#fff3f1!important}
+@media(max-width:480px){.nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;padding-left:4px;padding-right:4px}.nav button{font-size:10px!important}.nav .ni{font-size:19px}}
