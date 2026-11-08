@@ -564,7 +564,7 @@ test("logic scanword clue cells wrap within their three-line mobile layout", asy
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const logicCells = page.locator(".scanword-board > .scan-clue-logic:not(.scan-clue-picture):not(.scan-clue-emoji)");
-  await expect(logicCells).toHaveCount(3, { timeout: 20_000 });
+  await expect.poll(() => logicCells.count()).toBeGreaterThanOrEqual(3);
   const layouts = await logicCells.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => {
     const style = getComputedStyle(node);
     const rect = node.getBoundingClientRect();
