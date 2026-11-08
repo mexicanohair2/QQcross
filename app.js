@@ -1089,14 +1089,38 @@ function buildScanword(entries){
     while(closing&&occupied.size+clueAt.size<TOTAL){
       closing=false;
       const anchors=[];
-      const clueEntries=[...clueAt.entries()].reverse();
-      clueEntries.sort((a,b)=>Number(a[1].length>0)-Number(b[1].length>0));
-      clueEntries.forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
-      for(let y=0;y<N;y++)for(let x=0;x<N;x++){
-        const key=y+","+x;
-        if(occupied.has(key)||clueAt.has(key))continue;
-        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
-        if(adjacent)anchors.push({y,x,existing:false,list:[]});
+      const emptyQuestions=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key,list])=>{
+        const [y,x]=key.split(",").map(Number);
+        let routes=0;
+        for(const testDir of dirs){
+          const max=Math.min(12,testDir.dy>0?N-1-y:testDir.dy<0?y:testDir.dx>0?N-1-x:x);
+          let route=false;
+          for(let length=1;length<=max&&!route;length++){
+            let clear=true;
+            for(let k=1;k<=length;k++){
+              const yy=y+testDir.dy*k,xx=x+testDir.dx*k,key2=yy+","+xx;
+              if(occupied.has(key2)||clueAt.has(key2)){clear=false;break}
+            }
+            const end=(y+testDir.dy*(length+1))+","+(x+testDir.dx*(length+1));
+            if(clear&&!occupied.has(end))route=true;
+          }
+          if(route)routes++;
+        }
+        return {y,x,existing:true,list,routes};
+      });
+      if(emptyQuestions.length){
+        // Solve the most constrained open endpoint first; do not let a new
+        // branch consume its only remaining route.
+        emptyQuestions.sort((a,b)=>a.routes-b.routes);
+        anchors.push(...emptyQuestions);
+      }else{
+        [...clueAt.entries()].reverse().forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
+        for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+          const key=y+","+x;
+          if(occupied.has(key)||clueAt.has(key))continue;
+          const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<N&&xx<N&&occupied.has(yy+","+xx));
+          if(adjacent)anchors.push({y,x,existing:false,list:[]});
+        }
       }
       anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
