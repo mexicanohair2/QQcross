@@ -1967,3 +1967,59 @@ html body .scanword-board > button.scan-cell.scan-clue.scan-clue-logic.scan-clue
   line-clamp:3!important;
   white-space:normal!important;
 }
+
+
+/* 8-column × 12-row reference scanword layout. */
+html body .scanword-wrap{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:0!important;
+  flex:1 1 auto!important;
+  overflow:visible!important;
+}
+html body .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(var(--qq-cols,8),minmax(0,1fr))!important;
+  grid-template-rows:repeat(var(--qq-rows,12),minmax(0,1fr))!important;
+  width:min(85vw,calc((100dvh - 205px)*0.6667),860px)!important;
+  height:min(127.5vw,calc(100dvh - 205px),1290px)!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  aspect-ratio:8 / 12!important;
+}
+html body .scanword-board > .scan-cell.scan-clue{
+  position:relative!important;
+}
+html body .scanword-board > .scan-cell.scan-clue > .scan-clue-text{
+  padding:0 1px 8px!important;
+}
+.scan-clue-arrow{
+  position:absolute!important;
+  right:2px!important;
+  bottom:2px!important;
+  z-index:3!important;
+  display:block!important;
+  max-width:45%!important;
+  overflow:hidden!important;
+  color:var(--qq-theme-text,#fff)!important;
+  font-size:clamp(5px,1.2vw,7px)!important;
+  font-weight:900!important;
+  line-height:1!important;
+  letter-spacing:-1px!important;
+  opacity:.42!important;
+  pointer-events:none!important;
+  white-space:nowrap!important;
+}
+@media(max-width:420px){
+  html body .scanword-board{
+    width:min(90vw,calc((100dvh - 190px)*0.6667))!important;
+    height:min(135vw,calc(100dvh - 190px))!important;
+  }
+}
+@media(max-height:620px){
+  html body .scanword-board{
+    width:min(85vw,calc((100dvh - 165px)*0.6667))!important;
+    height:min(127.5vw,calc(100dvh - 165px))!important;
+  }
+}
