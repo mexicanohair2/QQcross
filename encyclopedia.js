@@ -4,7 +4,7 @@ const HISTORY_KEY="qqcross.encyclopedia.history.v1";
 let lexiconPromise=null,wordBuckets=null;
 const normalize=value=>String(value||"").toUpperCase().replace(/Ё/g,"Е").replace(/[^А-Я]/g,"");
 async function loadLexicon(){
- if(!lexiconPromise)lexiconPromise=fetch("./data/russian-words-100000.json").then(r=>{if(!r.ok)throw new Error("Не удалось загрузить словарь");return r.json()}).then(data=>{if(data.language!=="ru"||!Array.isArray(data.words))throw new Error("Файл словаря повреждён");return data.words.map(normalize).filter(w=>w.length>=2)}).then(words=>{wordBuckets=new Map();for(const w of words){const k=w.length;const a=wordBuckets.get(k)||[];a.push(w);wordBuckets.set(k,a)}return words});
+ if(!lexiconPromise)lexiconPromise=fetch("./data/russian-words-common-25000.json").then(r=>{if(!r.ok)throw new Error("Частотный словарь недоступен");return r.json()}).catch(()=>fetch("./data/russian-words-100000.json").then(r=>{if(!r.ok)throw new Error("Не удалось загрузить словарь");return r.json()})).then(data=>{if(data.language!=="ru"||!Array.isArray(data.words))throw new Error("Файл словаря повреждён");return data.words.map(normalize).filter(w=>w.length>=2)}).then(words=>{wordBuckets=new Map();for(const w of words){const k=w.length;const a=wordBuckets.get(k)||[];a.push(w);wordBuckets.set(k,a)}return words});
  return lexiconPromise;
 }
 function distance(a,b,limit=2){
@@ -15,7 +15,9 @@ function distance(a,b,limit=2){
 }
 async function suggest(query){
  const q=normalize(query);if(!q)return null;
- await loadLexicon();let best=null,bestDistance=3;
+ await loadLexicon();
+ if((wordBuckets.get(q.length)||[]).includes(q))return{word:q,distance:0};
+ let best=null,bestDistance=3;
  for(let len=Math.max(2,q.length-2);len<=q.length+2;len++)for(const word of wordBuckets.get(len)||[]){const d=distance(q,word,2);if(d<bestDistance){best=word;bestDistance=d;if(d===1&&word[0]===q[0])return{word:best,distance:d};}}
  return bestDistance<=2?{word:best,distance:bestDistance}:null;
 }
@@ -60,5 +62,5 @@ async function search(query){
  if(article)remember(article.title);
  return{requested,correction:correction&&correction.word!==normalized?correction:null,article,stress,suggestions:correction?[correction.word]:[]};
 }
-window.QQEncyclopedia={search,history,normalize};
+window.QQEncyclopedia={search,history,normalize,suggest};
 })();
