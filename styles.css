@@ -1806,3 +1806,7 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
 .game-screen .scanword-questions.is-open .scanword-hint-message{width:min(100%,420px)!important;min-height:20px!important}
 .scanword-popup-close{position:absolute!important;top:calc(env(safe-area-inset-top) + 16px)!important;right:16px!important;width:42px!important;height:42px!important;border:1px solid var(--qq-theme-border,#74515e)!important;border-radius:50%!important;background:var(--qq-theme-panel,#33232d)!important;color:var(--qq-theme-text,#fff)!important;font-size:28px!important;line-height:1!important}
 @media(max-height:620px){.game-screen .scanword-board{width:min(96vw,calc(100dvh - 150px))!important;height:min(96vw,calc(100dvh - 150px))!important}.game-screen .scanword-questions.is-open{padding:12px!important}}
+
+.game-screen .scanword-popup-choices{display:flex!important;flex-wrap:wrap!important;justify-content:center!important;gap:7px!important;width:min(100%,420px)!important}
+.game-screen .scanword-popup-choice{border:1px solid var(--qq-theme-border,#74515e)!important;border-radius:10px!important;padding:8px 11px!important;background:var(--qq-theme-panel,#33232d)!important;color:var(--qq-theme-text,#fff)!important;font-size:11px!important}
+.game-screen .scanword-popup-choice.active{border-color:var(--qq-theme-accent,#a47a8b)!important;background:var(--qq-theme-panel-strong,#57404c)!important}
