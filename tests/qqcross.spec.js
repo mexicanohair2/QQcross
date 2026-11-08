@@ -37,6 +37,19 @@ test("loads a fully occupied 15x15 scanword with three distinct picture clues", 
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
+test("three scanword hint levels are available and successful hints are counted", async ({ page }) => {
+  await startGuestGame(page);
+  await expect(page.locator("[data-smart-hint='light']")).toBeVisible();
+  await expect(page.locator("[data-smart-hint='medium']")).toBeVisible();
+  await expect(page.locator("[data-smart-hint='strong']")).toBeVisible();
+  await page.locator("[data-smart-hint='light']").click();
+  await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
+  await page.locator("[data-smart-hint='medium']").click();
+  await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
+  const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
+  expect(count).toBe(2);
+});
+
 test("selects a picture clue and shows its question in the side panel", async ({ page }) => {
   await startGuestGame(page);
   const pictureClue = page.locator(".scan-clue-picture").first();

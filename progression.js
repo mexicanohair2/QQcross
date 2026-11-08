@@ -38,9 +38,12 @@ const ACHIEVEMENTS=[
 {id:"daily_100",name:"Сто дней",desc:"Достигни серии 100 дней",stat:"bestStreak",target:100},
 {id:"words_25",name:"Словоохотливый",desc:"Открой 25 новых слов",stat:"wordsFound",target:25},
 {id:"words_100",name:"Коллекционер слов",desc:"Открой 100 новых слов",stat:"wordsFound",target:100},
-{id:"groups_5",name:"Пять групп",desc:"Открой 5 групп кроссвордов",stat:"groups",target:5}
+{id:"groups_5",name:"Пять групп",desc:"Открой 5 групп кроссвордов",stat:"groups",target:5},
+{id:"hint_10",name:"Первый ориентир",desc:"Используй 10 подсказок в сканвордах",stat:"hintsUsed",target:10},
+{id:"hint_50",name:"Умный игрок",desc:"Используй 50 подсказок в сканвордах",stat:"hintsUsed",target:50},
+{id:"hint_100",name:"Мастер подсказок",desc:"Используй 100 подсказок в сканвордах",stat:"hintsUsed",target:100}
 ];
-const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
+const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0,hintsUsed:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
 let data=fresh(),cloudTimer=null,cloudClient=null,cloudUserId=null;
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
@@ -70,8 +73,8 @@ function takePendingRewards(){const pending=peekPendingRewards();pending.forEach
 function requeuePendingReward(id,item,quantity){data.pendingRewards=data.pendingRewards||{};data.pendingRewards[id]={item,quantity};save()}
 function setActiveTitle(name){if(!data.titles.includes(name))return false;data.activeTitle=name;save();return true}
 function get(){return JSON.parse(JSON.stringify(data))}
-function achievements(){return ACHIEVEMENTS.map(a=>({ ...a,value:a.stat==="bestStreak"?data.daily.bestStreak:Number(data.stats[a.stat])||0,unlocked:!!data.achievements[a.id],reward:data.achievements[a.id]?.reward||null}))}
+function titleCatalog(){const unlocked=new Set(data.titles||[]);const items=TITLE_NAMES.map((name,index)=>{const target=index<5?[5,10,50,75,100][index]:100+(index-4)*5;return{name,unlocked:unlocked.has(name),progress:Math.min(Number(data.stats.scanwords)||0,target),target,secret:false}});const secretUnlocked=unlocked.has("Mugiwara");items.push({name:secretUnlocked?"Mugiwara":"Секретный титул",unlocked:secretUnlocked,progress:Math.min(Number(data.hatTaps)||0,15),target:15,secret:true});return items}function achievements(){return ACHIEVEMENTS.map(a=>({ ...a,value:a.stat==="bestStreak"?data.daily.bestStreak:Number(data.stats[a.stat])||0,unlocked:!!data.achievements[a.id],reward:data.achievements[a.id]?.reward||null}))}
 function setCloud(client,userId){cloudClient=client;cloudUserId=userId||null;if(!client||!userId)return Promise.resolve();return client.from("qqcross_player_progress").select("progress").eq("user_id",userId).maybeSingle().then(({data:row,error})=>{if(error)throw error;if(row?.progress)mergeProgress(row.progress);else syncCloud().catch(e=>console.warn("QQCross progression sync:",e));return get()})}
 loadLocal();recalculate();
-window.QQProgression={get,daily,record,recordUnique,recordWord,tapHat,completeDaily,setActiveTitle,achievements,takePendingRewards,peekPendingRewards,ackPendingReward,requeuePendingReward,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
+window.QQProgression={get,daily,record,recordUnique,recordWord,tapHat,completeDaily,setActiveTitle,titleCatalog,achievements,takePendingRewards,peekPendingRewards,ackPendingReward,requeuePendingReward,setCloud,syncCloud,hash,randomFor,today,TITLE_NAMES};
 })();
