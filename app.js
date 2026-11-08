@@ -1,32 +1,24 @@
-/* QQCross release themes4: graphite, purple, burgundy */
+/* QQCross release themes: burgundy, purple, dark, light */
 const AVATARS=["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉","🐲"];
 const NAMES=["Котик","Енот","Собачка","Лев","Тигр","Скунс","Клоун","Змея","Красный дракон","Оранжевый дракон"];
 const $=s=>document.querySelector(s);
 const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
 const MATCHES_KEY="qqcross_local_matches_v1";
-const THEME_PRESETS={gray:"Графитовая",purple:"Фиолетовая",burgundy:"Бордовая"};
-let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return THEME_PRESETS[saved]?saved:"burgundy"}catch{return "burgundy"}})();
-function updateThemeColor(){
-  const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.setAttribute("content",activeMode==="light"?"#f4eee9":({gray:"#101318",purple:"#171020",burgundy:"#24151d"})[activeTheme]||"#24151d");
-}
-let activeMode=(()=>{try{const saved=localStorage.getItem("qqcross_appearance_mode_v1");return saved==="light"||saved==="dark"?saved:(localStorage.getItem(THEME_KEY)==="light"?"light":"dark")}catch{return "dark"}})();
+const THEME_PRESETS={burgundy:"Бордовая",purple:"Фиолетовая",dark:"Тёмная",light:"Светлая"};
+let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);if(THEME_PRESETS[saved])return saved;if(saved==="gray"||saved==="black")return "dark";return "burgundy"}catch{return "burgundy"}})();
 function applyTheme(theme=activeTheme){
   activeTheme=THEME_PRESETS[theme]?theme:"burgundy";
-  document.documentElement.dataset.qqTheme=activeTheme;
+  const root=document.documentElement;
+  root.dataset.qqTheme=activeTheme;
+  const mode=activeTheme==="light"?"light":"dark";
+  root.dataset.qqMode=mode;
+  root.style.colorScheme=mode;
   try{localStorage.setItem(THEME_KEY,activeTheme)}catch{}
-  updateThemeColor();
-}
-function applyMode(mode=activeMode){
-  activeMode=mode==="light"?"light":"dark";
-  document.documentElement.dataset.qqMode=activeMode;
-  document.documentElement.style.colorScheme=activeMode;
-  try{localStorage.setItem("qqcross_appearance_mode_v1",activeMode)}catch{}
-  updateThemeColor();
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta)meta.setAttribute("content",({burgundy:"#24151d",purple:"#171020",dark:"#101318",light:"#f4eee9"})[activeTheme]);
 }
 applyTheme(activeTheme);
-applyMode(activeMode);
 const BACKGROUNDS=[["misty-forest","Туманный лес","nature"],["sakura-dawn","Сакуровый рассвет","nature"],["starry-night","Звёздная ночь","nature"],["autumn-grove","Осенняя роща","nature"],["winter-pines","Зимние ели","nature"],["mountain-lake","Горное озеро","nature"],["ocean-shore","Морской берег","nature"],["lavender-field","Лавандовое поле","nature"],["mossy-stones","Мох и камни","nature"],["moonlit-meadow","Лунный луг","nature"],["spring-rain","Весенний дождь","nature"],["golden-dusk","Золотые сумерки","nature"],["cloud-sea","Море облаков","nature"],["pine-valley","Сосновая долина","nature"],["coral-sunset","Коралловый закат","nature"],["snowy-hills","Снежные холмы","nature"],["fern-shade","Папоротниковая тень","nature"],["river-fog","Туман над рекой","nature"],["desert-dawn","Рассвет в пустыне","nature"],["wildflower","Полевые цветы","nature"],["moon-snow","Лунный снег","nature"],["waterfall","Тихий водопад","nature"],["autumn-leaves","Осенние листья","nature"],["night-garden","Ночной сад","nature"],["aurora","Северное сияние","nature"],["amethyst-waves","Аметистовые волны","abstract"],["lilac-haze","Сиреневая дымка","abstract"],["blue-orbits","Синие орбиты","abstract"],["rose-quartz","Розовый кварц","abstract"],["northern-ribbons","Северные ленты","abstract"],["cosmic-dust","Космическая пыль","abstract"],["pastel-clouds","Пастельные облака","abstract"],["soft-circles","Мягкие круги","abstract"],["deep-indigo","Глубокий индиго","abstract"],["purple-wave","Пурпурная волна","abstract"],["mint-mist","Мятный туман","abstract"],["lagoon-glow","Свечение лагуны","abstract"],["peach-light","Персиковый свет","abstract"],["ink-night","Чернильная ночь","abstract"],["glowing-dots","Светящиеся точки","abstract"],["petal-layers","Слои лепестков","abstract"],["lilac-layers","Сиреневые слои","abstract"],["twilight-gradient","Сумеречный градиент","abstract"],["sea-abstract","Морская абстракция","abstract"],["star-vortex","Звёздный вихрь","abstract"],["warm-amber","Тёплый янтарь","abstract"],["watercolor","Нежная акварель","abstract"],["light-flow","Световой поток","abstract"],["lavender-space","Лавандовый космос","abstract"],["quiet-gradient","Спокойный градиент","abstract"]];
 const BACKGROUND_KEY="qqcross_background_v1";
 let abstractEnabled=(()=>{try{return localStorage.getItem("qqcross_abstract_enabled")!=="false"}catch{return true}})();
@@ -365,7 +357,7 @@ function profile(){
  '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
 }
 function settings(){
- const themes=[["burgundy","Бордовая","Винные, розовые и тёплые бежевые оттенки"],["purple","Фиолетовая","Глубокие сливовые и лавандовые оттенки"],["gray","Графитовая","Спокойные серые и стальные оттенки"]];
+ const themes=[["burgundy","Бордовая","Винные, розовые и тёплые бежевые оттенки"],["purple","Фиолетовая","Глубокие сливовые и лавандовые оттенки"],["dark","Тёмная","Спокойная графитовая палитра"],["light","Светлая","Чистые светлые поверхности и мягкие акценты"]];
  const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
  const choices=BACKGROUNDS.filter(x=>abstractEnabled||x[2]!=="abstract");
  const ambiences=[["forest","Зимний лес","Снег и тихие деревья","❄"],["sakura","Сакура","Падающие лепестки","🌸"],["autumn","Осень","Медленные листья клёна","🍁"],["rain","Дождь","Тихие дождевые линии","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
@@ -373,7 +365,7 @@ function settings(){
  <section class="card settings-card"><span class="pill">Звук</span><h3>Музыка и эффекты</h3>
  <label class="audio-setting"><span><b>Фоновая мелодия</b><small>Тихая спокойная мелодия во время игры</small></span><input type="checkbox" id="qqMusicToggle" ${audio.music?"checked":""}></label>
  <label class="audio-setting"><span><b>Звуки действий</b><small>Буквы, слова, правильные и неверные ответы</small></span><input type="checkbox" id="qqEffectsToggle" ${audio.effects?"checked":""}></label></section>
- <section class="card settings-card"><span class="pill">Персонализация</span><h3>Цветовая палитра</h3><div class="theme-list">${themes.map(([key,name,desc])=>`<button class="theme-choice ${activeTheme===key?"selected":""}" data-theme-choice="${key}" aria-pressed="${activeTheme===key}"><span class="theme-swatch theme-swatch-${key}"></span><span class="theme-copy"><b>${name}</b><small>${desc}</small></span><span class="theme-check">${activeTheme===key?"✓":""}</span></button>`).join("")}</div><h3>Режим оформления</h3><div class="qq-mode-switch" role="group" aria-label="Режим оформления"><button type="button" data-mode-choice="dark" class="${activeMode==="dark"?"selected":""}" aria-pressed="${activeMode==="dark"}">☾ Тёмная тема</button><button type="button" data-mode-choice="light" class="${activeMode==="light"?"selected":""}" aria-pressed="${activeMode==="light"}">☼ Светлая тема</button></div><p class="settings-note small muted">Палитра и режим применяются ко всем экранам, играм, полям, кнопкам и окнам.</p></section>
+ <section class="card settings-card"><span class="pill">Персонализация</span><h3>Тема интерфейса</h3><div class="theme-list">${themes.map(([key,name,desc])=>`<button class="theme-choice ${activeTheme===key?"selected":""}" data-theme-choice="${key}" aria-pressed="${activeTheme===key}"><span class="theme-swatch theme-swatch-${key}"></span><span class="theme-copy"><b>${name}</b><small>${desc}</small></span><span class="theme-check">${activeTheme===key?"✓":""}</span></button>`).join("")}</div><p class="settings-note small muted">Выбранная тема применяется ко всем экранам, играм, полям, кнопкам и окнам и сохраняется автоматически.</p></section>
  <section class="card settings-card"><span class="pill">Фон игры · 50 вариантов</span><h3>Атмосферные фоны</h3><label class="audio-setting"><span><b>Абстрактные фоны</b><small>Можно скрыть и оставить только природные</small></span><input type="checkbox" id="qqAbstractToggle" ${abstractEnabled?"checked":""}></label><div class="background-grid">${choices.map(([id,name,type])=>`<button type="button" class="background-choice ${activeBackground===id?"selected":""}" data-background-choice="${id}" aria-pressed="${activeBackground===id}"><span class="background-preview" data-background-preview="${id}"></span><b>${name}</b><small>${type==="nature"?"Природа":"Абстракция"}</small></button>`).join("")}</div></section>
  <section class="card settings-card"><span class="pill">Атмосфера</span><h3>Анимации и сезонные эффекты</h3><div class="ambience-list">${ambiences.map(([key,name,desc,icon])=>`<button class="ambience-choice ${activeAmbience===key?"selected":""}" data-ambience-choice="${key}" aria-pressed="${activeAmbience===key}"><span class="ambience-preview">${icon}</span><b>${name}</b><small>${desc}</small></button>`).join("")}</div></section>
  <section class="card settings-card"><span class="pill">Удобство</span><h3>Размер текста и анимации</h3><label class="audio-setting"><span><b>Размер текста</b><small>Можно увеличить подписи и вопросы</small></span><select id="qqFontSize" class="input"><option value="normal" ${localStorage.getItem("qqcross_font_size")!=="large"&&localStorage.getItem("qqcross_font_size")!=="small"?"selected":""}>Обычный</option><option value="large" ${localStorage.getItem("qqcross_font_size")==="large"?"selected":""}>Крупный</option><option value="small" ${localStorage.getItem("qqcross_font_size")==="small"?"selected":""}>Компактный</option></select></label><label class="audio-setting"><span><b>Уменьшить анимации</b><small>Отключает движение для более спокойного интерфейса</small></span><input type="checkbox" id="qqReduceMotion" ${localStorage.getItem("qqcross_reduce_motion")==="true"?"checked":""}></label></section>`;
@@ -393,7 +385,7 @@ function wireContent(){rootMatchHistoryBindings();const ef=$("#encyclopediaForm"
   }else{
     state.profile.coins-=cost;state.profile.items[item]+=qty;save();render();toast("Куплено: "+qty+" шт.");
   }
-});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Цветовая палитра изменена")});document.querySelectorAll("[data-mode-choice]").forEach(b=>b.onclick=()=>{applyMode(b.dataset.modeChoice);render();toast(activeMode==="light"?"Включена светлая тема":"Включена тёмная тема")});const music=$("#qqMusicToggle"),effects=$("#qqEffectsToggle");if(music)music.onchange=()=>window.QQAudio?.setMusic(music.checked);if(effects)effects.onchange=()=>window.QQAudio?.setEffects(effects.checked);const avatarInput=$("#qqAvatarInput");if(avatarInput)avatarInput.onchange=()=>saveAvatarFile(avatarInput.files?.[0]);document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render();toast("Атмосфера изменена")})}
+});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Тема изменена")});const music=$("#qqMusicToggle"),effects=$("#qqEffectsToggle");if(music)music.onchange=()=>window.QQAudio?.setMusic(music.checked);if(effects)effects.onchange=()=>window.QQAudio?.setEffects(effects.checked);const avatarInput=$("#qqAvatarInput");if(avatarInput)avatarInput.onchange=()=>saveAvatarFile(avatarInput.files?.[0]);document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render();toast("Атмосфера изменена")})}
 function renderLobby(root){
  if(state.pendingMatchId){
   root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><button class="btn danger" id="deletePendingMatch">Удалить бой</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
