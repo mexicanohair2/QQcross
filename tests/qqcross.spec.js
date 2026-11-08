@@ -471,6 +471,10 @@ test("scanword clue cells show clue text without direction arrows or number badg
   await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
+  const cluePseudo = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.every(node =>
+    getComputedStyle(node, "::before").content === "none" && getComputedStyle(node, "::after").content === "none"
+  ));
+  expect(cluePseudo).toBeTruthy();
   const clueCells = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     if (!text) return { image: !!node.querySelector(".scan-clue-image"), text: "" };
