@@ -864,7 +864,8 @@ function normalizeScanwordEntry(item){
 function assertValidScanwordLayout(result,N,TOTAL){
   const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
   if(!result||!Array.isArray(result.words)||result.words.length<10)fail("слишком мало вопросов");
-  if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size!==TOTAL)fail("поле заполнено не полностью");
+  if(result.coverage!==TOTAL-1||result.occupied.size+result.clueAt.size!==TOTAL-1)fail("поле заполнено не полностью или не оставлена пустая верхняя левая клетка");
+  if(result.occupied.has("0,0")||result.clueAt.has("0,0"))fail("верхняя левая клетка должна оставаться пустой");
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
   const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
   const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
@@ -971,14 +972,14 @@ function buildScanword(entries){
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(y<0||x<0||y>=N||x>=N||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(y<0||x<0||y>=N||x>=N||(y===0&&x===0)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
-      if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
+      if(endY<0||endX<0||endY>=N||endX>=N||(endY===0&&endX===0)||occupied.has(endY+","+endX))return false;
       const terminalKey=endY+","+endX;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
-        if(yy<0||xx<0||yy>=N||xx>=N)return false;
+        if(yy<0||xx<0||yy>=N||xx>=N||(yy===0&&xx===0))return false;
         const cellKey=yy+","+xx,old=occupied.get(cellKey);
         if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
         cells.push([yy,xx]);
@@ -1038,7 +1039,7 @@ function buildScanword(entries){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<520&&occupied.size+clueAt.size<TOTAL;round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size<TOTAL-1;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1087,7 +1088,7 @@ function buildScanword(entries){
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
     let closing=true;
-    while(closing&&occupied.size+clueAt.size<TOTAL){
+    while(closing&&occupied.size+clueAt.size<TOTAL-1){
       closing=false;
       const anchors=[];
       const emptyQuestions=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key,list])=>{
@@ -1190,7 +1191,7 @@ function buildScanword(entries){
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL-1||bestImageCount!==3||best.occupied.has("0,0")||best.clueAt.has("0,0")){const holes=[];for(let y=0;y<N;y++)for(let x=0;x<N;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=N||x>=N});throw new Error("Не удалось собрать поле 12×12 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
@@ -1198,7 +1199,7 @@ function buildScanword(entries){
     if(!clueKeys.has(terminal))throw new Error("Ответ "+word.answer+" не заканчивается новой ячейкой вопроса");
   }
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
-  if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
+  if(occupied.size+clueKeys.size!==TOTAL-1||occupied.has("0,0")||clueKeys.has("0,0"))throw new Error("Проверка заполнения не пройдена: верхняя левая клетка должна быть единственной пустой");
   assertValidScanwordLayout(best,N,TOTAL);
   return {id:"scanword-"+Date.now(),title:"Сканворд",w:N,h:N,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
 }
