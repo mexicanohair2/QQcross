@@ -17,10 +17,10 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12x12 scanword with three distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 12x8 scanword with three distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  await expect(page.locator(".scan-grid-cell")).toHaveCount(144);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
