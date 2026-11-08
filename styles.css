@@ -1335,3 +1335,13 @@ html[data-qq-ambience="fog"] body::before{opacity:.22;background:linear-gradient
 .qq-encyclopedia-search .input{width:100%}
 .qq-encyclopedia-search #encyclopediaResult{min-height:12px}
 @media(max-width:420px){.scanword-smart-hints button{flex:1;min-width:0}.scanword-hint-message{font-size:10px}.qq-encyclopedia-search form .btn{width:100%}}
+
+/* Полный каталог титулов: компактная прокручиваемая сетка для мобильных экранов. */
+.qq-title-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:280px;overflow:auto;overscroll-behavior:contain;padding:2px 4px 4px 0;margin-top:12px;scrollbar-width:thin}
+.qq-title-chip{display:flex;min-width:0;flex-direction:column;gap:3px;padding:9px 10px;border:1px solid var(--border,rgba(255,255,255,.12));border-radius:12px;background:rgba(255,255,255,.035)}
+.qq-title-chip b{font-size:12px;line-height:1.25;overflow-wrap:anywhere}
+.qq-title-chip small{font-size:10px;line-height:1.25;color:var(--muted,#999)}
+.qq-title-chip.is-locked{opacity:.62}
+.qq-title-chip.is-unlocked{border-color:rgba(155,125,220,.48);background:rgba(139,112,201,.11)}
+.qq-title-chip.is-secret{border-style:dashed}
+@media(min-width:520px){.qq-title-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
