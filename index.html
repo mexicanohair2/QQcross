@@ -4,6 +4,21 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#24151d">
+<script>
+(function(){
+  try{
+    var palette=localStorage.getItem("qqcross_theme_v1");
+    var savedMode=localStorage.getItem("qqcross_appearance_mode_v1");
+    var theme=["burgundy","purple","gray"].indexOf(palette)>=0?palette:"burgundy";
+    var mode=savedMode==="light"||savedMode==="dark"?savedMode:(palette==="light"?"light":"dark");
+    document.documentElement.dataset.qqTheme=theme;
+    document.documentElement.dataset.qqMode=mode;
+    document.documentElement.style.colorScheme=mode;
+    var meta=document.querySelector('meta[name="theme-color"]');
+    if(meta)meta.setAttribute("content",mode==="light"?"#f4eee9":({burgundy:"#24151d",purple:"#171020",gray:"#101318"})[theme]);
+  }catch(_){}
+})();
+</script>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
 <meta name="description" content="QQCross — играй в сканворды">
 <link rel="manifest" href="./manifest.json">
@@ -17,7 +32,7 @@
   function showBootError(message){
     var root=document.getElementById("app");
     if(!root || !root.textContent.includes("Загрузка игры")) return;
-    root.innerHTML='<div style="min-height:100vh;display:grid;place-items:center;padding:24px;background:#24151d;color:#f7edf0;font:16px system-ui;text-align:center"><div><div style="font-size:42px;font-weight:800;color:#d4b6a7">QQ</div><h2>Не удалось запустить QQCross</h2><p style="color:#b9b2c5;max-width:320px">'+String(message||"Скрипт игры не запустился").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+'</p><button onclick="location.reload()" style="border:0;border-radius:12px;padding:13px 22px;background:#8c586b;color:#f0e5e8;font-weight:700">Обновить игру</button></div></div>';
+    root.innerHTML='<div class="qq-boot-error"><div><div class="qq-boot-error-mark">QQ</div><h2>Не удалось запустить QQCross</h2><p>'+String(message||"Скрипт игры не запустился").replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})+'</p><button type="button" onclick="location.reload()">Обновить игру</button></div></div>';
   }
   window.addEventListener("error",function(e){showBootError(e.message+" ("+(e.filename||"")+(e.lineno?":"+e.lineno:"")+")")});
   window.addEventListener("unhandledrejection",function(e){var r=e.reason;showBootError(r&&r.message?r.message:String(r||"Ошибка запуска"))});
