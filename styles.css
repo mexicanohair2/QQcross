@@ -1388,3 +1388,11 @@ html[data-qq-theme="burgundy"] .qq-cody-row-clue.active{border-color:#d4b6a7!imp
 html[data-qq-theme="burgundy"] .qq-cody-row-clue.done{background:#684655!important}
 html[data-qq-theme="burgundy"] .qq-cody-keyboard button{background:#593846!important;border-color:#966878!important;color:#fff3f1!important}
 @media(max-width:480px){.nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;padding-left:4px;padding-right:4px}.nav button{font-size:10px!important}.nav .ni{font-size:19px}}
+
+
+/* Word of Wonders: читаемое поле, не ужимаем кроссворд до миниатюры */
+.qq-wow-screen .qq-cross-board{width:min(100%,430px)!important;max-width:calc(100vw - 24px)!important;grid-template-rows:repeat(var(--qq-cols),clamp(14px,2.55vh,21px))!important;grid-auto-rows:clamp(14px,2.55vh,21px)!important;gap:2px!important;padding:3px!important;margin:4px auto 8px!important}
+.qq-wow-screen .qq-cross-cell,.qq-wow-screen .qq-cross-empty{min-width:0!important;min-height:0!important}
+.qq-wow-screen .qq-cross-cell{font-size:clamp(10px,3vw,17px)!important;font-weight:850!important}
+html[data-qq-theme="burgundy"] .qq-wow-screen .qq-cross-cell{background:linear-gradient(145deg,#9b6a7a,#684352)!important;border-color:#d4b6a7!important;color:#fff7f3!important}
+html[data-qq-theme="burgundy"] .qq-wow-screen .qq-cross-empty{background:linear-gradient(145deg,#241720,#1b1117)!important;border-color:#3d2933!important}
