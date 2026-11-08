@@ -818,15 +818,15 @@ function compactScanwordClue(value){
 }
 function fitScanwordClue(value){
   const clue=compactScanwordClue(value);
-  if(!clue||clue.length<=23)return clue;
+  if(!clue||clue.length<=17)return clue;
   const words=clue.split(/\s+/);
   let result="";
   for(const word of words){
     const next=result?result+" "+word:word;
-    if(next.length>22)break;
+    if(next.length>16)break;
     result=next;
   }
-  if(!result)result=clue.slice(0,22);
+  if(!result)result=clue.slice(0,16);
   return result.replace(/[\s.,;:?!—-]+$/,"")+"…";
 }
 const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
@@ -891,7 +891,7 @@ function assertValidScanwordLayout(result,N,TOTAL){
   return true;
 }
 function buildScanword(entries){
-  const N=15,TOTAL=N*N;
+  const N=13,TOTAL=N*N;
   const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
@@ -908,6 +908,10 @@ function buildScanword(entries){
     if(entry.clue.includes("…")||entry.clue.includes("..."))score-=35;
     // Single-letter answers are reserved for the final gap-repair pass only.
     if(entry.answer.length===1)score-=100;
+    // Keep everyday vocabulary ahead of encyclopedic and specialist terms.
+    if(entry.answer.length<=8)score+=7;else if(entry.answer.length>=10)score-=14;
+    if(/историческ|дисциплин|административн|публикац|последовательн|многогранник|показатель степени|философ|религиоз|правовед|политолог|палеонт|геологическ|посредничеств|противореч|предпочтительн|родственных родов|государств востока|историческ(ая|ий) роман|на протяжении поколений/i.test(entry.clue))score-=90;
+    if(/^(АРХЕОГРАФИЯ|ВИЛАЯТ|АЙВЕНГО|ФУГА|АНТИНОМИЯ|ПРЕАМБУЛА|ГЕРАЛЬДИКА|ФАВОРИТИЗМ|РЕПАТРИАЦИЯ|ДИАСПОРА|ШАМАНИЗМ)$/i.test(entry.answer))score-=150;
     return score;
   };
   // Keep only the strongest clue for each answer. This prevents the same
