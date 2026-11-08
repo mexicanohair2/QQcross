@@ -892,7 +892,8 @@ function assertValidScanwordLayout(result,N,TOTAL){
 }
 function buildScanword(entries){
   const N=13,TOTAL=N*N;
-  const normalized=entries.map(normalizeScanwordEntry).filter(Boolean);
+  const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
+  const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue));
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
@@ -1116,9 +1117,9 @@ function buildScanword(entries){
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestSingleCount=singleCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestLogicCount>=3&&bestSingleCount<=1)break;
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3||bestLogicCount<3)throw new Error("Не удалось собрать поле с тремя картинками и тремя логическими вопросами (заполнение: "+bestCoverage+"/225, картинки: "+Math.max(0,bestImageCount)+"/3, логика: "+Math.max(0,bestLogicCount)+"/3). Повтори генерацию.");
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать поле с тремя разными картинками (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
