@@ -1339,8 +1339,8 @@ function renderGame(root){
   const activeLength=activeWord?.answer?.length||0;
   const questionList=puzzle.words.map((word,index)=>'<button type="button" class="scanword-question-item '+(word.id===activeWord?.id?'active':'')+(state.completed?.has(word.id)?' done':'')+'" data-word-clue="'+esc(word.id)+'"><span class="scanword-question-index">'+(index+1)+'</span><span class="scanword-question-short">'+esc(word.clueShort||word.clue)+'</span><span class="scanword-question-status">'+(state.completed?.has(word.id)?'✓':({right:'→',left:'←',down:'↓',up:'↑'}[word.dir]||''))+'</span></button>').join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
-    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Твой ход — нажми на клетку с вопросом.')+'</div>':'')+
-    '<div class="scanword-play-area"><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div><aside class="scanword-questions" id="scanwordCluePopup" aria-label="Вопрос сканворда"><button type="button" class="scanword-popup-close" id="scanwordPopupClose" aria-label="Закрыть">×</button><div class="scanword-question-current"><div class="scanword-question-kicker">ВОПРОС</div><div class="scanword-question-full" id="scanwordPopupText">Нажми на клетку с вопросом</div><div class="scanword-question-meta" id="scanwordPopupMeta"></div></div><div class="scanword-popup-choices" id="scanwordPopupChoices"></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Открыть букву</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div></aside></div>'+
+    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Твой ход — выбери вопрос слева.')+'</div>':'')+
+    '<div class="scanword-play-area"><aside class="scanword-questions" aria-label="Вопросы сканворда"><div class="scanword-question-current"><div class="scanword-question-kicker">ТЕКУЩИЙ ВОПРОС</div><div class="scanword-question-full">'+(activeWord?(activeWord.imageKey?'Что изображено на картинке?':esc(activeWord.clue)):'Все вопросы решены')+'</div><div class="scanword-question-meta">'+(activeWord?((activeDirection?activeDirection+" · ":"")+"Ответ: "+activeLength+" "+(activeLength===1?"буква":activeLength<5?"буквы":"букв")):"Отличная работа!")+'</div></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Сильная</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div></div><div class="scanword-question-list">'+questionList+'</div></aside><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
@@ -1377,38 +1377,13 @@ function renderGame(root){
       renderGame(root);
     };
   });
-  const popup=root.querySelector("#scanwordCluePopup");
-  root.querySelector("#scanwordPopupClose")?.addEventListener("click",()=>popup?.classList.remove("is-open"));
-  const showCluePopup=(word,options)=>{
-    state.selectedWord=word.id;
-    renderGame(root);
-    const panel=root.querySelector("#scanwordCluePopup");
-    const chosen=puzzle.words.find(item=>item.id===state.selectedWord)||word;
-    const direction=({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[chosen.dir]||"");
-    panel?.querySelector("#scanwordPopupText")?.replaceChildren(document.createTextNode(chosen.imageKey?"Что изображено на картинке?":chosen.clue));
-    panel?.querySelector("#scanwordPopupMeta")?.replaceChildren(document.createTextNode((direction?direction+" · ":"")+"Ответ: "+chosen.answer.length+" "+(chosen.answer.length===1?"буква":chosen.answer.length<5?"буквы":"букв")));
-    const choices=panel?.querySelector("#scanwordPopupChoices");
-    if(choices){
-      choices.replaceChildren();
-      if(options.length>1){
-        options.forEach((option,index)=>{
-          const choice=document.createElement("button");
-          choice.type="button";choice.className="scanword-popup-choice"+(option.id===chosen.id?" active":"");
-          const arrow=({right:"→",left:"←",down:"↓",up:"↑"}[option.dir]||"");
-          choice.textContent=(arrow?arrow+" ":"")+"Вопрос "+(index+1)+" · "+option.answer.length+" букв";
-          choice.addEventListener("click",()=>showCluePopup(option,options));
-          choices.append(choice);
-        });
-      }
-    }
-    panel?.classList.add("is-open");
-  };
   root.querySelectorAll("[data-clue-cell]").forEach(button=>{
     button.onclick=()=>{
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const next=wordsAt.find(word=>!state.completed?.has(word.id))||wordsAt[0];
-      showCluePopup(next,wordsAt);
+      state.selectedWord=next.id;
+      renderGame(root);
     };
   });
   let activeDrag=null,dragGhost=null;
