@@ -888,7 +888,10 @@ function assertValidScanwordLayout(result,N,TOTAL){
       if(!owners.has(key))owners.set(key,new Set());
       owners.get(key).add(i);
     }
+    const terminalY=cy+delta[0]*(answer.length+1),terminalX=cx+delta[1]*(answer.length+1),terminalKey=terminalY+","+terminalX;
+    if(terminalY<0||terminalX<0||terminalY>=N||terminalX>=N||!(result.clueAt.get(terminalKey)||[]).length)fail("ответ "+answer+" не заканчивается новой ячейкой вопроса");
   }
+  for(const [key,list] of result.clueAt)if(!list.length)fail("пустая ячейка вопроса после ответа: "+key);
   if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
   for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
   for(const key of result.occupied.keys())if(!letters.has(key))fail("пустая занятая клетка: "+key);
@@ -912,7 +915,7 @@ function assertValidScanwordLayout(result,N,TOTAL){
   return true;
 }
 function buildScanword(entries){
-  const N=13,TOTAL=N*N;
+  const N=12,TOTAL=N*N;
   const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
   const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue));
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
@@ -971,6 +974,8 @@ function buildScanword(entries){
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
       if(!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||at.some(w=>w.imageKey)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
+      const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
+      if(endY<0||endX<0||endY>=N||endX>=N||occupied.has(endY+","+endX))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=N||xx>=N)return false;
@@ -982,8 +987,12 @@ function buildScanword(entries){
       if(words.length&&!crosses&&!allowSeed&&!(entry.answer.length===1&&at.length>0))return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
-      at.push(word);clueAt.set(key,at);frontier.add(key);
+      at.push(word);clueAt.set(key,at);
+      const terminalKey=endY+","+endX;
+      if(!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
+      frontier.add(key);frontier.add(terminalKey);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
+      addFrontier(endY,endX);
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
@@ -995,7 +1004,7 @@ function buildScanword(entries){
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
     if(pictureSeeds.length<3)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=7,firstX=Math.floor((N-first.answer.length)/2);
+    const firstY=5,firstX=Math.max(0,Math.floor((N-first.answer.length-1)/2));
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
@@ -1142,6 +1151,12 @@ function buildScanword(entries){
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3)throw new Error("Не удалось собрать поле с тремя разными картинками (заполнение: "+bestCoverage+"/"+TOTAL+", картинки: "+Math.max(0,bestImageCount)+"/3). Повтори генерацию.");
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
+  for(const [key,list] of best.clueAt)if(!list.length)throw new Error("После ответа нет следующего вопроса в клетке "+key);
+  for(const word of best.words){
+    const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+    const terminal=(last[0]+dir.dy)+","+(last[1]+dir.dx);
+    if(!clueKeys.has(terminal)||!(best.clueAt.get(terminal)||[]).length)throw new Error("Ответ "+word.answer+" не заканчивается новой ячейкой вопроса");
+  }
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
   assertValidScanwordLayout(best,N,TOTAL);
