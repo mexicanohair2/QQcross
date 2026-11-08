@@ -94,6 +94,9 @@ function validate(puzzle, run) {
   for (const key of borderKeys) if (!puzzle.words.some(word => word.clueCell.join(",") === key)) {
     throw new Error("Run " + run + ": missing top/left border clue at " + key);
   }
+  for (const key of puzzle.clueKeys) if (!puzzle.words.some(word => word.clueCell.join(",") === key)) {
+    throw new Error("Run " + run + ": terminal clue cell has no outgoing question at " + key);
+  }
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
