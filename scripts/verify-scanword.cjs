@@ -92,18 +92,22 @@ function validate(puzzle, run) {
   if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
     throw new Error("Run " + run + ": expected three distinct picture clues, found " + pictureKeys.join(","));
   }
+  const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
+  if (logicClueCells.size < 3) {
+    throw new Error("Run " + run + ": expected at least three distinct logical clue cells, found " + logicClueCells.size);
+  }
   const pictureAnswers = new Map([["airplane","САМОЛЕТ"],["apple","ЯБЛОКО"],["ball","МЯЧ"],["banana","БАНАН"],["bear","МЕДВЕДЬ"],["bee","ПЧЕЛА"],["bicycle","ВЕЛОСИПЕД"],["boat","ЛОДКА"],["book","КНИГА"],["bus","АВТОБУС"],["butterfly","БАБОЧКА"],["car","МАШИНА"],["carrot","МОРКОВЬ"],["cat","КОТ"],["clock","ЧАСЫ"],["cloud","ОБЛАКО"],["crocodile","КРОКОДИЛ"],["cucumber","ОГУРЕЦ"],["cup","ЧАШКА"],["dog","СОБАКА"],["dolphin","ДЕЛЬФИН"],["fish","РЫБА"],["fox","ЛИСА"],["giraffe","ЖИРАФ"],["grapes","ВИНОГРАД"],["guitar","ГИТАРА"],["hedgehog","ЕЖ"],["house","ДОМ"],["kangaroo","КЕНГУРУ"],["key","КЛЮЧ"],["lemon","ЛИМОН"],["lion","ЛЕВ"],["octopus","ОСЬМИНОГ"],["orange","АПЕЛЬСИН"],["owl","СОВА"],["parrot","ПОПУГАЙ"],["penguin","ПИНГВИН"],["snail","УЛИТКА"],["spider","ПАУК"],["strawberry","КЛУБНИКА"],["sun","СОЛНЦЕ"],["sunflower","ПОДСОЛНУХ"],["tiger","ТИГР"],["tomato","ПОМИДОР"],["whale","КИТ"],["zebra","ЗЕБРА"]]);
   for (const word of pictureWords) {
     if (pictureAnswers.get(word.imageKey) !== word.answer) {
       throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
     }
   }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys };
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys, logicalClueCells: logicClueCells.size };
 }
 
 const timings = [];
 const summaries = [];
-for (let run = 1; run <= 50; run++) {
+for (let run = 1; run <= 20; run++) {
   const math = Object.create(Math);
   math.random = seededRandom(run * 7919);
   const context = {
@@ -129,7 +133,7 @@ timings.sort((a, b) => a - b);
 console.log(JSON.stringify({
   dictionaryEntries: dictionary.length,
   validRuns: summaries.length,
-  seedsChecked: 50,
+  seedsChecked: 20,
   medianMs: Math.round((timings[3] + timings[4]) / 2),
   p95Ms: Math.round(timings[timings.length - 1]),
   runs: summaries

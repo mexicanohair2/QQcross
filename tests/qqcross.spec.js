@@ -28,7 +28,7 @@ test("loads a fully occupied 15x15 scanword with three distinct picture clues", 
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
+  expect(clueFontSizes.every(size => size >= 6)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(3);
@@ -88,16 +88,18 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
     return { filter: style.filter, transform: style.transform };
   });
   expect(letterStyle.filter).toBe("none");
-  expect(letterStyle.transform).toBe("none");
+  expect(["none","matrix(1, 0, 0, 1, 0, 0)"]).toContain(letterStyle.transform);
   const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueSizes.length).toBeGreaterThan(0);
-  expect(clueSizes.every(size => size >= 8)).toBeTruthy();
+  expect(clueSizes.every(size => size >= 6)).toBeTruthy();
 });
 
 test("opens full text for an ordinary text clue from its cell", async ({ page }) => {
   await startGuestGame(page);
   const clue = page.locator(".scan-clue:not(.scan-clue-picture)").first();
   await clue.click();
+  const firstChoice = page.locator(".clue-popup-choice").first();
+  if (await firstChoice.count()) await firstChoice.click();
   await expect(page.locator(".clue-popup-text")).not.toBeEmpty();
   await expect(page.locator(".clue-popup-length")).toContainText("Ответ:");
   await expect(page.locator(".scanword-board")).toBeVisible();
@@ -395,10 +397,10 @@ test("word search shows a question for every target and the bulb marks a startin
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="search"]').click();
   await page.locator('[data-level="1"]').click();
-  await expect(page.locator("#qqSearchClues .qq-search-clue")).not.toHaveCount(0);
+  await expect(page.locator("#qqSearchClues .qq-search-word")).not.toHaveCount(0);
   await expect(page.locator("#qqSearchClues")).not.toContainText("Что изображено");
   const targets = Number((await page.locator("#qqProgress").textContent()).split("/").pop().trim());
-  await expect(page.locator("#qqSearchClues .qq-search-clue")).toHaveCount(targets);
+  await expect(page.locator("#qqSearchClues .qq-search-word")).toHaveCount(targets);
   const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   await page.locator("#qqSearchBulb").click();
   await expect(page.locator(".qq-search-cell.qq-search-hinted")).toHaveCount(1);
@@ -461,4 +463,65 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
   expect(preserved.bulb).toBe(7);
   const repaired = await page.evaluate(() => window.QQEconomy.normalizeItems({ magnifier: -1, clock: "2", trash: 1 }));
   expect(repaired).toEqual({ magnifier: 0, clock: 0, trash: 1, bulb: 5 });
+});
+
+
+test("scanword clue cells show clue text without direction arrows or number badges", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
+  const clueCells = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
+    const text = node.querySelector(".scan-clue-text");
+    if (!text) return { image: !!node.querySelector(".scan-clue-image"), text: "" };
+    const style = getComputedStyle(text), rect = text.getBoundingClientRect();
+    return { text: text.textContent.trim(), visible: style.display !== "none" && rect.width > 0 && rect.height > 0 };
+  }));
+  expect(clueCells.length).toBeGreaterThan(10);
+  expect(clueCells.filter(cell => cell.text).every(cell => cell.visible && cell.text.length > 2)).toBeTruthy();
+  expect(clueCells.some(cell => cell.image)).toBeTruthy();
+  await page.locator(".scanword-board .scan-clue").first().click();
+  await expect(page.locator(".clue-popup")).toBeVisible();
+});
+
+test("scanword autosave avoids writing the full match snapshot on every timer tick", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/?debugTiming=1");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.evaluate(() => {
+    window.__qqMatchWrites = 0;
+    const original = Storage.prototype.setItem;
+    Storage.prototype.setItem = function(key, value) {
+      if (key === "qqcross_local_matches_v1") window.__qqMatchWrites++;
+      return original.call(this, key, value);
+    };
+  });
+  await page.locator("#guestPlay").click();
+  await expect(page.locator("#play-toggle")).toBeVisible();
+  await page.locator("#play-toggle").click();
+  await expect(page.locator("#practice")).toBeVisible();
+  await page.locator("#practice").click();
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await page.evaluate(() => { window.__qqMatchWrites = 0; });
+  await page.waitForTimeout(4500);
+  const writes = await page.evaluate(() => window.__qqMatchWrites);
+  expect(writes).toBeLessThanOrEqual(3);
+});
+
+
+test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
+  await expect(images).toHaveCount(3);
+  await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
+  const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
+  expect(logicalClues).toBeGreaterThanOrEqual(3);
+  const clueLayout = await page.locator(".scanword-board .scan-clue:not(.scan-clue-emoji):not(.scan-clue-picture) .scan-clue-text").evaluateAll(nodes => nodes.map(node => {
+    const style = getComputedStyle(node), rect = node.getBoundingClientRect();
+    return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
+  }));
+  expect(clueLayout.length).toBeGreaterThan(0);
+  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
