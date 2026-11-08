@@ -174,16 +174,21 @@ test("opens the 1000-level Word of Wonders map and joins the wheel letters by dr
     return index;
   });
   expect(indexes.every(index => index >= 0)).toBeTruthy();
-  for (let step = 0; step < indexes.length; step++) {
-    const box = await letters.nth(indexes[step]).boundingBox();
-    if (step === 0) {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.mouse.down();
-    } else {
-      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
-    }
-  }
-  await page.mouse.up();
+  await page.evaluate((path) => {
+    const wheel = document.querySelector("#qqWheel");
+    const buttons = [...wheel.querySelectorAll(".qq-wheel-letter")];
+    const points = path.map(index => {
+      const rect = buttons[index].getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    });
+    const send = (target, type, point) => target.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: 77, pointerType: "touch", isPrimary: true,
+      clientX: point.x, clientY: point.y, buttons: type === "pointerup" ? 0 : 1
+    }));
+    send(buttons[path[0]], "pointerdown", points[0]);
+    for (let i = 1; i < points.length; i++) send(wheel, "pointermove", points[i]);
+    send(wheel, "pointerup", points[points.length - 1]);
+  }, indexes);
   await expect(page.locator("#qqWheelProgress")).toContainText("Найдено: 1 / " + count);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector("#qqWheelBoard").getBoundingClientRect(), c: document.querySelector(".qq-wow-controls").getBoundingClientRect() }));
   expect(fit.b.width).toBeGreaterThan(250);
