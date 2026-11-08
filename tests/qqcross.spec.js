@@ -25,6 +25,10 @@ test("loads the 8x12 reference scanword with a blank corner and five distinct pi
   const scanBoard = page.locator(".scanword-board");
   const gridShape = await scanBoard.evaluate(node => ({ columns: getComputedStyle(node).gridTemplateColumns.split(" ").length, rows: getComputedStyle(node).gridTemplateRows.split(" ").length }));
   expect(gridShape).toEqual({ columns: 8, rows: 12 });
+  const cluePositions = await scanBoard.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => node.dataset.clueCell));
+  for (let x = 1; x < 8; x++) expect(cluePositions).toContain("0," + x);
+  for (let y = 1; y < 12; y++) expect(cluePositions).toContain(y + ",0");
+  await expect(scanBoard.locator(".scan-clue-arrow")).not.toHaveCount(0);
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
