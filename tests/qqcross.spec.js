@@ -319,10 +319,11 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
 
 test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword entries", async ({ page }) => {
   await page.goto("/");
-  const [lexicon, wordle, scanwords] = await Promise.all([
+  const [lexicon, wordle, scanwords, common] = await Promise.all([
     page.evaluate(() => fetch("./data/russian-words-100000.json").then(r => r.json())),
     page.evaluate(() => fetch("./data/wordle-words.json").then(r => r.json())),
-    page.evaluate(() => fetch("./data/scanword-dictionary.json").then(r => r.json()))
+    page.evaluate(() => fetch("./data/scanword-dictionary.json").then(r => r.json())),
+    page.evaluate(() => fetch("./data/russian-words-common-25000.json").then(r => r.json()))
   ]);
   const master = new Set(lexicon.words);
   expect(lexicon.language).toBe("ru");
@@ -330,6 +331,11 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
   expect(lexicon.words).toHaveLength(100000);
   expect(master.size).toBe(100000);
   expect(lexicon.words.every(word => /^[А-Я]{2,18}$/.test(word))).toBe(true);
+  expect(common.language).toBe("ru");
+  expect(common.count).toBe(25000);
+  expect(common.words).toHaveLength(25000);
+  expect(new Set(common.words).size).toBe(25000);
+  expect(common.words.every(word => /^[А-Я]{3,18}$/.test(word))).toBe(true);
   const normalize = value => String(value || "").toUpperCase().replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
   const blocked = new Set(["БЛЯДЬ","БЛЯТЬ","ЕБАТЬ","ЕБАЛО","ХУЙНЯ","ПИЗДА","ГОВНО","МУДАК","ДЕРЬМО","ПИЗДЕЦ","НАХУЙ","СУКА","МРАЗЬ"]);
   const cleanWord = word => /^[А-Я]{2,18}$/.test(word) && !blocked.has(word) && !/(.)\1\1/.test(word);
