@@ -88,7 +88,7 @@ let draggingLetter=false;
 let suppressCellClick=false;
 
 
-function defaultItems(){return {magnifier:5,clock:5,trash:5}}
+function defaultItems(){return {magnifier:5,clock:5,trash:5,bulb:5}}
 function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
@@ -100,7 +100,7 @@ function renderDaily(root){
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
-  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
+  window.QQWordle?.mount(root,()=>{state.screen="daily";render()},{daily:{date:d.date,length:d.wordleLength,seed:d.wordleSeed,completed:!!done.wordle},onWin:()=>{awardGameLevel("wordle",Number(String(d.date||"").replace(/-/g,""))||Math.floor(Date.now()/86400000));p?.completeDaily("wordle",d.date);applyProgressRewards();toast("Ежедневный Wordle выполнен!")}})
  };
 }
 async function startDailyScanword(d){
@@ -292,7 +292,10 @@ async function watchSocialUpdates(){
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("QQCross social realtime:",status);
     });
 }
-function shop(){const products=[["magnifier","🔎","Лупы","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорки","Заменить набор букв"]];return `<h2>Магазин</h2>${products.map(([key,ico,name,desc])=>`<div class="card"><div class="row"><div class="avatar">${ico}</div><div class="grow"><b>${name}</b><div class="small">В наличии: ${state.profile.items[key]}</div></div></div><div class="grid2 shop-buy"><button class="btn buy" data-item="${key}" data-qty="5">5 шт. · 100 🪙</button><button class="btn primary buy" data-item="${key}" data-qty="10">10 шт. · 200 🪙</button></div></div>`).join("")}`}
+function shop(){
+ const products=[["magnifier","🔎","Лупа","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорка","Перемешать набор букв"],["bulb","💡","Подсказка","Подсветить одну букву в игре"]];
+ return '<h2>Магазин</h2><p class="small muted qq-shop-note">Предметы для всех игр, кроме Wordle. 5 предметов — 100 монет.</p><div class="qq-shop-grid">'+products.map(([key,ico,name,desc])=>'<article class="qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">'+ico+'</span><span class="qq-shop-item-copy"><b>'+name+'</b><small>'+desc+'</small></span></div><div class="qq-shop-stock">В наличии: <b>'+(state.profile.items[key]||0)+'</b></div><div class="qq-shop-buy"><button class="btn buy" data-item="'+key+'" data-qty="5">5 · 100 🪙</button><button class="btn primary buy" data-item="'+key+'" data-qty="10">10 · 200 🪙</button></div></article>').join("")+'</div>';
+}
 function encyclopedia(){
  const p=window.QQProgression?.get?.()||{discoveredWords:[]},words=p.discoveredWords||[],history=window.QQEncyclopedia?.history?.()||[];
  return '<h2>Энциклопедия</h2><section class="card qq-encyclopedia-search"><p class="muted small">Ищи значение слова, исправляй опечатки и открывай связанные понятия.</p><form id="encyclopediaForm"><input id="encyclopediaInput" class="input" type="search" placeholder="Например, тунец" autocomplete="off"><button class="btn primary" type="submit">Найти</button></form><div id="encyclopediaResult" aria-live="polite"></div></section><section class="card"><h3>Мои изученные слова · '+words.length+'</h3><div class="qq-word-chips">'+(words.length?words.slice(-80).reverse().map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<p class="muted small">Пока нет изученных слов. Открывай слова в Wordle и других режимах двойным нажатием.</p>')+'</div></section><section class="card"><h3>Недавний поиск</h3><div class="qq-word-chips">'+(history.length?history.slice(0,12).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<span class="muted small">История появится после первого поиска.</span>')+'</div></section>';
@@ -608,11 +611,31 @@ function useItem(key){
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
     supabaseClient.rpc("use_qqcross_item",{item_type:key}).then(({data,error})=>{
       if(error){state.profile.items[key]++;save();toast("Не удалось списать предмет: "+(error.message||"ошибка"));if(state.screen==="game")render()}
-      else{state.profile.items[key]=data;save();const el=document.querySelector("#"+key);if(el){const strong=el.querySelector("strong");if(strong)strong.textContent=(key==="magnifier"?"🔎 ":key==="clock"?"⏱ ":"🗑️ ")+data}}
+      else{state.profile.items[key]=data;save();const el=document.querySelector("#"+key);if(el){const strong=el.querySelector("strong");if(strong)strong.textContent=(key==="magnifier"?"🔎 ":key==="clock"?"⏱ ":key==="bulb"?"💡 ":"🗑️ ")+data}}
     }).catch(error=>{console.warn("QQCross inventory:",error)});
   }
   return true;
 }
+function awardGameLevel(game,level){
+ const n=Number(level);if(!Number.isSafeInteger(n)||n<1||n>2147483647||!["scanword","search","wow","cody","wordle"].includes(game))return Promise.resolve(false);
+ const key=game+":"+n;
+ if(supabaseClient&&state.profile?.id&&!String(state.profile.id).startsWith("local-")){
+  return supabaseClient.rpc("award_qqcross_level_reward",{p_game_key:game,p_level:n}).then(({data,error})=>{
+   if(error)throw error;
+   if(data&&Number.isFinite(Number(data.coins)))state.profile.coins=Number(data.coins);
+   save();const coins=document.querySelector(".coins");if(coins)coins.textContent="🪙 "+state.profile.coins;
+   if(Number(data?.reward)>0)toast("Уровень пройден · +5 🪙");
+   return Number(data?.reward)>0;
+  }).catch(error=>{console.warn("QQCross level reward:",error);toast("Награда пока не начислена. Попробуем позже.");return false});
+ }
+ let claimed={};try{claimed=JSON.parse(localStorage.getItem("qqcross_level_rewards_local_v1")||"{}")}catch{}
+ if(claimed[key])return Promise.resolve(false);
+ claimed[key]=Date.now();try{localStorage.setItem("qqcross_level_rewards_local_v1",JSON.stringify(claimed))}catch{}
+ state.profile.coins=(Number(state.profile.coins)||0)+5;save();
+ const coins=document.querySelector(".coins");if(coins)coins.textContent="🪙 "+state.profile.coins;
+ toast("Уровень пройден · +5 🪙");return Promise.resolve(true);
+}
+window.QQEconomy={awardLevel:awardGameLevel,useBulb:()=>useItem("bulb")};
 function place(k,root){
   if(state.selectedLetter<0){toast("Сначала выбери букву");return}
   if(expected[k]===undefined)return;
@@ -640,7 +663,7 @@ function checkWords(){
       state.completed.add(w.id);newlyCompleted.push(w);window.QQProgression?.recordWord?.(w.answer);window.QQAudio?.play("word");state.playerScores[state.turn]+=5;state.scores+=5;toast("Слово собрано! +5");
     }
   });
-  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;window.QQProgression?.record("scanwords");if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
+  if(state.completed.size===puzzle.words.length&&!state.progressRecorded){state.progressRecorded=true;if(!state.onlineMatchId)awardGameLevel("scanword",Number(state.matchId)||Math.floor(Date.now()/1000));window.QQProgression?.record("scanwords");if(state.dailyMode){window.QQProgression?.completeDaily("scanword",state.dailyScanwordDate||window.QQProgression.today());state.dailyMode=false;state.dailyScanwordDate=null}applyProgressRewards()}
   if(state.completed.size===puzzle.words.length&&state.onlineMatchId){state.onlineFinished=true;}
   else if(state.completed.size===puzzle.words.length&&!state.rewardSubmitted){
     state.rewardSubmitted=true;
@@ -1316,7 +1339,7 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Твой ход — выбери вопрос слева.')+'</div>':'')+
     '<div class="scanword-play-area"><aside class="scanword-questions" aria-label="Вопросы сканворда"><div class="scanword-question-current"><div class="scanword-question-kicker">ТЕКУЩИЙ ВОПРОС</div><div class="scanword-question-full">'+(activeWord?(activeWord.imageKey?'Что изображено на картинке?':esc(activeWord.clue)):'Все вопросы решены')+'</div><div class="scanword-question-meta">'+(activeWord?((activeDirection?activeDirection+" · ":"")+"Ответ: "+activeLength+" "+(activeLength===1?"буква":activeLength<5?"буквы":"букв")):"Отличная работа!")+'</div></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Сильная</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div></div><div class="scanword-question-list">'+questionList+'</div></aside><div class="board-wrap scanword-wrap"><div class="scanword-board">'+cells.join("")+'</div></div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
   root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
     if(!activeWord)return;
     const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
@@ -1434,6 +1457,13 @@ function renderGame(root){
   };
   $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);ensureWordLetter(state.turn);renderGame(root)};
+  $("#bulb").onclick=()=>{
+    if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
+    const key=puzzle.words.flatMap(w=>w.cells).map(c=>c.join(",")).find(k=>!state.filled[k]&&!state.pendingMoves.some(m=>m.k===k)&&!state.hints?.[k]);
+    if(!key){toast("Все доступные буквы уже подсвечены");return}
+    if(!useItem("bulb"))return;
+    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("💡 Одна буква подсвечена");
+  };
   if(aiTurn&&state.aiError){const retry=root.querySelector("#retryAI");if(retry)retry.onclick=()=>{state.aiError="";state.aiThinkingTurn=null;renderGame(root)}}
   if(aiTurn&&!state.aiError){const turnKey=String(state.round||1)+":"+state.turn;if(state.aiThinkingTurn!==turnKey){state.aiThinkingTurn=turnKey;runChatGPTTurn(root,turnKey)}}
   if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
