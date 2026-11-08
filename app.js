@@ -1416,7 +1416,7 @@ function renderGame(root){
       const showChoices=()=>{
         if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
         options.innerHTML="";
-        wordsAt.forEach(word=>{
+        [...wordsAt].sort((a,b)=>Number(!!b.logic)-Number(!!a.logic)).forEach(word=>{
           const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
           choice.textContent=({right:"→ Вправо",left:"← Влево",down:"↓ Вниз",up:"↑ Вверх"}[word.dir])+" · "+fitScanwordClue(word.clueShort||word.clue);
           choice.onclick=()=>showQuestion(word);options.append(choice);
