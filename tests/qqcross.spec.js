@@ -571,7 +571,7 @@ test("Wordle places Enter before the letters and Delete after them", async ({ pa
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
-  await page.locator('[data-tab="Wordle"]').click();
+  await page.locator("#playWordle").click();
   const keys = await page.locator("#wordleKeyboard .wordle-key-row").last().locator("button").evaluateAll(nodes => nodes.map(node => node.dataset.key));
   expect(keys[0]).toBe("ENTER");
   expect(keys[keys.length - 1]).toBe("BACKSPACE");
@@ -582,7 +582,8 @@ test("Cody keyboard places Delete before Check", async ({ page }) => {
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator('[data-extra-game="cody"]').click();
-  await page.locator(".qq-cody-level-card").first().click();
+  await page.locator('[data-group="0"]').click();
+  await page.locator('[data-level="0"]').click();
   const actions = await page.locator(".qq-cody-key-row.special button").evaluateAll(nodes => nodes.map(node => node.dataset.action));
   expect(actions).toEqual(["delete", "clear", "check"]);
 });
