@@ -915,6 +915,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   const borderKeys=[];for(let x=1;x<W;x++)borderKeys.push("0,"+x);for(let y=1;y<H;y++)borderKeys.push(y+",0");
   for(const key of borderKeys)if(!(result.clueAt.get(key)||[]).length)fail("нет ответа у граничной ячейки вопроса "+key);
+  for(const [key,list] of result.clueAt)if(!list.length)fail("в вопросной клетке нет нового вопроса: "+key);
   return true;
 }
 function buildScanword(entries){
@@ -1165,9 +1166,9 @@ function buildScanword(entries){
     const borderCount=result?borderKeys.filter(key=>(result.clueAt.get(key)||[]).length>0).length:0;
     const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&result.coverage>bestCoverage)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&borderCount>bestBorderCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&borderCount===bestBorderCount&&result.dangling<bestDangling)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&borderCount===bestBorderCount&&result.dangling===bestDangling&&logicCount>bestLogicCount)||(imageCount===bestImageCount&&result.coverage===bestCoverage&&borderCount===bestBorderCount&&result.dangling===bestDangling&&logicCount===bestLogicCount&&singleCount<bestSingleCount));
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestBorderCount=borderCount;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
-    if(bestCoverage===TOTAL-1&&bestImageCount===5&&bestBorderCount===18&&bestSingleCount<=1)break;
+    if(bestCoverage===TOTAL-1&&bestImageCount===5&&bestBorderCount===18&&bestDangling===0&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL-1||bestImageCount!==5||bestBorderCount!==18||best.occupied.has("0,0")||best.clueAt.has("0,0")){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});throw new Error("Не удалось собрать поле 12×8 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+(TOTAL-1)+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL-1||bestImageCount!==5||bestBorderCount!==18||bestDangling!==0||best.occupied.has("0,0")||best.clueAt.has("0,0")){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});throw new Error("Не удалось собрать поле 12×8 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+(TOTAL-1)+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
@@ -1379,9 +1380,9 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list)});
-  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const wordTerminals=new Map(),directionDelta={right:[0,1],down:[1,0]};
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
-  for(const [key,ended] of wordTerminals){const [ty,tx]=key.split(",").map(Number);if(ty>=0&&tx>=0&&ty<puzzle.h&&tx<puzzle.w&&!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}}
+
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
   state.selectedWord=activeWord?.id||"";
   const activeWordCells=new Set((activeWord?.cells||[]).map(c=>c.join(",")));
