@@ -38,9 +38,12 @@ const ACHIEVEMENTS=[
 {id:"daily_100",name:"Сто дней",desc:"Достигни серии 100 дней",stat:"bestStreak",target:100},
 {id:"words_25",name:"Словоохотливый",desc:"Открой 25 новых слов",stat:"wordsFound",target:25},
 {id:"words_100",name:"Коллекционер слов",desc:"Открой 100 новых слов",stat:"wordsFound",target:100},
-{id:"groups_5",name:"Пять групп",desc:"Открой 5 групп кроссвордов",stat:"groups",target:5}
+{id:"groups_5",name:"Пять групп",desc:"Открой 5 групп кроссвордов",stat:"groups",target:5},
+{id:"hint_10",name:"Первый ориентир",desc:"Используй 10 подсказок в сканвордах",stat:"hintsUsed",target:10},
+{id:"hint_50",name:"Умный игрок",desc:"Используй 50 подсказок в сканвордах",stat:"hintsUsed",target:50},
+{id:"hint_100",name:"Мастер подсказок",desc:"Используй 100 подсказок в сканвордах",stat:"hintsUsed",target:100}
 ];
-const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
+const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0,hintsUsed:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
 let data=fresh(),cloudTimer=null,cloudClient=null,cloudUserId=null;
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
