@@ -1923,3 +1923,6 @@ html[data-qq-theme="burgundy"]{--qq-theme-page:linear-gradient(155deg,#211117 0%
 html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#100b18 54%,#09070f 100%);--qq-theme-card:linear-gradient(145deg,#21172e,#140f1d);--qq-theme-panel:linear-gradient(145deg,#1d1429,#110c19);--qq-theme-border:#3b2b50;--qq-theme-accent:#8065a8;--qq-theme-cell:linear-gradient(145deg,#241a32,#181222);--qq-theme-block:linear-gradient(145deg,#120d1c,#0b0811);}
 .qq-avatar-image{object-fit:cover;object-position:center;width:100%;height:100%;border-radius:50%;display:block;}
 .qq-profile-avatar-card .avatar{flex:0 0 76px;width:76px;height:76px;overflow:hidden;border-radius:50%;padding:0;}
+
+/* Search tab: readable AI answers and question form. */
+.qq-ai-search textarea{min-height:86px;resize:vertical;line-height:1.45}.qq-ai-search .btn{margin-top:2px}.qq-ai-answer{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55;padding:12px;border-radius:12px;background:var(--qq-theme-panel);border:1px solid var(--qq-theme-border);margin:10px 0 0}
