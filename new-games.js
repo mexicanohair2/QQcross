@@ -148,7 +148,7 @@ function mountSearch(root,onExit,words){
  const KEY="qqcross.search.unlocked.v1";
  const showMap=()=>renderLevelMap(root,"Поиск слов",onExit,KEY,playLevel);
  function playLevel(level){
-  const puzzle=buildSearchPuzzle(words,level);let start=null,drag=false,solved=new Set(),selection=[],tapStart=null,completed=false;
+  const puzzle=buildSearchPuzzle(words,level);let start=null,drag=false,solved=new Set(),selection=[],tapPath=[],tapDirection=null,completed=false;
   const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><section class="qq-search-targets-wrap"><div class="qq-search-targets-title">НАЙДИ СЛОВА</div><div class="qq-search-clues qq-search-targets" id="qqSearchClues" aria-label="Слова, которые нужно найти">'+puzzle.placed.map(p=>'<div class="qq-search-word" data-clue-word="'+p.word+'" title="'+escapeHtml(clueFor(p.word))+'"><span>'+escapeHtml(p.word)+'</span></div>').join("")+'</div></section><div class="qq-search-actions"><span class="qq-search-hint">Ищи слова по горизонтали, вертикали и диагонали.</span><button type="button" class="btn" id="qqSearchBulb">💡 Подсказка</button></div>';
   shell(root,"Поиск слов · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-search-screen");
   const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
@@ -206,8 +206,41 @@ function mountSearch(root,onExit,words){
   };
   const end=e=>{
    if(!drag)return;if(e)track(e);drag=false;grid.classList.remove("qq-search-dragging");
-   if(selection.length>1){finish(selection);tapStart=null;}
-   else if(start){if(!tapStart){tapStart=start;markPath([start]);}else{finish(pathBetween(tapStart,start));tapStart=null;}}
+   if(selection.length>1){
+    finish(selection);tapPath=[];tapDirection=null;
+   }else if(start){
+    const point=start,last=tapPath[tapPath.length-1];
+    if(!tapPath.length){tapPath=[point];tapDirection=null;markPath(tapPath);}
+    else if(point.x===last.x&&point.y===last.y){
+     // Same cell tapped again: keep the current partial word.
+    }else if(tapPath.length>1){
+     const prev=tapPath[tapPath.length-2];
+     if(point.x===prev.x&&point.y===prev.y){tapPath.pop();markPath(tapPath);}
+     else{
+      const next={x:last.x+tapDirection.x,y:last.y+tapDirection.y};
+      if(point.x===next.x&&point.y===next.y){
+       tapPath.push(point);markPath(tapPath);
+       const value=tapPath.map(p=>puzzle.grid[p.y][p.x]).join("");
+       const reverse=[...value].reverse().join("");
+       const exact=puzzle.placed.some(p=>!p.found&&(p.word===value||p.word===reverse));
+       const possible=puzzle.placed.some(p=>!p.found&&(p.word.startsWith(value)||[...p.word].reverse().join("").startsWith(value)));
+       if(exact){finish(tapPath);tapPath=[];tapDirection=null;}
+       else if(!possible){tapPath=[point];tapDirection=null;markPath(tapPath);}
+      }else{tapPath=[point];tapDirection=null;markPath(tapPath);}
+     }
+    }else{
+     const dx=point.x-last.x,dy=point.y-last.y;
+     if(Math.abs(dx)<=1&&Math.abs(dy)<=1&&(dx!==0||dy!==0)){
+      tapDirection={x:dx,y:dy};tapPath.push(point);markPath(tapPath);
+      const value=tapPath.map(p=>puzzle.grid[p.y][p.x]).join("");
+      const reverse=[...value].reverse().join("");
+      const exact=puzzle.placed.some(p=>!p.found&&(p.word===value||p.word===reverse));
+      const possible=puzzle.placed.some(p=>!p.found&&(p.word.startsWith(value)||[...p.word].reverse().join("").startsWith(value)));
+      if(exact){finish(tapPath);tapPath=[];tapDirection=null;}
+      else if(!possible){tapPath=[point];tapDirection=null;markPath(tapPath);}
+     }else{tapPath=[point];tapDirection=null;markPath(tapPath);}
+    }
+   }
    start=null;
   };
   const cancel=()=>{if(!drag)return;drag=false;start=null;grid.classList.remove("qq-search-dragging");clear();};
