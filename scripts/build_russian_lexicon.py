@@ -10,6 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "data" / "russian-words-100000.json"
+COMMON_OUT = ROOT / "data" / "russian-words-common-25000.json"
 FREQUENCY_URL = "https://raw.githubusercontent.com/Digital-Pushkin-Lab/Russian-Word-Frequency-Lists-for-Children/main/wordlist_detcorpus_50000.csv"
 MORPHOLOGY_URL = "https://raw.githubusercontent.com/danakt/russian-words/master/russian.txt"
 WORD_RE = re.compile(r"^[а-яё]{3,18}$", re.IGNORECASE)
@@ -88,10 +89,31 @@ def build(frequency_text: str, morphology_bytes: bytes, wordle_text: str, scanwo
         raise RuntimeError("Проверка словаря не пройдена: дубликаты или некириллические записи.")
     return words, wordle_required, scanword_required
 
+def build_common_lexicon(frequency_text: str) -> list[str]:
+    """Select the 25,000 most frequent clean lemmas for everyday word games."""
+    ranked: list[tuple[float, str]] = []
+    seen: set[str] = set()
+    for row in csv.DictReader(io.StringIO(frequency_text)):
+        word = clean(row.get("lemma"))
+        if not word or word in seen:
+            continue
+        seen.add(word)
+        try:
+            ipm = float(row.get("ipm") or 0)
+        except (TypeError, ValueError):
+            ipm = 0.0
+        ranked.append((ipm, word))
+    ranked.sort(key=lambda item: (-item[0], item[1]))
+    words = [word for _, word in ranked[:25_000]]
+    if len(words) != 25_000 or len(set(words)) != 25_000:
+        raise RuntimeError(f"Получено {len(words)} частотных слов; требуется ровно 25 000.")
+    return words
+
 def main() -> None:
     frequency = download(FREQUENCY_URL).decode("utf-8-sig")
     morphology = download(MORPHOLOGY_URL)
     words, wordle_required, scanword_required = build(frequency, morphology, (ROOT / "data" / "wordle-words.json").read_text(encoding="utf-8"), (ROOT / "data" / "scanword-dictionary.json").read_text(encoding="utf-8"))
+    common_words = build_common_lexicon(frequency)
     payload = {
         "version": 2, "language": "ru", "count": len(words),
         "included_existing_wordle_valid": wordle_required,
@@ -105,7 +127,10 @@ def main() -> None:
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    common_payload = {"version": 1, "language": "ru", "count": len(common_words), "source": "Digital Pushkin Lab frequency-ranked Russian lemmas", "words": common_words}
+    COMMON_OUT.write_text(json.dumps(common_payload, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     print(f"QQCross: {len(words)} уникальных русских слов")
+    print(f"QQCross common: {len(common_words)} частотных слов")
     print(f"Слов из пяти букв: {sum(len(w) == 5 for w in words)}")
 
 if __name__ == "__main__":
