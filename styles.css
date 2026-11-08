@@ -1693,3 +1693,11 @@ html[data-qq-theme] .qq-cody-app,
 html[data-qq-theme] .qq-wow-screen{background:transparent!important}
 
 html[data-qq-mode="dark"]{color-scheme:dark}
+
+
+/* The splash and startup error state use the saved app-wide palette too. */
+html[data-qq-theme] .boot-splash{background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .qq-boot-error{min-height:100dvh;display:grid;place-items:center;padding:24px;box-sizing:border-box;background:var(--qq-theme-page);color:var(--qq-theme-text);font:16px system-ui;text-align:center}
+html[data-qq-theme] .qq-boot-error-mark{font-size:42px;font-weight:900;color:var(--qq-theme-accent);letter-spacing:-2px}
+html[data-qq-theme] .qq-boot-error p{max-width:320px;color:var(--qq-theme-muted);line-height:1.5}
+html[data-qq-theme] .qq-boot-error button{border:1px solid var(--qq-theme-accent);border-radius:12px;padding:13px 22px;background:var(--qq-theme-panel-strong);color:#fff;font-weight:750}
