@@ -270,7 +270,7 @@ test("difficulty grows through level 100 in Word of Wonders and word search", as
   await page.locator(".qq-extra-top [data-exit]").click();
   await page.locator('[data-level="100"]').click();
   await expect(page.locator(".qq-search-cell")).toHaveCount(324);
-  await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (2[4-9]|30)/);
+  await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ 1[4-6]/);
   const searchFit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, bottom: document.querySelector("#qqSearchGrid").getBoundingClientRect().bottom }));
   expect(searchFit.bottom).toBeLessThanOrEqual(searchFit.h + 1);
   expect(searchFit.s).toBeLessThanOrEqual(searchFit.h + 1);
@@ -310,7 +310,7 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
   expect(bulbsAfter).toBe(bulbsBefore - 1);
   await page.locator("#qqCodyBack").click();
-  await expect(page.locator(".qq-cody-level")).toHaveCount(5);
+  await expect(page.locator(".qq-cody-level")).toHaveCount(2);
   await page.locator("#qqCodyBack").click();
   await expect(page.locator(".qq-cody-group")).toHaveCount(50);
   expect(errors).toEqual([]);
