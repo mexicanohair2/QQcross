@@ -41,7 +41,7 @@
 </script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
 <script src="./wordle.js?v=20261108-clues-shop-v1"></script>
-<script src="./new-games.js?v=20261108-clues-shop-v5"></script>
+<script src="./new-games.js?v=20261108-clues-shop-v6"></script>
 <script src="./progression.js?v=20261108-hint-achievements-v1"></script>
 <script src="./encyclopedia.js?v=20261108-encyclopedia-v2"></script>
 <script>
@@ -53,7 +53,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261108-clues-shop-v3";
+    app.src="./app.js?v=20261108-clues-shop-v4";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
