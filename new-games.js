@@ -228,9 +228,19 @@ function mountWheel(root,onExit,words){
    e.preventDefault();dragging=true;dragPath=false;dragSelection=[+b.dataset.index];lastDragIndex=+b.dataset.index;
    try{wheel.setPointerCapture(e.pointerId);}catch(_){}
   });
+  const wheelButtonAt=(x,y)=>{
+   const direct=document.elementFromPoint(x,y)?.closest("#qqWheel [data-index]");
+   if(direct)return direct;
+   let nearest=null,best=Infinity;
+   wheel.querySelectorAll("[data-index]").forEach(button=>{
+    const r=button.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(cx-x,cy-y);
+    if(d<best){best=d;nearest=button;}
+   });
+   return nearest&&best<=Math.max(24,Math.min(nearest.getBoundingClientRect().width,nearest.getBoundingClientRect().height)*.72)?nearest:null;
+  };
   const track=e=>{
    if(!dragging)return;
-   const b=document.elementFromPoint(e.clientX,e.clientY)?.closest("#qqWheel [data-index]");if(!b)return;
+   const b=wheelButtonAt(e.clientX,e.clientY);if(!b)return;
    const i=+b.dataset.index;
    if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i)){dragSelection.push(i);refresh(dragSelection);}}
   };
