@@ -1151,7 +1151,9 @@ function buildScanword(entries){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
-          const lengths=Array.from({length:Math.max(0,max-1)},(_,index)=>max-index);
+          const allowSingleFallback=TOTAL-(occupied.size+clueAt.size)<=2&&!words.some(word=>word.answer.length===1);
+          const minLength=allowSingleFallback?1:2;
+          const lengths=Array.from({length:Math.max(0,max-minLength+1)},(_,index)=>max-index);
           lengths.sort((a,b)=>{
             const aKey=(anchor.y+dir.dy*(a+1))+","+(anchor.x+dir.dx*(a+1));
             const bKey=(anchor.y+dir.dy*(b+1))+","+(anchor.x+dir.dx*(b+1));
