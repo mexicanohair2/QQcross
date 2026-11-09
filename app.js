@@ -1227,7 +1227,7 @@ function buildScanword(entries){
                 if(old!==undefined)for(const entry of positions[k].get(old)||[])possible.add(entry);
               });
             }else{
-              normalized.filter(entry=>entry.answer.length===length).slice(0,length===1?32:80).forEach(entry=>possible.add(entry));
+              normalized.filter(entry=>entry.answer.length===length).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
               (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<3&&anchor.list.length===0))&&
