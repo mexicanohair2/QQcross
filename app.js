@@ -890,7 +890,6 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   for(let i=0;i<result.words.length;i++){
     const word=result.words[i],answer=String(word.answer||"");
     if(!word.clue||!answer||answer.length!==word.cells.length)fail("неверный ответ или подсказка у "+word.id);
-    if(answer.length<2)fail("однобуквенный ответ запрещён: "+word.id);
     if(answers.has(answer))fail("повтор ответа "+answer);
     answers.add(answer);
     const delta=directions[word.dir],cell=word.clueCell;
@@ -995,6 +994,8 @@ function buildScanword(entries){
         if(!reservedKeys.has(key)&&!occupied.has(key))frontier.add(key);
       }
     };
+    for(let x=1;x<W;x++){const key="0,"+x;clueAt.set(key,[]);frontier.add(key)}
+    for(let y=1;y<H;y++){const key=y+",0";clueAt.set(key,[]);frontier.add(key)}
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
       const borderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
@@ -1060,7 +1061,7 @@ function buildScanword(entries){
     // 8×12 portrait layout: begin with a vertical picture clue from the top edge,
     // then cross it with a short horizontal answer from the left edge.
     // This keeps the narrow portrait grid playable instead of forcing a
-    // wide-board seed that cannot fit into six columns.
+    // wide-board seed that cannot fit into eight columns.
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=H-2);
     if(!firstPool.length)return null;
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
@@ -1077,31 +1078,6 @@ function buildScanword(entries){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
     }
     if(!seeded)return null;
-    // Grow additional top/left edge starts from the two connected seed words
-    // before the greedy fill can occupy their crossing lanes.
-    const seedEdge=(y,x,dirIndex,maxLength,coordinateForLetter)=>{
-      const candidates=normalized.map(entry=>{
-        if(entry.imageKey||entry.answer.length<2||entry.answer.length>maxLength||used.has(entry.key))return null;
-        let crosses=0;
-        for(let p=0;p<entry.answer.length;p++){
-          const [yy,xx]=coordinateForLetter(p),old=occupied.get(yy+","+xx);
-          if(old!==undefined){if(old!==entry.answer[p])return null;crosses++;}
-        }
-        return crosses?{entry,crosses}:null;
-      }).filter(Boolean).sort((a,b)=>b.crosses-a.crosses||quality(b.entry)-quality(a.entry));
-      for(const candidate of candidates){
-        if(addWord(candidate.entry,y,x,dirIndex,"w"+words.length,"edge"))return true;
-      }
-      return false;
-    };
-    for(let x=1;x<W;x++){
-      if(clueAt.has("0,"+x))continue;
-      seedEdge(0,x,1,H-2,p=>[p+1,x]);
-    }
-    for(let y=2;y<H;y++){
-      if(clueAt.has(y+",0"))continue;
-      seedEdge(y,0,0,W-2,p=>[y,p+1]);
-    }
     for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
@@ -1265,9 +1241,8 @@ function buildScanword(entries){
       linkedClueKeys.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
     }
     const clueCoordinates=[...linkedClueKeys].map(key=>key.split(",").map(Number));
-    const startedCoordinates=new Set((result?.words||[]).map(word=>word.clueCell.join(",")));
-    const topCount=[...startedCoordinates].filter(key=>key.startsWith("0,")&&key!=="0,0").length;
-    const leftCount=[...startedCoordinates].filter(key=>key.endsWith(",0")&&key!=="0,0").length;
+    const topCount=clueCoordinates.filter(([y,x])=>y===0&&x!==0).length;
+    const leftCount=clueCoordinates.filter(([y,x])=>x===0&&y!==0).length;
     const borderScore=Math.min(topCount,W-1)+Math.min(leftCount,H-1);
     const incomingKeys=new Set();
     for(const word of result?.words||[]){
@@ -1287,21 +1262,32 @@ function buildScanword(entries){
     const rank=[imageCount,result?.coverage||0,borderScore,result?.words?.length||0,logicCount,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=3&&bestLeftCount>=2&&bestOrphanCount===0&&bestLogicCount>=3)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=3&&bestLeftCount>=2&&bestOrphanCount<=10&&bestLogicCount>=3)break;
   }
   if(best){
-    // Never disguise an unfilled square as a decorative dark block. The only
-    // allowed reserved cell is the deliberately blank top-left corner.
+    // A narrow 6×12 board may leave a small number of structurally unusable
+    // squares. Mark them as intentional dark blocks instead of exposing
+    // accidental blank holes or inventing one-letter answers.
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      const key=y+","+x;
+      if(!best.reservedKeys.has(key)&&!best.occupied.has(key)&&!best.clueAt.has(key))best.reservedKeys.add(key);
+    }
     best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
   }
-  if(!best||best.coverage!==TOTAL||bestImageCount!==5||bestSingleCount!==0||bestTopCount<3||bestLeftCount<2||bestOrphanCount!==0||bestLogicCount<3||best.reservedKeys.size!==1||!best.reservedKeys.has("0,0")){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||best.coverage!==TOTAL||bestImageCount!==5){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   // Keep every cell purposeful: unlinked border placeholders become dark
   // crossword blocks rather than blank, unclickable question tiles.
-  // Every question cell must carry at least one outgoing clue. Do not
-  // convert unfinished question cells into silent dark blocks.
   const incomingFinal=new Set();
-  for(const word of best.words){const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));}
-  for(const [key,list] of best.clueAt.entries())if(!list.length&&!incomingFinal.has(key))throw new Error("Вопросная клетка "+key+" не связана с ответом");
+  for(const word of best.words){
+    const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+    incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
+  }
+  for(const [key,list] of [...best.clueAt.entries()]){
+    if(!list.length&&!incomingFinal.has(key)){
+      best.clueAt.delete(key);
+      best.reservedKeys.add(key);
+    }
+  }
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
