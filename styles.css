@@ -2242,3 +2242,15 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   }
   .game-screen .game-tools{gap:4px!important}
 }
+
+
+/* Reference arrows: small restrained blue marks, only right/down directions. */
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
+  color:#e4f0ff!important;
+  background:#234f7cbd!important;
+  box-shadow:0 0 0 1px #76a8d433!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-left,
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{
+  display:none!important;
+}
