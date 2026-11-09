@@ -431,7 +431,7 @@ async function loadLobbyFriends(){
  }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
 }
 function puzzleSnapshot(){
- return {puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]}))},expected:{...expected},letterBag:[...letterBag]};
+ return {puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),reservedKeys:[...(puzzle.reservedKeys||[])]},expected:{...expected},letterBag:[...letterBag]};
 }
 function serializeOnlineState(){
  return {filled:{...state.filled},owners:{...state.owners},feedback:{...state.feedback},hints:{...state.hints},completed:[...(state.completed||[])],
@@ -464,7 +464,7 @@ async function startOnlineMatch(){
  const b=$("#startOnlineMatch");if(b){b.disabled=true;b.textContent="Запускаем…"}
  try{
   const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
-  const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
+  const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
   state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
@@ -517,7 +517,7 @@ function subscribeOnlineMatch(id){
 function applyOnlineMatch(m){
  const alreadyInThisMatch=state.onlineMatchId===m.match_id&&state.screen==="game";
  const s=m.puzzle_snapshot,g=m.game_state;
- puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set()};
+ puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
  Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(g.letterBag||s.letterBag||[])];
  state.onlineMatchId=m.match_id;state.matchId=m.match_id;state.onlinePlayers=m.players||[];state.onlineVersion=m.state_version;state.partySize=state.onlinePlayers.length;
  state.turn=Math.max(0,state.onlinePlayers.findIndex(p=>p.id===m.current_turn_user_id));
@@ -864,7 +864,10 @@ function normalizeScanwordEntry(item){
 function assertValidScanwordLayout(result,W,H,TOTAL){
   const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
   if(!result||!Array.isArray(result.words)||result.words.length<10)fail("слишком мало вопросов");
-  if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size!==TOTAL)fail("поле заполнено не полностью");
+  const reserved=result.reservedKeys instanceof Set?result.reservedKeys:new Set();
+  if(!reserved.has("0,0")||reserved.size!==1)fail("верхний левый угол должен быть единственной пустой клеткой");
+  if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size+reserved.size!==TOTAL)fail("поле заполнено не полностью");
+  for(const key of reserved)if(result.occupied.has(key)||result.clueAt.has(key))fail("пустая угловая клетка занята: "+key);
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
   const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
   const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
@@ -965,27 +968,28 @@ function buildScanword(entries){
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,best=null;
   const buildAttempt=()=>{
+    const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
     const addFrontier=(y,x)=>{
       for(const dir of dirs)for(let step=1;step<=12;step++){
         const ay=y-dir.dy*step,ax=x-dir.dx*step;
         if(ay<0||ax<0||ay>=H||ax>=W)break;
         const key=ay+","+ax;
-        if(!occupied.has(key))frontier.add(key);
+        if(!reservedKeys.has(key)&&!occupied.has(key))frontier.add(key);
       }
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(y<0||x<0||y>=H||x>=W||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
-      if(endY<0||endX<0||endY>=H||endX>=W||occupied.has(endY+","+endX))return false;
+      if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
       const terminalKey=endY+","+endX;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
         const cellKey=yy+","+xx,old=occupied.get(cellKey);
-        if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
+        if(reservedKeys.has(cellKey)||clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
         cells.push([yy,xx]);
       }
       // Do not place a word if it seals an empty square on all four sides.
@@ -1070,7 +1074,7 @@ function buildScanword(entries){
       if(addWord(choice.entry,choice.y,choice.x,2,"w1",true)){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<520&&occupied.size+clueAt.size<TOTAL;round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1119,7 +1123,7 @@ function buildScanword(entries){
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
     let closing=true;
-    while(closing&&occupied.size+clueAt.size<TOTAL){
+    while(closing&&occupied.size+clueAt.size+reservedKeys.size<TOTAL){
       closing=false;
       const anchors=[];
       const emptyQuestions=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key,list])=>{
@@ -1155,7 +1159,7 @@ function buildScanword(entries){
       });
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         const key=y+","+x;
-        if(occupied.has(key)||clueAt.has(key))continue;
+        if(reservedKeys.has(key)||occupied.has(key)||clueAt.has(key))continue;
         const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&(occupied.has(yy+","+xx)||clueAt.has(yy+","+xx)));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
@@ -1164,7 +1168,7 @@ function buildScanword(entries){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
-          const allowSingleFallback=TOTAL-(occupied.size+clueAt.size)<=2&&!words.some(word=>word.answer.length===1);
+          const allowSingleFallback=TOTAL-(occupied.size+clueAt.size+reservedKeys.size)<=2&&!words.some(word=>word.answer.length===1);
           const minLength=allowSingleFallback?1:2;
           const lengths=Array.from({length:Math.max(0,max-minLength+1)},(_,index)=>max-index);
           lengths.sort((a,b)=>{
@@ -1214,11 +1218,11 @@ function buildScanword(entries){
     }
     // Last-cell repair: when only one square remains, connect it between two
     // existing clue cells with a genuine one-letter clue instead of leaving a hole.
-    if(occupied.size+clueAt.size===TOTAL-1){
+    if(occupied.size+clueAt.size+reservedKeys.size===TOTAL-1){
       const oneLetterEntries=normalized.filter(entry=>entry.answer.length===1&&!entry.imageKey);
       repairLoop: for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         const holeKey=y+","+x;
-        if(occupied.has(holeKey)||clueAt.has(holeKey))continue;
+        if(reservedKeys.has(holeKey)||occupied.has(holeKey)||clueAt.has(holeKey))continue;
         for(let ay=0;ay<H;ay++)for(let ax=0;ax<W;ax++){
           const anchorKey=ay+","+ax,at=clueAt.get(anchorKey);
           if(!at||at.length>=4)continue;
@@ -1235,8 +1239,8 @@ function buildScanword(entries){
         }
       }
     }
-    const coverage=occupied.size+clueAt.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
-    return {coverage,dangling,occupied,clueAt,words};
+    const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
+    return {coverage,dangling,occupied,clueAt,words,reservedKeys};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
   // Retry substantially more often, but stop immediately once a fully valid
@@ -1254,20 +1258,20 @@ function buildScanword(entries){
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
-  const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
     const terminal=(last[0]+dir.dy)+","+(last[1]+dir.dx);
     if(!clueKeys.has(terminal))throw new Error("Ответ "+word.answer+" не заканчивается новой ячейкой вопроса");
   }
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
-  if(occupied.size+clueKeys.size!==TOTAL)throw new Error("Проверка заполнения не пройдена");
+  if(occupied.size+clueKeys.size+reservedKeys.size!==TOTAL)throw new Error("Проверка заполнения или пустого угла не пройдена");
   assertValidScanwordLayout(best,W,H,TOTAL);
-  return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words:best.words,used:new Set(occupied.keys()),clueKeys,coverage:1};
+  return {id:"scanword-"+Date.now(),title:"Сканворд",w:W,h:H,words:best.words,used:new Set(occupied.keys()),clueKeys,reservedKeys,coverage:1};
 }
 function clonePreparedScanword(source){
-  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),coverage:source.coverage};
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
 }
 function refreshPracticeButton(){
   const button=$("#practice");
@@ -1538,7 +1542,8 @@ function renderGame(root){
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(activeWordCells.has(key)?" active-word-cell":"")+(endClass?" "+endClass:"");
       const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове"'+position+'>'+letterMarkup+'</button>');
-    }else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
+    }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" aria-hidden="true"'+position+'></div>');
+    else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
   const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
   const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
@@ -1724,7 +1729,7 @@ function persistCurrentMatch(status="active"){
   const id=state.matchId||(state.matchId="match-"+Date.now());
   const snapshot={
     id,status,updatedAt:Date.now(),label:state.aiMatch?"Сканворд с ChatGPT":state.partySize>1?"Партия с друзьями · "+state.partySize+" игрока":"Одиночный сканворд",aiMatch:!!state.aiMatch,
-    puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])}))},
+    puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])})),reservedKeys:[...(puzzle.reservedKeys||[])]},
     expected:{...expected},letterBag:[...letterBag],
     game:{
       partySize:state.partySize,aiMatch:!!state.aiMatch,filled:{...state.filled},owners:{...state.owners},feedback:{...state.feedback},hints:{...state.hints},
@@ -1742,7 +1747,7 @@ function pushGameHistoryEntry(){
 function restoreLocalMatch(id){
   const match=matchesForThisDevice().find(m=>m.id===id&&m.status!=="completed");
   if(!match)return;
-  puzzle={...match.puzzle,words:match.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])})),used:new Set(),clueKeys:new Set()};
+  puzzle={...match.puzzle,words:match.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])})),used:new Set(),clueKeys:new Set(),reservedKeys:new Set(match.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,match.expected||{});
   letterBag=[...(match.letterBag||[])];
   const g=match.game||{};
