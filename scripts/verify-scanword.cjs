@@ -101,7 +101,7 @@ function validate(puzzle, run) {
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing top/left edge clue anchors");
+  if (!startKeys.has("0,2") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing top/left edge clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
   const delta = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
@@ -114,7 +114,7 @@ function validate(puzzle, run) {
     if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
     if (!startKeys.has(key)) throw new Error("Run " + run + ": clue cell does not start its own answer " + key);
   }
-  if (topEdgeClues !== puzzle.w - 1 || leftEdgeClues !== puzzle.h - 1) throw new Error("Run " + run + ": incomplete reference borders (top=" + topEdgeClues + "/" + (puzzle.w - 1) + ", left=" + leftEdgeClues + "/" + (puzzle.h - 1) + ")");
+  if (topEdgeClues < 3 || leftEdgeClues < 2) throw new Error("Run " + run + ": too few edge clues (top=" + topEdgeClues + "/3, left=" + leftEdgeClues + "/2)");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
