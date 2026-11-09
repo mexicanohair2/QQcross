@@ -1023,7 +1023,7 @@ function buildScanword(entries){
       }
       // Do not place a word if it seals an empty square on all four sides.
       // Such a square can never become a letter or a playable clue later.
-      const futureLetters=new Set(cells.map(cell=>cell.join(",")));
+      const futureLetterKeys=new Set(cells.map(cell=>cell.join(",")));
       const futureClues=new Set([key,terminalKey]);
       const affected=new Set();
       for(const [yy,xx] of [[y,x],[endY,endX],...cells]){
@@ -1033,12 +1033,12 @@ function buildScanword(entries){
         }
       }
       for(const emptyKey of affected){
-        if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
+        if(futureLetterKeys.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
         const [ey,ex]=emptyKey.split(",").map(Number);
         const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
         if(neighbors.length&&neighbors.every(([ny,nx])=>{
           const neighborKey=ny+","+nx;
-          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetters.has(neighborKey)||futureClues.has(neighborKey);
+          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetterKeys.has(neighborKey)||futureClues.has(neighborKey);
         }))return false;
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
