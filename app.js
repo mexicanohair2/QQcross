@@ -966,7 +966,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
-  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,best=null;
+  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
@@ -1264,12 +1264,23 @@ function buildScanword(entries){
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
-    const topCount=result?[...result.clueAt.keys()].filter(key=>key.startsWith("0,")&&key!=="0,0").length:0;
-    const leftCount=result?[...result.clueAt.keys()].filter(key=>key.endsWith(",0")&&key!=="0,0").length:0;
-    const borderScore=Math.min(topCount,7)+Math.min(leftCount,7);
-    const better=result&&(imageCount>bestImageCount||(imageCount===bestImageCount&&(result.coverage>bestCoverage||(result.coverage===bestCoverage&&(borderScore>bestBorderScore||(borderScore===bestBorderScore&&(result.dangling<bestDangling||(result.dangling===bestDangling&&(logicCount>bestLogicCount||(logicCount===bestLogicCount&&singleCount<bestSingleCount))))))))));
-    if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1&&bestTopCount>=3&&bestLeftCount>=4)break;
+    const clueCoordinates=result?[...result.clueAt.keys()].map(key=>key.split(",").map(Number)):[];
+    const topCount=clueCoordinates.filter(([y,x])=>y===0&&x!==0).length;
+    const leftCount=clueCoordinates.filter(([y,x])=>x===0&&y!==0).length;
+    const borderScore=Math.min(topCount,7)+Math.min(leftCount,11);
+    const occupiedRows=new Set(clueCoordinates.map(([y])=>y));
+    const occupiedColumns=new Set(clueCoordinates.map(([,x])=>x));
+    const rowSpread=occupiedRows.size,columnSpread=occupiedColumns.size;
+    const quadrants=new Set(clueCoordinates.map(([y,x])=>(y<6?"top":"bottom")+"-"+(x<4?"left":"right")));
+    const rowCounts=Array(H).fill(0),columnCounts=Array(W).fill(0);
+    clueCoordinates.forEach(([y,x])=>{rowCounts[y]++;columnCounts[x]++});
+    const rowImbalance=rowCounts.reduce((sum,count)=>sum+Math.max(0,count-3)*3+Math.max(0,1-count)*2,0);
+    const columnImbalance=columnCounts.reduce((sum,count)=>sum+Math.max(0,count-4)*3+Math.max(0,1-count)*2,0);
+    const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
+    const rank=[imageCount,result?.coverage||0,borderScore,spreadScore,-(result?.dangling||999),logicCount,-singleCount];
+    const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
+    if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;best=result;}
+    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1&&bestTopCount>=3&&bestLeftCount>=4&&bestRowSpread>=10&&bestColumnSpread>=7)break;
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
