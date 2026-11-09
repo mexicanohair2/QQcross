@@ -32,7 +32,7 @@ test("loads an 8-column by 12-row scanword with five distinct picture clues", as
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: (style.gridTemplateColumns.match(/^repeat\\((\\d+),/) || [])[1] ? Number(style.gridTemplateColumns.match(/^repeat\\((\\d+),/)[1]) : style.gridTemplateColumns.trim().split(/\\s+/).length, rows: (style.gridTemplateRows.match(/^repeat\\((\\d+),/) || [])[1] ? Number(style.gridTemplateRows.match(/^repeat\\((\\d+),/)[1]) : style.gridTemplateRows.trim().split(/\\s+/).length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+    return { columns: (style.gridTemplateColumns.match(/^repeat\((\d+),/) || [])[1] ? Number(style.gridTemplateColumns.match(/^repeat\((\d+),/)[1]) : style.gridTemplateColumns.trim().split(/\s+/).length, rows: (style.gridTemplateRows.match(/^repeat\((\d+),/) || [])[1] ? Number(style.gridTemplateRows.match(/^repeat\((\d+),/)[1]) : style.gridTemplateRows.trim().split(/\s+/).length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
   expect(geometry.columns).toBe(8);
   expect(geometry.rows).toBe(12);
@@ -507,8 +507,8 @@ test("scanword clue cells follow the 8×12 top-left reference anchors and show d
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
   const grid = await board.evaluate(node => ({
-    columns: getComputedStyle(node).gridTemplateColumns.split(" ").length,
-    rows: getComputedStyle(node).gridTemplateRows.split(" ").length,
+    columns: (() => { const value = getComputedStyle(node).gridTemplateColumns, match = value.match(/^repeat\((\d+),/); return match ? Number(match[1]) : value.trim().split(/\s+/).length; })(),
+    rows: (() => { const value = getComputedStyle(node).gridTemplateRows, match = value.match(/^repeat\((\d+),/); return match ? Number(match[1]) : value.trim().split(/\s+/).length; })(),
     width: node.getBoundingClientRect().width,
     height: node.getBoundingClientRect().height,
     viewportWidth: document.documentElement.clientWidth,
