@@ -1180,7 +1180,7 @@ function buildScanword(entries){
         if(occupied.has(holeKey)||clueAt.has(holeKey))continue;
         for(let ay=0;ay<H;ay++)for(let ax=0;ax<W;ax++){
           const anchorKey=ay+","+ax,at=clueAt.get(anchorKey);
-          if(!at||at.length>=4||at.some(word=>word.imageKey))continue;
+          if(!at||at.length>=4)continue;
           for(let di=0;di<4;di++){
             const dir=dirs[di];
             if(at.some(word=>word.dir===dir.name))continue;
