@@ -4,6 +4,10 @@ const { performance } = require("node:perf_hooks");
 
 const app = fs.readFileSync("app.js", "utf8");
 const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
+const commonLexicon = JSON.parse(fs.readFileSync("data/russian-words-common-25000.json", "utf8"));
+const normalizeAnswer = value => String(value || "").toLocaleUpperCase("ru-RU").replace(/Ё/g, "Е").replace(/[^А-Я]/g, "");
+const commonWords = new Set((commonLexicon.words || []).map(normalizeAnswer));
+const enrichedDictionary = dictionary.map(entry => ({ ...entry, common: commonWords.has(normalizeAnswer(entry.answer || entry.word)) }));
 const start = app.indexOf("function getScanwordDictionary(){");
 const end = app.indexOf("function clonePreparedScanword", start);
 if (start < 0 || end < 0) throw new Error("Scanword engine section not found");
@@ -119,9 +123,14 @@ function validate(puzzle, run) {
   if (new Set(textClues).size !== textClues.length) throw new Error("Run " + run + ": duplicate visible clue text");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
-    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 7 || new Set(pictureKeys).size !== 7) {
+    throw new Error("Run " + run + ": expected seven distinct picture clues, found " + pictureKeys.join(","));
   }
+  const startTileCount = new Set(puzzle.words.map(word => word.clueCell.join(","))).size;
+  const splitPromptCount = puzzle.words.length - startTileCount;
+  const commonAnswerCount = puzzle.words.filter(word => commonWords.has(normalizeAnswer(word.answer))).length;
+  const commonAnswerRatio = commonAnswerCount / puzzle.words.length;
+  if (commonAnswerRatio < 0.65) throw new Error("Run " + run + ": too few everyday words (" + commonAnswerCount + "/" + puzzle.words.length + ")");
   const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
   if (logicClueCells.size < 3) {
     throw new Error("Run " + run + ": expected at least three distinct logical clue cells, found " + logicClueCells.size);
@@ -132,7 +141,7 @@ function validate(puzzle, run) {
       throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
     }
   }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, topEdgeClues, leftEdgeClues, pictureKeys, logicalClueCells: logicClueCells.size };
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, topEdgeClues, leftEdgeClues, pictureKeys, logicalClueCells: logicClueCells.size, splitPromptCount, commonAnswerCount, commonAnswerRatio: Math.round(commonAnswerRatio * 100) };
 }
 
 const timings = [];
@@ -141,7 +150,7 @@ for (let run = 1; run <= 20; run++) {
   const math = Object.create(Math);
   math.random = seededRandom(run * 7919);
   const context = {
-    window: { QQCROSS_DICTIONARY: dictionary },
+    window: { QQCROSS_DICTIONARY: enrichedDictionary },
     localStorage: { getItem: () => "[]" },
     Math: math,
     Date,
@@ -153,7 +162,7 @@ for (let run = 1; run <= 20; run++) {
   vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
   const t0 = performance.now();
   let puzzle;
-  try { puzzle = context.__buildScanword(dictionary); }
+  try { puzzle = context.__buildScanword(enrichedDictionary); }
   catch (error) { throw new Error("Seed " + run + " (" + (run * 7919) + ") failed: " + error.message); }
   const elapsed = performance.now() - t0;
   timings.push(elapsed);
