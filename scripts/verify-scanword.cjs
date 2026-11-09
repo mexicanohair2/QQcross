@@ -87,7 +87,11 @@ function validate(puzzle, run) {
     const i = stack.pop();
     for (const j of graph[i]) if (!seen.has(j)) { seen.add(j); stack.push(j); }
   }
-  if (seen.size !== puzzle.words.length) throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + ")");
+  if (seen.size !== puzzle.words.length) {
+    const disconnected = puzzle.words.map((word, index) => ({ index, answer: word.answer, clue: word.clue, clueCell: word.clueCell, dir: word.dir, cells: word.cells }))
+      .filter(word => !seen.has(word.index));
+    throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + "); disconnected=" + JSON.stringify(disconnected));
+  }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
