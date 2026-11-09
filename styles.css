@@ -1946,3 +1946,11 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 .scanword-board>.scan-cell.scan-clue .scan-clue-text{position:relative!important;z-index:2!important;padding:1px 2px 7px!important;font-size:clamp(6px,1.65vw,8px)!important;line-height:1.03!important}
 .scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{padding:0!important}
 @media(max-width:420px){.scanword-board{width:min(78vw,calc((100dvh - 245px)*.666667))!important}}
+
+
+/* QQCross reference polish: compact portrait board and visible, understated direction arrows. */
+.scanword-board{width:min(75vw,calc((100dvh - 250px)*.666667),660px)!important;height:auto!important;aspect-ratio:2/3!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important;gap:0!important;}
+.scanword-board>.scan-cell.scan-clue .scan-arrow{display:grid!important;position:absolute!important;place-items:center!important;width:23%!important;height:23%!important;font-size:clamp(8px,1.45vw,11px)!important;line-height:1!important;font-weight:900!important;color:#fff!important;background:#211018b8!important;border-radius:2px!important;z-index:4!important;pointer-events:none!important;}
+.scanword-board>.scan-cell.scan-clue .scan-clue-text{position:relative!important;z-index:2!important;padding:1px 2px 7px!important;font-size:clamp(6px,1.65vw,8px)!important;line-height:1.03!important;}
+.scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{padding:0!important;}
+@media(max-width:420px){.scanword-board{width:min(75vw,calc((100dvh - 250px)*.666667))!important;}}
