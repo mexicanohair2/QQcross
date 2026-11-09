@@ -3,7 +3,7 @@
 Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_MessagingUnityPlayerActivity.jpg`
 
 ## Confirmed visual structure
-- The reference board is a **8 columns × 12 rows** grid.
+- The target board is a portrait **8 columns × 12 rows** grid.
 - Cells are square, with a small, consistent gap.
 - The grid is the main element in the middle of the game screen.
 - The player/status header and scores sit above the grid.
@@ -20,4 +20,4 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note
-The implementation target is a square 13 × 13 board with 7 playable clue cells on the top edge and 11 on the left edge (the top-left corner is blank). Every clue cell must start at least one real answer, every answer must end at another playable clue cell, and all non-corner cells must be either a clue, a letter, or a deliberate dark blocker; every clue cell must be a real word start or terminal. Arrows are limited to right and down. The screenshot is the visual source of truth; exact interior clue coordinates still need to be transcribed before claiming a pixel-perfect cell-by-cell match.
+The implementation target is an 8 × 12 portrait board with real clue cells on both the top and left edges (the top-left corner is blank). Every answer must end at another playable clue cell; each clue cell must be a real word start or terminal. Every remaining square must be a letter or a deliberately styled dark blocker, never an empty question placeholder. Arrows are limited to right and down. The screenshot is the visual source of truth; exact interior clue coordinates still need to be transcribed before claiming a pixel-perfect cell-by-cell match.
