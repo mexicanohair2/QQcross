@@ -534,11 +534,18 @@ test("scanword clue cells follow the 8×12 top-left reference anchors and show d
   await expect(board.locator(".scan-clue-count")).toHaveCount(0);
   const arrows = board.locator(".scan-arrow");
   await expect(arrows).not.toHaveCount(0);
-  const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => ({
-    direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
-    visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
-  })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
+  const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => {
+    const clue = node.closest(".scan-clue");
+    const [row, col] = (clue?.dataset.clueCell || "-1,-1").split(",").map(Number);
+    return {
+      direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
+      row, col,
+      visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
+    };
+  }));
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => item.row !== 0 || item.direction === "scan-arrow-down")).toBeTruthy();
+  expect(arrowDetails.every(item => item.col !== 0 || item.row === 0 || item.direction === "scan-arrow-right")).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0 && col > 0) counts.top++;
