@@ -1005,14 +1005,6 @@ function buildScanword(entries){
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
       if(words.length&&!crosses&&!allowSeed&&!clueAt.has(terminalKey)&&!(entry.answer.length===1&&at.length>0))return false;
-      const futureLetters=new Map(cells.map((cell,k)=>[cell.join(","),entry.answer[k]]));
-      const terminalQuestions=clueAt.get(terminalKey)||[];
-      if(!terminalQuestions.length&&!canContinueFrom(endY,endX,futureLetters,entry))return false;
-      for(const [openKey,openWords] of clueAt){
-        if(openKey===key||openWords.length)continue;
-        const [openY,openX]=openKey.split(",").map(Number);
-        if(!canContinueFrom(openY,openX,futureLetters,entry))return false;
-      }
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
