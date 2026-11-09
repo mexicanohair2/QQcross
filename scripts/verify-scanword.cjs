@@ -17,7 +17,7 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 8 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 8 columns × 12 rows");
+  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 8) throw new Error("Run " + run + ": grid is not 12 columns × 8 rows");
   const total = puzzle.w * puzzle.h;
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
@@ -100,14 +100,21 @@ function validate(puzzle, run) {
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("5,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
+  if (!startKeys.has("4,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
-  if (topEdgeClues < 3 || leftEdgeClues < 4) throw new Error("Run " + run + ": too few edge questions (top=" + topEdgeClues + ", left=" + leftEdgeClues + ")");
+  const delta = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
+  const terminalKeys = new Set(puzzle.words.map(word => {
+    const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
+    return (last[0] + dy) + "," + (last[1] + dx);
+  }));
+  const playableClues = new Set([...startKeys, ...terminalKeys]);
+  for (const key of puzzle.clueKeys) if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
+  if (topEdgeClues !== puzzle.w - 1 || leftEdgeClues !== puzzle.h - 1) throw new Error("Run " + run + ": incomplete reference borders (top=" + topEdgeClues + "/" + (puzzle.w - 1) + ", left=" + leftEdgeClues + "/" + (puzzle.h - 1) + ")");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
-    throw new Error("Run " + run + ": expected three distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
+    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
   }
   const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
   if (logicClueCells.size < 3) {
