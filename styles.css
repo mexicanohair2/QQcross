@@ -1954,3 +1954,8 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 .scanword-board>.scan-cell.scan-clue .scan-clue-text{position:relative!important;z-index:2!important;padding:1px 2px 7px!important;font-size:clamp(6px,1.65vw,8px)!important;line-height:1.03!important;}
 .scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{padding:0!important;}
 @media(max-width:420px){.scanword-board{width:min(75vw,calc((100dvh - 250px)*.666667))!important;}}
+
+
+/* Keep clue text readable inside compact 8×12 tiles on narrow phones. */
+.scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(7px,2vw,9px)!important;line-height:1.03!important;}
+.scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-clue-text{font-size:clamp(7px,1.9vw,8.5px)!important;}
