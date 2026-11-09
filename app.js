@@ -867,7 +867,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   const reserved=result.reservedKeys instanceof Set?result.reservedKeys:new Set();
   if(!reserved.has("0,0")||reserved.size!==1)fail("верхний левый угол должен быть единственной пустой клеткой");
   for(let x=1;x<W;x++)if(!(result.clueAt.get("0,"+x)||[]).length)fail("в верхней строке нет вопроса в клетке 0,"+x);
-  for(let y=1;y<H;y++)if(!(result.clueAt.get(y+",0")||[]).length)fail("в левом столбце нет вопроса в клетке "+y+",0);
+  for(let y=1;y<H;y++)if(!(result.clueAt.get(y+",0")||[]).length)fail("в левом столбце нет вопроса в клетке "+y+",0");
   for(const [key,list] of result.clueAt)if(!list.length)fail("вопрос не имеет собственного ответа: "+key);
   if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size+reserved.size!==TOTAL)fail("поле заполнено не полностью");
   for(const key of reserved)if(result.occupied.has(key)||result.clueAt.has(key))fail("пустая угловая клетка занята: "+key);
