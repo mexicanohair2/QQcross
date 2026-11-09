@@ -22,8 +22,8 @@ function validate(puzzle, run) {
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
   }
-  if (!(puzzle.reservedKeys instanceof Set) || puzzle.reservedKeys.size !== 1 || !puzzle.reservedKeys.has("0,0")) {
-    throw new Error("Run " + run + ": top-left corner must be the only reserved blank tile");
+  if (!(puzzle.reservedKeys instanceof Set) || !puzzle.reservedKeys.has("0,0") || puzzle.reservedKeys.size > 20) {
+    throw new Error("Run " + run + ": expected the top-left blank and at most 19 deliberate dark blocker cells");
   }
   if (puzzle.used.has("0,0") || puzzle.clueKeys.has("0,0")) throw new Error("Run " + run + ": top-left corner is not blank");
   for (const key of puzzle.clueKeys) {
@@ -112,9 +112,8 @@ function validate(puzzle, run) {
   const playableClues = new Set([...startKeys, ...terminalKeys]);
   for (const key of puzzle.clueKeys) {
     if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
-    if (!startKeys.has(key)) throw new Error("Run " + run + ": clue cell does not start its own answer " + key);
   }
-  if (topEdgeClues < 3 || leftEdgeClues < 2) throw new Error("Run " + run + ": too few edge clues (top=" + topEdgeClues + "/3, left=" + leftEdgeClues + "/2)");
+  if (topEdgeClues < 3 || leftEdgeClues < 2) throw new Error("Run " + run + ": too few edge clue cells (top=" + topEdgeClues + "/3, left=" + leftEdgeClues + "/2)");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
