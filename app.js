@@ -992,25 +992,30 @@ function buildScanword(entries){
         if(reservedKeys.has(cellKey)||clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
         cells.push([yy,xx]);
       }
+      // Protect ordinary placements from sealed holes. The deliberate third corner
+      // seed has a pre-validated crossing and may bypass this local heuristic.
+      if(allowSeed!=="edge"){
       // Do not place a word if it seals an empty square on all four sides.
-      // Such a square can never become a letter or a playable clue later.
-      const futureLetters=new Set(cells.map(cell=>cell.join(",")));
-      const futureClues=new Set([key,terminalKey]);
-      const affected=new Set();
-      for(const [yy,xx] of [[y,x],[endY,endX],...cells]){
-        for(const [dy,dx] of [[-1,0],[1,0],[0,-1],[0,1]]){
-          const ny=yy+dy,nx=xx+dx;
-          if(ny>=0&&nx>=0&&ny<H&&nx<W)affected.add(ny+","+nx);
+        // Such a square can never become a letter or a playable clue later.
+        const futureLetters=new Set(cells.map(cell=>cell.join(",")));
+        const futureClues=new Set([key,terminalKey]);
+        const affected=new Set();
+        for(const [yy,xx] of [[y,x],[endY,endX],...cells]){
+          for(const [dy,dx] of [[-1,0],[1,0],[0,-1],[0,1]]){
+            const ny=yy+dy,nx=xx+dx;
+            if(ny>=0&&nx>=0&&ny<H&&nx<W)affected.add(ny+","+nx);
+          }
         }
-      }
-      for(const emptyKey of affected){
-        if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
-        const [ey,ex]=emptyKey.split(",").map(Number);
-        const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
-        if(neighbors.length&&neighbors.every(([ny,nx])=>{
-          const neighborKey=ny+","+nx;
-          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetters.has(neighborKey)||futureClues.has(neighborKey);
-        }))return false;
+        for(const emptyKey of affected){
+          if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
+          const [ey,ex]=emptyKey.split(",").map(Number);
+          const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
+          if(neighbors.length&&neighbors.every(([ny,nx])=>{
+            const neighborKey=ny+","+nx;
+            return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetters.has(neighborKey)||futureClues.has(neighborKey);
+          }))return false;
+        }
+  
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
       const touchesConnectedLayout=words.some(word=>{
@@ -1076,7 +1081,7 @@ function buildScanword(entries){
       const sideSeeds=normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&entry.answer[0]===crossingLetter&&entry.answer!==first.answer&&entry.answer!==choice.entry.answer);
       let sideSeeded=false;
       for(const entry of sideSeeds){
-        if(addWord(entry,1,0,0,"w"+words.length)){sideSeeded=true;break}
+        if(addWord(entry,1,0,0,"w"+words.length,"edge")){sideSeeded=true;break}
       }
       if(sideSeeded){seeded=true;break}
       return null;
