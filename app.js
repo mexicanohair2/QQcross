@@ -1065,7 +1065,10 @@ function buildScanword(entries){
         // protect only terminals that have actually been created by an answer.
         if(list.length||!terminalKeys.has(openKey)||openKey===key||openKey===terminalKey)continue;
         const [openY,openX]=openKey.split(",").map(Number);
-        if(hasPlayableRoute(openY,openX,new Map(),new Set())&&!hasPlayableRoute(openY,openX,candidateLetterKeys,plannedClues))return false;
+        // Once an answer has created an empty terminal clue, it must keep at least one
+        // unused dictionary answer available. Merely checking whether a route existed
+        // before this placement allowed its only matching word to be consumed elsewhere.
+        if(!hasPlayableRoute(openY,openX,candidateLetterKeys,plannedClues))return false;
       }
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -1971,7 +1974,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261110-reference-8x12-v68",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261110-reference-8x12-v69",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
