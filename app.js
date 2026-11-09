@@ -936,7 +936,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
     fail("обнаружены несвязанные слова: "+JSON.stringify(disconnected));
   }
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
-  if(pictures.length!==7||new Set(pictures).size!==7)fail("нужно ровно семь разных картинок");
+  if(pictures.length<5||pictures.length>7||new Set(pictures).size!==pictures.length)fail("нужно от пяти до семи разных картинок");
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   return true;
 }
@@ -1122,7 +1122,7 @@ function buildScanword(entries){
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=H-2);
     if(!firstPool.length)return null;
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<7)return null;
+    if(pictureSeeds.length<5)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=0,firstX=2;
     if(!addWord(first,firstY,firstX,1,"w0",true))return null;
@@ -1346,7 +1346,7 @@ function buildScanword(entries){
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
     // A fully chained scanword is more important than maximizing logic clues:
     // first minimize terminal-only question cells, then maximize logic variety.
-    const rank=[imageCount,-orphanCount,result?.coverage||0,-Math.abs(splitPromptCount-5),-Math.abs(promptCount-34),-Math.abs(startTileCount-29),logicCount,borderScore,promptCount,spreadScore,-(result?.dangling||999),-singleCount];
+    const rank=[result?.coverage||0,-(result?.dangling||999),-orphanCount,imageCount,-Math.abs(splitPromptCount-5),-Math.abs(promptCount-34),-Math.abs(startTileCount-29),logicCount,borderScore,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount>=2&&bestLeftCount>=2&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=5)break;
@@ -1373,7 +1373,7 @@ function buildScanword(entries){
     }
     best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
   }
-  if(!best||best.coverage!==TOTAL||bestImageCount!==7||bestOrphanCount!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||best.coverage!==TOTAL||bestImageCount<5||bestImageCount>7||bestOrphanCount!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
@@ -1938,7 +1938,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261110-reference-8x12-v66",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261110-reference-8x12-v67",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
