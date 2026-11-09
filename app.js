@@ -1264,6 +1264,48 @@ function refreshPracticeButton(){
   button.disabled=scanwordPreparing;
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
+function buildScanwordInWorker(entries){
+  if(typeof Worker!=="function"||typeof Blob!=="function"||typeof URL?.createObjectURL!=="function"){
+    return Promise.resolve().then(()=>buildScanword(entries));
+  }
+  const source=[
+    "const SCANWORD_IMAGE_KEYS=new Set("+JSON.stringify([...SCANWORD_IMAGE_KEYS])+");",
+    "const compactScanwordClue="+compactScanwordClue.toString()+";",
+    "const normalizeScanwordEntry="+normalizeScanwordEntry.toString()+";",
+    "const assertValidScanwordLayout="+assertValidScanwordLayout.toString()+";",
+    "const buildScanword="+buildScanword.toString()+";",
+    "self.onmessage=function(event){try{self.postMessage({ok:true,puzzle:buildScanword(event.data)})}catch(error){self.postMessage({ok:false,error:error&&error.message?error.message:String(error)})}};"
+  ].join("\n");
+  return new Promise((resolve,reject)=>{
+    let worker=null,workerUrl=null,finished=false;
+    const cleanup=()=>{
+      if(finished)return;
+      finished=true;
+      if(worker)worker.terminate();
+      if(workerUrl)URL.revokeObjectURL(workerUrl);
+    };
+    try{
+      workerUrl=URL.createObjectURL(new Blob([source],{type:"text/javascript"}));
+      worker=new Worker(workerUrl);
+      worker.onmessage=event=>{
+        const data=event.data||{};
+        cleanup();
+        if(data.ok&&data.puzzle)resolve(data.puzzle);
+        else reject(new Error(data.error||"Не удалось собрать сканворд в фоновом потоке"));
+      };
+      worker.onerror=event=>{
+        const message=event&&event.message||"Фоновый генератор сканворда завершился с ошибкой";
+        cleanup();
+        reject(new Error(message));
+      };
+      worker.postMessage(entries);
+    }catch(error){
+      cleanup();
+      try{resolve(buildScanword(entries))}
+      catch(fallbackError){reject(fallbackError||error)}
+    }
+  });
+}
 function prepareNextScanword(){
   if(preparedScanword)return Promise.resolve(preparedScanword);
   if(scanwordPreparePromise)return scanwordPreparePromise;
@@ -1273,7 +1315,7 @@ function prepareNextScanword(){
   refreshPracticeButton();
   scanwordPreparePromise=new Promise(resolve=>{
     setTimeout(()=>{
-      try{preparedScanword=buildScanword(dictionary)}
+      try{preparedScanword=await buildScanwordInWorker(dictionary)}
       catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error);preparedScanword=null}
       finally{
         scanwordPreparing=false;
