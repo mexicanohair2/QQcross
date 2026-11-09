@@ -40,7 +40,7 @@ function validate(puzzle, run) {
     if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
     answers.add(word.answer);
     const [cy, cx] = word.clueCell;
-    const directions = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
+    const directions = { right: [0, 1], down: [1, 0] };
     const delta = directions[word.dir];
     if (!delta) throw new Error("Run " + run + ": invalid direction " + word.dir + " for " + word.id);
     for (let k = 0; k < word.cells.length; k++) {
