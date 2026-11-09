@@ -10,6 +10,7 @@ async function startGuestGame(page) {
   await expect(page.locator("#play-toggle")).toBeVisible();
   await page.locator("#play-toggle").click();
   await expect(page.locator("#practice")).toBeVisible();
+  await expect(page.locator("#practice")).toBeEnabled({ timeout: 15_000 });
   await page.evaluate(() => { window.__qqStartTap = performance.now(); });
   await page.locator("#practice").click();
   await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
