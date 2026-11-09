@@ -1964,7 +1964,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 /* 2026-11-09: compact reference-sized scanword cells; keep clue text and arrows inside the cells. */
 .game-screen .board-wrap.scanword-wrap{min-height:0;overflow:hidden}
 .game-screen .scanword-board{
-  width:min(66vw,calc((100dvh - 245px)*.666667),620px)!important;
+  width:min(72vw,calc((100dvh - 245px)*.666667),620px)!important;
   height:auto!important;aspect-ratio:2/3!important;
   grid-template-columns:repeat(8,minmax(0,1fr))!important;
   grid-template-rows:repeat(12,minmax(0,1fr))!important;
@@ -1980,17 +1980,17 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
   display:-webkit-box!important;position:relative!important;z-index:2!important;
   width:100%!important;height:100%!important;max-height:100%!important;
-  margin:0!important;padding:1px 1px 7px!important;box-sizing:border-box!important;
+  margin:0!important;padding:6px 1px!important;box-sizing:border-box!important;
   overflow:hidden!important;white-space:normal!important;overflow-wrap:anywhere!important;
   word-break:normal!important;-webkit-box-orient:vertical!important;
   -webkit-line-clamp:3!important;line-clamp:3!important;
-  font-size:clamp(6px,1.75vw,8px)!important;line-height:1.04!important;
+  font-size:clamp(7px,1.75vw,7.8px)!important;line-height:1!important;
   text-align:center!important;font-weight:800!important;
 }
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
   display:grid!important;position:absolute!important;z-index:4!important;
-  place-items:center!important;width:23%!important;height:23%!important;
-  min-width:0!important;min-height:0!important;font-size:clamp(7px,1.35vw,10px)!important;
+  place-items:center!important;width:22%!important;height:18%!important;
+  min-width:0!important;min-height:0!important;font-size:clamp(7px,1.45vw,9px)!important;
   line-height:1!important;font-weight:900!important;color:#fff!important;
   background:#211018a8!important;border-radius:2px!important;
   pointer-events:none!important;
@@ -2008,5 +2008,5 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   max-width:100%!important;max-height:100%!important;object-fit:contain!important;
 }
 @media(max-width:420px){
-  .game-screen .scanword-board{width:min(66vw,calc((100dvh - 225px)*.666667))!important}
+  .game-screen .scanword-board{width:min(72vw,calc((100dvh - 225px)*.666667))!important}
 }
