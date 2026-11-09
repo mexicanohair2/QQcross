@@ -26,6 +26,7 @@ test("loads an 8-column by 12-row scanword with five distinct picture clues", as
   await expect(page.locator('.scan-empty[data-reserved-cell="0,0"]')).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   await expect(page.locator(".scan-clue[data-clue-start-count='0']")).toHaveCount(0);
+  await expect(page.locator('.scan-clue[data-terminal-only="true"]')).toHaveCount(0);
   expect(await page.locator(".scan-clue-logic").count()).toBeGreaterThanOrEqual(3);
   const scanBoard = page.locator(".scanword-board");
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(2);
