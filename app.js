@@ -1115,7 +1115,7 @@ function buildScanword(entries){
               }
               const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
               const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX);
-              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic?120:0)+Math.random()*3});
+              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
             }
           }
         }
@@ -1210,7 +1210,8 @@ function buildScanword(entries){
                 return old===undefined||old===entry.answer[k];
               }));
             if(!pool.length)continue;
-            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
+            const anchorHasLogic=anchor.list.some(w=>w.logic);
+            pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!(b.logic&&!anchorHasLogic))-Number(!!(a.logic&&!anchorHasLogic))||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
             if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1&&allowSingleFallback)){
               closing=true;
@@ -1259,7 +1260,7 @@ function buildScanword(entries){
     const rowImbalance=rowCounts.reduce((sum,count)=>sum+Math.max(0,count-3)*3+Math.max(0,1-count)*2,0);
     const columnImbalance=columnCounts.reduce((sum,count)=>sum+Math.max(0,count-4)*3+Math.max(0,1-count)*2,0);
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
-    const rank=[imageCount,result?.coverage||0,borderScore,logicCount,result?.words?.length||0,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
+    const rank=[imageCount,result?.coverage||0,logicCount,borderScore,result?.words?.length||0,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=3&&bestLeftCount>=2&&bestOrphanCount<=10&&bestLogicCount>=3)break;
