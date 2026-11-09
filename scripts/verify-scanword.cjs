@@ -17,7 +17,7 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 13 || puzzle.h !== 13) throw new Error("Run " + run + ": grid is not 13 columns × 13 rows");
+  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 8) throw new Error("Run " + run + ": grid is not 12 columns × 8 rows");
   const total = puzzle.w * puzzle.h;
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
