@@ -123,8 +123,8 @@ function validate(puzzle, run) {
   if (new Set(textClues).size !== textClues.length) throw new Error("Run " + run + ": duplicate visible clue text");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length < 5 || pictureKeys.length > 7 || new Set(pictureKeys).size !== pictureKeys.length) {
-    throw new Error("Run " + run + ": expected five to seven distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
+    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
   }
   const startTileCount = new Set(puzzle.words.map(word => word.clueCell.join(","))).size;
   const splitPromptCount = puzzle.words.length - startTileCount;
