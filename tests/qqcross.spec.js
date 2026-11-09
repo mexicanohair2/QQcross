@@ -503,6 +503,7 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="1,0"]')).toHaveCount(1);
   await expect(board.locator(".scan-empty")).toHaveCount(1);
   await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
   await expect(board.locator(".scan-clue").first()).not.toHaveAttribute("data-clue-cell", "0,0");
