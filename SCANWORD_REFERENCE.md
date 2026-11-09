@@ -20,4 +20,4 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note
-The reference image was located in Dropbox and its overall grid/screen structure was inspected in a browser. Exact pixel coordinates for every interior clue cell have not yet been transcribed into a fixed coordinate template. Do not claim an exact cell-by-cell placement match until that map has been measured against the image.
+The implementation target is a square 13 × 13 board with 12 playable clue cells on the top edge and 12 on the left edge (the top-left corner is blank). Every clue cell must start at least one real answer, every answer must end at another playable clue cell, and all 168 non-corner cells must be either a clue or a letter. Arrows are limited to right and down. The screenshot is the visual source of truth; exact interior clue coordinates still need to be transcribed before claiming a pixel-perfect cell-by-cell match.
