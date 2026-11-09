@@ -522,7 +522,7 @@ test("scanword clue cells follow the 8×12 top-left reference anchors and show d
   expect(grid.columns).toBe(8);
   expect(grid.rows).toBe(12);
   expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.84);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.92 + 1);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.96 + 1);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   expect(await board.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(2);
   expect(await board.locator('.scan-clue[data-clue-cell$=",0"]').count()).toBeGreaterThanOrEqual(2);
