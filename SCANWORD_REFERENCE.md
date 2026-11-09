@@ -12,11 +12,14 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 - Seven illustrated clue cells are visible in the reference: top edge at (0,2) and (0,3), and left edge at (1,0), (5,0), (6,0), (9,0), and (11,0).
 - This is a total of 29 clue tiles and 34 visible clue prompts (counting the five split tiles twice). The clue wording and answer content must be QQCross's own, not copied from the reference game.
 - The reference uses small, unobtrusive direction triangles near the clue-cell edge; they must not cover the clue text.
+- The five double-prompt cells are a visual target: the generator should prefer five extra prompts distributed across shared clue tiles, while keeping their actual positions dependent on the words and crossings selected for each puzzle.
+- Prefer answers present in `data/russian-words-common-25000.json`; allow less-common entries only when needed to preserve a valid connected layout.
 
 ## Implementation guardrails
 - Never change the grid dimensions, board proportions, cell proportions, spacing, clue placement rules, arrows, or vertical composition without checking this reference first.
 - Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
 - Keep top-edge starts downward and left-edge starts rightward; allow left/up directions only for interior clue cells, where they are needed to preserve the connected scanword structure.
+- Generate the five double-prompt locations dynamically from the selected answers and crossings; do not hard-code the interior coordinate list as a fixed layout for every round.
 - Keep the score area above the board and letter rack/confirm control below it.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
