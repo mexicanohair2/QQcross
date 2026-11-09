@@ -78,7 +78,8 @@ function validate(puzzle, run) {
       const sharedClue = aKey === bKey;
       const adjacentClueToAnswer = b.cells.some(([y,x]) => Math.abs(y-ay)+Math.abs(x-ax)===1) ||
         a.cells.some(([y,x]) => Math.abs(y-by)+Math.abs(x-bx)===1);
-      if (sharedClue || adjacentClueToAnswer) { graph[i].add(j); graph[j].add(i); }
+      const adjacentClueCells = Math.abs(ay-by)+Math.abs(ax-bx)===1;
+      if (sharedClue || adjacentClueToAnswer || adjacentClueCells) { graph[i].add(j); graph[j].add(i); }
     }
   }
   const seen = new Set([0]);
