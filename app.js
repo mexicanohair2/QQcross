@@ -1073,7 +1073,7 @@ function buildScanword(entries){
     for(const choice of seedCandidates){
       if(!addWord(choice.entry,choice.y,choice.x,2,"w1",true))continue;
       const crossingLetter=choice.entry.answer[0];
-      const sideSeeds=shuffle(normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&entry.answer[0]===crossingLetter&&entry.answer!==first.answer&&entry.answer!==choice.entry.answer));
+      const sideSeeds=normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&entry.answer[0]===crossingLetter&&entry.answer!==first.answer&&entry.answer!==choice.entry.answer);
       let sideSeeded=false;
       for(const entry of sideSeeds){
         if(addWord(entry,1,0,0,"w"+words.length)){sideSeeded=true;break}
