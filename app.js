@@ -981,7 +981,7 @@ function buildScanword(entries){
       bucket.push(entry);positions[p].set(letter,bucket);
     }
   });
-  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
+  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1096,7 +1096,7 @@ function buildScanword(entries){
       ?imageSeedChoices.concat(regularSeedChoices.slice(0,60))
       :regularSeedChoices;
     for(const choice of seedCandidates){
-      if(!addWord(choice.entry,choice.y,choice.x,2,"w1",true))continue;
+      if(!addWord(choice.entry,choice.y,choice.x,1,"w1",true))continue;
       const crossingLetter=choice.entry.answer[0];
       const sideSeeds=normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&entry.answer[0]===crossingLetter&&entry.answer!==first.answer&&entry.answer!==choice.entry.answer);
       let sideSeeded=false;
@@ -1135,7 +1135,7 @@ function buildScanword(entries){
       for(const clueKey of frontier){
         const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
         if(occupied.has(clueKey)||at.length>=4 )continue;
-        for(let di=0;di<4;di++){
+        for(let di=0;di<dirs.length;di++){
           const dir=dirs[di];
           if(at.some(w=>w.dir===dir.name))continue;
           const max=dir.dy>0?H-1-y:dir.dy<0?y:dir.dx>0?W-1-x:x;
@@ -1212,7 +1212,7 @@ function buildScanword(entries){
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       anchorLoop: for(const anchor of anchors){
-        for(let di=0;di<4;di++){
+        for(let di=0;di<dirs.length;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
@@ -1274,7 +1274,7 @@ function buildScanword(entries){
         for(let ay=0;ay<H;ay++)for(let ax=0;ax<W;ax++){
           const anchorKey=ay+","+ax,at=clueAt.get(anchorKey);
           if(!at||at.length>=4)continue;
-          for(let di=0;di<4;di++){
+          for(let di=0;di<dirs.length;di++){
             const dir=dirs[di];
             if(at.some(word=>word.dir===dir.name))continue;
             if(ay+dir.dy!==y||ax+dir.dx!==x)continue;
@@ -1897,7 +1897,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261109-reference-13x13-v39",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261109-reference-13x13-v40",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
