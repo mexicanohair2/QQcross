@@ -1115,7 +1115,7 @@ function buildScanword(entries){
         for(const testDir of dirs){
           const max=Math.min(12,testDir.dy>0?H-1-y:testDir.dy<0?y:testDir.dx>0?W-1-x:x);
           let route=false;
-          for(let length=1;length<=max&&!route;length++){
+          for(let length=2;length<=max&&!route;length++){
             let clear=true;
             for(let k=1;k<=length;k++){
               const yy=y+testDir.dy*k,xx=x+testDir.dx*k,key2=yy+","+xx;
@@ -1129,25 +1129,29 @@ function buildScanword(entries){
         return {y,x,existing:true,list,routes};
       });
       if(emptyQuestions.length){
-        // Solve the most constrained open endpoint first; do not let a new
-        // branch consume its only remaining route.
+        // Close the most constrained open endpoint first. If it cannot be
+        // closed immediately, keep growing connected crossings elsewhere so
+        // a later word can reach that endpoint instead of abandoning the grid.
         emptyQuestions.sort((a,b)=>a.routes-b.routes);
         anchors.push(...emptyQuestions);
-      }else{
-        [...clueAt.entries()].reverse().forEach(([key,list])=>{const [y,x]=key.split(",").map(Number);anchors.push({y,x,existing:true,list})});
-        for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-          const key=y+","+x;
-          if(occupied.has(key)||clueAt.has(key))continue;
-          const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&occupied.has(yy+","+xx));
-          if(adjacent)anchors.push({y,x,existing:false,list:[]});
-        }
+      }
+      [...clueAt.entries()].reverse().forEach(([key,list])=>{
+        if(!list.length)return;
+        const [y,x]=key.split(",").map(Number);
+        anchors.push({y,x,existing:true,list});
+      });
+      for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        const key=y+","+x;
+        if(occupied.has(key)||clueAt.has(key))continue;
+        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&occupied.has(yy+","+xx));
+        if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
-          const lengths=Array.from({length:max},(_,index)=>max-index);
+          const lengths=Array.from({length:Math.max(0,max-1)},(_,index)=>max-index);
           lengths.sort((a,b)=>{
             const aKey=(anchor.y+dir.dy*(a+1))+","+(anchor.x+dir.dx*(a+1));
             const bKey=(anchor.y+dir.dy*(b+1))+","+(anchor.x+dir.dx*(b+1));
@@ -1183,7 +1187,7 @@ function buildScanword(entries){
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1)){
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart)){
               closing=true;
               break anchorLoop;
             }
@@ -1230,7 +1234,7 @@ function buildScanword(entries){
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 12×8 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
