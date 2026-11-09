@@ -1201,7 +1201,7 @@ function buildScanword(entries){
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1&&allowSingleFallback)){
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1&&allowSingleFallback)){
               closing=true;
               break anchorLoop;
             }
