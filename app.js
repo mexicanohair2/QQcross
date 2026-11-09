@@ -1014,19 +1014,32 @@ function buildScanword(entries){
       // very letters that are about to be placed, creating a false continuation.
       const candidateLetterKeys=new Set();
       for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.add((y+dir.dy*k)+","+(x+dir.dx*k));
-      // A terminal must have a genuinely free route for the next answer.
-      if(!(clueAt.get(terminalKey)||[]).length){
-        const terminalBorderDirection=endY===0&&endX>0?"down":endX===0&&endY>0?"right":null;
-        const canContinue=dirs.some(nextDir=>{
-          if(terminalBorderDirection&&nextDir.name!==terminalBorderDirection)return false;
-          const y1=endY+nextDir.dy,x1=endX+nextDir.dx,y2=endY+nextDir.dy*2,x2=endX+nextDir.dx*2,y3=endY+nextDir.dy*3,x3=endX+nextDir.dx*3;
-          const firstKey=y1+","+x1,secondKey=y2+","+x2,endKey=y3+","+x3;
-          return y1>=0&&x1>=0&&y2>=0&&x2>=0&&y3>=0&&x3>=0&&y1<H&&y2<H&&y3<H&&x1<W&&x2<W&&x3<W&&
-            !candidateLetterKeys.has(firstKey)&&!candidateLetterKeys.has(secondKey)&&!candidateLetterKeys.has(endKey)&&
-            !occupied.has(firstKey)&&!occupied.has(secondKey)&&!clueAt.has(firstKey)&&!clueAt.has(secondKey)&&
-            !reservedKeys.has(firstKey)&&!reservedKeys.has(secondKey)&&!occupied.has(endKey)&&!reservedKeys.has(endKey);
-        });
-        if(!canContinue)return false;
+      // A question cell needs a real empty route for a future answer. Keep
+      // edge anchors in their reference directions and do not let this word
+      // consume the last route of any other still-open question.
+      const hasFreeRoute=(routeY,routeX,extraBlocked)=>{
+        const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
+        for(const nextDir of dirs){
+          if(border&&nextDir.name!==border)continue;
+          const max=Math.min(12,nextDir.dy>0?H-2-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-2-routeX:routeX-1);
+          for(let length=2;length<=max;length++){
+            let clear=true;
+            for(let step=1;step<=length;step++){
+              const cellKey=(routeY+nextDir.dy*step)+","+(routeX+nextDir.dx*step);
+              if(extraBlocked.has(cellKey)||occupied.has(cellKey)||clueAt.has(cellKey)||reservedKeys.has(cellKey)){clear=false;break}
+            }
+            if(!clear)continue;
+            const terminal=(routeY+nextDir.dy*(length+1))+","+(routeX+nextDir.dx*(length+1));
+            if(!extraBlocked.has(terminal)&&!occupied.has(terminal)&&!reservedKeys.has(terminal))return true;
+          }
+        }
+        return false;
+      };
+      if(!(clueAt.get(terminalKey)||[]).length&&!hasFreeRoute(endY,endX,candidateLetterKeys))return false;
+      for(const [openKey,list] of clueAt){
+        if(list.length||openKey===key||openKey===terminalKey)continue;
+        const [openY,openX]=openKey.split(",").map(Number);
+        if(hasFreeRoute(openY,openX,new Set())&&!hasFreeRoute(openY,openX,candidateLetterKeys))return false;
       }
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
