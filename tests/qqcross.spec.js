@@ -32,12 +32,12 @@ test("loads an 8-column by 12-row scanword with five distinct picture clues", as
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+    return { columns: (style.gridTemplateColumns.match(/^repeat\\((\\d+),/) || [])[1] ? Number(style.gridTemplateColumns.match(/^repeat\\((\\d+),/)[1]) : style.gridTemplateColumns.trim().split(/\\s+/).length, rows: (style.gridTemplateRows.match(/^repeat\\((\\d+),/) || [])[1] ? Number(style.gridTemplateRows.match(/^repeat\\((\\d+),/)[1]) : style.gridTemplateRows.trim().split(/\\s+/).length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
   expect(geometry.columns).toBe(8);
   expect(geometry.rows).toBe(12);
   expect(Math.abs(geometry.ratio - 2/3)).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.84, geometry.viewportHeight - 245));
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.84, (geometry.viewportHeight - 205) * 2 / 3));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
@@ -587,7 +587,7 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
