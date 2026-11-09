@@ -944,7 +944,7 @@ function buildScanword(entries){
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
-    let score=entry.logic?18:0;
+    let score=entry.logic?80:0;
     // Preserve five distinct picture clues in every puzzle.
     if(entry.imageKey)score+=1000;
     if(words>=3&&words<=8)score+=8;else if(words>11)score-=6;else if(words<=2&&!entry.emoji)score-=8;
@@ -1115,7 +1115,7 @@ function buildScanword(entries){
               }
               const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
               const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX);
-              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic?10:0)+Math.random()*3});
+              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic?120:0)+Math.random()*3});
             }
           }
         }
@@ -1259,7 +1259,7 @@ function buildScanword(entries){
     const rowImbalance=rowCounts.reduce((sum,count)=>sum+Math.max(0,count-3)*3+Math.max(0,1-count)*2,0);
     const columnImbalance=columnCounts.reduce((sum,count)=>sum+Math.max(0,count-4)*3+Math.max(0,1-count)*2,0);
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
-    const rank=[imageCount,result?.coverage||0,borderScore,result?.words?.length||0,logicCount,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
+    const rank=[imageCount,result?.coverage||0,borderScore,logicCount,result?.words?.length||0,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=3&&bestLeftCount>=2&&bestOrphanCount<=10&&bestLogicCount>=3)break;
