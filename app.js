@@ -1007,7 +1007,7 @@ function buildScanword(entries){
       const terminalKey=endY+","+endX;
       // Do not create a dead-end terminal: it must have at least one free
       // two-letter route for the next clue in one of the four directions.
-      if(!(clueAt.get(terminalKey)||[]).length){
+      if(!clueAt.has(terminalKey)){
         const canContinue=dirs.some(nextDir=>{
           const y1=endY+nextDir.dy,x1=endX+nextDir.dx,y2=endY+nextDir.dy*2,x2=endX+nextDir.dx*2,y3=endY+nextDir.dy*3,x3=endX+nextDir.dx*3;
           const firstKey=y1+","+x1,secondKey=y2+","+x2,endKey=y3+","+x3;
