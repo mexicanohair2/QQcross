@@ -983,6 +983,26 @@ function buildScanword(entries){
         if(clueAt.has(cellKey)||(old!==undefined&&old!==entry.answer[k-1]))return false;
         cells.push([yy,xx]);
       }
+      // Do not place a word if it seals an empty square on all four sides.
+      // Such a square can never become a letter or a playable clue later.
+      const futureLetters=new Set(cells.map(cell=>cell.join(",")));
+      const futureClues=new Set([key,terminalKey]);
+      const affected=new Set();
+      for(const [yy,xx] of [[y,x],[endY,endX],...cells]){
+        for(const [dy,dx] of [[-1,0],[1,0],[0,-1],[0,1]]){
+          const ny=yy+dy,nx=xx+dx;
+          if(ny>=0&&nx>=0&&ny<H&&nx<W)affected.add(ny+","+nx);
+        }
+      }
+      for(const emptyKey of affected){
+        if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
+        const [ey,ex]=emptyKey.split(",").map(Number);
+        const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
+        if(neighbors.length&&neighbors.every(([ny,nx])=>{
+          const neighborKey=ny+","+nx;
+          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetters.has(neighborKey)||futureClues.has(neighborKey);
+        }))return false;
+      }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
       if(words.length&&!crosses&&!allowSeed&&!(entry.answer.length===1&&at.length>0))return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
