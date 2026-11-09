@@ -17,7 +17,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12x8 scanword with three distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 8-column by 12-row scanword with three distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -29,7 +29,7 @@ test("loads a fully occupied 12x8 scanword with three distinct picture clues", a
   expect(terminalAnswerCount).toBe(answerCount);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(144);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(96);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
