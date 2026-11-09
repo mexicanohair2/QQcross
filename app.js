@@ -880,13 +880,13 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   if(leftBorderCount<2)fail("нужно не менее двух вопросов слева");
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
-  const terminalDeltas={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const terminalDeltas={right:[0,1],down:[1,0]};
   for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
   for(const key of result.clueAt.keys())if(!outgoingClues.has(key)&&!incomingClues.has(key))fail("вопросная клетка не связана ни с одним словом: "+key);
   for(const key of incomingClues)if(!outgoingClues.has(key))fail("ответ заканчивается клеткой без следующего вопроса: "+key);
   const interiorClues=[...result.clueAt.keys()].filter(key=>{const [y,x]=key.split(",").map(Number);return y>0&&x>0&&y<H-1&&x<W-1});
   if(interiorClues.length<4)fail("недостаточно дополнительных вопросов внутри поля");
-  const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const directions={right:[0,1],down:[1,0]};
   const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
   for(let i=0;i<result.words.length;i++){
     const word=result.words[i],answer=String(word.answer||"");
@@ -983,7 +983,7 @@ function buildScanword(entries){
       bucket.push(entry);positions[p].set(letter,bucket);
     }
   });
-  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
+  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1092,7 +1092,7 @@ function buildScanword(entries){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.72);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1290,7 +1290,7 @@ function buildScanword(entries){
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
     // A fully chained scanword is more important than maximizing logic clues:
     // first minimize terminal-only question cells, then maximize logic variety.
-    const rank=[imageCount,result?.coverage||0,-orphanCount,logicCount,borderScore,result?.words?.length||0,spreadScore,-(result?.dangling||999),-singleCount];
+    const rank=[imageCount,-orphanCount,result?.coverage||0,logicCount,borderScore,result?.words?.length||0,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=2&&bestLeftCount>=2&&bestOrphanCount===0&&bestLogicCount>=3)break;
@@ -1592,7 +1592,7 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"→",left:"←",down:"↓",up:"↑"};
+      const arrowGlyph={right:"→",down:"↓"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" data-terminal-only="'+(terminalOnly.has(key)?"true":"false")+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
