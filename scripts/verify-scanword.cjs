@@ -100,7 +100,7 @@ function validate(puzzle, run) {
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("5,0") || !startKeys.has("0,1")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
+  if (!startKeys.has("5,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
   if (!topEdgeClues || !leftEdgeClues) throw new Error("Run " + run + ": missing a top or left edge question cell");
