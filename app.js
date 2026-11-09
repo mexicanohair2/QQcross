@@ -1393,7 +1393,6 @@ function buildScanword(entries){
           if(ty<0||tx<0||ty>=H||tx>=W||best?.occupied.has(terminal)||best?.reservedKeys.has(terminal))continue;
           const pattern=cells.map(cell=>best?.occupied.get(cell)||".").join("");
           const candidates=(entriesByLength.get(len)||[]).filter(entry=>{
-            if(used.has(entry.key))return false;
             return cells.every((cell,k)=>!best?.occupied.has(cell)||best.occupied.get(cell)===entry.answer[k]);
           }).slice(0,8).map(entry=>entry.answer);
           options.push({len,pattern,candidates});
