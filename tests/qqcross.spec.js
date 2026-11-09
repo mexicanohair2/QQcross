@@ -17,25 +17,27 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12-column by 8-row scanword with five distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 13-column by 13-row scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(169);
   await expect(page.locator(".scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
+  await expect(page.locator(".scan-clue[data-clue-start-count='0']")).toHaveCount(0);
+  expect(await page.locator(".scan-clue-logic").count()).toBeGreaterThanOrEqual(3);
   const scanBoard = page.locator(".scanword-board");
-  await expect(page.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(11);
-  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(7);
+  await expect(page.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(12);
+  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(12);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
     return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
-  expect(geometry.columns).toBe(12);
-  expect(geometry.rows).toBe(8);
-  expect(Math.abs(geometry.ratio - 1.5)).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.9, (geometry.viewportHeight - 270) * 1.5));
+  expect(geometry.columns).toBe(13);
+  expect(geometry.rows).toBe(13);
+  expect(Math.abs(geometry.ratio - 1)).toBeLessThan(0.03);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.84, geometry.viewportHeight - 245));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
@@ -44,7 +46,7 @@ test("loads a fully occupied 12-column by 8-row scanword with five distinct pict
   expect(terminalAnswerCount).toBe(answerCount);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(95);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(168);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
@@ -105,8 +107,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
-  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.9);
-  expect(Math.abs(layout.board.width / layout.board.height - 1.5)).toBeLessThan(0.03);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.84);
+  expect(Math.abs(layout.board.width / layout.board.height - 1)).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -512,11 +514,13 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     viewportWidth: document.documentElement.clientWidth,
     viewportHeight: document.documentElement.clientHeight
   }));
-  expect(grid.columns).toBe(8);
-  expect(grid.rows).toBe(12);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.8 + 1);
+  expect(grid.columns).toBe(13);
+  expect(grid.rows).toBe(13);
+  expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.84);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.92 + 1);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
-  await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(12);
+  await expect(board.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(12);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="1,0"]')).toHaveCount(1);
   await expect(board.locator(".scan-empty")).toHaveCount(1);
@@ -529,21 +533,22 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0 && col > 0) counts.top++;
     if (col === 0 && row > 0) counts.left++;
     return counts;
   }, { top: 0, left: 0 }));
-  expect(edgeCounts.top).toBeGreaterThanOrEqual(3);
-  expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
+  expect(edgeCounts.top).toBe(12);
+  expect(edgeCounts.left).toBe(12);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
-  expect(clueCells.length).toBeGreaterThan(10);
-  expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  expect(clueCells.length).toBeGreaterThan(20);
+  expect(clueCells.every(cell => cell.starts > 0)).toBeTruthy();
+  expect(clueCells.some(cell => cell.hasText && cell.visible)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
     height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
