@@ -1373,7 +1373,36 @@ function buildScanword(entries){
     }
     best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
   }
-  if(!best||best.coverage!==TOTAL||bestImageCount<5||bestImageCount>7||bestOrphanCount!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||best.coverage!==TOTAL||bestImageCount<5||bestImageCount>7||bestOrphanCount!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");
+    const orphanDetails=openEnds.map(key=>{
+      const [oy,ox]=key.split(",").map(Number);
+      const incoming=(best?.words||[]).filter(word=>{
+        const d=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+        return last[0]+d.dy===oy&&last[1]+d.dx===ox;
+      }).map(word=>({answer:word.answer,clue:word.clue,from:word.clueCell,dir:word.dir}));
+      const routes=dirs.map(dir=>{
+        const border=oy===0&&ox>0?"down":ox===0&&oy>0?"right":null;
+        if(border&&dir.name!==border)return null;
+        const max=Math.min(12,dir.dy>0?H-2-oy:dir.dy<0?oy-1:dir.dx>0?W-2-ox:ox-1);
+        const options=[];
+        for(let len=2;len<=max;len++){
+          const cells=Array.from({length:len},(_,k)=>(oy+dir.dy*(k+1))+","+(ox+dir.dx*(k+1)));
+          if(cells.some(cell=>best?.clueAt.has(cell)||best?.reservedKeys.has(cell)))continue;
+          const terminal=(oy+dir.dy*(len+1))+","+(ox+dir.dx*(len+1));
+          const [ty,tx]=terminal.split(",").map(Number);
+          if(ty<0||tx<0||ty>=H||tx>=W||best?.occupied.has(terminal)||best?.reservedKeys.has(terminal))continue;
+          const pattern=cells.map(cell=>best?.occupied.get(cell)||".").join("");
+          const candidates=(entriesByLength.get(len)||[]).filter(entry=>{
+            if(used.has(entry.key))return false;
+            return cells.every((cell,k)=>!best?.occupied.has(cell)||best.occupied.get(cell)===entry.answer[k]);
+          }).slice(0,8).map(entry=>entry.answer);
+          options.push({len,pattern,candidates});
+        }
+        return options.length?{dir:dir.name,options}:null;
+      }).filter(Boolean);
+      return {key,incoming,routes};
+    });
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
