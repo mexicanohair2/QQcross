@@ -36,7 +36,7 @@ test("loads a fully occupied 8-column by 12-row scanword with three distinct pic
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueFontSizes.every(size => size >= 6)).toBeTruthy();
+  expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(3);
