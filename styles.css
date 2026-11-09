@@ -2088,7 +2088,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 
 
-/* QQCross reference layout: square 13×13 scanword, filling the phone width. */
+/* QQCross reference layout: portrait 8×12 scanword, filling the phone height. */
 .game-screen .board-wrap.scanword-wrap{
   flex:1 1 0!important;
   min-height:0!important;
@@ -2105,11 +2105,11 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 .game-screen .scanword-board{
   display:grid!important;
-  grid-template-columns:repeat(13,minmax(0,1fr))!important;
-  grid-template-rows:repeat(13,minmax(0,1fr))!important;
-  width:min(95vw,calc(100dvh - 250px),900px)!important;
-  height:auto!important;
-  aspect-ratio:1/1!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+  width:min(85vw,calc((100dvh - 205px)*.6667),620px)!important;
+  height:min(127.5vw,calc(100dvh - 205px),930px)!important;
+  aspect-ratio:2/3!important;
   max-width:100%!important;
   max-height:100%!important;
   min-width:0!important;
