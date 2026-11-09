@@ -1143,7 +1143,7 @@ function buildScanword(entries){
       for(let y=0;y<H;y++)for(let x=0;x<W;x++){
         const key=y+","+x;
         if(occupied.has(key)||clueAt.has(key))continue;
-        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&occupied.has(yy+","+xx));
+        const adjacent=[[y-1,x],[y+1,x],[y,x-1],[y,x+1]].some(([yy,xx])=>yy>=0&&xx>=0&&yy<H&&xx<W&&(occupied.has(yy+","+xx)||clueAt.has(yy+","+xx)));
         if(adjacent)anchors.push({y,x,existing:false,list:[]});
       }
       anchorLoop: for(const anchor of anchors){
@@ -1191,7 +1191,7 @@ function buildScanword(entries){
             if(!pool.length)continue;
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart)){
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,attachedQuestionStart,length===1&&allowSingleFallback)){
               closing=true;
               break anchorLoop;
             }
