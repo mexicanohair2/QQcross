@@ -98,7 +98,7 @@ function render(){clearInterval(state.interval);const root=$("#app");if(state.pr
 function renderDaily(root){
  const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
  const done=d.completed||{},stats=p?.get?.().daily||{};
- root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 15 × 15</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
+ root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 12 × 8</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
@@ -874,6 +874,15 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size+reserved.size!==TOTAL)fail("поле заполнено не полностью");
   for(const key of reserved)if(result.occupied.has(key)||result.clueAt.has(key))fail("пустая угловая клетка занята: "+key);
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
+  for(let x=1;x<W;x++)if(!result.clueAt.has("0,"+x))fail("в верхней строке отсутствует вопрос в столбце "+(x+1));
+  for(let y=1;y<H;y++)if(!result.clueAt.has(y+",0"))fail("в левом столбце отсутствует вопрос в строке "+(y+1));
+  const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
+  const incomingClues=new Set();
+  const terminalDeltas={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
+  for(const key of result.clueAt.keys())if(!outgoingClues.has(key)&&!incomingClues.has(key))fail("вопросная клетка не связана ни с одним словом: "+key);
+  const interiorClues=[...result.clueAt.keys()].filter(key=>{const [y,x]=key.split(",").map(Number);return y>0&&x>0&&y<H-1&&x<W-1});
+  if(interiorClues.length<4)fail("недостаточно дополнительных вопросов внутри поля");
   const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
   const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
   for(let i=0;i<result.words.length;i++){
@@ -922,19 +931,19 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
     fail("обнаружены несвязанные слова: "+JSON.stringify(disconnected));
   }
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
-  if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
+  if(pictures.length!==5||new Set(pictures).size!==5)fail("нужно ровно пять разных картинок");
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   return true;
 }
 function buildScanword(entries){
-  const W=8,H=12,TOTAL=W*H;
+  const W=12,H=8,TOTAL=W*H;
   const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
   const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue));
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
     let score=entry.logic?18:0;
-    // Preserve the three distinct picture clues required in every puzzle.
+    // Preserve five distinct picture clues in every puzzle.
     if(entry.imageKey)score+=1000;
     if(words>=3&&words<=8)score+=8;else if(words>11)score-=6;else if(words<=2&&!entry.emoji)score-=8;
     if(entry.clue.length>=20&&entry.clue.length<=85)score+=5;else if(entry.clue.length>110)score-=7;
@@ -983,9 +992,13 @@ function buildScanword(entries){
         if(!reservedKeys.has(key)&&!occupied.has(key))frontier.add(key);
       }
     };
+    for(let x=1;x<W;x++){const key="0,"+x;clueAt.set(key,[]);frontier.add(key)}
+    for(let y=1;y<H;y++){const key=y+",0";clueAt.set(key,[]);frontier.add(key)}
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
-      if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      const borderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
+      if(borderDirection&&dir.name!==borderDirection)return false;
+      if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
@@ -1048,9 +1061,9 @@ function buildScanword(entries){
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<3)return null;
+    if(pictureSeeds.length<5)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=5,firstX=0;
+    const firstY=4,firstX=0;
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
@@ -1120,7 +1133,7 @@ function buildScanword(entries){
             }
             if(!availableCrosses)continue;
             for(const entry of possible){
-              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3||at.length>0)))continue;
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -1272,11 +1285,11 @@ function buildScanword(entries){
     const clueCoordinates=result?[...result.clueAt.keys()].map(key=>key.split(",").map(Number)):[];
     const topCount=clueCoordinates.filter(([y,x])=>y===0&&x!==0).length;
     const leftCount=clueCoordinates.filter(([y,x])=>x===0&&y!==0).length;
-    const borderScore=Math.min(topCount,7)+Math.min(leftCount,11);
+    const borderScore=Math.min(topCount,W-1)+Math.min(leftCount,H-1);
     const occupiedRows=new Set(clueCoordinates.map(([y])=>y));
     const occupiedColumns=new Set(clueCoordinates.map(([,x])=>x));
     const rowSpread=occupiedRows.size,columnSpread=occupiedColumns.size;
-    const quadrants=new Set(clueCoordinates.map(([y,x])=>(y<6?"top":"bottom")+"-"+(x<4?"left":"right")));
+    const quadrants=new Set(clueCoordinates.map(([y,x])=>(y<H/2?"top":"bottom")+"-"+(x<W/2?"left":"right")));
     const rowCounts=Array(H).fill(0),columnCounts=Array(W).fill(0);
     clueCoordinates.forEach(([y,x])=>{rowCounts[y]++;columnCounts[x]++});
     const rowImbalance=rowCounts.reduce((sum,count)=>sum+Math.max(0,count-3)*3+Math.max(0,1-count)*2,0);
@@ -1285,9 +1298,9 @@ function buildScanword(entries){
     const rank=[imageCount,result?.coverage||0,borderScore,spreadScore,-(result?.dangling||999),logicCount,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1&&bestTopCount>=3&&bestLeftCount>=4&&bestRowSpread>=10&&bestColumnSpread>=7)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1&&bestTopCount>=W-1&&bestLeftCount>=H-1&&bestRowSpread>=H&&bestColumnSpread>=W&&bestLogicCount>=3)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==5){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 12×8 (12 столбцов × 8 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
@@ -1560,7 +1573,7 @@ function renderGame(root){
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
       const arrowGlyph={right:"→",left:"←",down:"↓",up:"↑"};
-      const arrowWords=startWordsAt.get(key)||[];
+      const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" data-terminal-only="'+(terminalOnly.has(key)?"true":"false")+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
     }else if(expected[key]!==undefined){
