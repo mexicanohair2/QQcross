@@ -1096,7 +1096,7 @@ function buildScanword(entries){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.82);round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.62);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1166,7 +1166,7 @@ function buildScanword(entries){
         const [y,x]=key.split(",").map(Number);
         let routes=0;
         for(const testDir of dirs){
-          const max=Math.min(12,testDir.dy>0?H-1-y:testDir.dy<0?y:testDir.dx>0?W-1-x:x);
+          const max=Math.min(12,testDir.dy>0?H-2-y:testDir.dy<0?y-1:testDir.dx>0?W-2-x:x-1);
           let route=false;
           for(let length=2;length<=max&&!route;length++){
             let clear=true;
@@ -1203,7 +1203,7 @@ function buildScanword(entries){
         for(let di=0;di<dirs.length;di++){
           const dir=dirs[di];
           if(anchor.list.some(w=>w.dir===dir.name))continue;
-          const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
+          const max=Math.min(12,dir.dy>0?H-2-anchor.y:dir.dy<0?anchor.y-1:dir.dx>0?W-2-anchor.x:anchor.x-1);
           const allowSingleFallback=false;
           const minLength=2;
           const lengths=Array.from({length:Math.max(0,max-minLength+1)},(_,index)=>max-index);
