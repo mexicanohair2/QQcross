@@ -109,6 +109,7 @@ function validate(puzzle, run) {
     const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
     return (last[0] + dy) + "," + (last[1] + dx);
   }));
+  for (const key of terminalKeys) if (!startKeys.has(key)) throw new Error("Run " + run + ": answer ends at a terminal-only clue cell " + key);
   const playableClues = new Set([...startKeys, ...terminalKeys]);
   for (const key of puzzle.clueKeys) {
     if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
