@@ -1331,9 +1331,11 @@ function clonePreparedScanword(source){
 function refreshPracticeButton(){
   const button=$("#practice");
   if(!button)return;
-  const loading=!!scanwordPreparing||!!scanwordPreparePromise||(!window.QQCROSS_DICTIONARY?.length&&!!dictionaryLoadPromise);
-  button.disabled=loading;
-  button.textContent=loading?(window.QQCROSS_DICTIONARY?.length?"Готовим поле…":"Загружаем словарь…"):preparedScanword?"Играть одному":"Повторить подготовку";
+  const dictionaryLoading=!window.QQCROSS_DICTIONARY?.length&&!!dictionaryLoadPromise;
+  // Keep the play action available while the next board is prepared in a worker.
+  // begin() joins the same preparation promise, so tapping never starts a duplicate generator.
+  button.disabled=dictionaryLoading;
+  button.textContent=dictionaryLoading?"Загружаем словарь…":scanwordPreparing||scanwordPreparePromise?"Играть одному · готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
 function buildScanwordInWorker(entries){
   if(typeof Worker!=="function"||typeof Blob!=="function"||typeof URL==="undefined"||typeof URL.createObjectURL!=="function"){
