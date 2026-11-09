@@ -1629,11 +1629,12 @@ function renderGame(root){
     if(wordsAt){
       const displayWord=wordsAt.find(w=>w.logic&&!state.completed?.has(w.id))||wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
       const pictureWord=terminalOnly.has(key)?null:(wordsAt.find(w=>w.imageKey)||null);
-      const single=displayWord?(displayWord.isEmoji?(displayWord.clueShort||displayWord.clue):fitScanwordClue(displayWord.clueShort||displayWord.clue,displayWord.answer)):"";
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
-      const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
+      // A split clue cell shows every question, just like the reference.
+      // Each direction keeps its own small arrow at the edge of the tile.
+      const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':wordsAt.map((word,index)=>'<span class="scan-clue-text" data-clue-part="'+index+'">'+esc(word.isEmoji?(word.clueShort||word.clue):fitScanwordClue(word.clueShort||word.clue,word.answer))+'</span>').join("");
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"→",left:"←",down:"↓",up:"↑"};
+      const arrowGlyph={right:"▶",left:"◀",down:"▼",up:"▲"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" data-terminal-only="'+(terminalOnly.has(key)?"true":"false")+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
