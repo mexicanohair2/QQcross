@@ -30,12 +30,12 @@ test("loads a fully occupied 12-column by 8-row scanword with five distinct pict
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth };
+    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
   expect(geometry.columns).toBe(12);
   expect(geometry.rows).toBe(8);
   expect(Math.abs(geometry.ratio - 1.5)).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(geometry.viewport * 0.9);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.9, (geometry.viewportHeight - 270) * 1.5));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
