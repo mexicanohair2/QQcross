@@ -1052,7 +1052,7 @@ function buildScanword(entries){
       else{const index=Math.floor(Math.random()*seen);if(index<limit)pool[index]=item;}
       return seen;
     };
-    for(let cross=4;cross<Math.min(5,first.answer.length);cross++){
+    for(let cross=0;cross<1;cross++){
       const x=firstX+cross+1,letter=first.answer[cross];
       for(const e of normalized){
         if(e.answer===first.answer||e.answer.length<3)continue;
