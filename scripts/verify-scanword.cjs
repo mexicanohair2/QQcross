@@ -94,6 +94,11 @@ function validate(puzzle, run) {
     throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + "); disconnected=" + JSON.stringify(disconnected));
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
+  const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
+  if (!startKeys.has("5,0") || !startKeys.has("0,5")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
+  const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
+  const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
+  if (!topEdgeClues || !leftEdgeClues) throw new Error("Run " + run + ": missing a top or left edge question cell");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
@@ -109,7 +114,7 @@ function validate(puzzle, run) {
       throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
     }
   }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, pictureKeys, logicalClueCells: logicClueCells.size };
+  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, topEdgeClues, leftEdgeClues, pictureKeys, logicalClueCells: logicClueCells.size };
 }
 
 const timings = [];
