@@ -17,7 +17,7 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 8 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 8 columns × 12 rows");
+  if (!puzzle || puzzle.w !== 13 || puzzle.h !== 13) throw new Error("Run " + run + ": grid is not 13 columns × 13 rows");
   const total = puzzle.w * puzzle.h;
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
@@ -36,6 +36,7 @@ function validate(puzzle, run) {
   for (let i = 0; i < puzzle.words.length; i++) {
     const word = puzzle.words[i];
     if (!word.clue || !word.answer || word.answer.length !== word.cells.length) throw new Error("Run " + run + ": malformed word " + word.id);
+    if (word.answer.length < 2) throw new Error("Run " + run + ": one-letter answers are forbidden");
     if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
     answers.add(word.answer);
     const [cy, cx] = word.clueCell;
@@ -100,7 +101,7 @@ function validate(puzzle, run) {
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("4,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
+  if (!startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing top/left edge clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
   const delta = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
@@ -109,7 +110,10 @@ function validate(puzzle, run) {
     return (last[0] + dy) + "," + (last[1] + dx);
   }));
   const playableClues = new Set([...startKeys, ...terminalKeys]);
-  for (const key of puzzle.clueKeys) if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
+  for (const key of puzzle.clueKeys) {
+    if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
+    if (!startKeys.has(key)) throw new Error("Run " + run + ": clue cell does not start its own answer " + key);
+  }
   if (topEdgeClues !== puzzle.w - 1 || leftEdgeClues !== puzzle.h - 1) throw new Error("Run " + run + ": incomplete reference borders (top=" + topEdgeClues + "/" + (puzzle.w - 1) + ", left=" + leftEdgeClues + "/" + (puzzle.h - 1) + ")");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
