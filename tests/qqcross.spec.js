@@ -529,6 +529,15 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   }));
   expect(clueCells.length).toBeGreaterThan(10);
   expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  const pageFit = await page.evaluate(() => ({
+    width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+    height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
+    viewportWidth: document.documentElement.clientWidth,
+    viewportHeight: document.documentElement.clientHeight
+  }));
+  expect(pageFit.width).toBeLessThanOrEqual(pageFit.viewportWidth + 1);
+  expect(pageFit.height).toBeLessThanOrEqual(pageFit.viewportHeight + 1);
+  await page.screenshot({ path: "test-results/scanword-reference-mobile.png", fullPage: true });
   await board.locator(".scan-clue").first().click();
   await expect(page.locator(".clue-popup")).toBeVisible();
 });
