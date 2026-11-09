@@ -1171,6 +1171,29 @@ function buildScanword(entries){
         }
       }
     }
+    // Last-cell repair: when only one square remains, connect it between two
+    // existing clue cells with a genuine one-letter clue instead of leaving a hole.
+    if(occupied.size+clueAt.size===TOTAL-1){
+      const oneLetterEntries=normalized.filter(entry=>entry.answer.length===1&&!entry.imageKey);
+      repairLoop: for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+        const holeKey=y+","+x;
+        if(occupied.has(holeKey)||clueAt.has(holeKey))continue;
+        for(let ay=0;ay<H;ay++)for(let ax=0;ax<W;ax++){
+          const anchorKey=ay+","+ax,at=clueAt.get(anchorKey);
+          if(!at||at.length>=4||at.some(word=>word.imageKey))continue;
+          for(let di=0;di<4;di++){
+            const dir=dirs[di];
+            if(at.some(word=>word.dir===dir.name))continue;
+            if(ay+dir.dy!==y||ax+dir.dx!==x)continue;
+            const ty=ay+dir.dy*2,tx=ax+dir.dx*2,terminalKey=ty+","+tx;
+            if(ty<0||tx<0||ty>=H||tx>=W||occupied.has(terminalKey)||!clueAt.has(terminalKey))continue;
+            for(const entry of oneLetterEntries){
+              if(addWord(entry,ay,ax,di,"w"+words.length,true,true))break repairLoop;
+            }
+          }
+        }
+      }
+    }
     const coverage=occupied.size+clueAt.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
     return {coverage,dangling,occupied,clueAt,words};
   };
@@ -1187,7 +1210,7 @@ function buildScanword(entries){
     if(better){bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});throw new Error("Не удалось собрать поле 12×8 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 12×8 с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied;
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
