@@ -978,8 +978,12 @@ function buildScanword(entries){
         if(!reservedKeys.has(key)&&!occupied.has(key))frontier.add(key);
       }
     };
+    for(let x=1;x<W;x++){const key="0,"+x;clueAt.set(key,[]);frontier.add(key)}
+    for(let y=1;y<H;y++){const key=y+",0";clueAt.set(key,[]);frontier.add(key)}
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
+      const requiredBorderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
+      if(requiredBorderDirection&&dir.name!==requiredBorderDirection)return false;
       if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
@@ -1102,6 +1106,8 @@ function buildScanword(entries){
         if(occupied.has(clueKey)||at.length>=4 )continue;
         for(let di=0;di<4;di++){
           const dir=dirs[di];
+          const requiredBorderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
+          if(requiredBorderDirection&&dir.name!==requiredBorderDirection)continue;
           if(at.some(w=>w.dir===dir.name))continue;
           const max=dir.dy>0?H-1-y:dir.dy<0?y:dir.dx>0?W-1-x:x;
           for(let length=2;length<=Math.min(12,max);length++){
@@ -1179,6 +1185,8 @@ function buildScanword(entries){
       anchorLoop: for(const anchor of anchors){
         for(let di=0;di<4;di++){
           const dir=dirs[di];
+          const requiredBorderDirection=anchor.y===0&&anchor.x>0?"down":anchor.x===0&&anchor.y>0?"right":null;
+          if(requiredBorderDirection&&dir.name!==requiredBorderDirection)continue;
           if(anchor.list.some(w=>w.dir===dir.name))continue;
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y:dir.dx>0?W-1-anchor.x:anchor.x);
           const allowSingleFallback=TOTAL-(occupied.size+clueAt.size+reservedKeys.size)<=2&&!words.some(word=>word.answer.length===1);
