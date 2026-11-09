@@ -515,6 +515,14 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
   expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    if (row === 0 && col > 0) counts.top++;
+    if (col === 0 && row > 0) counts.left++;
+    return counts;
+  }, { top: 0, left: 0 }));
+  expect(edgeCounts.top).toBeGreaterThanOrEqual(3);
+  expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
