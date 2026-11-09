@@ -1085,14 +1085,8 @@ function buildScanword(entries){
       :regularSeedChoices;
     for(const choice of seedCandidates){
       if(!addWord(choice.entry,choice.y,choice.x,2,"w1",true))continue;
-      const crossingLetter=choice.entry.answer[0];
-      const sideSeeds=normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&entry.answer[0]===crossingLetter&&entry.answer!==first.answer&&entry.answer!==choice.entry.answer);
-      let sideSeeded=false;
-      for(const entry of sideSeeds){
-        if(addWord(entry,1,0,0,"w"+words.length,"edge")){sideSeeded=true;break}
-      }
-      if(sideSeeded){seeded=true;break}
-      return null;
+      seeded=true;
+      break;
     }
     if(!seeded)return null;
     for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
