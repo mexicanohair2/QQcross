@@ -19,9 +19,13 @@ function seededRandom(seed) {
 function validate(puzzle, run) {
   if (!puzzle || puzzle.w !== 8 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 8 columns × 12 rows");
   const total = puzzle.w * puzzle.h;
-  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size !== total) {
-    throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size) + "/" + total);
+  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
+    throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
   }
+  if (!(puzzle.reservedKeys instanceof Set) || puzzle.reservedKeys.size !== 1 || !puzzle.reservedKeys.has("0,0")) {
+    throw new Error("Run " + run + ": top-left corner must be the only reserved blank tile");
+  }
+  if (puzzle.used.has("0,0") || puzzle.clueKeys.has("0,0")) throw new Error("Run " + run + ": top-left corner is not blank");
   for (const key of puzzle.clueKeys) {
     if (puzzle.used.has(key)) throw new Error("Run " + run + ": clue/letter overlap at " + key);
   }
@@ -50,6 +54,7 @@ function validate(puzzle, run) {
       const [y, x] = word.cells[k];
       if (y < 0 || x < 0 || y >= puzzle.h || x >= puzzle.w) throw new Error("Run " + run + ": out-of-bounds letter");
       const key = y + "," + x;
+      if (puzzle.reservedKeys.has(key)) throw new Error("Run " + run + ": answer crosses the reserved blank corner");
       if (puzzle.clueKeys.has(key)) throw new Error("Run " + run + ": answer crosses a clue cell");
       if (letters.has(key) && letters.get(key) !== word.answer[k]) throw new Error("Run " + run + ": conflicting letter at " + key);
       letters.set(key, word.answer[k]);
