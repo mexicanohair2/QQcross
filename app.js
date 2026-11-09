@@ -837,18 +837,23 @@ function getScanwordDictionary(){
 function compactScanwordClue(value){
   return String(value||"").replace(/\s+/g," ").trim();
 }
-function fitScanwordClue(value){
+function fitScanwordClue(value,answer=""){
   const clue=compactScanwordClue(value);
   if(!clue||clue.length<=17)return clue;
-  const words=clue.split(/\s+/);
-  let result="";
-  for(const word of words){
-    const next=result?result+" "+word:word;
-    if(next.length>16)break;
-    result=next;
+  const words=clue.split(/\s+/).filter(Boolean);
+  if(words.length<3)return clue.slice(0,15).replace(/[\s.,;:?!—-]+$/,"")+"…";
+  const normalizeToken=value=>String(value||"").toLocaleUpperCase("ru-RU").replace(/Ё/g,"Е").replace(/[^А-ЯA-Z]/g,"");
+  const answerKey=normalizeToken(answer);
+  let tail=words[words.length-1];
+  if(answerKey&&normalizeToken(tail)===answerKey)tail=words[words.length-2]||tail;
+  let head=words[0];
+  if(head.length>9)head=head.slice(0,8)+"…";
+  let compact=head+"… "+tail;
+  if(compact.length>21){
+    const shortTail=tail.length>9?tail.slice(0,8)+"…":tail;
+    compact=head+" "+shortTail;
   }
-  if(!result)result=clue.slice(0,16);
-  return result.replace(/[\s.,;:?!—-]+$/,"")+"…";
+  return compact;
 }
 const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
 function normalizeScanwordEntry(item){
@@ -1550,7 +1555,7 @@ function renderGame(root){
     if(wordsAt){
       const displayWord=wordsAt.find(w=>w.logic&&!state.completed?.has(w.id))||wordsAt.find(w=>w.id===activeWord?.id)||wordsAt.find(w=>!state.completed?.has(w.id))||wordsAt[0];
       const pictureWord=terminalOnly.has(key)?null:(wordsAt.find(w=>w.imageKey)||null);
-      const single=displayWord?(displayWord.isEmoji?(displayWord.clueShort||displayWord.clue):fitScanwordClue(displayWord.clueShort||displayWord.clue)):"";
+      const single=displayWord?(displayWord.isEmoji?(displayWord.clueShort||displayWord.clue):fitScanwordClue(displayWord.clueShort||displayWord.clue,displayWord.answer)):"";
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
@@ -1835,7 +1840,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261109-reference-8x12-v32",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261109-reference-8x12-v33",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
