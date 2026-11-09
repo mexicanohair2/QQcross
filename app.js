@@ -947,9 +947,12 @@ function buildScanword(entries){
   });
   normalized.splice(0,normalized.length,...bestByAnswer.values());
   normalized.sort((a,b)=>quality(b)-quality(a));
-  const byLength=new Map();
+  const byLength=new Map(),entriesByLength=new Map();
   normalized.forEach(entry=>{
     if(entry.answer.length<1)return;
+    let sameLength=entriesByLength.get(entry.answer.length);
+    if(!sameLength){sameLength=[];entriesByLength.set(entry.answer.length,sameLength)}
+    sameLength.push(entry);
     let positions=byLength.get(entry.answer.length);
     if(!positions){positions=Array.from({length:entry.answer.length},()=>new Map());byLength.set(entry.answer.length,positions)}
     for(let p=0;p<entry.answer.length;p++){
@@ -968,6 +971,41 @@ function buildScanword(entries){
         const key=ay+","+ax;
         if(!occupied.has(key))frontier.add(key);
       }
+    };
+    const canContinueFrom=(startY,startX,extraLetters,forbiddenEntry)=>{
+      for(let di=0;di<dirs.length;di++){
+        const dir=dirs[di],max=Math.min(12,dir.dy>0?H-1-startY:dir.dy<0?startY:dir.dx>0?W-1-startX:startX);
+        for(let length=2;length<=max;length++){
+          const positions=byLength.get(length);
+          if(!positions)continue;
+          let candidates=null,valid=true;
+          for(let p=0;p<length;p++){
+            const yy=startY+dir.dy*(p+1),xx=startX+dir.dx*(p+1),cellKey=yy+","+xx;
+            if(clueAt.has(cellKey)){valid=false;break}
+            const letter=extraLetters.has(cellKey)?extraLetters.get(cellKey):occupied.get(cellKey);
+            if(letter===undefined)continue;
+            const bucket=positions[p].get(letter)||[];
+            if(!bucket.length){valid=false;break}
+            if(candidates===null)candidates=new Set(bucket);
+            else for(const candidate of [...candidates])if(!bucket.includes(candidate))candidates.delete(candidate);
+            if(candidates.size===0){valid=false;break}
+          }
+          if(!valid)continue;
+          const endY=startY+dir.dy*(length+1),endX=startX+dir.dx*(length+1),endKey=endY+","+endX;
+          if(endY<0||endX<0||endY>=H||endX>=W||occupied.has(endKey)||extraLetters.has(endKey))continue;
+          const pool=candidates===null?(entriesByLength.get(length)||[]):candidates;
+          const canUse=[...pool].some(candidate=>
+            candidate.key!==forbiddenEntry.key&&
+            !used.has(candidate.key)&&
+            (!candidate.imageKey||
+              (!usedImages.has(candidate.imageKey)&&
+               candidate.imageKey!==forbiddenEntry.imageKey&&
+               usedImages.size+(forbiddenEntry.imageKey?1:0)<3))
+          );
+          if(canUse)return true;
+        }
+      }
+      return false;
     };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
@@ -1005,6 +1043,14 @@ function buildScanword(entries){
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
       if(words.length&&!crosses&&!allowSeed&&!(entry.answer.length===1&&at.length>0))return false;
+      const futureLetters=new Map(cells.map((cell,k)=>[cell.join(","),entry.answer[k]]));
+      const terminalQuestions=clueAt.get(terminalKey)||[];
+      if(!terminalQuestions.length&&!canContinueFrom(endY,endX,futureLetters,entry))return false;
+      for(const [openKey,openWords] of clueAt){
+        if(openKey===key||openWords.length)continue;
+        const [openY,openX]=openKey.split(",").map(Number);
+        if(!canContinueFrom(openY,openX,futureLetters,entry))return false;
+      }
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
