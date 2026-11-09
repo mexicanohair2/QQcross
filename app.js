@@ -1025,7 +1025,7 @@ function buildScanword(entries){
           }
         }
         for(const emptyKey of affected){
-          if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
+          if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey)||reservedKeys.has(emptyKey))continue;
           const [ey,ex]=emptyKey.split(",").map(Number);
           const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
           if(neighbors.length&&neighbors.every(([ny,nx])=>{
