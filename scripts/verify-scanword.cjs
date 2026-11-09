@@ -103,7 +103,7 @@ function validate(puzzle, run) {
   if (!startKeys.has("5,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
-  if (!topEdgeClues || !leftEdgeClues) throw new Error("Run " + run + ": missing a top or left edge question cell");
+  if (topEdgeClues < 3 || leftEdgeClues < 4) throw new Error("Run " + run + ": too few edge questions (top=" + topEdgeClues + ", left=" + leftEdgeClues + ")");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 3 || new Set(pictureKeys).size !== 3) {
