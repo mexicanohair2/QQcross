@@ -1077,6 +1077,31 @@ function buildScanword(entries){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
     }
     if(!seeded)return null;
+    // Grow additional top/left edge starts from the two connected seed words
+    // before the greedy fill can occupy their crossing lanes.
+    const seedEdge=(y,x,dirIndex,maxLength,coordinateForLetter)=>{
+      const candidates=normalized.map(entry=>{
+        if(entry.imageKey||entry.answer.length<2||entry.answer.length>maxLength||used.has(entry.key))return null;
+        let crosses=0;
+        for(let p=0;p<entry.answer.length;p++){
+          const [yy,xx]=coordinateForLetter(p),old=occupied.get(yy+","+xx);
+          if(old!==undefined){if(old!==entry.answer[p])return null;crosses++;}
+        }
+        return crosses?{entry,crosses}:null;
+      }).filter(Boolean).sort((a,b)=>b.crosses-a.crosses||quality(b.entry)-quality(a.entry));
+      for(const candidate of candidates){
+        if(addWord(candidate.entry,y,x,dirIndex,"w"+words.length,"edge"))return true;
+      }
+      return false;
+    };
+    for(let x=1;x<W;x++){
+      if(clueAt.has("0,"+x))continue;
+      seedEdge(0,x,1,H-2,p=>[p+1,x]);
+    }
+    for(let y=2;y<H;y++){
+      if(clueAt.has(y+",0"))continue;
+      seedEdge(y,0,0,W-2,p=>[y,p+1]);
+    }
     for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
