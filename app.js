@@ -1239,7 +1239,7 @@ function buildScanword(entries){
             const anchorHasLogic=anchor.list.some(w=>w.logic);
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!(b.logic&&!anchorHasLogic))-Number(!!(a.logic&&!anchorHasLogic))||Number(!!b.logic)-Number(!!a.logic));
             const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,false,length===1&&allowSingleFallback)){
+            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,"edge",length===1&&allowSingleFallback)){
               closing=true;
               break anchorLoop;
             }
