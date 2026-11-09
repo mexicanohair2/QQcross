@@ -2010,3 +2010,79 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 @media(max-width:420px){
   .game-screen .scanword-board{width:min(72vw,calc((100dvh - 225px)*.666667))!important}
 }
+
+
+/* 2026-11-09: final scanword reference layout — 12 columns × 8 rows. */
+.game-screen .board-wrap.scanword-wrap{
+  flex:1 1 auto!important;min-height:0!important;width:100%!important;
+  margin:0!important;padding:0!important;display:flex!important;
+  align-items:center!important;justify-content:center!important;overflow:hidden!important;
+  background:transparent!important;border:0!important;box-shadow:none!important;
+}
+.game-screen .scanword-board{
+  display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:repeat(8,minmax(0,1fr))!important;
+  width:min(96vw,calc((100dvh - 270px)*1.5),960px)!important;
+  height:auto!important;aspect-ratio:3/2!important;max-width:100%!important;
+  max-height:100%!important;min-width:0!important;min-height:0!important;
+  gap:1px!important;margin:0 auto!important;padding:0!important;box-sizing:border-box!important;
+  flex:0 0 auto!important;overflow:hidden!important;
+}
+.game-screen .scanword-board>.scan-cell{
+  position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;
+  min-width:0!important;min-height:0!important;width:auto!important;height:auto!important;
+  margin:0!important;padding:1px!important;aspect-ratio:auto!important;box-sizing:border-box!important;
+  overflow:hidden!important;border:1px solid var(--qq-theme-border,#49303a)!important;
+  border-radius:2px!important;background:var(--qq-theme-cell,linear-gradient(145deg,#30202a,#21151c))!important;
+  box-shadow:inset 0 0 0 1px #ffffff0a!important;color:var(--qq-theme-text,#f4edef)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-empty{
+  background:linear-gradient(145deg,#160d12,#0d080b)!important;
+  border-color:#21151b!important;box-shadow:none!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue{
+  position:relative!important;overflow:hidden!important;
+  background:var(--qq-theme-clue,linear-gradient(145deg,#65414e,#3a2530))!important;
+  border-color:var(--qq-theme-accent,#a97886)!important;
+  box-shadow:inset 0 0 0 1px #ffffff18!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
+  display:-webkit-box!important;position:relative!important;z-index:2!important;
+  width:100%!important;height:100%!important;max-height:100%!important;
+  margin:0!important;padding:2px 1px 5px!important;box-sizing:border-box!important;
+  overflow:hidden!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important;
+  -webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;line-clamp:3!important;
+  font-size:clamp(7px,2vw,9px)!important;line-height:1.04!important;
+  text-align:center!important;font-weight:800!important;color:var(--qq-theme-text,#fff)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  display:grid!important;place-items:center!important;padding:0!important;
+  font-size:clamp(13px,3.5vw,19px)!important;line-height:1!important;white-space:nowrap!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
+  display:grid!important;position:absolute!important;z-index:4!important;place-items:center!important;
+  width:22%!important;height:22%!important;min-width:0!important;min-height:0!important;
+  padding:0!important;font-size:clamp(7px,1.6vw,9px)!important;line-height:1!important;
+  font-weight:900!important;color:#fff!important;background:#160b12b8!important;
+  border-radius:2px!important;pointer-events:none!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-right{right:1px;bottom:1px}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-left{left:1px;bottom:1px}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-down{right:1px;top:1px}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{left:1px;top:1px}
+.game-screen .scanword-board>.scan-cell.scan-clue-picture .scan-clue-image{
+  display:block!important;width:100%!important;height:100%!important;max-width:100%!important;
+  max-height:100%!important;object-fit:contain!important;padding:2px!important;box-sizing:border-box!important;
+}
+.game-screen .scanword-board>.scan-cell.cell{background:var(--qq-theme-cell,linear-gradient(145deg,#30202a,#21151c))!important}
+.game-screen .scanword-board>.scan-cell.cell.filled{background:var(--qq-theme-filled,linear-gradient(145deg,#527c68,#315644))!important}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell{background:var(--qq-theme-pending,linear-gradient(145deg,#78556c,#503649))!important}
+.game-screen .scanword-board>.scan-cell .cell-letter{font-size:clamp(12px,2.5vw,22px)!important;font-weight:850!important;line-height:1!important}
+@media(max-height:620px){
+  .game-screen .scanword-board{width:min(96vw,calc((100dvh - 230px)*1.5),960px)!important}
+  .game-screen .game-tools{gap:4px!important}
+}
+@media(max-width:420px){
+  .game-screen .scanword-board{width:min(96vw,calc((100dvh - 270px)*1.5))!important}
+  .game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(7px,2vw,8.5px)!important}
+}

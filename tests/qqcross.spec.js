@@ -17,7 +17,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 8-column by 12-row scanword with three distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 12-column by 8-row scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -25,6 +25,19 @@ test("loads a fully occupied 8-column by 12-row scanword with three distinct pic
   await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
+  await expect(page.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(11);
+  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(7);
+  expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
+  const geometry = await scanBoard.evaluate(board => {
+    const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
+    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+  });
+  expect(geometry.columns).toBe(12);
+  expect(geometry.rows).toBe(8);
+  expect(Math.abs(geometry.ratio - 1.5)).toBeLessThan(0.03);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.9, (geometry.viewportHeight - 270) * 1.5));
+  const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
+  expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
@@ -32,14 +45,14 @@ test("loads a fully occupied 8-column by 12-row scanword with three distinct pic
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(95);
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(3);
+  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(3);
+  expect(new Set(pictureSources).size).toBe(5);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -92,6 +105,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.9);
+  expect(Math.abs(layout.board.width / layout.board.height - 1.5)).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
