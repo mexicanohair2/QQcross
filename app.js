@@ -1001,7 +1001,7 @@ function buildScanword(entries){
       }
       // Protect ordinary placements from sealed holes. The deliberate third corner
       // seed has a pre-validated crossing and may bypass this local heuristic.
-      if(allowSeed!=="edge"){
+      if(allowSeed!==true&&allowSeed!=="edge"){
       // Do not place a word if it seals an empty square on all four sides.
         // Such a square can never become a letter or a playable clue later.
         const futureLetters=new Set(cells.map(cell=>cell.join(",")));
