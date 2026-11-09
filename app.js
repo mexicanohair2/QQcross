@@ -1281,10 +1281,20 @@ function buildScanword(entries){
             if(!pool.length)continue;
             const anchorHasLogic=anchor.list.some(w=>w.logic);
             pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||Number(!!(b.logic&&!anchorHasLogic))-Number(!!(a.logic&&!anchorHasLogic))||Number(!!b.logic)-Number(!!a.logic));
-            const entry=pool[0];
-            if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,"edge",length===1&&allowSingleFallback)){
-              closing=true;
-              break anchorLoop;
+            // Do not let one unplaceable first candidate hide a valid answer
+            // of the same length. The old code tried only pool[0], so a single
+            // candidate rejected by the route guard could leave a terminal clue
+            // permanently unanswered even when another dictionary entry fit.
+            pool.sort((a,b)=>
+              Number(!!b.imageKey)-Number(!!a.imageKey)||
+              Number(!!(b.logic&&!anchorHasLogic))-Number(!!(a.logic&&!anchorHasLogic))||
+              quality(b)-quality(a)
+            );
+            for(const entry of pool){
+              if(addWord(entry,anchor.y,anchor.x,di,"w"+words.length,"edge",length===1&&allowSingleFallback)){
+                closing=true;
+                break anchorLoop;
+              }
             }
           }
         }
