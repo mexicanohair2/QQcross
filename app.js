@@ -897,6 +897,8 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
     if(!delta||!Array.isArray(cell)||cell.length!==2)fail("неверное направление или координаты вопроса");
     const [cy,cx]=cell,clueKey=cy+","+cx;
     if(cy<0||cx<0||cy>=H||cx>=W||!(result.clueAt.get(clueKey)||[]).includes(word))fail("вопрос находится вне поля");
+    if(cy===0&&cx>0&&word.dir!=="down")fail("вопрос сверху должен вести вниз");
+    if(cx===0&&cy>0&&word.dir!=="right")fail("вопрос слева должен вести вправо");
     for(let k=0;k<word.cells.length;k++){
       const [y,x]=word.cells[k],expectedY=cy+delta[0]*(k+1),expectedX=cx+delta[1]*(k+1);
       if(y!==expectedY||x!==expectedX||y<0||x<0||y>=H||x>=W)fail("слово "+word.id+" расположено с разрывом или неверным направлением");
