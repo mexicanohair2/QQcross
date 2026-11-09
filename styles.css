@@ -202,7 +202,7 @@ body{background:radial-gradient(ellipse at 50% -12%,#50303d 0%,#281923 38%,#130d
 .register-card .input{min-height:48px;font-size:16px}
 .toast{max-width:min(90vw,520px);white-space:normal}
 @media(min-width:900px){.screen:not(.game-screen){max-width:900px}.game-screen{max-width:1280px;padding-left:clamp(18px,3vw,48px);padding-right:clamp(18px,3vw,48px)}.scanword-board{width:min(85vw,calc(100dvh - 205px),860px)!important;height:min(85vw,calc(100dvh - 205px),860px)!important}.scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(9px,.8vw,13px)}}
-@media(max-width:420px){.game-screen{gap:5px;padding-left:5px;padding-right:5px}.score-strip{padding:3px;gap:3px}.score-strip span{min-width:48px;font-size:10px;padding:6px 3px}.scanword-board{width:min(85vw,calc(100dvh - 190px))!important;height:min(85vw,calc(100dvh - 190px))!important}.scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(5px,1.8vw,8px)}.letter-area{padding:5px;gap:4px}.items{gap:3px;padding:4px}.item{font-size:10px;padding:7px 2px}}
+@media(max-width:420px){.game-screen{gap:5px;padding-left:5px;padding-right:5px}.score-strip{padding:3px;gap:3px}.score-strip span{min-width:48px;font-size:10px;padding:6px 3px}.scanword-board{width:min(85vw,calc(100dvh - 250px))!important;height:min(85vw,calc(100dvh - 250px))!important}.scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(5px,1.8vw,8px)}.letter-area{padding:5px;gap:4px}.items{gap:3px;padding:4px}.item{font-size:10px;padding:7px 2px}}
 @media(max-height:620px){.game-screen{gap:3px}.scanword-board{width:min(85vw,calc(100dvh - 165px))!important;height:min(85vw,calc(100dvh - 165px))!important}.game-tools{gap:4px}.letter-area{padding:4px 7px}.letter{height:34px;min-height:34px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
@@ -397,8 +397,8 @@ html[data-qq-theme] .scanword-board>.scan-cell.scan-filler{
 }
 @media(max-width:420px){
   .scanword-board{
-    width:min(91vw,calc(100dvh - 190px))!important;
-    height:min(91vw,calc(100dvh - 190px))!important;
+    width:min(91vw,calc(100dvh - 250px))!important;
+    height:min(91vw,calc(100dvh - 250px))!important;
   }
 }
 @media(max-height:620px){
@@ -1811,7 +1811,7 @@ html[data-qq-theme] .wordle-tile.absent{background:var(--qq-theme-block)!importa
   max-width:100%!important;max-height:100%!important;object-fit:contain!important;filter:none!important;
 }
 @media(max-width:420px){
-  .scanword-board{width:min(85vw,calc(100dvh - 190px))!important;height:min(85vw,calc(100dvh - 190px))!important}
+  .scanword-board{width:min(85vw,calc(100dvh - 250px))!important;height:min(85vw,calc(100dvh - 250px))!important}
 }
 
 
@@ -2267,9 +2267,9 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   display:grid!important;
   grid-template-columns:repeat(6,minmax(0,1fr))!important;
   grid-template-rows:repeat(12,minmax(0,1fr))!important;
-  width:min(96vw,calc((100dvh - 190px)*.5),560px)!important;
+  width:min(96vw,calc((100dvh - 250px)*.5),560px)!important;
   height:auto!important;aspect-ratio:1/2!important;
-  max-width:100%!important;max-height:calc(100dvh - 190px)!important;
+  max-width:100%!important;max-height:calc(100dvh - 250px)!important;
   min-width:0!important;min-height:0!important;
   gap:1px!important;margin:0 auto!important;padding:0!important;
   box-sizing:border-box!important;flex:0 0 auto!important;overflow:hidden!important;
@@ -2330,6 +2330,6 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   .game-screen .game-tools{gap:4px!important}
 }
 @media(max-width:420px){
-  .game-screen .scanword-board{width:min(96vw,calc((100dvh - 190px)*.5))!important}
+  .game-screen .scanword-board{width:min(96vw,calc((100dvh - 250px)*.5))!important}
   .game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(6.5px,1.8vw,8px)!important}
 }
