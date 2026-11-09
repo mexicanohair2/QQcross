@@ -1033,7 +1033,6 @@ function buildScanword(entries){
          if(cells.some(([cy,cx])=>Math.abs(cy-wy)+Math.abs(cx-wx)===1))return true;
          return cells.some(([cy,cx])=>word.cells.some(([ey,ex])=>cy===ey&&cx===ex));
        });
-       const requiredBorderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
        if(requiredBorderDirection&&words.length&&!crosses)return false;
        if(words.length&&!touchesConnectedLayout)return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
