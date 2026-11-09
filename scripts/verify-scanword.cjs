@@ -115,6 +115,8 @@ function validate(puzzle, run) {
     if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
   }
   if (topEdgeClues < 2 || leftEdgeClues < 2) throw new Error("Run " + run + ": too few edge clue cells (top=" + topEdgeClues + "/2, left=" + leftEdgeClues + "/2)");
+  const textClues = puzzle.words.filter(word => !word.imageKey).map(word => String(word.clueShort || word.clue).normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g,"е").replace(/[^\p{L}\p{N}]+/gu," ").trim());
+  if (new Set(textClues).size !== textClues.length) throw new Error("Run " + run + ": duplicate visible clue text");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
   if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
