@@ -71,6 +71,8 @@ test("opens the question popup from a picture clue cell without a permanent ques
   await startGuestGame(page);
   const pictureClue = page.locator(".scan-clue-picture").first();
   await pictureClue.click();
+  const pictureChoice = page.locator(".clue-popup-choice").filter({ hasText: /изображено/i }).first();
+  if (await pictureChoice.count()) await pictureChoice.click();
   await expect(page.locator(".clue-popup-text")).toHaveText("Что изображено на картинке?");
   await expect(page.locator(".scanword-question-list")).toHaveCount(0);
   await expect(page.locator(".scanword-board")).toBeVisible();
@@ -480,25 +482,40 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 });
 
 
-test("scanword clue cells show clue text without direction arrows or number badges", async ({ page }) => {
+test("scanword clue cells follow the top-left reference anchors and show direction arrows", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
-  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
-  await expect(page.locator(".scan-arrow, .scan-clue-count")).toHaveCount(0);
-  const cluePseudo = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.every(node =>
-    getComputedStyle(node, "::before").content === "none" && getComputedStyle(node, "::after").content === "none"
-  ));
-  expect(cluePseudo).toBeTruthy();
-  const clueCells = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
+  const board = page.locator(".scanword-board");
+  await expect(board).toBeVisible({ timeout: 20_000 });
+  const grid = await board.evaluate(node => ({
+    columns: getComputedStyle(node).gridTemplateColumns.split(" ").length,
+    rows: getComputedStyle(node).gridTemplateRows.split(" ").length,
+    width: node.getBoundingClientRect().width,
+    height: node.getBoundingClientRect().height,
+    viewportWidth: document.documentElement.clientWidth,
+    viewportHeight: document.documentElement.clientHeight
+  }));
+  expect(grid.columns).toBe(8);
+  expect(grid.rows).toBe(12);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.8 + 1);
+  expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
+  await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="0,5"]')).toHaveCount(1);
+  await expect(board.locator(".scan-clue-count")).toHaveCount(0);
+  const arrows = board.locator(".scan-arrow");
+  await expect(arrows).not.toHaveCount(0);
+  const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => ({
+    direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
+    visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
+  })));
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
-    if (!text) return { image: !!node.querySelector(".scan-clue-image"), text: "" };
-    const style = getComputedStyle(text), rect = text.getBoundingClientRect();
-    return { text: text.textContent.trim(), visible: style.display !== "none" && rect.width > 0 && rect.height > 0 };
+    return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
-  expect(clueCells.filter(cell => cell.text).every(cell => cell.visible && cell.text.length > 2)).toBeTruthy();
-  expect(clueCells.some(cell => cell.image)).toBeTruthy();
-  await page.locator(".scanword-board .scan-clue").first().click();
+  expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  await board.locator(".scan-clue").first().click();
   await expect(page.locator(".clue-popup")).toBeVisible();
 });
 
