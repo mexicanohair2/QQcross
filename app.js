@@ -1265,7 +1265,7 @@ function refreshPracticeButton(){
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
 function buildScanwordInWorker(entries){
-  if(typeof Worker!=="function"||typeof Blob!=="function"||typeof URL?.createObjectURL!=="function"){
+  if(typeof Worker!=="function"||typeof Blob!=="function"||typeof URL==="undefined"||typeof URL.createObjectURL!=="function"){
     return Promise.resolve().then(()=>buildScanword(entries));
   }
   const source=[
@@ -1296,7 +1296,8 @@ function buildScanwordInWorker(entries){
       worker.onerror=event=>{
         const message=event&&event.message||"Фоновый генератор сканворда завершился с ошибкой";
         cleanup();
-        reject(new Error(message));
+        try{resolve(buildScanword(entries))}
+        catch(fallbackError){reject(fallbackError||new Error(message))}
       };
       worker.postMessage(entries);
     }catch(error){
@@ -1314,7 +1315,7 @@ function prepareNextScanword(){
   scanwordPreparing=true;
   refreshPracticeButton();
   scanwordPreparePromise=new Promise(resolve=>{
-    setTimeout(()=>{
+    setTimeout(async()=>{
       try{preparedScanword=await buildScanwordInWorker(dictionary)}
       catch(error){console.warn("QQCross: фоновая подготовка сканворда:",error);preparedScanword=null}
       finally{
