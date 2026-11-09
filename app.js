@@ -914,7 +914,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   return true;
 }
 function buildScanword(entries){
-  const W=12,H=8,TOTAL=W*H;
+  const W=8,H=12,TOTAL=W*H;
   const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
   const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue));
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
@@ -996,14 +996,14 @@ function buildScanword(entries){
       return true;
     };
     // Two crossing seed words create the first connected component.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=10);
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=W-2);
     if(!firstPool.length)return null;
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
     if(pictureSeeds.length<3)return null;
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=3,firstX=Math.max(0,Math.floor((W-first.answer.length-1)/2));
+    const firstY=5,firstX=Math.max(0,Math.floor((W-first.answer.length-1)/2));
     if(!addWord(first,firstY,firstX,0,"w0",true))return null;
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
