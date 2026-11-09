@@ -1012,8 +1012,8 @@ function buildScanword(entries){
       // Reserve the cells of this candidate before checking its terminal.
       // Without this, the "next answer" route could run backwards through the
       // very letters that are about to be placed, creating a false continuation.
-      const candidateLetterKeys=new Set();
-      for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.add((y+dir.dy*k)+","+(x+dir.dx*k));
+      const candidateLetterKeys=new Map();
+      for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.set((y+dir.dy*k)+","+(x+dir.dx*k),entry.answer[k-1]);
       // A question cell needs a dictionary-backed route for a future answer.
       // Existing letters may be crossed when they match; planned letters from
       // this placement are treated the same way instead of being blocked.
