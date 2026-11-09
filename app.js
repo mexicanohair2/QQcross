@@ -870,12 +870,14 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   const fail=message=>{throw new Error("Проверка сканворда не пройдена: "+message)};
   if(!result||!Array.isArray(result.words)||result.words.length<10)fail("слишком мало вопросов");
   const reserved=result.reservedKeys instanceof Set?result.reservedKeys:new Set();
-  if(!reserved.has("0,0")||reserved.size!==1)fail("верхний левый угол должен быть единственной пустой клеткой");
+  if(!reserved.has("0,0"))fail("верхний левый угол должен быть пустой клеткой");
   if(result.coverage!==TOTAL||result.occupied.size+result.clueAt.size+reserved.size!==TOTAL)fail("поле заполнено не полностью");
   for(const key of reserved)if(result.occupied.has(key)||result.clueAt.has(key))fail("пустая угловая клетка занята: "+key);
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
-  for(let x=1;x<W;x++)if(!result.clueAt.has("0,"+x))fail("в верхней строке отсутствует вопрос в столбце "+(x+1));
-  for(let y=1;y<H;y++)if(!result.clueAt.has(y+",0"))fail("в левом столбце отсутствует вопрос в строке "+(y+1));
+  const topBorderCount=[...result.clueAt.keys()].filter(key=>key.startsWith("0,")&&key!=="0,0").length;
+  const leftBorderCount=[...result.clueAt.keys()].filter(key=>key.endsWith(",0")&&key!=="0,0").length;
+  if(topBorderCount<5)fail("недостаточно вопросов сверху");
+  if(leftBorderCount<5)fail("недостаточно вопросов слева");
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
   const terminalDeltas={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
@@ -1102,7 +1104,22 @@ function buildScanword(entries){
         if(addWord(entry,1,0,0,"w"+words.length,"edge")){sideSeeded=true;break}
       }
       if(sideSeeded){seeded=true;break}
-      return null;
+      // A vertical seed can be a dead end. Roll it back completely and try
+      // the next candidate instead of aborting the entire generation attempt.
+      const failedWord=words.pop(),failedKey=failedWord.clueCell.join(","),failedList=clueAt.get(failedKey)||[];
+      const failedIndex=failedList.indexOf(failedWord);
+      if(failedIndex>=0)failedList.splice(failedIndex,1);
+      for(const cell of failedWord.cells){
+        const cellKey=cell.join(",");
+        const owner=words.find(word=>word.cells.some(([yy,xx])=>yy===cell[0]&&xx===cell[1]));
+        if(owner){
+          const position=owner.cells.findIndex(([yy,xx])=>yy===cell[0]&&xx===cell[1]);
+          occupied.set(cellKey,owner.answer[position]);
+        }else occupied.delete(cellKey);
+      }
+      used.delete(failedWord.answer);
+      if(failedWord.imageKey&&!words.some(word=>word.imageKey===failedWord.imageKey))usedImages.delete(failedWord.imageKey);
+      continue;
     }
     if(!seeded)return null;
     for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
@@ -1282,7 +1299,15 @@ function buildScanword(entries){
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
     const singleCount=result?.words.filter(w=>w.answer.length===1).length||0;
-    const clueCoordinates=result?[...result.clueAt.keys()].map(key=>key.split(",").map(Number)):[];
+    // Rank only clue cells that actually start or terminate an answer. The
+    // old count included empty placeholders and could accept a broken border.
+    const linkedClueKeys=new Set();
+    for(const word of result?.words||[]){
+      linkedClueKeys.add(word.clueCell.join(","));
+      const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+      linkedClueKeys.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
+    }
+    const clueCoordinates=[...linkedClueKeys].map(key=>key.split(",").map(Number));
     const topCount=clueCoordinates.filter(([y,x])=>y===0&&x!==0).length;
     const leftCount=clueCoordinates.filter(([y,x])=>x===0&&y!==0).length;
     const borderScore=Math.min(topCount,W-1)+Math.min(leftCount,H-1);
@@ -1298,9 +1323,22 @@ function buildScanword(entries){
     const rank=[imageCount,result?.coverage||0,borderScore,spreadScore,-(result?.dangling||999),logicCount,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1&&bestTopCount>=W-1&&bestLeftCount>=H-1&&bestRowSpread>=H&&bestColumnSpread>=W&&bestLogicCount>=3)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1&&bestTopCount>=5&&bestLeftCount>=5&&bestLogicCount>=3)break;
   }
   if(!best||bestCoverage!==TOTAL||bestImageCount!==5){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 12×8 (12 столбцов × 8 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  // Keep every cell purposeful: unlinked border placeholders become dark
+  // crossword blocks rather than blank, unclickable question tiles.
+  const incomingFinal=new Set();
+  for(const word of best.words){
+    const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+    incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
+  }
+  for(const [key,list] of [...best.clueAt.entries()]){
+    if(!list.length&&!incomingFinal.has(key)){
+      best.clueAt.delete(key);
+      best.reservedKeys.add(key);
+    }
+  }
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
