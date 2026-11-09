@@ -1014,32 +1014,49 @@ function buildScanword(entries){
       // very letters that are about to be placed, creating a false continuation.
       const candidateLetterKeys=new Set();
       for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.add((y+dir.dy*k)+","+(x+dir.dx*k));
-      // A question cell needs a real empty route for a future answer. Keep
-      // edge anchors in their reference directions and do not let this word
-      // consume the last route of any other still-open question.
-      const hasFreeRoute=(routeY,routeX,extraBlocked)=>{
+      // A question cell needs a dictionary-backed route for a future answer.
+      // Existing letters may be crossed when they match; planned letters from
+      // this placement are treated the same way instead of being blocked.
+      const hasPlayableRoute=(routeY,routeX,extraLetters,extraClues)=>{
         const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
         for(const nextDir of dirs){
           if(border&&nextDir.name!==border)continue;
           const max=Math.min(12,nextDir.dy>0?H-2-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-2-routeX:routeX-1);
           for(let length=2;length<=max;length++){
-            let clear=true;
+            const positions=byLength.get(length),pool=entriesByLength.get(length);
+            if(!positions||!pool?.length)continue;
+            let possible=null,clear=true;
             for(let step=1;step<=length;step++){
               const cellKey=(routeY+nextDir.dy*step)+","+(routeX+nextDir.dx*step);
-              if(extraBlocked.has(cellKey)||occupied.has(cellKey)||clueAt.has(cellKey)||reservedKeys.has(cellKey)){clear=false;break}
+              if(extraClues.has(cellKey)||clueAt.has(cellKey)||reservedKeys.has(cellKey)){clear=false;break}
+              const letter=extraLetters.has(cellKey)?extraLetters.get(cellKey):occupied.get(cellKey);
+              if(letter===undefined)continue;
+              const matches=positions[step-1].get(letter)||[];
+              if(!matches.length){clear=false;break}
+              if(possible===null)possible=new Set(matches);
+              else{
+                const matchSet=new Set(matches);
+                for(const item of possible)if(!matchSet.has(item))possible.delete(item);
+              }
+              if(possible&&!possible.size){clear=false;break}
             }
             if(!clear)continue;
-            const terminal=(routeY+nextDir.dy*(length+1))+","+(routeX+nextDir.dx*(length+1));
-            if(!extraBlocked.has(terminal)&&!occupied.has(terminal)&&!reservedKeys.has(terminal))return true;
+            const terminalY=routeY+nextDir.dy*(length+1),terminalX=routeX+nextDir.dx*(length+1),terminal=terminalY+","+terminalX;
+            if(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||extraLetters.has(terminal)||occupied.has(terminal)||reservedKeys.has(terminal))continue;
+            const candidates=possible===null?pool:possible;
+            const starts=(clueAt.get(routeY+","+routeX)||[]).length>0;
+            if([...candidates].some(next=>!used.has(next.key)&&next.key!==entry.key&&
+              (!next.imageKey||(!starts&&!usedImages.has(next.imageKey)&&usedImages.size<5))))return true;
           }
         }
         return false;
       };
-      if(!(clueAt.get(terminalKey)||[]).length&&!hasFreeRoute(endY,endX,candidateLetterKeys))return false;
+      const plannedClues=new Set([key,terminalKey]);
+      if(!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
       for(const [openKey,list] of clueAt){
         if(list.length||openKey===key||openKey===terminalKey)continue;
         const [openY,openX]=openKey.split(",").map(Number);
-        if(hasFreeRoute(openY,openX,new Set())&&!hasFreeRoute(openY,openX,candidateLetterKeys))return false;
+        if(hasPlayableRoute(openY,openX,new Map(),new Set())&&!hasPlayableRoute(openY,openX,candidateLetterKeys,plannedClues))return false;
       }
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
