@@ -18,7 +18,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads an 8-column by 12-row scanword with five to seven distinct picture clues", async ({ page }) => {
+test("loads an 8-column by 12-row scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -52,10 +52,8 @@ test("loads an 8-column by 12-row scanword with five to seven distinct picture c
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
-  const pictureCount = await page.locator(".scan-clue-picture").count();
-  expect(pictureCount).toBeGreaterThanOrEqual(5);
-  expect(pictureCount).toBeLessThanOrEqual(7);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(pictureCount);
+  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
@@ -601,12 +599,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes five to seven pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  expect(await images.count()).toBeGreaterThanOrEqual(5);
-  expect(await images.count()).toBeLessThanOrEqual(7);
+  await expect(images).toHaveCount(5);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
