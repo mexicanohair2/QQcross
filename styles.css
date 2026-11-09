@@ -2317,8 +2317,8 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-right{right:1px;bottom:1px}
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-down{right:1px;top:1px}
-.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-left,
-.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{display:none!important}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-left{left:1px;bottom:1px}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{left:1px;top:1px}
 .game-screen .scanword-board>.scan-cell.scan-clue-picture .scan-clue-image{
   display:block!important;width:100%!important;height:100%!important;max-width:100%!important;
   max-height:100%!important;object-fit:contain!important;padding:2px!important;box-sizing:border-box!important;
