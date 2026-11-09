@@ -1054,7 +1054,9 @@ function buildScanword(entries){
       const plannedClues=new Set([key,terminalKey]);
       if(!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
       for(const [openKey,list] of clueAt){
-        if(list.length||openKey===key||openKey===terminalKey)continue;
+        // Initial top/left anchors are laid down before their first crossing;
+        // protect only terminals that have actually been created by an answer.
+        if(list.length||!terminalKeys.has(openKey)||openKey===key||openKey===terminalKey)continue;
         const [openY,openX]=openKey.split(",").map(Number);
         if(hasPlayableRoute(openY,openX,new Map(),new Set())&&!hasPlayableRoute(openY,openX,candidateLetterKeys,plannedClues))return false;
       }
