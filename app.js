@@ -970,6 +970,7 @@ function buildScanword(entries){
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null;
+  let lastSeedDebug="";
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set();
@@ -1047,14 +1048,14 @@ function buildScanword(entries){
     };
     // Two crossing seed words create the first connected component.
     const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=W-2);
-    if(!firstPool.length)return null;
+    if(!firstPool.length){if(!lastSeedDebug)lastSeedDebug="first pool empty";return null;}
     // All five distinct picture clues must be inserted; selecting only one
     // image as the seed and hoping for four others produced repeated/missing art.
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<3)return null;
+    if(pictureSeeds.length<3){if(!lastSeedDebug)lastSeedDebug="picture seed pool too small: "+pictureSeeds.length;return null;}
     const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
     const firstY=5,firstX=0;
-    if(!addWord(first,firstY,firstX,0,"w0",true))return null;
+    if(!addWord(first,firstY,firstX,0,"w0",true)){if(!lastSeedDebug)lastSeedDebug="first across seed rejected: "+first.answer;return null;}
     // Reservoir-sample seed placements instead of sorting a potentially huge
     // list with a random comparator. The old sort was O(n log n) per restart.
     const imageSeedChoices=[],regularSeedChoices=[];
@@ -1078,7 +1079,7 @@ function buildScanword(entries){
         }
       }
     }
-    if(!imageSeedChoices.length&&!regularSeedChoices.length)return null;
+    if(!imageSeedChoices.length&&!regularSeedChoices.length){if(!lastSeedDebug)lastSeedDebug="no vertical seed choices for first "+first.answer+" letter "+first.answer[0];return null;}
     let seeded=false;
     const seedCandidates=imageSeedChoices.length
       ?imageSeedChoices.concat(regularSeedChoices.slice(0,60))
@@ -1088,7 +1089,7 @@ function buildScanword(entries){
       seeded=true;
       break;
     }
-    if(!seeded)return null;
+    if(!seeded){if(!lastSeedDebug)lastSeedDebug="vertical seed rejected: first="+first.answer+", candidates="+seedCandidates.length+", image="+imageSeedChoices.length+", regular="+regularSeedChoices.length+", firstCandidate="+(seedCandidates[0]?.entry?.answer||"none");return null;}
     for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<TOTAL;round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
@@ -1288,7 +1289,7 @@ function buildScanword(entries){
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===3&&bestSingleCount<=1&&bestTopCount===7&&bestLeftCount===11&&bestDangling===0)break;
   }
-  if(!best||bestCoverage!==TOTAL||bestImageCount!==3||bestTopCount!==7||bestLeftCount!==11||bestDangling!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
+  if(!best||bestCoverage!==TOTAL||bestImageCount!==3||bestTopCount!==7||bestLeftCount!==11||bestDangling!==0){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", диагностика: "+lastSeedDebug+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
