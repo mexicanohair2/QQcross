@@ -907,7 +907,11 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   }
   const seen=new Set([0]),stack=[0];
   while(stack.length){const i=stack.pop();for(const j of graph[i])if(!seen.has(j)){seen.add(j);stack.push(j)}}
-  if(seen.size!==result.words.length)fail("обнаружены несвязанные слова");
+  if(seen.size!==result.words.length){
+    const disconnected=result.words.map((word,index)=>({index,answer:word.answer,clue:word.clue,clueCell:word.clueCell,dir:word.dir,cells:word.cells}))
+      .filter(word=>!seen.has(word.index));
+    fail("обнаружены несвязанные слова: "+JSON.stringify(disconnected));
+  }
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
   if(pictures.length!==3||new Set(pictures).size!==3)fail("нужно ровно три разные картинки");
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
