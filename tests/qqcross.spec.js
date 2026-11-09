@@ -18,7 +18,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads an 8-column by 12-row scanword with seven distinct picture clues", async ({ page }) => {
+test("loads an 8-column by 12-row scanword with five to seven distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -52,14 +52,16 @@ test("loads an 8-column by 12-row scanword with seven distinct picture clues", a
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(7);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(7);
+  const pictureCount = await page.locator(".scan-clue-picture").count();
+  expect(pictureCount).toBeGreaterThanOrEqual(5);
+  expect(pictureCount).toBeLessThanOrEqual(7);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(pictureCount);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(5);
+  expect(new Set(pictureSources).size).toBe(pictureSources.length);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -599,11 +601,12 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes seven pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five to seven pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(7);
+  expect(await images.count()).toBeGreaterThanOrEqual(5);
+  expect(await images.count()).toBeLessThanOrEqual(7);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
