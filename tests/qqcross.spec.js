@@ -21,6 +21,8 @@ test("loads a fully occupied 8-column by 12-row scanword with three distinct pic
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
+  await expect(page.locator(".scan-empty")).toHaveCount(1);
+  await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
@@ -29,7 +31,7 @@ test("loads a fully occupied 8-column by 12-row scanword with three distinct pic
   expect(terminalAnswerCount).toBe(answerCount);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(96);
+  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(95);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(3);
   await expect(page.locator(".scan-clue-image")).toHaveCount(3);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
@@ -501,6 +503,9 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,5"]')).toHaveCount(1);
+  await expect(board.locator(".scan-empty")).toHaveCount(1);
+  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
+  await expect(board.locator(".scan-clue").first()).not.toHaveAttribute("data-clue-cell", "0,0");
   await expect(board.locator(".scan-clue-count")).toHaveCount(0);
   const arrows = board.locator(".scan-arrow");
   await expect(arrows).not.toHaveCount(0);
