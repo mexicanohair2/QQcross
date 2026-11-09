@@ -903,7 +903,8 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
     const [ay,ax]=a.clueCell,[by,bx]=b.clueCell;
     const touches=b.cells.some(([y,x])=>Math.abs(y-ay)+Math.abs(x-ax)===1)||
       a.cells.some(([y,x])=>Math.abs(y-by)+Math.abs(x-bx)===1);
-    if(aKey===bKey||touches){graph[i].add(j);graph[j].add(i)}
+    const adjacentClueCells=Math.abs(ay-by)+Math.abs(ax-bx)===1;
+    if(aKey===bKey||touches||adjacentClueCells){graph[i].add(j);graph[j].add(i)}
   }
   const seen=new Set([0]),stack=[0];
   while(stack.length){const i=stack.pop();for(const j of graph[i])if(!seen.has(j)){seen.add(j);stack.push(j)}}
@@ -1008,7 +1009,7 @@ function buildScanword(entries){
         }))return false;
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
-      if(words.length&&!crosses&&!allowSeed&&!clueAt.has(terminalKey)&&!(entry.answer.length===1&&at.length>0))return false;
+      if(words.length&&!crosses&&!allowSeed&&!(allowSingleFallback&&entry.answer.length===1&&clueAt.has(terminalKey)))return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
