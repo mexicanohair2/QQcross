@@ -1016,6 +1016,11 @@ function buildScanword(entries){
       // very letters that are about to be placed, creating a false continuation.
       const candidateLetterKeys=new Map();
       for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.set((y+dir.dy*k)+","+(x+dir.dx*k),entry.answer[k-1]);
+      // Reserve this placement's picture before testing future routes.
+      // Otherwise the seventh picture can falsely "promise" an eighth picture
+      // at its terminal clue, leaving that clue impossible to answer.
+      const futureImageKeys=new Set(usedImages);
+      if(entry.imageKey)futureImageKeys.add(entry.imageKey);
       // A question cell needs a dictionary-backed route for a future answer.
       // Existing letters may be crossed when they match; planned letters from
       // this placement are treated the same way instead of being blocked.
@@ -1048,7 +1053,7 @@ function buildScanword(entries){
             const candidates=possible===null?pool:possible;
             const starts=(clueAt.get(routeY+","+routeX)||[]).length>0;
             if([...candidates].some(next=>!used.has(next.key)&&next.key!==entry.key&&
-              (!next.imageKey||(!starts&&!usedImages.has(next.imageKey)&&usedImages.size<7))))return true;
+              (!next.imageKey||(!starts&&!futureImageKeys.has(next.imageKey)&&futureImageKeys.size<7))))return true;
           }
         }
         return false;
