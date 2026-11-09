@@ -947,12 +947,9 @@ function buildScanword(entries){
   });
   normalized.splice(0,normalized.length,...bestByAnswer.values());
   normalized.sort((a,b)=>quality(b)-quality(a));
-  const byLength=new Map(),entriesByLength=new Map();
+  const byLength=new Map();
   normalized.forEach(entry=>{
     if(entry.answer.length<1)return;
-    let sameLength=entriesByLength.get(entry.answer.length);
-    if(!sameLength){sameLength=[];entriesByLength.set(entry.answer.length,sameLength)}
-    sameLength.push(entry);
     let positions=byLength.get(entry.answer.length);
     if(!positions){positions=Array.from({length:entry.answer.length},()=>new Map());byLength.set(entry.answer.length,positions)}
     for(let p=0;p<entry.answer.length;p++){
@@ -972,41 +969,6 @@ function buildScanword(entries){
         if(!occupied.has(key))frontier.add(key);
       }
     };
-    const canContinueFrom=(startY,startX,extraLetters,forbiddenEntry)=>{
-      for(let di=0;di<dirs.length;di++){
-        const dir=dirs[di],max=Math.min(12,dir.dy>0?H-1-startY:dir.dy<0?startY:dir.dx>0?W-1-startX:startX);
-        for(let length=2;length<=max;length++){
-          const positions=byLength.get(length);
-          if(!positions)continue;
-          let candidates=null,valid=true;
-          for(let p=0;p<length;p++){
-            const yy=startY+dir.dy*(p+1),xx=startX+dir.dx*(p+1),cellKey=yy+","+xx;
-            if(clueAt.has(cellKey)){valid=false;break}
-            const letter=extraLetters.has(cellKey)?extraLetters.get(cellKey):occupied.get(cellKey);
-            if(letter===undefined)continue;
-            const bucket=positions[p].get(letter)||[];
-            if(!bucket.length){valid=false;break}
-            if(candidates===null)candidates=new Set(bucket);
-            else for(const candidate of [...candidates])if(!bucket.includes(candidate))candidates.delete(candidate);
-            if(candidates.size===0){valid=false;break}
-          }
-          if(!valid)continue;
-          const endY=startY+dir.dy*(length+1),endX=startX+dir.dx*(length+1),endKey=endY+","+endX;
-          if(endY<0||endX<0||endY>=H||endX>=W||occupied.has(endKey)||extraLetters.has(endKey))continue;
-          const pool=candidates===null?(entriesByLength.get(length)||[]):candidates;
-          const canUse=[...pool].some(candidate=>
-            candidate.key!==forbiddenEntry.key&&
-            !used.has(candidate.key)&&
-            (!candidate.imageKey||
-              (!usedImages.has(candidate.imageKey)&&
-               candidate.imageKey!==forbiddenEntry.imageKey&&
-               usedImages.size+(forbiddenEntry.imageKey?1:0)<3))
-          );
-          if(canUse)return true;
-        }
-      }
-      return false;
-    };
     const addWord=(entry,y,x,dirIndex,id,allowSeed=false,allowSingleFallback=false)=>{
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
       if(y<0||x<0||y>=H||x>=W||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=3))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
@@ -1023,7 +985,7 @@ function buildScanword(entries){
       }
       // Do not place a word if it seals an empty square on all four sides.
       // Such a square can never become a letter or a playable clue later.
-      const futureLetterKeys=new Set(cells.map(cell=>cell.join(",")));
+      const futureLetters=new Set(cells.map(cell=>cell.join(",")));
       const futureClues=new Set([key,terminalKey]);
       const affected=new Set();
       for(const [yy,xx] of [[y,x],[endY,endX],...cells]){
@@ -1033,16 +995,16 @@ function buildScanword(entries){
         }
       }
       for(const emptyKey of affected){
-        if(futureLetterKeys.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
+        if(futureLetters.has(emptyKey)||futureClues.has(emptyKey)||occupied.has(emptyKey)||clueAt.has(emptyKey))continue;
         const [ey,ex]=emptyKey.split(",").map(Number);
         const neighbors=[[ey-1,ex],[ey+1,ex],[ey,ex-1],[ey,ex+1]].filter(([ny,nx])=>ny>=0&&nx>=0&&ny<H&&nx<W);
         if(neighbors.length&&neighbors.every(([ny,nx])=>{
           const neighborKey=ny+","+nx;
-          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetterKeys.has(neighborKey)||futureClues.has(neighborKey);
+          return occupied.has(neighborKey)||clueAt.has(neighborKey)||futureLetters.has(neighborKey)||futureClues.has(neighborKey);
         }))return false;
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
-      if(words.length&&!crosses&&!allowSeed&&!(entry.answer.length===1&&at.length>0))return false;
+      if(words.length&&!crosses&&!allowSeed&&!clueAt.has(terminalKey)&&!(entry.answer.length===1&&at.length>0))return false;
       const futureLetters=new Map(cells.map((cell,k)=>[cell.join(","),entry.answer[k]]));
       const terminalQuestions=clueAt.get(terminalKey)||[];
       if(!terminalQuestions.length&&!canContinueFrom(endY,endX,futureLetters,entry))return false;
@@ -1201,7 +1163,7 @@ function buildScanword(entries){
           lengths.sort((a,b)=>{
             const aKey=(anchor.y+dir.dy*(a+1))+","+(anchor.x+dir.dx*(a+1));
             const bKey=(anchor.y+dir.dy*(b+1))+","+(anchor.x+dir.dx*(b+1));
-            const aCloses=(clueAt.get(aKey)||[]).length>0,bCloses=(clueAt.get(bKey)||[]).length>0;
+            const aCloses=clueAt.has(aKey),bCloses=clueAt.has(bKey);
             return Number(bCloses)-Number(aCloses)||b-a;
           });
           for(const length of lengths){
@@ -1213,7 +1175,9 @@ function buildScanword(entries){
               cells.push([yy,xx]);
             }
             const attachedQuestionStart=(anchor.existing&&anchor.list.length===0)||!anchor.existing;
-            if(!valid||(!crosses&&!attachedQuestionStart&&!(length===1&&anchor.existing)))continue;
+            const terminalY=anchor.y+dir.dy*(length+1),terminalX=anchor.x+dir.dx*(length+1);
+            const closesExistingQuestion=clueAt.has(terminalY+","+terminalX);
+            if(!valid||(!crosses&&!attachedQuestionStart&&!closesExistingQuestion&&!(length===1&&anchor.existing)))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();
             if(crosses){
