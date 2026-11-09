@@ -1009,12 +1009,15 @@ function buildScanword(entries){
         }))return false;
       }
       const crosses=cells.filter(cell=>occupied.has(cell.join(","))).length;
-      const touchesConnectedLayout=(at.length>0)||words.some(word=>{
+      const touchesConnectedLayout=words.some(word=>{
          const [wy,wx]=word.clueCell;
+         if(wy===y&&wx===x)return true;
          if(Math.abs(wy-y)+Math.abs(wx-x)===1)return true;
-         return word.cells.some(([cy,cx])=>Math.abs(cy-y)+Math.abs(cx-x)===1);
+         if(word.cells.some(([cy,cx])=>Math.abs(cy-y)+Math.abs(cx-x)===1))return true;
+         if(cells.some(([cy,cx])=>Math.abs(cy-wy)+Math.abs(cx-wx)===1))return true;
+         return cells.some(([cy,cx])=>word.cells.some(([ey,ex])=>cy===ey&&cx===ex));
        });
-       if(words.length&&!crosses&&!touchesConnectedLayout&&!allowSeed&&!(allowSingleFallback&&entry.answer.length===1&&clueAt.has(terminalKey)))return false;
+       if(words.length&&!touchesConnectedLayout)return false;
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
