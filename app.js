@@ -1009,15 +1009,20 @@ function buildScanword(entries){
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
       const terminalKey=endY+","+endX;
-      // Do not create a dead-end terminal: it must have at least one free
-      // two-letter route for the next clue in one of the four directions.
-      // A terminal is valid only if it already starts another answer, or
-      // there is still a legal two-letter route from that question cell.
+      // Reserve the cells of this candidate before checking its terminal.
+      // Without this, the "next answer" route could run backwards through the
+      // very letters that are about to be placed, creating a false continuation.
+      const candidateLetterKeys=new Set();
+      for(let k=1;k<=entry.answer.length;k++)candidateLetterKeys.add((y+dir.dy*k)+","+(x+dir.dx*k));
+      // A terminal must have a genuinely free route for the next answer.
       if(!(clueAt.get(terminalKey)||[]).length){
+        const terminalBorderDirection=endY===0&&endX>0?"down":endX===0&&endY>0?"right":null;
         const canContinue=dirs.some(nextDir=>{
+          if(terminalBorderDirection&&nextDir.name!==terminalBorderDirection)return false;
           const y1=endY+nextDir.dy,x1=endX+nextDir.dx,y2=endY+nextDir.dy*2,x2=endX+nextDir.dx*2,y3=endY+nextDir.dy*3,x3=endX+nextDir.dx*3;
           const firstKey=y1+","+x1,secondKey=y2+","+x2,endKey=y3+","+x3;
           return y1>=0&&x1>=0&&y2>=0&&x2>=0&&y3>=0&&x3>=0&&y1<H&&y2<H&&y3<H&&x1<W&&x2<W&&x3<W&&
+            !candidateLetterKeys.has(firstKey)&&!candidateLetterKeys.has(secondKey)&&!candidateLetterKeys.has(endKey)&&
             !occupied.has(firstKey)&&!occupied.has(secondKey)&&!clueAt.has(firstKey)&&!clueAt.has(secondKey)&&
             !reservedKeys.has(firstKey)&&!reservedKeys.has(secondKey)&&!occupied.has(endKey)&&!reservedKeys.has(endKey);
         });
