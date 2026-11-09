@@ -29,3 +29,5 @@ jobs:
           python -m py_compile scripts/scanword_audit.py
       - name: Validate scanword data
         run: node scripts/validate-scanwords.js
+      - name: Verify 20 generated scanwords against the reference rules
+        run: node scripts/verify-scanword.cjs
