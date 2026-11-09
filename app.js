@@ -876,7 +876,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
   const topBorderCount=[...result.clueAt.keys()].filter(key=>key.startsWith("0,")&&key!=="0,0").length;
   const leftBorderCount=[...result.clueAt.keys()].filter(key=>key.endsWith(",0")&&key!=="0,0").length;
-  if(topBorderCount<3)fail("нужно не менее трёх вопросов сверху");
+  if(topBorderCount<2)fail("нужно не менее двух вопросов сверху");
   if(leftBorderCount<2)fail("нужно не менее двух вопросов слева");
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
@@ -1263,7 +1263,7 @@ function buildScanword(entries){
     const rank=[imageCount,result?.coverage||0,logicCount,borderScore,result?.words?.length||0,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=3&&bestLeftCount>=2&&bestOrphanCount<=10&&bestLogicCount>=3)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=2&&bestLeftCount>=2&&bestOrphanCount<=10&&bestLogicCount>=3)break;
   }
   if(best){
     // A narrow 6×12 board may leave a small number of structurally unusable
