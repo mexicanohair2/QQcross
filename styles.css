@@ -1938,3 +1938,11 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 
 /* QQCross agreed scanword format: 12 rows × 8 columns, matching the portrait reference layout. */
 .scanword-board{grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important;width:min(85vw,calc((100dvh - 205px)*.666667),860px)!important;height:auto!important;aspect-ratio:2/3!important;max-width:100%!important;max-height:100%!important}
+
+
+/* Reference-layout repair: compact 8×12 board and visible directional marks in clue cells. */
+.scanword-board{width:min(78vw,calc((100dvh - 245px)*.666667),680px)!important;height:auto!important;aspect-ratio:2/3!important;grid-template-columns:repeat(8,minmax(0,1fr))!important;grid-template-rows:repeat(12,minmax(0,1fr))!important;gap:0!important}
+.scanword-board>.scan-cell.scan-clue .scan-arrow{display:grid!important;position:absolute!important;place-items:center!important;width:22%!important;height:22%!important;min-width:0!important;min-height:0!important;font-size:clamp(8px,1.4vw,11px)!important;line-height:1!important;font-weight:900!important;color:#fff!important;background:#211018a8!important;border-radius:2px!important;z-index:4!important;pointer-events:none!important}
+.scanword-board>.scan-cell.scan-clue .scan-clue-text{position:relative!important;z-index:2!important;padding:1px 2px 7px!important;font-size:clamp(6px,1.65vw,8px)!important;line-height:1.03!important}
+.scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{padding:0!important}
+@media(max-width:420px){.scanword-board{width:min(78vw,calc((100dvh - 245px)*.666667))!important}}
