@@ -983,7 +983,7 @@ function buildScanword(entries){
       bucket.push(entry);positions[p].set(letter,bucket);
     }
   });
-  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
+  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1005,7 +1005,7 @@ function buildScanword(entries){
       if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
-      if(endY<0||endX<0||endY>=H-1||endX>=W-1||(endY>=H-4&&endX>=W-4)||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
+      if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
       const terminalKey=endY+","+endX;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -1064,7 +1064,7 @@ function buildScanword(entries){
     // then cross it with a short horizontal answer from the left edge.
     // This keeps the narrow portrait grid playable instead of forcing a
     // wide-board seed that cannot fit into eight columns.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=H-3);
+    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=H-2);
     if(!firstPool.length)return null;
     const pictureSeeds=firstPool.filter(e=>e.imageKey);
     if(pictureSeeds.length<5)return null;
@@ -1072,7 +1072,7 @@ function buildScanword(entries){
     const firstY=0,firstX=2;
     if(!addWord(first,firstY,firstX,1,"w0",true))return null;
     const sideSeeds=normalized.filter(entry=>
-      !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-3&&
+      !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
       entry.answer[1]===first.answer[0]&&entry.answer!==first.answer
     );
     let seeded=false;
@@ -1096,7 +1096,7 @@ function buildScanword(entries){
         for(let di=0;di<dirs.length;di++){
           const dir=dirs[di];
           if(at.some(w=>w.dir===dir.name))continue;
-          const max=dir.dy>0?H-3-y:W-3-x;
+          const max=dir.dy>0?H-2-y:dir.dy<0?y-1:dir.dx>0?W-2-x:x-1;
           for(let length=2;length<=Math.min(12,max);length++){
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();let availableCrosses=0;
@@ -1116,7 +1116,7 @@ function buildScanword(entries){
                   if(clueAt.has(cellKey)||occupied.has(cellKey)||reservedKeys.has(cellKey)){valid=false;break}
                 }
                 const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
-                const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H-1||terminalX>=W-1||(terminalY>=H-4&&terminalX>=W-4)||occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX);
+                const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX);
                 if(valid&&!terminalBlocked)addOption({entry,y,x,di,score:8+length*.1+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
               }
               continue;
@@ -1130,7 +1130,7 @@ function buildScanword(entries){
                 if(old===undefined)newCells++;else crosses++;
               }
               const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
-              const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H-1||terminalX>=W-1||(terminalY>=H-4&&terminalX>=W-4)||occupied.has(terminalY+","+terminalX);
+              const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX);
               if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
             }
           }
