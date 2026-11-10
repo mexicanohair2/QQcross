@@ -1174,7 +1174,7 @@ function buildScanword(entries){
       const prefix=entry.answer.slice(0,2),pool=prefixPools.get(prefix)||[];
       pool.push(entry);prefixPools.set(prefix,pool);
     }
-    const borderQuality=entry=>quality(entry)+(entry.answer.length<=4?35:entry.answer.length===5?18:entry.answer.length===6?-15:-35);
+    const borderQuality=entry=>quality(entry)+(entry.answer.length===7?52:entry.answer.length===6?34:entry.answer.length===5?12:entry.answer.length===4?-4:entry.answer.length===3?-18:-42);
     const borderPlans=[];
     for(const firstCandidate of eleven){
       for(const topCandidate of eleven){
@@ -1187,21 +1187,28 @@ function buildScanword(entries){
             !chosen.has(entry.key)&&entry.answer.length<=W-1&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
           );
-          const compact=available.filter(entry=>entry.answer.length<=5);
-          const pool=(compact.length?compact:available.filter(entry=>entry.answer.length<=6))
-            .sort((a,b)=>borderQuality(b)-borderQuality(a));
+          const pool=available.filter(entry=>entry.answer.length>=3&&entry.answer.length<=7)
+            .sort((a,b)=>{
+              const terminalColumn=entry=>entry.answer.length+1;
+              const recentPenalty=entry=>rowEntries.reduce((penalty,previous,index)=>{
+                const distance=row-(index+1);
+                if(distance>2||terminalColumn(previous)!==terminalColumn(entry))return penalty;
+                return penalty+(distance===1?180:distance===2?100:0);
+              },0);
+              return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
+            });
           const eligible=pool.filter(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
           if(!eligible.length){valid=false;break}
           // Keep high-quality everyday words, but vary the border plan between
           // attempts so a locally attractive word cannot lock every crossing.
-          const shortlist=eligible.slice(0,Math.min(5,eligible.length));
+          const shortlist=eligible.slice(0,Math.min(8,eligible.length));
           const entry=shortlist[Math.floor(Math.random()*shortlist.length)];
           rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
         }
         if(valid)borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
       }
     }
-    if(!borderPlans.length)throw new Error("Не найден словарный план для 11-буквенного верхнего ответа и всех 11 левых пересечений");
+    if(!borderPlans.length)return null;
     borderPlans.sort((a,b)=>b.score-a.score);
     const plan=borderPlans[Math.floor(Math.random()*borderPlans.length)];
     const first=plan.first,topAnchor=plan.top;
@@ -1217,9 +1224,51 @@ function buildScanword(entries){
     // the opening and the second top-edge vertical answer.
     for(let row=1;row<H;row++){
       const entry=plan.rows[row-1];
-      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))throw new Error("LEFT_ADD_FAILED row="+row+" answer="+entry.answer);
+      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))return null;
     }
-    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))throw new Error("TOP_ADD_FAILED answer="+topAnchor.answer);
+    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))return null;
+
+    // Reject a border plan before greedy filling if any of its mandatory
+    // clue cells is already trapped. Every empty question must have at least
+    // one unused dictionary answer that can legally leave it rightward/downward.
+    const hasViableOpenRoute=startKey=>{
+      const [routeY,routeX]=startKey.split(",").map(Number);
+      const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
+      const active=(clueAt.get(startKey)||[]);
+      for(const nextDir of dirs){
+        if(border&&nextDir.name!==border)continue;
+        if(active.some(word=>word.dir===nextDir.name))continue;
+        const max=Math.min(12,nextDir.dy>0?H-1-routeY:nextDir.dx>0?W-1-routeX:0);
+        for(let length=2;length<=max;length++){
+          if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
+          const positions=byLength.get(length),pool=entriesByLength.get(length);
+          if(!positions||!pool?.length)continue;
+          let possible=null,clear=true;
+          for(let step=1;step<=length;step++){
+            const cellKey=(routeY+nextDir.dy*step)+","+(routeX+nextDir.dx*step);
+            if(clueAt.has(cellKey)||reservedKeys.has(cellKey)){clear=false;break}
+            const letter=occupied.get(cellKey);
+            if(letter===undefined)continue;
+            const matches=new Set(positions[step-1].get(letter)||[]);
+            if(possible===null)possible=matches;
+            else{
+              for(const item of possible)if(!matches.has(item))possible.delete(item);
+            }
+            if(possible&&!possible.size){clear=false;break}
+          }
+          if(!clear)continue;
+          const terminalY=routeY+nextDir.dy*(length+1),terminalX=routeX+nextDir.dx*(length+1);
+          const terminalInside=terminalY>=0&&terminalX>=0&&terminalY<H&&terminalX<W;
+          const terminalAtEdge=(nextDir.dy===1&&terminalY===H)||(nextDir.dx===1&&terminalX===W);
+          if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)))continue;
+          if(!terminalInside&&!terminalAtEdge)continue;
+          const candidates=possible===null?pool:[...possible];
+          if(candidates.some(entry=>!used.has(entry.key)&&!entry.imageKey))return true;
+        }
+      }
+      return false;
+    };
+    for(const [key,list] of clueAt)if(!list.length&&!hasViableOpenRoute(key))return null;
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
@@ -1413,7 +1462,7 @@ function buildScanword(entries){
   // Retry substantially more often, but stop immediately once a fully valid
   // grid is found with at most one unavoidable single-letter fallback.
   // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
-  for(let attempt=0;attempt<48;attempt++){
+  for(let attempt=0;attempt<96;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
