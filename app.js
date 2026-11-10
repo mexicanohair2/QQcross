@@ -1112,7 +1112,10 @@ function buildScanword(entries){
       if(terminalInside&&!(clueAt.get(terminalKey)||[]).length)futureOpenKeys.add(terminalKey);
       // Keep a distinct unused dictionary answer available for every existing
       // dangling terminal and for the terminal created by this candidate.
-      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      // Border anchors are a coordinated seed, not final terminals yet.
+      // Let the edge plan establish its crossings first; the interior/closure
+      // passes will validate and complete every resulting question cell.
+      if(allowSeed!=="edge"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
