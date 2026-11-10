@@ -965,8 +965,10 @@ function buildScanword(entries){
     // Prefer a precise definition over a fill-in-the-blank variant when the
     // same answer has both; the latter often makes neighboring clues alike.
     if(entry.clue.includes("…")||entry.clue.includes("..."))score-=35;
-    // Single-letter answers are reserved for the final gap-repair pass only.
+    // Very short words are scarce route-closers; keep them out of early
+    // broad fills so terminal clues can use them when only two cells remain.
     if(entry.answer.length===1)score-=100;
+    else if(entry.answer.length===2)score-=45;
     // Keep everyday vocabulary ahead of encyclopedic and specialist terms.
     if(entry.answer.length<=8)score+=7;else if(entry.answer.length>=10)score-=14;
     if(/историческ|дисциплин|административн|публикац|последовательн|многогранник|показатель степени|философ|религиоз|правовед|политолог|палеонт|геологическ|посредничеств|противореч|предпочтительн|родственных родов|государств востока|историческ(ая|ий) роман|на протяжении поколений/i.test(entry.clue))score-=90;
