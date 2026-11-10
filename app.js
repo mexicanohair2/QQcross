@@ -1244,10 +1244,10 @@ function buildScanword(entries){
         }
       }
       if(!options.length)break;
-      // Options are maintained in descending score order. Always take the best
-      // viable move: random selection among the top 18 repeatedly sacrificed
-      // constrained terminal clues and stranded them without a legal continuation.
-      const pick=options[0];
+      // Options are maintained in descending score order. Explore only the
+      // three strongest moves: this keeps limited variation between attempts
+      // without letting weak candidates strand already-open terminal clues.
+      const pick=options[Math.floor(Math.random()*Math.min(3,options.length))];
       if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
     }
     // Fill terminal question cells before opening new branches. Work newest-first
