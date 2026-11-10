@@ -30,7 +30,7 @@ MIN_ANSWER_IPM = 0.05
 LEEDS_ANSWER_LIMIT = 50000
 EXCLUDED_WORDS = {
     "БЛЯДЬ", "БЛЯТЬ", "ПИПЕЦ", "ЕБАТЬ", "ЕБАЛО", "ХУЙНЯ",
-    "ПИЗДА", "ГОВНО", "МУДАК", "ДЕРЬМО", "ХЕРНЯ", "ПИЗДЕЦ",
+    "ПИЗДА", "ГОВНО", "МУДАК", "ДЕРЬМО", "ХЕРНЯ", "ПИЗДЕЦ", "МРАЗЬ",
 }
 EXTRA_GUESSES = {"ТУНЕЦ", "КРЕСТ", "КОВШИ", "КЛЕЩИ", "СУШКА", "СЛИВА"}
 EXTRA_ANSWERS = {"ТУНЕЦ"}
@@ -41,7 +41,7 @@ def normalize_word(value: str) -> str | None:
     if not word or word != word.lower() or not WORD_RE.fullmatch(word):
         return None
     normalized = word.upper().replace("Ё", "Е")
-    return None if normalized in EXCLUDED_WORDS else normalized
+    return None if normalized in EXCLUDED_WORDS or len(set(normalized)) < 3 or re.search(r"(.)\\1\\1", normalized) else normalized
 
 
 def read_or_download(path: Path | None, url: str, encoding: str, cache_name: str) -> str:
