@@ -1179,7 +1179,9 @@ function buildScanword(entries){
       for(const entry of candidates){
         if(addWord(entry,0,col,1,"w"+words.length,"edge")){seeded=true;break}
       }
-      if(!seeded)return null;
+      // A column that cannot be seeded yet remains an open top clue for the
+      // crossing/closure pass; never discard an otherwise useful attempt.
+      if(!seeded)continue;
     }
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
