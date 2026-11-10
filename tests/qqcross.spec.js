@@ -165,7 +165,11 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   expect(dictionary.valid.length).toBeGreaterThanOrEqual(25000);
   expect(dictionary.valid).toContain("ТУНЕЦ");
   expect(dictionary.answers).toContain("ТУНЕЦ");
-  expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);\n  expect(dictionary.valid).not.toContain("МРАЗЬ");\n  expect(dictionary.answers).not.toContain("МРАЗЬ");\n  expect(dictionary.valid.every(word => new Set(word).size >= 3 && !/(.)\\1\\1/.test(word))).toBeTruthy();\n  expect(dictionary.answers.every(word => new Set(word).size >= 3 && !/(.)\\1\\1/.test(word))).toBeTruthy();
+  expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);
+  expect(dictionary.valid).not.toContain("МРАЗЬ");
+  expect(dictionary.answers).not.toContain("МРАЗЬ");
+  expect(dictionary.valid.every(word => new Set(word).size >= 3 && !/(.)\1\1/.test(word))).toBeTruthy();
+  expect(dictionary.answers.every(word => new Set(word).size >= 3 && !/(.)\1\1/.test(word))).toBeTruthy();
   let greyKeyCount = 0;
   const guesses = ["ТУНЕЦ", "БЛЮДО"];
   for (const guess of guesses) {
