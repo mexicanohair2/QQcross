@@ -1033,8 +1033,9 @@ function buildScanword(entries){
       // A question cell needs a dictionary-backed route for a future answer.
       // Existing letters may be crossed when they match; planned letters from
       // this placement are treated the same way instead of being blocked.
-      const hasPlayableRoute=(routeY,routeX,extraLetters,extraClues)=>{
+      const playableEntriesFor=(routeY,routeX,extraLetters,extraClues)=>{
         const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
+        const playable=new Map();
         for(const nextDir of dirs){
           if(border&&nextDir.name!==border)continue;
           const max=Math.min(12,nextDir.dy>0?H-1-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-1-routeX:routeX-1);
@@ -1062,24 +1063,56 @@ function buildScanword(entries){
             if(!terminalOutside&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||extraLetters.has(terminal)||occupied.has(terminal)||reservedKeys.has(terminal)))continue;
             const candidates=possible===null?pool:possible;
             const starts=(clueAt.get(routeY+","+routeX)||[]).length>0;
-            if([...candidates].some(next=>!used.has(next.key)&&next.key!==entry.key&&
-              (!next.imageKey||(!starts&&!futureImageKeys.has(next.imageKey)&&futureImageKeys.size<7))))return true;
+            for(const next of candidates){
+              if(used.has(next.key)||next.key===entry.key)continue;
+              if(next.imageKey&&(starts||futureImageKeys.has(next.imageKey)||futureImageKeys.size>=7))continue;
+              playable.set(next.key,next);
+            }
           }
         }
-        return false;
+        return [...playable.values()];
+      };
+      const hasPlayableRoute=(routeY,routeX,extraLetters,extraClues)=>
+        playableEntriesFor(routeY,routeX,extraLetters,extraClues).length>0;
+      const hasDistinctFutureAnswers=(openKeys,extraLetters,extraClues)=>{
+        const choices=[];
+        for(const openKey of openKeys){
+          const [openY,openX]=openKey.split(",").map(Number);
+          const candidates=playableEntriesFor(openY,openX,extraLetters,extraClues);
+          if(!candidates.length)return false;
+          choices.push({key:openKey,candidates});
+        }
+        // A greedy "one answer exists" check is insufficient: several open
+        // clue cells can all depend on the same last dictionary entry. Reserve
+        // distinct answers now using augmenting-path bipartite matching.
+        choices.sort((a,b)=>a.candidates.length-b.candidates.length);
+        const assigned=new Map();
+        const claim=(choice,seen)=>{
+          for(const candidate of choice.candidates){
+            const resource=candidate.imageKey?"image:"+candidate.imageKey:"word:"+candidate.key;
+            if(seen.has(resource))continue;
+            seen.add(resource);
+            const previous=assigned.get(resource);
+            if(!previous||claim(previous,seen)){
+              assigned.set(resource,choice);
+              return true;
+            }
+          }
+          return false;
+        };
+        for(const choice of choices)if(!claim(choice,new Set()))return false;
+        return true;
       };
       const plannedClues=new Set(terminalInside?[key,terminalKey]:[key]);
-      if(terminalInside&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
-      for(const [openKey,list] of clueAt){
-        // Initial top/left anchors are laid down before their first crossing;
-        // protect only terminals that have actually been created by an answer.
-        if(list.length||!terminalKeys.has(openKey)||openKey===key||openKey===terminalKey)continue;
-        const [openY,openX]=openKey.split(",").map(Number);
-        // Once an answer has created an empty terminal clue, it must keep at least one
-        // unused dictionary answer available. Merely checking whether a route existed
-        // before this placement allowed its only matching word to be consumed elsewhere.
-        if(!hasPlayableRoute(openY,openX,candidateLetterKeys,plannedClues))return false;
+      const futureOpenKeys=new Set();
+      for(const openKey of terminalKeys){
+        const list=clueAt.get(openKey)||[];
+        if(!list.length&&openKey!==key&&openKey!==terminalKey)futureOpenKeys.add(openKey);
       }
+      if(terminalInside&&!(clueAt.get(terminalKey)||[]).length)futureOpenKeys.add(terminalKey);
+      // Keep a distinct unused dictionary answer available for every existing
+      // dangling terminal and for the terminal created by this candidate.
+      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
