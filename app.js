@@ -1159,9 +1159,9 @@ function buildScanword(entries){
     };
     // The opening at (0,1) is always eleven letters; its subject is not
     // the "Печатник" example from the reference screenshot.
-    const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
-    const topAnchor=normalized.find(entry=>entry.answer==="ЭЛЕКТРОНИКА"&&entry.answer.length===11&&!entry.imageKey);
-    const leftAnchorAnswers=["ФЕЯ","ОЛЕНЬ","ТЕЛЕФОН","ОКНО","АТЛАС","ПРИРОДА","ПОЧВА","АНАНАС","РИСУНОК","АКРОБАТ","ТАМОЖНЯ"];
+    const first=normalized.find(entry=>entry.answer==="ЭКЗОПЛАНЕТА"&&entry.answer.length===11&&!entry.imageKey);
+    const topAnchor=normalized.find(entry=>entry.answer==="КОНГЛОМЕРАТ"&&entry.answer.length===11&&!entry.imageKey);
+    const leftAnchorAnswers=["ЭКРАН","КОНФЕТА","ЗНАМЯ","ОГОНЬ","ПЛЕЧО","ЛОДКА","АМБАР","НЕДЕЛЯ","ЕРАЛАШ","ТАМОЖНЯ","АТРИБУТ"];
     if(!first||!topAnchor)return null;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
