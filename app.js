@@ -1161,7 +1161,7 @@ function buildScanword(entries){
     // eleven letters. Its theme may change; it is not permanently "Печатник".
     // The last letter touches the bottom edge, the sole terminal exception.
     const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
-    if(!first)return null;
+    if(!first)throw new Error("OPENING_NOT_FOUND normalized="+normalized.filter(entry=>entry.answer.includes("ФОТО")).map(entry=>entry.answer+"/"+entry.clue+"/"+entry.imageKey).join("|"));
     const firstY=0,firstX=1;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,firstX]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
@@ -1264,7 +1264,7 @@ function buildScanword(entries){
           break;
         }
       }
-      if(!seeded)return null;
+      if(!seeded)throw new Error("LEFT_SEED_FAILED row="+row+" initial="+initial+" candidates="+candidates.length+" viable="+candidates.filter(entry=>canCompleteTopBorder(row,entry)).map(entry=>entry.answer+":"+entry.clue).slice(0,8).join("|")+" topOptions="+topOptionsFor(2,row,candidates[0]).length);
     }
 
     // First secure three crossing-rich top answers from the joint plan.
