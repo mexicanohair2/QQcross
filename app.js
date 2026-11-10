@@ -1195,7 +1195,13 @@ function buildScanword(entries){
         entry.answer[0]===initial&&entry.answer!==first.answer
       );
       for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
-      candidates.sort((a,b)=>quality(b)-quality(a)+(Math.random()-.5)*5);
+      candidates.sort((a,b)=>quality(b)-quality(a));
+      // Do not let the same high-scoring vocabulary dominate every restart.
+      // Shuffle a small elite pool so edge rows explore different letter
+      // patterns; the later top-edge pass needs those patterns to intersect.
+      const leftElite=candidates.splice(0,Math.min(24,candidates.length));
+      for(let i=leftElite.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[leftElite[i],leftElite[j]]=[leftElite[j],leftElite[i]]}
+      candidates.unshift(...leftElite);
       let seeded=false;
       for(const entry of candidates){
         if(addWord(entry,row,0,0,"w"+words.length,"edge")){seeded=true;break}
@@ -1210,8 +1216,13 @@ function buildScanword(entries){
       candidates.sort((a,b)=>{
         const ay=a.answer.length+1,by=b.answer.length+1;
         const aCloses=clueAt.has(ay+","+col),bCloses=clueAt.has(by+","+col);
-        return Number(bCloses)-Number(aCloses)||quality(b)-quality(a)+(Math.random()-.5)*4;
+        return Number(bCloses)-Number(aCloses)||quality(b)-quality(a);
       });
+      // Explore several strong alternatives per restart instead of always
+      // locking the top edge into the same locally attractive answer.
+      const topElite=candidates.splice(0,Math.min(20,candidates.length));
+      for(let i=topElite.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[topElite[i],topElite[j]]=[topElite[j],topElite[i]]}
+      candidates.unshift(...topElite);
       let seeded=false;
       for(const entry of candidates){
         if(addWord(entry,0,col,1,"w"+words.length,"edge")){seeded=true;break}
