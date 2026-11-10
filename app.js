@@ -1189,7 +1189,8 @@ function buildScanword(entries){
                 }
                 const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
                 const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX);
-                if(valid&&!terminalBlocked)addOption({entry,y,x,di,score:8+length*.1+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
+                const terminalSpace=Math.max(0,H-2-terminalY)+Math.max(0,W-2-terminalX);
+                if(valid&&!terminalBlocked)addOption({entry,y,x,di,score:8+length*.1+terminalSpace*3+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
               }
               continue;
             }
@@ -1203,7 +1204,8 @@ function buildScanword(entries){
               }
               const terminalY=y+dir.dy*(length+1),terminalX=x+dir.dx*(length+1);
               const terminalBlocked=terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX);
-              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
+              const terminalSpace=Math.max(0,H-2-terminalY)+Math.max(0,W-2-terminalX);
+              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+terminalSpace*3+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
             }
           }
         }
