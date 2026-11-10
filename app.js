@@ -1144,6 +1144,9 @@ function buildScanword(entries){
       !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
       entry.answer[0]===first.answer[0]&&entry.answer!==first.answer
     );
+    // Vary the first left-edge crossing on every restart. A fixed first
+    // dictionary match made all 512 attempts inherit the same weak layout.
+    for(let i=sideSeeds.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sideSeeds[i],sideSeeds[j]]=[sideSeeds[j],sideSeeds[i]]}
     let seeded=false;
     for(const entry of sideSeeds){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
