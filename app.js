@@ -1162,7 +1162,7 @@ function buildScanword(entries){
     const first=normalized.find(entry=>entry.answer==="ЭКЗОПЛАНЕТА"&&entry.answer.length===11&&!entry.imageKey);
     const topAnchor=normalized.find(entry=>entry.answer==="КОНГЛОМЕРАТ"&&entry.answer.length===11&&!entry.imageKey);
     const leftAnchorAnswers=["ЭКРАН","КОНФЕТА","ЗНАМЯ","ОГОНЬ","ПЛЕЧО","ЛОДКА","АМБАР","НЕДЕЛЯ","ЕРАЛАШ","ТАМОЖНЯ","АТРИБУТ"];
-    if(!first||!topAnchor)return null;
+    if(!first||!topAnchor)throw new Error("ANCHOR_NOT_FOUND first="+!!first+" top="+!!topAnchor+" matches="+normalized.filter(e=>["ЭКЗОПЛАНЕТА","КОНГЛОМЕРАТ","АТРИБУТ"].includes(e.answer)).map(e=>e.answer+"/"+e.clue).join("|"));
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
     const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[0,1]};
@@ -1175,10 +1175,10 @@ function buildScanword(entries){
     // Their second letters form the top-edge 11-letter answer at column 2.
     for(let row=1;row<H;row++){
       const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]&&!candidate.imageKey);
-      if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])return null;
-      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))return null;
+      if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])throw new Error("LEFT_ENTRY_MISMATCH row="+row+" wanted="+first.answer[row-1]+topAnchor.answer[row-1]+" got="+(entry?.answer||"missing"));
+      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))throw new Error("LEFT_ADD_FAILED row="+row+" answer="+entry.answer);
     }
-    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))return null;
+    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))throw new Error("TOP_ADD_FAILED answer="+topAnchor.answer);
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
