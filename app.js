@@ -881,13 +881,13 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   if(leftBorderCount<2)fail("нужно не менее двух вопросов слева");
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
-  const terminalDeltas={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const terminalDeltas={right:[0,1],down:[1,0]};
   for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
   for(const key of result.clueAt.keys())if(!outgoingClues.has(key)&&!incomingClues.has(key))fail("вопросная клетка не связана ни с одним словом: "+key);
   for(const key of incomingClues)if(!outgoingClues.has(key))fail("ответ заканчивается клеткой без следующего вопроса: "+key);
   const interiorClues=[...result.clueAt.keys()].filter(key=>{const [y,x]=key.split(",").map(Number);return y>0&&x>0&&y<H-1&&x<W-1});
   if(interiorClues.length<4)fail("недостаточно дополнительных вопросов внутри поля");
-  const directions={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const directions={right:[0,1],down:[1,0]};
   const answers=new Set(),letters=new Map(),owners=new Map(),graph=result.words.map(()=>new Set());
   for(let i=0;i<result.words.length;i++){
     const word=result.words[i],answer=String(word.answer||"");
@@ -988,7 +988,7 @@ function buildScanword(entries){
       bucket.push(entry);positions[p].set(letter,bucket);
     }
   });
-  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"},{name:"left",dy:0,dx:-1,arrow:"←"},{name:"up",dy:-1,dx:0,arrow:"↑"}];
+  const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1667,7 +1667,7 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(),startWordsAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list);const starts=startWordsAt.get(key)||[];starts.push(w);startWordsAt.set(key,starts)});
-  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],down:[1,0]};
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
   for(const [key,ended] of wordTerminals)if(!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
@@ -1686,7 +1686,7 @@ function renderGame(root){
       // Each direction keeps its own small arrow at the edge of the tile.
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':wordsAt.map((word,index)=>'<span class="scan-clue-text" data-clue-part="'+index+'">'+esc(word.isEmoji?(word.clueShort||word.clue):fitScanwordClue(word.clueShort||word.clue,word.answer))+'</span>').join("");
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"▶",left:"◀",down:"▼",up:"▲"};
+      const arrowGlyph={right:"▶",down:"▼"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
       cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" data-terminal-only="'+(terminalOnly.has(key)?"true":"false")+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
