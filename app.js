@@ -1157,12 +1157,37 @@ function buildScanword(entries){
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
-    // The opening at (0,1) is always eleven letters; its subject is not
-    // the "Печатник" example from the reference screenshot.
-    const first=normalized.find(entry=>entry.answer==="ЭКЗОПЛАНЕТА"&&entry.answer.length===11&&!entry.imageKey);
-    const topAnchor=normalized.find(entry=>entry.answer==="КОНГЛОМЕРАТ"&&entry.answer.length===11&&!entry.imageKey);
-    const leftAnchorAnswers=["ЭКРАН","КОНФЕТА","ЗНАМЯ","ОГОНЬ","ПЛЕЧО","ЛОДКА","АМБАР","НЕДЕЛЯ","ЕРАЛАШ","ТАМОЖНЯ","АТРИБУТ"];
-    if(!first||!topAnchor)throw new Error("ANCHOR_NOT_FOUND first="+!!first+" top="+!!topAnchor+" matches="+normalized.filter(e=>["ЭКЗОПЛАНЕТА","КОНГЛОМЕРАТ","АТРИБУТ"].includes(e.answer)).map(e=>e.answer+"/"+e.clue).join("|"));
+    // Select the eleven-letter opening and its crossing border plan from
+    // dictionary content. Only the geometry is fixed: clue (0,1), downward,
+    // exactly eleven letters. No answer or row-word list is hard-coded.
+    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey);
+    const prefixPools=new Map();
+    for(const entry of normalized){
+      if(entry.answer.length<2)continue;
+      const prefix=entry.answer.slice(0,2),pool=prefixPools.get(prefix)||[];
+      pool.push(entry);prefixPools.set(prefix,pool);
+    }
+    const borderPlans=[];
+    for(const firstCandidate of eleven){
+      for(const topCandidate of eleven){
+        if(firstCandidate.key===topCandidate.key)continue;
+        const rowEntries=[],chosen=new Set([firstCandidate.key,topCandidate.key]);
+        let score=quality(firstCandidate)+quality(topCandidate),valid=true;
+        for(let row=1;row<H;row++){
+          const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
+          const pool=(prefixPools.get(prefix)||[]).filter(entry=>!chosen.has(entry.key))
+            .sort((a,b)=>quality(b)-quality(a));
+          const entry=pool.find(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
+          if(!entry){valid=false;break}
+          rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
+        }
+        if(valid)borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
+      }
+    }
+    if(!borderPlans.length)throw new Error("Не найден словарный план для 11-буквенного верхнего ответа и всех 11 левых пересечений");
+    borderPlans.sort((a,b)=>b.score-a.score);
+    const plan=borderPlans[Math.floor(Math.random()*Math.min(3,borderPlans.length))];
+    const first=plan.first,topAnchor=plan.top;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
     const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[0,1]};
@@ -1171,11 +1196,10 @@ function buildScanword(entries){
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
 
-    // Establish all eleven left-edge starts with a checked crossing pattern.
-    // Their second letters form the top-edge 11-letter answer at column 2.
+    // Each left-edge answer is selected by the two crossing letters from
+    // the opening and the second top-edge vertical answer.
     for(let row=1;row<H;row++){
-      const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]);
-      if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])throw new Error("LEFT_ENTRY_MISMATCH row="+row+" wanted="+first.answer[row-1]+topAnchor.answer[row-1]+" got="+(entry?.answer||"missing"));
+      const entry=plan.rows[row-1];
       if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))throw new Error("LEFT_ADD_FAILED row="+row+" answer="+entry.answer);
     }
     if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))throw new Error("TOP_ADD_FAILED answer="+topAnchor.answer);
@@ -1244,8 +1268,17 @@ function buildScanword(entries){
       // Options are maintained in descending score order. Explore only the
       // three strongest moves: this keeps limited variation between attempts
       // without letting weak candidates strand already-open terminal clues.
-      const pick=options[Math.floor(Math.random()*Math.min(3,options.length))];
-      if(!addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length))break;
+      // A ranked candidate can become stale after an earlier crossing was
+      // committed. Try the remaining ranked candidates before declaring a
+      // dead end; a single rejected move must not abort the whole fill.
+      const preferred=options.slice(0,Math.min(18,options.length));
+      const offset=Math.floor(Math.random()*Math.min(3,preferred.length));
+      const ordered=[...preferred.slice(offset),...preferred.slice(0,offset)];
+      let placed=false;
+      for(const pick of ordered){
+        if(addWord(pick.entry,pick.y,pick.x,pick.di,"w"+words.length)){placed=true;break}
+      }
+      if(!placed)break;
     }
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
