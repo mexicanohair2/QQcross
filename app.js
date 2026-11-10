@@ -877,12 +877,12 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   for(const key of result.clueAt.keys())if(result.occupied.has(key))fail("вопрос и буква занимают одну клетку: "+key);
   const topBorderCount=[...result.clueAt.keys()].filter(key=>key.startsWith("0,")&&key!=="0,0").length;
   const leftBorderCount=[...result.clueAt.keys()].filter(key=>key.endsWith(",0")&&key!=="0,0").length;
-  if(topBorderCount<2)fail("нужно не менее двух вопросов сверху");
-  if(leftBorderCount<2)fail("нужно не менее двух вопросов слева");
+  if(topBorderCount!==W-1)fail("все семь верхних клеток должны быть вопросными");
+  if(leftBorderCount!==H-1)fail("все одиннадцать левых клеток должны быть вопросными");
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
   const terminalDeltas={right:[0,1],down:[1,0]};
-  for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];if(!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11))incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
+  for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1],ty=last[0]+delta[0],tx=last[1]+delta[1];if(ty>=0&&tx>=0&&ty<H&&tx<W)incomingClues.add(ty+","+tx)}
   for(const key of result.clueAt.keys())if(!outgoingClues.has(key)&&!incomingClues.has(key))fail("вопросная клетка не связана ни с одним словом: "+key);
   for(const key of incomingClues)if(!outgoingClues.has(key))fail("ответ заканчивается клеткой без следующего вопроса: "+key);
   const interiorClues=[...result.clueAt.keys()].filter(key=>{const [y,x]=key.split(",").map(Number);return y>0&&x>0&&y<H-1&&x<W-1});
@@ -911,9 +911,11 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
       if(!owners.has(key))owners.set(key,new Set());
       owners.get(key).add(i);
     }
-    const fixedEleven=cy===0&&cx===1&&word.dir==="down"&&answer.length===11;
     const terminalY=cy+delta[0]*(answer.length+1),terminalX=cx+delta[1]*(answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(!fixedEleven&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||!result.clueAt.has(terminalKey)))fail("ответ "+answer+" не заканчивается новой ячейкой вопроса");
+    const terminalInside=terminalY>=0&&terminalX>=0&&terminalY<H&&terminalX<W;
+    const terminalAtEdge=(word.dir==="down"&&terminalY===H)||(word.dir==="right"&&terminalX===W);
+    if(terminalInside&&!result.clueAt.has(terminalKey))fail("ответ "+answer+" заканчивается не на вопросной клетке");
+    if(!terminalInside&&!terminalAtEdge)fail("ответ "+answer+" выходит за границы поля не через край");
   }
   if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
   for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
@@ -1689,7 +1691,7 @@ function renderGame(root){
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(),startWordsAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list);const starts=startWordsAt.get(key)||[];starts.push(w);startWordsAt.set(key,starts)});
   const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],down:[1,0]};
-  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
+  puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],ty=last[0]+delta[0],tx=last[1]+delta[1];if(ty<0||tx<0||ty>=puzzle.h||tx>=puzzle.w)return;const key=ty+","+tx,list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
   for(const [key,ended] of wordTerminals)if(!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
   state.selectedWord=activeWord?.id||"";
