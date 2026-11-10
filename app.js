@@ -1033,7 +1033,7 @@ function buildScanword(entries){
         for(const nextDir of dirs){
           if(border&&nextDir.name!==border)continue;
           const max=Math.min(12,nextDir.dy>0?H-2-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-2-routeX:routeX-1);
-          for(let length=2;length<=max;length++){
+          for(let length=3;length<=max;length++){
             const positions=byLength.get(length),pool=entriesByLength.get(length);
             if(!positions||!pool?.length)continue;
             let possible=null,clear=true;
@@ -1226,7 +1226,7 @@ function buildScanword(entries){
         for(const testDir of dirs){
           const max=Math.min(12,testDir.dy>0?H-2-y:testDir.dy<0?y-1:testDir.dx>0?W-2-x:x-1);
           let route=false;
-          for(let length=2;length<=max&&!route;length++){
+          for(let length=3;length<=max&&!route;length++){
             let clear=true;
             for(let k=1;k<=length;k++){
               const yy=y+testDir.dy*k,xx=x+testDir.dx*k,key2=yy+","+xx;
@@ -1404,7 +1404,7 @@ function buildScanword(entries){
         if(border&&dir.name!==border)return null;
         const max=Math.min(12,dir.dy>0?H-2-oy:dir.dy<0?oy-1:dir.dx>0?W-2-ox:ox-1);
         const options=[];
-        for(let len=2;len<=max;len++){
+        for(let len=3;len<=max;len++){
           const cells=Array.from({length:len},(_,k)=>(oy+dir.dy*(k+1))+","+(ox+dir.dx*(k+1)));
           if(cells.some(cell=>best?.clueAt.has(cell)||best?.reservedKeys.has(cell)))continue;
           const terminal=(oy+dir.dy*(len+1))+","+(ox+dir.dx*(len+1));
