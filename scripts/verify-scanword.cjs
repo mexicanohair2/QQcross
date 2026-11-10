@@ -44,7 +44,7 @@ function validate(puzzle, run) {
     if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
     answers.add(word.answer);
     const [cy, cx] = word.clueCell;
-    const directions = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
+    const directions = { right: [0, 1], down: [1, 0] };
     const delta = directions[word.dir];
     if (!delta) throw new Error("Run " + run + ": invalid direction " + word.dir + " for " + word.id);
     for (let k = 0; k < word.cells.length; k++) {
@@ -108,7 +108,7 @@ function validate(puzzle, run) {
   if (!startKeys.has("0,2") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing top/left edge clue anchors");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
-  const delta = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
+  const delta = { right: [0, 1], down: [1, 0] };
   const terminalKeys = new Set(puzzle.words.map(word => {
     const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
     return (last[0] + dy) + "," + (last[1] + dx);
