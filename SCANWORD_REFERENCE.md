@@ -19,7 +19,7 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 ## Implementation guardrails
 - Never change the grid dimensions, board proportions, cell proportions, spacing, clue placement rules, arrows, or vertical composition without checking this reference first.
 - Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
-- Every answer, including answers from interior clue cells, must run only rightward or downward. Never generate leftward or upward answers. The one fixed opening at (0,1) is exactly eleven letters and ends at the bottom edge; all other answers must end at another playable clue cell.
+- Every answer, including answers from interior clue cells, must run only rightward or downward. Never generate leftward or upward answers. The opening at (0,1) is exactly eleven letters and ends at the bottom edge; its answer varies. All other answers must end at another playable clue cell.
 - Generate the five double-prompt locations dynamically from the selected answers and crossings; do not hard-code the interior coordinate list as a fixed layout for every round.
 - Keep the score area above the board and letter rack/confirm control below it.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
