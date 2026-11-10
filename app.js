@@ -1147,18 +1147,25 @@ function buildScanword(entries){
     used.add(first.key);words.push(firstWord);
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
-    const sideSeeds=normalized.filter(entry=>
-      !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
-      entry.answer[0]===first.answer[0]&&entry.answer!==first.answer
-    );
-    // Vary the first left-edge crossing on every restart. A fixed first
-    // dictionary match made all 512 attempts inherit the same weak layout.
-    for(let i=sideSeeds.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[sideSeeds[i],sideSeeds[j]]=[sideSeeds[j],sideSeeds[i]]}
-    let seeded=false;
-    for(const entry of sideSeeds){
-      if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
+    // Seed every left-edge question against the matching letter of the
+    // fixed eleven-letter opening BEFORE any interior words consume its space.
+    // This preserves the full left border seen in the reference instead of
+    // leaving most of those clue cells as dark placeholders.
+    for(let row=1;row<H;row++){
+      const initial=first.answer[row-1];
+      const maxSeedLength=row>=H-2?4:6;
+      const candidates=normalized.filter(entry=>
+        !entry.imageKey&&entry.answer.length>=3&&entry.answer.length<=maxSeedLength&&
+        entry.answer[0]===initial&&entry.answer!==first.answer
+      );
+      for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
+      candidates.sort((a,b)=>quality(b)-quality(a)+(Math.random()-.5)*5);
+      let seeded=false;
+      for(const entry of candidates){
+        if(addWord(entry,row,0,0,"w"+words.length,"edge")){seeded=true;break}
+      }
+      if(!seeded)return null;
     }
-    if(!seeded)return null;
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
@@ -1198,7 +1205,7 @@ function buildScanword(entries){
                 const terminalOutside=(dir.dy===1&&terminalY===H)||(dir.dx===1&&terminalX===W);
                 const terminalBlocked=!terminalOutside&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX));
                 const terminalSpace=Math.max(0,H-2-terminalY)+Math.max(0,W-2-terminalX);
-                if(valid&&!terminalBlocked)addOption({entry,y,x,di,score:8+length*.1+terminalSpace*3+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
+                if(valid&&!terminalBlocked){const terminalKey=terminalY+","+terminalX,closesQuestion=clueAt.has(terminalKey);addOption({entry,y,x,di,score:8+length*.1+terminalSpace*3+(closesQuestion?140:-30)+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3})}
               }
               continue;
             }
@@ -1214,7 +1221,7 @@ function buildScanword(entries){
               const terminalOutside=(dir.dy===1&&terminalY===H)||(dir.dx===1&&terminalX===W);
               const terminalBlocked=!terminalOutside&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||occupied.has(terminalY+","+terminalX));
               const terminalSpace=Math.max(0,H-2-terminalY)+Math.max(0,W-2-terminalX);
-              if(valid&&crosses&&!terminalBlocked)addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+terminalSpace*3+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3});
+              if(valid&&crosses&&!terminalBlocked){const terminalKey=terminalY+","+terminalX,closesQuestion=clueAt.has(terminalKey);addOption({entry,y,x,di,score:crosses*16-newCells*2+Math.min(crosses,4)*4+length*.1+terminalSpace*3+(closesQuestion?140:-30)+(entry.imageKey?1000:0)+(entry.logic&&!at.some(w=>w.logic)?220:0)+Math.random()*3})}
             }
           }
         }
