@@ -855,6 +855,7 @@ function fitScanwordClue(value,answer=""){
   }
   return compact;
 }
+const SCANWORD_BLOCKED_SHORT_ANSWERS=new Set(["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ","ДО","РЕ","МИ","ФА","ЛЯ","СИ"]);
 const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
@@ -863,7 +864,7 @@ function normalizeScanwordEntry(item){
   const rawClue=imageKey?"Что изображено на картинке?":String(item.emoji||item.flag||item.clue||item.question||item.clueShort||"").trim();
   const clue=compactScanwordClue(rawClue);
   const clueShort=imageKey?"Что изображено?":compactScanwordClue(item.clueShort||item.shortClue||clue);
-  if(answer.length<1||answer.length>12||!clue)return null;
+  if(answer.length<2||answer.length>12||SCANWORD_BLOCKED_SHORT_ANSWERS.has(answer)||!clue)return null;
   return {answer,clue,clueShort,imageKey,key:answer.length===1?"letter:"+answer+":"+clue:answer,emoji:/[\u{1F1E6}-\u{1F1FF}\p{Extended_Pictographic}]/u.test(clue),logic:!!item.logic&&!imageKey&&/[?？]/.test(clue),common:!!item.common};
 }
 function assertValidScanwordLayout(result,W,H,TOTAL){
