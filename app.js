@@ -1213,18 +1213,6 @@ function buildScanword(entries){
         choices.push({col,candidates});
       }
       choices.sort((a,b)=>a.candidates.length-b.candidates.length);
-      const assigned=new Set();
-      const claim=(choice,seen)=>{
-        for(const candidate of choice.candidates){
-          if(seen.has(candidate.key))continue;
-          seen.add(candidate.key);
-          if(!assigned.has(candidate.key)||claim(assigned.get(candidate.key),seen)){
-            assigned.add(candidate.key);
-            return true;
-          }
-        }
-        return false;
-      };
       // A small exact matching check prevents two border clues from relying
       // on the same sole remaining answer.
       const match=new Map();
@@ -1249,7 +1237,10 @@ function buildScanword(entries){
       // across the row and finish at the right boundary, not strand a clue
       // with only one or two cells left to continue.
       const minSeedLength=row>=H-2?W-1:3;
-      const maxSeedLength=row>=H-2?W-1:6;
+      // Seven letters still fit the eight-column board and are needed for
+      // several common initial-letter patterns that can support the long
+      // vertical top-border answer.
+      const maxSeedLength=W-1;
       const candidates=normalized.filter(entry=>
         !entry.imageKey&&entry.answer.length>=minSeedLength&&entry.answer.length<=maxSeedLength&&
         entry.answer[0]===initial&&entry.answer!==first.answer
