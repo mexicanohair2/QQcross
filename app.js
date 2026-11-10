@@ -1176,10 +1176,13 @@ function buildScanword(entries){
         let score=quality(firstCandidate)+quality(topCandidate),valid=true;
         for(let row=1;row<H;row++){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
-          const pool=(prefixPools.get(prefix)||[]).filter(entry=>
+          const available=(prefixPools.get(prefix)||[]).filter(entry=>
             !chosen.has(entry.key)&&entry.answer.length<=W-1&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
-          ).sort((a,b)=>borderQuality(b)-borderQuality(a));
+          );
+          const compact=available.filter(entry=>entry.answer.length<=5);
+          const pool=(compact.length?compact:available.filter(entry=>entry.answer.length<=6))
+            .sort((a,b)=>borderQuality(b)-borderQuality(a));
           const eligible=pool.filter(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
           if(!eligible.length){valid=false;break}
           // Keep high-quality everyday words, but vary the border plan between
