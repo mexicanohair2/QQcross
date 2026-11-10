@@ -1255,7 +1255,7 @@ function buildScanword(entries){
         const rightRoom=W-entry.answer.length-2;
         // If the next row blocks the vertical continuation, keep at least
         // two cells to the right for a genuine short crossing.
-        if(!hasDownOpening&&rightRoom<2)continue;
+        if(entry.answer.length<W-1&&!hasDownOpening&&rightRoom<2)continue;
         if(!canCompleteTopBorder(row,entry))continue;
         if(addWord(entry,row,0,0,"w"+words.length,"border-seed")){
           chosenLeftSeeds.set(row,entry);
