@@ -1111,7 +1111,7 @@ function buildScanword(entries){
       // simultaneous open clues. Rejecting a closure because some *other*
       // endpoint has no route yet deadlocks the entire pass. The closure
       // planner orders constrained endpoints and validates each placement.
-      if(allowSeed==="edge"){if(terminalInside&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;}else if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(allowSeed==="edge"){if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;if(terminalInside&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;}else if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
@@ -1207,12 +1207,21 @@ function buildScanword(entries){
           const entry=shortlist[Math.floor(Math.random()*shortlist.length)];
           rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
         }
-        if(valid)borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
+        if(valid){
+          const terminalColumns=rowEntries.map(entry=>entry.answer.length+1);
+          for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
+            const distance=j-i;
+            if(distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
+          }
+          score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
+          borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
+        }
       }
     }
     if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
-    const plan=borderPlans[Math.floor(Math.random()*borderPlans.length)];
+    const preferredPlans=borderPlans.slice(0,Math.min(24,borderPlans.length));
+    const plan=preferredPlans[Math.floor(Math.random()*preferredPlans.length)];
     const first=plan.first,topAnchor=plan.top;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
