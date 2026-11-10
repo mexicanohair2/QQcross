@@ -1267,8 +1267,10 @@ function buildScanword(entries){
       }
       if(!seeded){
         const compatible=candidates.filter(entry=>canCompleteTopBorder(row,entry)).length;
-        const detail=[...topSeedPools.get(2)].filter(top=>!used.has(top.key)).slice(0,10).map(top=>top.answer);
-        throw new Error("left seed failed at row "+row+"; candidates="+candidates.length+" compatible="+compatible+" topPool="+detail.join(","));
+        const target=topSeedPools.get(2).find(top=>top.answer==="ОБЫКНОВЕНИЕ");
+        const selected=[...chosenLeftSeeds].map(([r,e])=>r+":"+e.answer+":"+e.answer[1]).join("|");
+        const targetOptions=topOptionsFor(2).map(top=>top.answer).slice(0,20);
+        throw new Error("left seed failed at row "+row+"; candidates="+candidates.length+" compatible="+compatible+" targetPresent="+!!target+" targetOptions="+targetOptions.join(",")+" selected="+selected);
       }
     }
 
