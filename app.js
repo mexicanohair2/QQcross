@@ -1183,7 +1183,6 @@ function buildScanword(entries){
       return (topSeedPools.get(col)||[]).filter(top=>{
         // Column 2 must carry the planned eleven-letter answer that makes
         // every left-edge seed intersect the top border without a gap.
-        if(col===2&&top.answer!=="ОБЫКНОВЕНИЕ")return false;
         if(used.has(top.key)||top.key===excludeKey||top.key===extraEntry?.key)return false;
         let crosses=false,valid=true;
         for(const [row,leftEntry] of seeds){
@@ -1199,16 +1198,15 @@ function buildScanword(entries){
     };
     const canCompleteTopBorder=(extraRow=null,extraEntry=null,skipCol=null,excludeKey=null)=>{
       const choices=[];
-      for(let col=2;col<W;col++){
+      for(let col=2;col<3;col++){
         if(col===skipCol)continue;
         const candidates=topOptionsFor(col,extraRow,extraEntry,excludeKey);
-        if(!candidates.length)return null;
+        if(!candidates.length)return false;
         choices.push({col,candidates});
       }
       choices.sort((a,b)=>a.candidates.length-b.candidates.length);
-      // Match every mandatory top-edge clue to a different answer before
-      // committing any of them. This avoids leaving the remaining top cells
-      // as decorative placeholders that later get silently converted to blocks.
+      // A small exact matching check prevents two border clues from relying
+      // on the same sole remaining answer.
       const match=new Map();
       const assign=(choice,seen)=>{
         for(const candidate of choice.candidates){
@@ -1219,13 +1217,8 @@ function buildScanword(entries){
         }
         return false;
       };
-      for(const choice of choices)if(!assign(choice,new Set()))return null;
-      const assignment=new Map();
-      for(const [key,choice] of match){
-        const candidate=choice.candidates.find(item=>item.key===key);
-        if(candidate)assignment.set(choice.col,candidate);
-      }
-      return assignment.size===choices.length?assignment:null;
+      for(const choice of choices)if(!assign(choice,new Set()))return false;
+      return true;
     };
     // Seed every left-edge question against the matching letter of the
     // fixed eleven-letter opening before the interior crossing pass.
@@ -1274,14 +1267,27 @@ function buildScanword(entries){
       if(!seeded)return null;
     }
 
-    // Commit the six remaining top-edge answers as one compatible set.
-    // Every top clue is mandatory; no top-edge cell may be left as a blank tile
-    // or silently converted into a blocker during final grid compaction.
-    const topAssignment=canCompleteTopBorder();
-    if(!topAssignment)return null;
-    for(let col=2;col<W;col++){
-      const entry=topAssignment.get(col);
-      if(!entry||!addWord(entry,0,col,1,"w"+words.length,"border-seed"))return null;
+    // First secure three crossing-rich top answers from the joint plan.
+    // The remaining top clues may be opened later by the interior fill; forcing
+    // all six immediately over-constrains the small 8×12 dictionary grid.
+    for(let col=2;col<3;col++){
+      const candidates=topOptionsFor(col);(entry=>!entry.imageKey&&!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
+      candidates.sort((a,b)=>{
+        const ay=a.answer.length+1,by=b.answer.length+1;
+        const aCloses=clueAt.has(ay+","+col),bCloses=clueAt.has(by+","+col);
+        return Number(bCloses)-Number(aCloses)||quality(b)-quality(a);
+      });
+      // Explore several strong alternatives per restart instead of always
+      // locking the top edge into the same locally attractive answer.
+      const topElite=candidates.splice(0,Math.min(20,candidates.length));
+      for(let i=topElite.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[topElite[i],topElite[j]]=[topElite[j],topElite[i]]}
+      candidates.unshift(...topElite);
+      let seeded=false;
+      for(const entry of candidates){
+        if(col===2&&!canCompleteTopBorder(null,null,col,entry.key))continue;
+        if(addWord(entry,0,col,1,"w"+words.length,"border-seed")){seeded=true;break}
+      }
+      if(!seeded)return null;
     }
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
