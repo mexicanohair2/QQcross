@@ -1327,7 +1327,7 @@ function buildScanword(entries){
               normalized.filter(entry=>entry.answer.length===length).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
-              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<5&&anchor.list.length===0))&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7&&anchor.list.length===0))&&
               cells.every((cell,k)=>{
                 const old=occupied.get(cell.join(","));
                 return old===undefined||old===entry.answer[k];
