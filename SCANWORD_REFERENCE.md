@@ -6,6 +6,7 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 - The board is portrait **8 columns × 12 rows** (96 square cells), almost the full phone width, with a narrow, even gap.
 - The score/player header is above the board. The inventory/tool row, large green confirm control, and letter rack are below it.
 - Top-edge clue cells occupy row 0, columns 1–7. They point down. The top-left square (row 0, column 0) is a separate utility/blank square, not a clue.
+- **Mandatory opening exception:** the clue at (0,1) is “Печатник”; its answer is **ПОЛИГРАФИСТ** (11 letters), running down through (11,1). Its final letter touches the bottom edge; it is the only answer that does not terminate in another clue cell. This fixed opening must not be randomized or displaced.
 - Left-edge clue cells occupy rows 1–11, column 0. They point right.
 - Interior clue-cell coordinates (row, column), zero-based: **(2,4), (3,2), (4,3), (5,6), (5,7), (6,4), (6,5), (8,2), (8,3), (10,4), (11,4)**.
 - Five interior/edge cells in the screenshot split two prompts inside one tile: **(2,4), (3,2), (4,3), (6,5), (8,3)**. Both prompts must remain visible in the cell, stacked, with their own direction marks.
@@ -18,7 +19,7 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 ## Implementation guardrails
 - Never change the grid dimensions, board proportions, cell proportions, spacing, clue placement rules, arrows, or vertical composition without checking this reference first.
 - Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
-- Every answer, including answers from interior clue cells, must run only rightward or downward. Never generate leftward or upward answers.
+- Every answer, including answers from interior clue cells, must run only rightward or downward. Never generate leftward or upward answers. The one fixed opening at (0,1) is exactly eleven letters and ends at the bottom edge; all other answers must end at another playable clue cell.
 - Generate the five double-prompt locations dynamically from the selected answers and crossings; do not hard-code the interior coordinate list as a fixed layout for every round.
 - Keep the score area above the board and letter rack/confirm control below it.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
