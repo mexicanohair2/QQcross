@@ -1174,7 +1174,7 @@ function buildScanword(entries){
     // Establish all eleven left-edge starts with a checked crossing pattern.
     // Their second letters form the top-edge 11-letter answer at column 2.
     for(let row=1;row<H;row++){
-      const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]&&!candidate.imageKey);
+      const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]);
       if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])throw new Error("LEFT_ENTRY_MISMATCH row="+row+" wanted="+first.answer[row-1]+topAnchor.answer[row-1]+" got="+(entry?.answer||"missing"));
       if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))throw new Error("LEFT_ADD_FAILED row="+row+" answer="+entry.answer);
     }
