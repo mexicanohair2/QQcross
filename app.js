@@ -1261,8 +1261,8 @@ function buildScanword(entries){
     // First secure three crossing-rich top answers from the joint plan.
     // The remaining top clues may be opened later by the interior fill; forcing
     // all six immediately over-constrains the small 8×12 dictionary grid.
-    for(let col=2;col<W;col++){
-      const candidates=col===2?topOptionsFor(col):normalized.filter(entry=>!entry.imageKey&&!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
+    for(let col=2;col<3;col++){
+      const candidates=topOptionsFor(col);(entry=>!entry.imageKey&&!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
       candidates.sort((a,b)=>{
         const ay=a.answer.length+1,by=b.answer.length+1;
         const aCloses=clueAt.has(ay+","+col),bCloses=clueAt.has(by+","+col);
@@ -1278,7 +1278,7 @@ function buildScanword(entries){
         if(col===2&&!canCompleteTopBorder(null,null,col,entry.key))continue;
         if(addWord(entry,0,col,1,"w"+words.length,"border-seed")){seeded=true;break}
       }
-      if(!seeded&&col===2)return null;
+      if(!seeded)return null;
     }
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
