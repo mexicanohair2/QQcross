@@ -18,7 +18,7 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 ## Implementation guardrails
 - Never change the grid dimensions, board proportions, cell proportions, spacing, clue placement rules, arrows, or vertical composition without checking this reference first.
 - Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
-- Keep top-edge starts downward and left-edge starts rightward; allow left/up directions only for interior clue cells, where they are needed to preserve the connected scanword structure.
+- Every answer, including answers from interior clue cells, must run only rightward or downward. Never generate leftward or upward answers.
 - Generate the five double-prompt locations dynamically from the selected answers and crossings; do not hard-code the interior coordinate list as a fixed layout for every round.
 - Keep the score area above the board and letter rack/confirm control below it.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
