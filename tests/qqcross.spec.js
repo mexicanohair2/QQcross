@@ -547,7 +547,7 @@ test("scanword clue cells follow the 8×12 top-left reference anchors and show d
       visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
     };
   }));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
   expect(arrowDetails.every(item => item.row !== 0 || item.direction === "scan-arrow-down")).toBeTruthy();
   expect(arrowDetails.every(item => item.col !== 0 || item.row === 0 || item.direction === "scan-arrow-right")).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
