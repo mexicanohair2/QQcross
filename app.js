@@ -1360,7 +1360,7 @@ function buildScanword(entries){
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
     // A fully chained scanword is more important than maximizing logic clues:
     // first minimize terminal-only question cells, then maximize logic variety.
-    const rank=[result?.coverage||0,-(result?.dangling??999),-orphanCount,imageCount,-Math.abs(splitPromptCount-5),-Math.abs(promptCount-34),-Math.abs(startTileCount-29),logicCount,borderScore,promptCount,spreadScore,-singleCount];
+    const rank=[-orphanCount,result?.coverage||0,-(result?.dangling??999),imageCount,-Math.abs(splitPromptCount-5),-Math.abs(promptCount-34),-Math.abs(startTileCount-29),logicCount,borderScore,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
     if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount>=2&&bestLeftCount>=2&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=5)break;
