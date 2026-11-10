@@ -882,7 +882,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
   const outgoingClues=new Set(result.words.map(word=>word.clueCell.join(",")));
   const incomingClues=new Set();
   const terminalDeltas={right:[0,1],down:[1,0]};
-  for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
+  for(const word of result.words){const delta=terminalDeltas[word.dir],last=word.cells[word.cells.length-1];if(!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11))incomingClues.add((last[0]+delta[0])+","+(last[1]+delta[1]))}
   for(const key of result.clueAt.keys())if(!outgoingClues.has(key)&&!incomingClues.has(key))fail("вопросная клетка не связана ни с одним словом: "+key);
   for(const key of incomingClues)if(!outgoingClues.has(key))fail("ответ заканчивается клеткой без следующего вопроса: "+key);
   const interiorClues=[...result.clueAt.keys()].filter(key=>{const [y,x]=key.split(",").map(Number);return y>0&&x>0&&y<H-1&&x<W-1});
@@ -911,8 +911,9 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
       if(!owners.has(key))owners.set(key,new Set());
       owners.get(key).add(i);
     }
+    const fixedEleven=cy===0&&cx===1&&word.dir==="down"&&answer.length===11;
     const terminalY=cy+delta[0]*(answer.length+1),terminalX=cx+delta[1]*(answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||!result.clueAt.has(terminalKey))fail("ответ "+answer+" не заканчивается новой ячейкой вопроса");
+    if(!fixedEleven&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||!result.clueAt.has(terminalKey)))fail("ответ "+answer+" не заканчивается новой ячейкой вопроса");
   }
   if(letters.size!==result.occupied.size)fail("найдены лишние или потерянные клетки с буквами");
   for(const [key,letter] of letters)if(result.occupied.get(key)!==letter)fail("буква в занятой клетке не совпадает: "+key);
@@ -944,7 +945,9 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
 function buildScanword(entries){
   const W=8,H=12,TOTAL=W*H;
   const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
-  const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue));
+  const mandatoryEleven=normalizeScanwordEntry({answer:"ПОЛИГРАФИСТ",clue:"Печатник"});
+  const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue)&&entry.answer!=="ПОЛИГРАФИСТ");
+  if(mandatoryEleven)normalized.unshift(mandatoryEleven);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
@@ -1010,7 +1013,9 @@ function buildScanword(entries){
       if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
-      if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
+      const fixedElevenTerminal=allowSeed==="fixed-eleven"&&y===0&&x===1&&dir.name==="down"&&entry.answer.length===11;
+      if((endY<0||endX<0||endY>=H||endX>=W)&&!fixedElevenTerminal)return false;
+      if(!fixedElevenTerminal&&(reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX)))return false;
       const terminalKey=endY+","+endX;
       // Reserve the cells of this candidate before checking its terminal.
       // Without this, the "next answer" route could run backwards through the
@@ -1059,8 +1064,8 @@ function buildScanword(entries){
         }
         return false;
       };
-      const plannedClues=new Set([key,terminalKey]);
-      if(!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
+      const plannedClues=new Set(fixedElevenTerminal?[key]:[key,terminalKey]);
+      if(!fixedElevenTerminal&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
       for(const [openKey,list] of clueAt){
         // Initial top/left anchors are laid down before their first crossing;
         // protect only terminals that have actually been created by an answer.
@@ -1116,25 +1121,22 @@ function buildScanword(entries){
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
-      if(!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
-      frontier.add(key);frontier.add(terminalKey);terminalKeys.add(terminalKey);
+      if(!fixedElevenTerminal&&!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
+      frontier.add(key);
+      if(!fixedElevenTerminal){frontier.add(terminalKey);terminalKeys.add(terminalKey)}
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
-      addFrontier(endY,endX);
+      if(!fixedElevenTerminal)addFrontier(endY,endX);
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
-    // Two crossing seed words create the first connected component.
-    // 8×12 portrait layout: begin with a vertical picture clue from the top edge,
-    // then cross it with a short horizontal answer from the left edge.
-    // This keeps the narrow portrait grid playable instead of forcing a
-    // wide-board seed that cannot fit into eight columns.
-    const firstPool=normalized.filter(e=>e.answer.length>=5&&e.answer.length<=H-2);
-    if(!firstPool.length)return null;
-    const pictureSeeds=firstPool.filter(e=>e.imageKey);
-    if(pictureSeeds.length<5)return null;
-    const first=pictureSeeds[Math.floor(Math.random()*pictureSeeds.length)];
-    const firstY=0,firstX=2;
-    if(!addWord(first,firstY,firstX,1,"w0",true))return null;
+    // Fixed Kryss-style opening: top-left remains blank; the adjacent top
+    // clue is "Печатник" and its eleven-letter answer runs down column 1.
+    // Its final letter reaches the bottom edge: the sole exception to the
+    // ordinary rule that every answer ends at another question cell.
+    const first=normalized.find(entry=>entry.answer==="ПОЛИГРАФИСТ"&&entry.clue==="Печатник");
+    if(!first||first.answer.length!==11)return null;
+    const firstY=0,firstX=1;
+    if(!addWord(first,firstY,firstX,1,"w0","fixed-eleven"))return null;
     const sideSeeds=normalized.filter(entry=>
       !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
       entry.answer[1]===first.answer[0]&&entry.answer!==first.answer
@@ -1332,7 +1334,7 @@ function buildScanword(entries){
     for(const word of result?.words||[]){
       linkedClueKeys.add(word.clueCell.join(","));
       const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
-      linkedClueKeys.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
+      if(!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11))linkedClueKeys.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
     }
     const clueCoordinates=[...linkedClueKeys].map(key=>key.split(",").map(Number));
     const topCount=clueCoordinates.filter(([y,x])=>y===0&&x!==0).length;
@@ -1341,7 +1343,7 @@ function buildScanword(entries){
     const incomingKeys=new Set();
     for(const word of result?.words||[]){
       const delta=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
-      incomingKeys.add((last[0]+delta.dy)+","+(last[1]+delta.dx));
+      if(!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11))incomingKeys.add((last[0]+delta.dy)+","+(last[1]+delta.dx));
     }
     const orphanCount=[...(result?.clueAt||new Map())].filter(([key,list])=>!list.length&&incomingKeys.has(key)).length;
     const occupiedRows=new Set(clueCoordinates.map(([y])=>y));
@@ -1366,7 +1368,7 @@ function buildScanword(entries){
     const incomingFinal=new Set();
     for(const word of best.words){
       const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
-      incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
+      if(!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11))incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
     }
     for(const [key,list] of [...best.clueAt.entries()]){
       if(!list.length&&!incomingFinal.has(key)){
@@ -1414,8 +1416,9 @@ function buildScanword(entries){
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
+    const fixedEleven=word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11;
     const terminal=(last[0]+dir.dy)+","+(last[1]+dir.dx);
-    if(!clueKeys.has(terminal))throw new Error("Ответ "+word.answer+" не заканчивается новой ячейкой вопроса");
+    if(!fixedEleven&&!clueKeys.has(terminal))throw new Error("Ответ "+word.answer+" не заканчивается новой ячейкой вопроса");
   }
   for(const key of clueKeys)if(occupied.has(key))throw new Error("Вопрос и ответ наложились в клетке "+key);
   if(occupied.size+clueKeys.size+reservedKeys.size!==TOTAL)throw new Error("Проверка заполнения или пустого угла не пройдена");
