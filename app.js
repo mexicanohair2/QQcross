@@ -1236,7 +1236,9 @@ function buildScanword(entries){
     };
     // Seed every left-edge question against the matching letter of the
     // fixed eleven-letter opening before the interior crossing pass.
-    for(let row=1;row<H;row++){
+    // Seed from the bottom upward so each new left-edge terminal can be
+    // checked against the already-known rows beneath it.
+    for(let row=H-1;row>=1;row--){
       const initial=first.answer[row-1];
       // The bottom two left-edge clues cannot create another in-grid
       // question below them. Their answers must therefore run all the way
