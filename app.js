@@ -1265,7 +1265,11 @@ function buildScanword(entries){
           break;
         }
       }
-      if(!seeded)return null;
+      if(!seeded){
+        const compatible=candidates.filter(entry=>canCompleteTopBorder(row,entry)).length;
+        const detail=[...topSeedPools.get(2)].filter(top=>!used.has(top.key)).slice(0,10).map(top=>top.answer);
+        throw new Error("left seed failed at row "+row+"; candidates="+candidates.length+" compatible="+compatible+" topPool="+detail.join(","));
+      }
     }
 
     // First secure three crossing-rich top answers from the joint plan.
