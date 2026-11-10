@@ -2410,3 +2410,53 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 @media(max-height:700px){
   .game-screen .scanword-board{width:min(94vw,calc((100dvh - 250px)*.666667),760px)!important}
 }
+
+
+/* Final 8×12 reference geometry: one source of truth after legacy theme rules. */
+.game-screen .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+  width:min(94vw,calc((100dvh - 250px)*.666667),760px)!important;
+  height:auto!important;
+  max-width:100%!important;
+  max-height:calc(100dvh - 205px)!important;
+  aspect-ratio:2/3!important;
+  gap:2px!important;
+  flex:0 0 auto!important;
+  overflow:hidden!important;
+}
+.game-screen .scanword-board>.scan-cell{
+  min-width:0!important;min-height:0!important;
+  width:auto!important;height:auto!important;aspect-ratio:auto!important;
+  border:1px solid #642b43!important;border-radius:2px!important;
+  padding:1px!important;overflow:hidden!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue{
+  background:var(--qq-theme-clue,linear-gradient(145deg,#65414e,#3a2530))!important;
+  border:1.5px solid #8b405b!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
+  min-width:0!important;min-height:0!important;
+  font-size:clamp(7px,2vw,12px)!important;
+  line-height:1.02!important;padding:2px!important;
+  overflow-wrap:anywhere!important;word-break:normal!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-multi .scan-clue-text{
+  font-size:clamp(7px,1.8vw,10px)!important;
+  line-height:1!important;padding:1px 2px!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
+  width:14%!important;height:14%!important;
+  color:var(--qq-theme-accent,#b58b9a)!important;
+  background:transparent!important;opacity:.72!important;
+  font-size:clamp(6px,1.1vw,9px)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-left,
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{display:none!important}
+@media(max-height:700px){
+  .game-screen .scanword-board{
+    width:min(94vw,calc((100dvh - 205px)*.666667),760px)!important;
+    max-height:calc(100dvh - 155px)!important;
+  }
+}
