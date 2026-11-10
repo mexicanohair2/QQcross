@@ -1274,7 +1274,7 @@ function buildScanword(entries){
           if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)))continue;
           if(!terminalInside&&!terminalAtEdge)continue;
           const candidates=possible===null?pool:[...possible];
-          if(candidates.some(entry=>!used.has(entry.key)&&!entry.imageKey))return true;
+          if(candidates.some(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7))))return true;
         }
       }
       return false;
