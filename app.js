@@ -1166,6 +1166,21 @@ function buildScanword(entries){
       }
       if(!seeded)return null;
     }
+    // Now place every remaining top-edge clue downward, using the letters
+    // already supplied by the left-edge answers as crossword crossings.
+    for(let col=2;col<W;col++){
+      const candidates=normalized.filter(entry=>!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
+      candidates.sort((a,b)=>{
+        const ay=a.answer.length+1,by=b.answer.length+1;
+        const aCloses=clueAt.has(ay+","+col),bCloses=clueAt.has(by+","+col);
+        return Number(bCloses)-Number(aCloses)||quality(b)-quality(a)+(Math.random()-.5)*4;
+      });
+      let seeded=false;
+      for(const entry of candidates){
+        if(addWord(entry,0,col,1,"w"+words.length,"edge")){seeded=true;break}
+      }
+      if(!seeded)return null;
+    }
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
