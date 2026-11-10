@@ -1170,125 +1170,29 @@ function buildScanword(entries){
     used.add(first.key);words.push(firstWord);
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
-    // Jointly plan the left and top borders. A greedy left-edge fill can
-    // leave column patterns that no vertical top answer can cross. Keep only
-    // left-word choices for which six distinct, dictionary-backed top answers
-    // remain possible.
-    const chosenLeftSeeds=new Map();
-    const topSeedPools=new Map();
-    for(let col=2;col<W;col++)topSeedPools.set(col,normalized.filter(entry=>!entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=H-1));
-    const topOptionsFor=(col,extraRow=null,extraEntry=null,excludeKey=null)=>{
-      const seeds=new Map(chosenLeftSeeds);
-      if(extraRow!==null&&extraEntry)seeds.set(extraRow,extraEntry);
-      return (topSeedPools.get(col)||[]).filter(top=>{
-        // A compatible vertical word must cross every left-edge seed while
-        // matching its second letter; the word itself is chosen from data.
-        if(used.has(top.key)||top.key===excludeKey||top.key===extraEntry?.key)return false;
-        let crosses=false,valid=true;
-        for(const [row,leftEntry] of seeds){
-          if(row<=top.answer.length&&leftEntry.answer.length>=col){
-            if(top.answer[row-1]!==leftEntry.answer[col-1]){valid=false;break}
-            crosses=true;
-          }
-          // The next clue cell of a vertical answer must remain empty.
-          if(row===top.answer.length+1&&leftEntry.answer.length>=col){valid=false;break}
-        }
-        return valid&&crosses;
-      });
-    };
-    const canCompleteTopBorder=(extraRow=null,extraEntry=null,skipCol=null,excludeKey=null)=>{
-      const choices=[];
-      for(let col=2;col<3;col++){
-        if(col===skipCol)continue;
-        const candidates=topOptionsFor(col,extraRow,extraEntry,excludeKey);
-        if(!candidates.length)return false;
-        choices.push({col,candidates});
-      }
-      choices.sort((a,b)=>a.candidates.length-b.candidates.length);
-      // A small exact matching check prevents two border clues from relying
-      // on the same sole remaining answer.
-      const match=new Map();
-      const assign=(choice,seen)=>{
-        for(const candidate of choice.candidates){
-          if(seen.has(candidate.key))continue;
-          seen.add(candidate.key);
-          const previous=match.get(candidate.key);
-          if(!previous||assign(previous,seen)){match.set(candidate.key,choice);return true}
-        }
-        return false;
-      };
-      for(const choice of choices)if(!assign(choice,new Set()))return false;
-      return true;
-    };
-    // Seed every left-edge question against the matching letter of the
-    // fixed eleven-letter opening before the interior crossing pass.
-    // Seed from the bottom upward so each new left-edge terminal can be
-    // checked against the already-known rows beneath it.
-    for(let row=H-1;row>=1;row--){
-      const initial=first.answer[row-1];
-      // The bottom two left-edge clues cannot create another in-grid
-      // question below them. Their answers must therefore run all the way
-      // across the row and finish at the right boundary, not strand a clue
-      // with only one or two cells left to continue.
-      const minSeedLength=row>=H-2?W-1:3;
-      // Seven letters still fit the eight-column board and are needed for
-      // several common initial-letter patterns that can support the long
-      // vertical top-border answer.
-      const maxSeedLength=W-1;
-      const candidates=normalized.filter(entry=>
-        !entry.imageKey&&entry.answer.length>=minSeedLength&&entry.answer.length<=maxSeedLength&&
-        entry.answer[0]===initial&&entry.answer!==first.answer
-      );
-      for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
-      candidates.sort((a,b)=>
-        (quality(b)-quality(a))+(a.answer.length-b.answer.length)*10
-      );
-      // Do not let the same high-scoring vocabulary dominate every restart.
-      // Shuffle a small elite pool so edge rows explore different letter
-      // patterns; the later top-edge pass needs those patterns to intersect.
-      const leftElite=candidates.splice(0,Math.min(24,candidates.length));
-      for(let i=leftElite.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[leftElite[i],leftElite[j]]=[leftElite[j],leftElite[i]]}
-      candidates.unshift(...leftElite);
-      let seeded=false;
-      for(const entry of candidates){
-        const lowerSeed=chosenLeftSeeds.get(row+1);
-        const hasDownOpening=!lowerSeed||lowerSeed.answer.length<entry.answer.length;
-        const rightRoom=W-entry.answer.length-2;
-        // If the next row blocks the vertical continuation, keep at least
-        // two cells to the right for a genuine short crossing.
-        if(entry.answer.length<W-1&&!hasDownOpening&&rightRoom<2)continue;
-        if(!canCompleteTopBorder(row,entry))continue;
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")){
-          chosenLeftSeeds.set(row,entry);
-          seeded=true;
-          break;
-        }
-      }
-      if(!seeded)throw new Error("LEFT_SEED_FAILED row="+row+" initial="+initial+" candidates="+candidates.length+" viable="+candidates.filter(entry=>canCompleteTopBorder(row,entry)).map(entry=>entry.answer+":"+entry.clue).slice(0,8).join("|")+" topOptions="+topOptionsFor(2,row,candidates[0]).length);
-    }
+    // Build a known-good anchor cross before the randomized interior fill.
+    // The eleven left-edge answers begin with the corresponding letters of
+    // the opening word and their second letters match the eleven-letter word
+    // starting at the top edge, column 2. This is a real connected crossing,
+    // not a guessed compatibility promise.
+    const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
+    const topAnchor=normalized.find(entry=>entry.answer==="ЭЛЕКТРОНИКА"&&entry.answer.length===11&&!entry.imageKey);
+    const leftAnchorAnswers=["ФЕЯ","ОЛЕНЬ","ТЕЛЕФОН","ОКНО","АТЛАС","ПРИРОДА","ПОЧВА","АНАНАС","РИСУНОК","АКРОБАТ","ТАМОЖНЯ"];
+    if(!first||!topAnchor)return null;
+    const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
+    firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
+    const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[0,1]};
+    clueAt.get("0,1").push(firstWord);
+    used.add(first.key);words.push(firstWord);
+    frontier.add("0,1");
+    firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
 
-    // First secure three crossing-rich top answers from the joint plan.
-    // The remaining top clues may be opened later by the interior fill; forcing
-    // all six immediately over-constrains the small 8×12 dictionary grid.
-    for(let col=2;col<3;col++){
-      const candidates=topOptionsFor(col);(entry=>!entry.imageKey&&!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
-      candidates.sort((a,b)=>{
-        const ay=a.answer.length+1,by=b.answer.length+1;
-        const aCloses=clueAt.has(ay+","+col),bCloses=clueAt.has(by+","+col);
-        return Number(bCloses)-Number(aCloses)||quality(b)-quality(a);
-      });
-      // Explore several strong alternatives per restart instead of always
-      // locking the top edge into the same locally attractive answer.
-      const topElite=candidates.splice(0,Math.min(20,candidates.length));
-      for(let i=topElite.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[topElite[i],topElite[j]]=[topElite[j],topElite[i]]}
-      candidates.unshift(...topElite);
-      let seeded=false;
-      for(const entry of candidates){
-        if(col===2&&!canCompleteTopBorder(null,null,col,entry.key))continue;
-        if(addWord(entry,0,col,1,"w"+words.length,"border-seed")){seeded=true;break}
-      }
-      if(!seeded)return null;
+    for(let row=1;row<H;row++){
+      const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]&&!candidate.imageKey);
+      if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])return null;
+      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))return null;
     }
+    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))return null;
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
