@@ -1167,6 +1167,7 @@ function buildScanword(entries){
       const prefix=entry.answer.slice(0,2),pool=prefixPools.get(prefix)||[];
       pool.push(entry);prefixPools.set(prefix,pool);
     }
+    const borderQuality=entry=>quality(entry)+(entry.answer.length<=4?35:entry.answer.length===5?18:entry.answer.length===6?-15:-35);
     const borderPlans=[];
     for(const firstCandidate of eleven){
       for(const topCandidate of eleven){
@@ -1176,12 +1177,12 @@ function buildScanword(entries){
         for(let row=1;row<H;row++){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
           const pool=(prefixPools.get(prefix)||[]).filter(entry=>!chosen.has(entry.key)&&entry.answer.length<=W-1)
-            .sort((a,b)=>quality(b)-quality(a));
+            .sort((a,b)=>borderQuality(b)-borderQuality(a));
           const eligible=pool.filter(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
           if(!eligible.length){valid=false;break}
           // Keep high-quality everyday words, but vary the border plan between
           // attempts so a locally attractive word cannot lock every crossing.
-          const shortlist=eligible.slice(0,Math.min(8,eligible.length));
+          const shortlist=eligible.slice(0,Math.min(5,eligible.length));
           const entry=shortlist[Math.floor(Math.random()*shortlist.length)];
           rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
         }
