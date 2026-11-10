@@ -1013,9 +1013,7 @@ function buildScanword(entries){
       if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
-      const fixedElevenTerminal=allowSeed==="fixed-eleven"&&y===0&&x===1&&dir.name==="down"&&entry.answer.length===11;
-      if((endY<0||endX<0||endY>=H||endX>=W)&&!fixedElevenTerminal)return false;
-      if(!fixedElevenTerminal&&(reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX)))return false;
+      if(endY<0||endX<0||endY>=H||endX>=W||reservedKeys.has(endY+","+endX)||occupied.has(endY+","+endX))return false;
       const terminalKey=endY+","+endX;
       // Reserve the cells of this candidate before checking its terminal.
       // Without this, the "next answer" route could run backwards through the
@@ -1064,8 +1062,8 @@ function buildScanword(entries){
         }
         return false;
       };
-      const plannedClues=new Set(fixedElevenTerminal?[key]:[key,terminalKey]);
-      if(!fixedElevenTerminal&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
+      const plannedClues=new Set([key,terminalKey]);
+      if(!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;
       for(const [openKey,list] of clueAt){
         // Initial top/left anchors are laid down before their first crossing;
         // protect only terminals that have actually been created by an answer.
@@ -1121,11 +1119,10 @@ function buildScanword(entries){
       cells.forEach((cell,k)=>occupied.set(cell.join(","),entry.answer[k]));
       const word={id,answer:entry.answer,sourceAnswer:entry.answer,clue:entry.clue,clueShort:entry.clueShort,isEmoji:entry.emoji,logic:!!entry.logic,imageKey:entry.imageKey||null,dir:dir.name,dirIndex,cells,clueCell:[y,x]};
       at.push(word);clueAt.set(key,at);
-      if(!fixedElevenTerminal&&!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
-      frontier.add(key);
-      if(!fixedElevenTerminal){frontier.add(terminalKey);terminalKeys.add(terminalKey)}
+      if(!clueAt.has(terminalKey))clueAt.set(terminalKey,[]);
+      frontier.add(key);frontier.add(terminalKey);terminalKeys.add(terminalKey);
       cells.forEach(cell=>addFrontier(cell[0],cell[1]));
-      if(!fixedElevenTerminal)addFrontier(endY,endX);
+      addFrontier(endY,endX);
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
@@ -1136,7 +1133,13 @@ function buildScanword(entries){
     const first=normalized.find(entry=>entry.answer==="ПОЛИГРАФИСТ"&&entry.clue==="Печатник");
     if(!first||first.answer.length!==11)return null;
     const firstY=0,firstX=1;
-    if(!addWord(first,firstY,firstX,1,"w0","fixed-eleven"))return null;
+    const firstCells=Array.from({length:11},(_,index)=>[index+1,firstX]);
+    firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
+    const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[firstY,firstX]};
+    clueAt.get("0,1").push(firstWord);
+    used.add(first.key);words.push(firstWord);
+    frontier.add("0,1");
+    firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
     const sideSeeds=normalized.filter(entry=>
       !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
       entry.answer[1]===first.answer[0]&&entry.answer!==first.answer
