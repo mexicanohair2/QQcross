@@ -1157,24 +1157,8 @@ function buildScanword(entries){
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
-    // The reference opening sits at (0,1), points down, and has exactly
-    // eleven letters. Its theme may change; it is not permanently "Печатник".
-    // The last letter touches the bottom edge, the sole terminal exception.
-    const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
-    if(!first)throw new Error("OPENING_NOT_FOUND normalized="+normalized.filter(entry=>entry.answer.includes("ФОТО")).map(entry=>entry.answer+"/"+entry.clue+"/"+entry.imageKey).join("|"));
-    const firstY=0,firstX=1;
-    const firstCells=Array.from({length:11},(_,index)=>[index+1,firstX]);
-    firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
-    const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[firstY,firstX]};
-    clueAt.get("0,1").push(firstWord);
-    used.add(first.key);words.push(firstWord);
-    frontier.add("0,1");
-    firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
-    // Build a known-good anchor cross before the randomized interior fill.
-    // The eleven left-edge answers begin with the corresponding letters of
-    // the opening word and their second letters match the eleven-letter word
-    // starting at the top edge, column 2. This is a real connected crossing,
-    // not a guessed compatibility promise.
+    // The opening at (0,1) is always eleven letters; its subject is not
+    // the "Печатник" example from the reference screenshot.
     const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
     const topAnchor=normalized.find(entry=>entry.answer==="ЭЛЕКТРОНИКА"&&entry.answer.length===11&&!entry.imageKey);
     const leftAnchorAnswers=["ФЕЯ","ОЛЕНЬ","ТЕЛЕФОН","ОКНО","АТЛАС","ПРИРОДА","ПОЧВА","АНАНАС","РИСУНОК","АКРОБАТ","ТАМОЖНЯ"];
@@ -1187,6 +1171,8 @@ function buildScanword(entries){
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
 
+    // Establish all eleven left-edge starts with a checked crossing pattern.
+    // Their second letters form the top-edge 11-letter answer at column 2.
     for(let row=1;row<H;row++){
       const entry=normalized.find(candidate=>candidate.answer===leftAnchorAnswers[row-1]&&!candidate.imageKey);
       if(!entry||entry.answer[0]!==first.answer[row-1]||entry.answer[1]!==topAnchor.answer[row-1])return null;
