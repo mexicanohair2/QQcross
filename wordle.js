@@ -63,7 +63,7 @@ function mount(root,onExit,options={}){
   if(lexicon.language!=="ru"||!Array.isArray(lexicon.words)||lexicon.words.length!==lexicon.count)throw new Error("Основной словарь не прошёл проверку");
   const common=lexicon.words.map(normalize).filter(w=>/^[А-Я]{4,8}$/.test(w)&&new Set(w).size>=3&&!BAD.has(w)&&!/(.)\1\1/.test(w));
   for(const n of LENGTHS){const pool=common.filter(w=>w.length===n).sort();validByLength[n]=new Set(pool);answersByLength[n]=pool.slice(0,Math.min(8000,pool.length));}
-  const fiveValid=(wordle.valid||[]).map(normalize).filter(w=>w.length===5),fiveAnswers=(wordle.answers||[]).map(normalize).filter(w=>w.length===5);
+  const fiveValid=(wordle.valid||[]).map(normalize).filter(w=>w.length===5&&!BAD.has(w)&&new Set(w).size>=3&&!/(.)\\1\\1/.test(w)),fiveAnswers=(wordle.answers||[]).map(normalize).filter(w=>w.length===5&&!BAD.has(w)&&new Set(w).size>=3&&!/(.)\\1\\1/.test(w));
   validByLength[5]=new Set(fiveValid);answersByLength[5]=fiveAnswers.filter(w=>validByLength[5].has(w));
   if(!answersByLength[5].length)throw new Error("Нет пятибуквенных слов для игры");
   valid=validByLength[5];answers=answersByLength[5];loading=false;newGame(dailyConfig?dailyConfig.length:length);
