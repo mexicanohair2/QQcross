@@ -1085,14 +1085,29 @@ function buildScanword(entries){
       const hasPlayableRoute=(routeY,routeX,extraLetters,extraClues)=>
         playableEntriesFor(routeY,routeX,extraLetters,extraClues).length>0;
       const hasDistinctFutureAnswers=(openKeys,extraLetters,extraClues)=>{
-        // During incremental construction, do not reject a valid layout just
-        // because two terminals currently share a candidate. Each terminal
-        // must have at least one unused continuation; actual word assignment
-        // remains unique when addWord commits it.
-        for(const openKey of openKeys){
+        // Each open terminal must retain a different unused dictionary answer.
+        // A simple per-cell existence check let two terminals rely on the same
+        // last candidate; the first placement then stranded the second clue.
+        const routes=openKeys.map(openKey=>{
           const [openY,openX]=openKey.split(",").map(Number);
-          if(!playableEntriesFor(openY,openX,extraLetters,extraClues).length)return false;
-        }
+          return playableEntriesFor(openY,openX,extraLetters,extraClues).map(next=>next.key);
+        });
+        if(routes.some(route=>!route.length))return false;
+        const order=routes.map((route,index)=>({route,index})).sort((a,b)=>a.route.length-b.route.length);
+        const ownerByAnswer=new Map();
+        const assign=(routeIndex,seen)=>{
+          for(const answerKey of routes[routeIndex]){
+            if(seen.has(answerKey))continue;
+            seen.add(answerKey);
+            const previous=ownerByAnswer.get(answerKey);
+            if(previous===undefined||assign(previous,seen)){
+              ownerByAnswer.set(answerKey,routeIndex);
+              return true;
+            }
+          }
+          return false;
+        };
+        for(const item of order)if(!assign(item.index,new Set()))return false;
         return true;
       };
       const plannedClues=new Set(terminalInside?[key,terminalKey]:[key]);
@@ -1102,16 +1117,10 @@ function buildScanword(entries){
         if(!list.length&&openKey!==key&&openKey!==terminalKey)futureOpenKeys.add(openKey);
       }
       if(terminalInside&&!(clueAt.get(terminalKey)||[]).length)futureOpenKeys.add(terminalKey);
-      // Keep a distinct unused dictionary answer available for every existing
-      // dangling terminal and for the terminal created by this candidate.
-      // Border anchors are a coordinated seed, not final terminals yet.
-      // Let the edge plan establish its crossings first; the interior/closure
-      // passes will validate and complete every resulting question cell.
-      // The terminal-closure pass deliberately works through several
-      // simultaneous open clues. Rejecting a closure because some *other*
-      // endpoint has no route yet deadlocks the entire pass. The closure
-      // planner orders constrained endpoints and validates each placement.
-      if(allowSeed==="edge"){if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;if(terminalInside&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;}else if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      // Keep a distinct unused dictionary answer for every existing open
+      // terminal and for the terminal created by this candidate. Seed words
+      // are the only exception: their full border is validated as one unit.
+      if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
