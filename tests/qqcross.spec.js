@@ -18,7 +18,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads an 8-column by 12-row scanword with five distinct picture clues", async ({ page }) => {
+test("loads an 8-column by 12-row scanword with seven distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -607,11 +607,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes seven pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(5);
+  await expect(images).toHaveCount(7);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
