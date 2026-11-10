@@ -1177,8 +1177,12 @@ function buildScanword(entries){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
           const pool=(prefixPools.get(prefix)||[]).filter(entry=>!chosen.has(entry.key)&&entry.answer.length<=W-1)
             .sort((a,b)=>quality(b)-quality(a));
-          const entry=pool.find(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
-          if(!entry){valid=false;break}
+          const eligible=pool.filter(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
+          if(!eligible.length){valid=false;break}
+          // Keep high-quality everyday words, but vary the border plan between
+          // attempts so a locally attractive word cannot lock every crossing.
+          const shortlist=eligible.slice(0,Math.min(8,eligible.length));
+          const entry=shortlist[Math.floor(Math.random()*shortlist.length)];
           rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
         }
         if(valid)borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
@@ -1186,7 +1190,7 @@ function buildScanword(entries){
     }
     if(!borderPlans.length)throw new Error("Не найден словарный план для 11-буквенного верхнего ответа и всех 11 левых пересечений");
     borderPlans.sort((a,b)=>b.score-a.score);
-    const plan=borderPlans[Math.floor(Math.random()*Math.min(3,borderPlans.length))];
+    const plan=borderPlans[Math.floor(Math.random()*borderPlans.length)];
     const first=plan.first,topAnchor=plan.top;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
