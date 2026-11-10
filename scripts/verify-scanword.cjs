@@ -109,7 +109,7 @@ function validate(puzzle, run) {
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
   const opening=puzzle.words.find(word=>word.clueCell[0]===0&&word.clueCell[1]===1);
-  if (!opening||opening.answer!=="ПОЛИГРАФИСТ"||opening.clue!=="Печатник"||opening.dir!=="down"||opening.answer.length!==11) throw new Error("Run "+run+": mandatory 11-letter Печатник opening is missing or malformed");
+  if (!opening||opening.dir!=="down"||opening.answer.length!==11||opening.clue==="Печатник") throw new Error("Run "+run+": the top clue at (0,1) must lead downward to a non-fixed eleven-letter answer");
   if (!startKeys.has("1,0")) throw new Error("Run " + run + ": missing left-edge seed clue");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
