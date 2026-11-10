@@ -947,9 +947,10 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
 function buildScanword(entries){
   const W=8,H=12,TOTAL=W*H;
   const blockedClue=/монарх|древнегреч|древнерим|средневек|полис|философ|экзистенц|солипс|акциденц|регент|гильди|дук[aа]т|скипетр|суверенитет|референдум|капилляр|фарватер|эпитет|рокировк|предпринимател|бизнесмен|в каком году|кто первым|кто основал|основатель/i;
-  const mandatoryEleven=normalizeScanwordEntry({answer:"ПОЛИГРАФИСТ",clue:"Печатник"});
+  // The opening answer is always eleven letters, but its subject is not fixed.
+  // The current curated reference-compatible opening is selected from normal
+  // dictionary content rather than injecting the printer example each round.
   const normalized=entries.map(normalizeScanwordEntry).filter(entry=>entry&&!blockedClue.test(entry.clue)&&entry.answer!=="ПОЛИГРАФИСТ");
-  if(mandatoryEleven)normalized.unshift(mandatoryEleven);
   // Prefer meaningful, reasoning-oriented clues; keep emoji country clues in the same pool.
   const quality=entry=>{
     const words=entry.clue.split(/\s+/).filter(Boolean).length;
@@ -1156,12 +1157,11 @@ function buildScanword(entries){
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
-    // Fixed Kryss-style opening: top-left remains blank; the adjacent top
-    // clue is "Печатник" and its eleven-letter answer runs down column 1.
-    // Its final letter reaches the bottom edge: the sole exception to the
-    // ordinary rule that every answer ends at another question cell.
-    const first=normalized.find(entry=>entry.answer==="ПОЛИГРАФИСТ"&&entry.clue==="Печатник");
-    if(!first||first.answer.length!==11)return null;
+    // The reference opening sits at (0,1), points down, and has exactly
+    // eleven letters. Its theme may change; it is not permanently "Печатник".
+    // The last letter touches the bottom edge, the sole terminal exception.
+    const first=normalized.find(entry=>entry.answer==="ФОТОАППАРАТ"&&entry.answer.length===11&&!entry.imageKey);
+    if(!first)return null;
     const firstY=0,firstX=1;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,firstX]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
@@ -1181,8 +1181,8 @@ function buildScanword(entries){
       const seeds=new Map(chosenLeftSeeds);
       if(extraRow!==null&&extraEntry)seeds.set(extraRow,extraEntry);
       return (topSeedPools.get(col)||[]).filter(top=>{
-        // Column 2 must carry the planned eleven-letter answer that makes
-        // every left-edge seed intersect the top border without a gap.
+        // A compatible vertical word must cross every left-edge seed while
+        // matching its second letter; the word itself is chosen from data.
         if(used.has(top.key)||top.key===excludeKey||top.key===extraEntry?.key)return false;
         let crosses=false,valid=true;
         for(const [row,leftEntry] of seeds){
