@@ -1046,6 +1046,9 @@ function buildScanword(entries){
           if(border&&nextDir.name!==border)continue;
           const max=Math.min(12,nextDir.dy>0?H-1-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-1-routeX:routeX-1);
           for(let length=2;length<=max;length++){
+            // Two-letter words are scarce and should close only the tight
+            // right-edge terminals created by left-border answers.
+            if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(routeY+","+routeX)))continue;
             const positions=byLength.get(length),pool=entriesByLength.get(length);
             if(!positions||!pool?.length)continue;
             let possible=null,clear=true;
@@ -1236,6 +1239,7 @@ function buildScanword(entries){
           if(at.some(w=>w.dir===dir.name))continue;
           const max=dir.dy>0?H-1-y:dir.dy<0?y-1:dir.dx>0?W-1-x:x-1;
           for(let length=2;length<=Math.min(12,max);length++){
+            if(length===2&&!(y>0&&x>=5&&terminalKeys.has(clueKey)))continue;
             const positions=byLength.get(length);if(!positions)continue;
             const possible=new Set();let availableCrosses=0;
             for(let p=0;p<length;p++){
@@ -1344,7 +1348,8 @@ function buildScanword(entries){
           const max=Math.min(12,dir.dy>0?H-1-anchor.y:dir.dy<0?anchor.y-1:dir.dx>0?W-1-anchor.x:anchor.x-1);
           const allowSingleFallback=false;
           const minLength=2;
-          const lengths=Array.from({length:Math.max(0,max-minLength+1)},(_,index)=>max-index);
+          const lengths=Array.from({length:Math.max(0,max-minLength+1)},(_,index)=>max-index)
+            .filter(length=>length!==2||(anchor.y>0&&anchor.x>=5&&terminalKeys.has(anchor.y+","+anchor.x)));
           lengths.sort((a,b)=>{
             const aKey=(anchor.y+dir.dy*(a+1))+","+(anchor.x+dir.dx*(a+1));
             const bKey=(anchor.y+dir.dy*(b+1))+","+(anchor.x+dir.dx*(b+1));
