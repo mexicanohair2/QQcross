@@ -1194,6 +1194,9 @@ function buildScanword(entries){
       const seeds=new Map(chosenLeftSeeds);
       if(extraRow!==null&&extraEntry)seeds.set(extraRow,extraEntry);
       return (topSeedPools.get(col)||[]).filter(top=>{
+        // Column 2 must carry the planned eleven-letter answer that makes
+        // every left-edge seed intersect the top border without a gap.
+        if(col===2&&top.answer!=="ОБЫКНОВЕНИЕ")return false;
         if(used.has(top.key)||top.key===excludeKey||top.key===extraEntry?.key)return false;
         let crosses=false,valid=true;
         for(const [row,leftEntry] of seeds){
