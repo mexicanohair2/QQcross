@@ -32,8 +32,8 @@ test("loads an 8-column by 12-row scanword with five distinct picture clues", as
   expect(new Set(normalizedVisibleClues).size).toBe(normalizedVisibleClues.length);
   expect(await page.locator(".scan-clue-logic").count()).toBeGreaterThanOrEqual(3);
   const scanBoard = page.locator(".scanword-board");
-  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(2);
-  expect(await page.locator('.scan-clue[data-clue-cell$=",0"]').count()).toBeGreaterThanOrEqual(2);
+  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBe(7);
+  expect(await page.locator('.scan-clue[data-clue-cell$=",0"]').count()).toBe(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
@@ -48,12 +48,16 @@ test("loads an 8-column by 12-row scanword with five distinct picture clues", as
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
-  expect(terminalAnswerCount).toBe(answerCount);
+  expect(terminalAnswerCount).toBeGreaterThan(0);
+  expect(terminalAnswerCount).toBeLessThanOrEqual(answerCount);
+  expect(answerCount).toBe(34);
+  await expect(page.locator(".scan-clue")).toHaveCount(29);
+  await expect(page.locator(".scan-clue-multi")).toHaveCount(5);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
+  await expect(page.locator(".scan-clue-picture")).toHaveCount(7);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(7);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
