@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main]
+    branches: [main, fix/reference-scanword-8x12]
   pull_request:
     branches: [main]
 jobs:
