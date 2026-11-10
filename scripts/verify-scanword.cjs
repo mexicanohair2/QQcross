@@ -66,9 +66,11 @@ function validate(puzzle, run) {
       if (!owners.has(key)) owners.set(key, new Set());
       owners.get(key).add(i);
     }
-    const fixedEleven=cy===0&&cx===1&&word.dir==="down"&&word.answer.length===11;
     const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(!fixedEleven&&(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey)))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    const terminalInside=terminalY>=0&&terminalX>=0&&terminalY<puzzle.h&&terminalX<puzzle.w;
+    const terminalAtEdge=(word.dir==="down"&&terminalY===puzzle.h)||(word.dir==="right"&&terminalX===puzzle.w);
+    if(terminalInside&&!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    if(!terminalInside&&!terminalAtEdge)throw new Error("Run "+run+": answer "+word.answer+" leaves the board other than at its edge");
   }
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
@@ -112,25 +114,27 @@ function validate(puzzle, run) {
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
   const delta = { right: [0, 1], down: [1, 0] };
-  const terminalKeys = new Set(puzzle.words.filter(word=>!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11)).map(word => {
+  const terminalKeys = new Set(puzzle.words.map(word => {
     const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
-    return (last[0] + dy) + "," + (last[1] + dx);
-  }));
+    const y=last[0]+dy,x=last[1]+dx;
+    return y>=0&&x>=0&&y<puzzle.h&&x<puzzle.w?(y+","+x):null;
+  }).filter(Boolean));
   for (const key of terminalKeys) if (!startKeys.has(key)) throw new Error("Run " + run + ": answer ends at a terminal-only clue cell " + key);
   const playableClues = new Set([...startKeys, ...terminalKeys]);
   for (const key of puzzle.clueKeys) {
     if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
   }
-  if (topEdgeClues < 2 || leftEdgeClues < 2) throw new Error("Run " + run + ": too few edge clue cells (top=" + topEdgeClues + "/2, left=" + leftEdgeClues + "/2)");
+  if (topEdgeClues !== 7 || leftEdgeClues !== 11) throw new Error("Run " + run + ": expected all 7 top and 11 left clue cells (top=" + topEdgeClues + ", left=" + leftEdgeClues + ")");
   const textClues = puzzle.words.filter(word => !word.imageKey).map(word => String(word.clueShort || word.clue).normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g,"е").replace(/[^\p{L}\p{N}]+/gu," ").trim());
   if (new Set(textClues).size !== textClues.length) throw new Error("Run " + run + ": duplicate visible clue text");
   const pictureWords = puzzle.words.filter(word => word.imageKey);
   const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
-    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
+  if (pictureKeys.length !== 7 || new Set(pictureKeys).size !== 7) {
+    throw new Error("Run " + run + ": expected seven distinct picture clues, found " + pictureKeys.join(","));
   }
   const startTileCount = new Set(puzzle.words.map(word => word.clueCell.join(","))).size;
   const splitPromptCount = puzzle.words.length - startTileCount;
+  if(startTileCount!==29||puzzle.words.length!==34||splitPromptCount!==5) throw new Error("Run "+run+": expected 29 clue tiles and 34 prompts, got "+startTileCount+" tiles and "+puzzle.words.length+" prompts");
   const commonAnswerCount = puzzle.words.filter(word => commonWords.has(normalizeAnswer(word.answer))).length;
   const commonAnswerRatio = commonAnswerCount / puzzle.words.length;
   if (commonAnswerRatio < 0.65) throw new Error("Run " + run + ": too few everyday words (" + commonAnswerCount + "/" + puzzle.words.length + ")");
