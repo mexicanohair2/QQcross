@@ -1078,32 +1078,14 @@ function buildScanword(entries){
       const hasPlayableRoute=(routeY,routeX,extraLetters,extraClues)=>
         playableEntriesFor(routeY,routeX,extraLetters,extraClues).length>0;
       const hasDistinctFutureAnswers=(openKeys,extraLetters,extraClues)=>{
-        const choices=[];
+        // During incremental construction, do not reject a valid layout just
+        // because two terminals currently share a candidate. Each terminal
+        // must have at least one unused continuation; actual word assignment
+        // remains unique when addWord commits it.
         for(const openKey of openKeys){
           const [openY,openX]=openKey.split(",").map(Number);
-          const candidates=playableEntriesFor(openY,openX,extraLetters,extraClues);
-          if(!candidates.length)return false;
-          choices.push({key:openKey,candidates});
+          if(!playableEntriesFor(openY,openX,extraLetters,extraClues).length)return false;
         }
-        // A greedy "one answer exists" check is insufficient: several open
-        // clue cells can all depend on the same last dictionary entry. Reserve
-        // distinct answers now using augmenting-path bipartite matching.
-        choices.sort((a,b)=>a.candidates.length-b.candidates.length);
-        const assigned=new Map();
-        const claim=(choice,seen)=>{
-          for(const candidate of choice.candidates){
-            const resource=candidate.imageKey?"image:"+candidate.imageKey:"word:"+candidate.key;
-            if(seen.has(resource))continue;
-            seen.add(resource);
-            const previous=assigned.get(resource);
-            if(!previous||claim(previous,seen)){
-              assigned.set(resource,choice);
-              return true;
-            }
-          }
-          return false;
-        };
-        for(const choice of choices)if(!claim(choice,new Set()))return false;
         return true;
       };
       const plannedClues=new Set(terminalInside?[key,terminalKey]:[key]);
