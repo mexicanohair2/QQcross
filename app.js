@@ -1184,9 +1184,14 @@ function buildScanword(entries){
     // fixed eleven-letter opening before the interior crossing pass.
     for(let row=1;row<H;row++){
       const initial=first.answer[row-1];
-      const maxSeedLength=row>=H-2?4:6;
+      // The bottom two left-edge clues cannot create another in-grid
+      // question below them. Their answers must therefore run all the way
+      // across the row and finish at the right boundary, not strand a clue
+      // with only one or two cells left to continue.
+      const minSeedLength=row>=H-2?W-1:3;
+      const maxSeedLength=row>=H-2?W-1:6;
       const candidates=normalized.filter(entry=>
-        !entry.imageKey&&entry.answer.length>=3&&entry.answer.length<=maxSeedLength&&
+        !entry.imageKey&&entry.answer.length>=minSeedLength&&entry.answer.length<=maxSeedLength&&
         entry.answer[0]===initial&&entry.answer!==first.answer
       );
       for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
