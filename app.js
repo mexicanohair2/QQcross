@@ -1115,7 +1115,7 @@ function buildScanword(entries){
       // Border anchors are a coordinated seed, not final terminals yet.
       // Let the edge plan establish its crossings first; the interior/closure
       // passes will validate and complete every resulting question cell.
-      if(allowSeed!=="edge"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
@@ -1125,7 +1125,7 @@ function buildScanword(entries){
       }
       // Protect ordinary placements from sealed holes. The deliberate third corner
       // seed has a pre-validated crossing and may bypass this local heuristic.
-      if(allowSeed!=="edge"){
+      if(allowSeed!=="edge"&&allowSeed!=="border-seed"){
       // Do not place a word if it seals an empty square on all four sides.
         // Such a square can never become a letter or a playable clue later.
         const futureLetters=new Set(cells.map(cell=>cell.join(",")));
@@ -1262,19 +1262,13 @@ function buildScanword(entries){
       let seeded=false;
       for(const entry of candidates){
         if(!canCompleteTopBorder(row,entry))continue;
-        if(addWord(entry,row,0,0,"w"+words.length,"edge")){
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")){
           chosenLeftSeeds.set(row,entry);
           seeded=true;
           break;
         }
       }
-      if(!seeded){
-        const compatible=candidates.filter(entry=>canCompleteTopBorder(row,entry)).length;
-        const target=topSeedPools.get(2).find(top=>top.answer==="ОБЫКНОВЕНИЕ");
-        const selected=[...chosenLeftSeeds].map(([r,e])=>r+":"+e.answer+":"+e.answer[1]).join("|");
-        const targetOptions=topOptionsFor(2).map(top=>top.answer).slice(0,20);
-        throw new Error("left seed failed at row "+row+"; candidates="+candidates.length+" compatible="+compatible+" targetPresent="+!!target+" targetOptions="+targetOptions.join(",")+" selected="+selected);
-      }
+      if(!seeded)return null;
     }
 
     // First secure three crossing-rich top answers from the joint plan.
@@ -1295,7 +1289,7 @@ function buildScanword(entries){
       let seeded=false;
       for(const entry of candidates){
         if(col===2&&!canCompleteTopBorder(null,null,col,entry.key))continue;
-        if(addWord(entry,0,col,1,"w"+words.length,"edge")){seeded=true;break}
+        if(addWord(entry,0,col,1,"w"+words.length,"border-seed")){seeded=true;break}
       }
       if(!seeded&&col===2)return null;
     }
