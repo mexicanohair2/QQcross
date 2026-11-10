@@ -1239,7 +1239,9 @@ function buildScanword(entries){
         entry.answer[0]===initial&&entry.answer!==first.answer
       );
       for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
-      candidates.sort((a,b)=>quality(b)-quality(a));
+      candidates.sort((a,b)=>
+        (quality(b)-quality(a))+(a.answer.length-b.answer.length)*10
+      );
       // Do not let the same high-scoring vocabulary dominate every restart.
       // Shuffle a small elite pool so edge rows explore different letter
       // patterns; the later top-edge pass needs those patterns to intersect.
@@ -1248,6 +1250,12 @@ function buildScanword(entries){
       candidates.unshift(...leftElite);
       let seeded=false;
       for(const entry of candidates){
+        const lowerSeed=chosenLeftSeeds.get(row+1);
+        const hasDownOpening=!lowerSeed||lowerSeed.answer.length<entry.answer.length;
+        const rightRoom=W-entry.answer.length-2;
+        // If the next row blocks the vertical continuation, keep at least
+        // two cells to the right for a genuine short crossing.
+        if(!hasDownOpening&&rightRoom<2)continue;
         if(!canCompleteTopBorder(row,entry))continue;
         if(addWord(entry,row,0,0,"w"+words.length,"border-seed")){
           chosenLeftSeeds.set(row,entry);
