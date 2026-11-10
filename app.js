@@ -1263,7 +1263,10 @@ function buildScanword(entries){
           break;
         }
       }
-      if(!seeded)return null;
+      if(!seeded){
+        const lower=chosenLeftSeeds.get(row+1);
+        throw new Error("left seed row="+row+" candidates="+candidates.length+" lower="+(lower?.answer||"-")+" compatible="+candidates.filter(entry=>canCompleteTopBorder(row,entry)).length);
+      }
     }
 
     // First secure three crossing-rich top answers from the joint plan.
