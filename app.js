@@ -1147,27 +1147,8 @@ function buildScanword(entries){
     used.add(first.key);words.push(firstWord);
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
-    // Seed every left-edge question against the matching letter of the
-    // fixed eleven-letter opening BEFORE any interior words consume its space.
-    // This preserves the full left border seen in the reference instead of
-    // leaving most of those clue cells as dark placeholders.
-    for(let row=1;row<H;row++){
-      const initial=first.answer[row-1];
-      const maxSeedLength=row>=H-2?4:6;
-      const candidates=normalized.filter(entry=>
-        !entry.imageKey&&entry.answer.length>=3&&entry.answer.length<=maxSeedLength&&
-        entry.answer[0]===initial&&entry.answer!==first.answer
-      );
-      for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
-      candidates.sort((a,b)=>quality(b)-quality(a)+(Math.random()-.5)*5);
-      let seeded=false;
-      for(const entry of candidates){
-        if(addWord(entry,row,0,0,"w"+words.length,"edge")){seeded=true;break}
-      }
-      if(!seeded)return null;
-    }
-    // Now place every remaining top-edge clue downward, using the letters
-    // already supplied by the left-edge answers as crossword crossings.
+    // Seed the top edge first. The sequential clue cells touch one another,
+    // and this gives the left-edge word selection real vertical crossings.
     for(let col=2;col<W;col++){
       const candidates=normalized.filter(entry=>!used.has(entry.key)&&entry.answer.length>=2&&entry.answer.length<=H-1);
       candidates.sort((a,b)=>{
@@ -1182,6 +1163,24 @@ function buildScanword(entries){
       // A column that cannot be seeded yet remains an open top clue for the
       // crossing/closure pass; never discard an otherwise useful attempt.
       if(!seeded)continue;
+    }
+
+    // Seed the left border after the top answers are fixed, so each left
+    // answer can be selected against actual vertical crossing letters.
+    for(let row=1;row<H;row++){
+      const initial=first.answer[row-1];
+      const maxSeedLength=row>=H-2?4:6;
+      const candidates=normalized.filter(entry=>
+        !entry.imageKey&&entry.answer.length>=3&&entry.answer.length<=maxSeedLength&&
+        entry.answer[0]===initial&&entry.answer!==first.answer
+      );
+      for(let i=candidates.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]]}
+      candidates.sort((a,b)=>quality(b)-quality(a)+(Math.random()-.5)*5);
+      let seeded=false;
+      for(const entry of candidates){
+        if(addWord(entry,row,0,0,"w"+words.length,"edge")){seeded=true;break}
+      }
+      if(!seeded)return null;
     }
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
