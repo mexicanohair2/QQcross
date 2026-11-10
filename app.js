@@ -1142,7 +1142,7 @@ function buildScanword(entries){
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
     const sideSeeds=normalized.filter(entry=>
       !entry.imageKey&&entry.answer.length>=2&&entry.answer.length<=W-2&&
-      entry.answer[1]===first.answer[0]&&entry.answer!==first.answer
+      entry.answer[0]===first.answer[0]&&entry.answer!==first.answer
     );
     let seeded=false;
     for(const entry of sideSeeds){
