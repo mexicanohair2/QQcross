@@ -1018,6 +1018,9 @@ function buildScanword(entries){
       const terminalInside=endY>=0&&endX>=0&&endY<H&&endX<W;
       const terminalOutside=(dir.dy===1&&endY===H)||(dir.dx===1&&endX===W);
       if(!terminalInside&&!terminalOutside)return false;
+      // Picture answers should not create a nearly sealed clue at the lower
+      // or right edge: leave at least three cells for a real continuation.
+      if(entry.imageKey&&terminalInside&&Math.max(H-1-endY,W-1-endX)<3)return false;
       const terminalKey=endY+","+endX;
       if(terminalInside&&(reservedKeys.has(terminalKey)||occupied.has(terminalKey)))return false;
       // Reserve the cells of this candidate before checking its terminal.
@@ -1115,7 +1118,7 @@ function buildScanword(entries){
       // Border anchors are a coordinated seed, not final terminals yet.
       // Let the edge plan establish its crossings first; the interior/closure
       // passes will validate and complete every resulting question cell.
-      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
