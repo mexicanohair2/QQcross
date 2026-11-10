@@ -1103,7 +1103,11 @@ function buildScanword(entries){
       // Border anchors are a coordinated seed, not final terminals yet.
       // Let the edge plan establish its crossings first; the interior/closure
       // passes will validate and complete every resulting question cell.
-      if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      // The terminal-closure pass deliberately works through several
+      // simultaneous open clues. Rejecting a closure because some *other*
+      // endpoint has no route yet deadlocks the entire pass. The closure
+      // planner orders constrained endpoints and validates each placement.
+      if(allowSeed!=="border-seed"&&allowSeed!=="edge"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
