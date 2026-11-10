@@ -1111,7 +1111,7 @@ function buildScanword(entries){
       // simultaneous open clues. Rejecting a closure because some *other*
       // endpoint has no route yet deadlocks the entire pass. The closure
       // planner orders constrained endpoints and validates each placement.
-      if(allowSeed!=="border-seed"&&allowSeed!=="edge"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(allowSeed==="edge"){if(terminalInside&&!(clueAt.get(terminalKey)||[]).length&&!hasPlayableRoute(endY,endX,candidateLetterKeys,plannedClues))return false;}else if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
@@ -1464,7 +1464,7 @@ function buildScanword(entries){
   // Retry substantially more often, but stop immediately once a fully valid
   // grid is found with at most one unavoidable single-letter fallback.
   // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
-  for(let attempt=0;attempt<96;attempt++){
+  for(let attempt=0;attempt<192;attempt++){
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
