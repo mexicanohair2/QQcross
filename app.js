@@ -1149,7 +1149,7 @@ function buildScanword(entries){
       if(addWord(entry,1,0,0,"w"+words.length,"edge")){seeded=true;break}
     }
     if(!seeded)return null;
-    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.62);round++){
+    for(let round=0;round<520&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
