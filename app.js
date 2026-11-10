@@ -997,6 +997,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
+  let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0;
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1185,6 +1186,7 @@ function buildScanword(entries){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
           const available=(prefixPools.get(prefix)||[]).filter(entry=>
             !chosen.has(entry.key)&&entry.answer.length<=W-1&&
+            (!entry.imageKey||rowEntries.filter(item=>item.imageKey).length<7)&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
           );
           const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=7)
@@ -1208,7 +1210,7 @@ function buildScanword(entries){
         if(valid)borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
       }
     }
-    if(!borderPlans.length)return null;
+    if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
     const plan=borderPlans[Math.floor(Math.random()*borderPlans.length)];
     const first=plan.first,topAnchor=plan.top;
@@ -1224,9 +1226,9 @@ function buildScanword(entries){
     // the opening and the second top-edge vertical answer.
     for(let row=1;row<H;row++){
       const entry=plan.rows[row-1];
-      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed"))return null;
+      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed")){rejectedSeed++;return null;}
     }
-    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed"))return null;
+    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed")){rejectedSeed++;return null;}
 
     // Reject a border plan before greedy filling if any of its mandatory
     // clue cells is already trapped. Every empty question must have at least
@@ -1268,7 +1270,7 @@ function buildScanword(entries){
       }
       return false;
     };
-    for(const [key,list] of clueAt)if(!list.length&&!hasViableOpenRoute(key))return null;
+    for(const key of terminalKeys)if(!(clueAt.get(key)||[]).length&&!hasViableOpenRoute(key)){rejectedRoute++;return null;}
 
     for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
@@ -1557,7 +1559,7 @@ function buildScanword(entries){
       }).filter(Boolean);
       return {key,incoming,routes};
     });
-    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+"). Повтори генерацию.")}
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+"+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
