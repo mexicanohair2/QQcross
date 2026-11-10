@@ -66,8 +66,9 @@ function validate(puzzle, run) {
       if (!owners.has(key)) owners.set(key, new Set());
       owners.get(key).add(i);
     }
+    const fixedEleven=cy===0&&cx===1&&word.dir==="down"&&word.answer.length===11;
     const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    if(!fixedEleven&&(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey)))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
   }
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
@@ -105,11 +106,13 @@ function validate(puzzle, run) {
   }
   if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
   const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("0,2") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing top/left edge clue anchors");
+  const opening=puzzle.words.find(word=>word.clueCell[0]===0&&word.clueCell[1]===1);
+  if (!opening||opening.answer!=="ПОЛИГРАФИСТ"||opening.clue!=="Печатник"||opening.dir!=="down"||opening.answer.length!==11) throw new Error("Run "+run+": mandatory 11-letter Печатник opening is missing or malformed");
+  if (!startKeys.has("1,0")) throw new Error("Run " + run + ": missing left-edge seed clue");
   const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
   const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
   const delta = { right: [0, 1], down: [1, 0] };
-  const terminalKeys = new Set(puzzle.words.map(word => {
+  const terminalKeys = new Set(puzzle.words.filter(word=>!(word.clueCell[0]===0&&word.clueCell[1]===1&&word.dir==="down"&&word.answer.length===11)).map(word => {
     const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
     return (last[0] + dy) + "," + (last[1] + dx);
   }));
