@@ -1071,7 +1071,7 @@ function buildScanword(entries){
             if(terminalInside&&(extraLetters.has(terminalKey)||occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
             if(!terminalInside&&!terminalAtEdge)continue;
             const candidates=possible===null?pool:possible;
-            if(candidates.some(candidate=>!used.has(candidate.key)&&candidate.key!==excludedAnswer&&
+            if([...candidates].some(candidate=>!used.has(candidate.key)&&candidate.key!==excludedAnswer&&
               (!candidate.imageKey||(!usedImages.has(candidate.imageKey)&&usedImages.size<7))))return true;
           }
         }
