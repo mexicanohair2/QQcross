@@ -1208,10 +1208,10 @@ function buildScanword(entries){
         for(let row=1;row<H;row++){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
           const available=(prefixPools.get(prefix)||[]).filter(entry=>
-            !chosen.has(entry.key)&&entry.answer.length<=W-1&&
+            !chosen.has(entry.key)&&entry.answer.length<=4&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
           );
-          const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=7)
+          const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=4)
             .sort((a,b)=>{
               const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
               const recentPenalty=entry=>{
@@ -1284,7 +1284,10 @@ function buildScanword(entries){
     let seedSearchNodes=0;
     const placeBorderRows=row=>{
       if(++seedSearchNodes>400)return false;
-      if(row>=H)return true;
+      if(row>=H){
+        const openBorderTerminals=[...terminalKeys].filter(openKey=>!(clueAt.get(openKey)||[]).length);
+        return hasDistinctFutureAnswers(openBorderTerminals,new Map(),new Set());
+      }
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
