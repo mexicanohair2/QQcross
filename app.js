@@ -1328,9 +1328,46 @@ function buildScanword(entries){
       };
       return order.every(route=>assign(route,new Set()));
     };
+    const topColumnHasCandidate= (column,requireCross=false)=>{
+      for(let length=3;length<=H-1;length++){
+        const positions=byLength.get(length),pool=entriesByLength.get(length);
+        if(!positions||!pool?.length)continue;
+        let possible=null,clear=true,crosses=0;
+        for(let step=1;step<=length;step++){
+          const key=step+","+column;
+          if(clueAt.has(key)||reservedKeys.has(key)){clear=false;break}
+          const letter=occupied.get(key);
+          if(letter===undefined)continue;
+          crosses++;
+          const matches=positions[step-1].get(letter)||[];
+          if(!matches.length){clear=false;break}
+          if(possible===null)possible=new Set(matches);
+          else{
+            const set=new Set(matches);
+            for(const item of possible)if(!set.has(item))possible.delete(item);
+          }
+          if(possible&&!possible.size){clear=false;break}
+        }
+        if(!clear||(requireCross&&crosses===0))continue;
+        const terminalY=length+1,terminalKey=terminalY+","+column;
+        const terminalInside=terminalY>=0&&terminalY<H;
+        if(terminalInside&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
+        const candidates=possible===null?pool:[...possible];
+        if(candidates.some(entry=>!used.has(entry.key)&&(!entry.imageKey||usedImages.size<7)))return true;
+      }
+      return false;
+    };
+    const topBordersHavePotential=(requireCross=false)=>{
+      for(let column=2;column<W;column++){
+        const clue=clueAt.get("0,"+column)||[];
+        if(clue.length)continue;
+        if(!topColumnHasCandidate(column,requireCross))return false;
+      }
+      return true;
+    };
     let seedSearchNodes=0;
     const placeTopBorderClues=column=>{
-      if(++seedSearchNodes>8000)return false;
+      if(++seedSearchNodes>3000)return false;
       if(column>=W)return borderTerminalsHaveDistinctAnswers();
       const startKey="0,"+column;
       if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1);
@@ -1361,12 +1398,12 @@ function buildScanword(entries){
     };
     const placeBorderRows=row=>{
       if(++seedSearchNodes>8000)return false;
-      if(row>=H)return placeTopBorderClues(2);
+      if(row>=H)return topBordersHavePotential(true)&&placeTopBorderClues(2);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1))return true;
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(false)&&placeBorderRows(row+1))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
