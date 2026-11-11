@@ -1046,6 +1046,8 @@ function buildScanword(entries){
         const playable=new Map();
         for(const nextDir of dirs){
           if(border&&nextDir.name!==border)continue;
+          const activeDirections=clueAt.get(routeY+","+routeX)||[];
+          if(activeDirections.some(word=>word.dir===nextDir.name))continue;
           const max=Math.min(12,nextDir.dy>0?H-1-routeY:nextDir.dy<0?routeY-1:nextDir.dx>0?W-1-routeX:routeX-1);
           for(let length=2;length<=max;length++){
             // Two-letter words are scarce and should close only the tight
@@ -1070,11 +1072,13 @@ function buildScanword(entries){
             }
             if(!clear)continue;
             const terminalY=routeY+nextDir.dy*(length+1),terminalX=routeX+nextDir.dx*(length+1),terminal=terminalY+","+terminalX;
+            const routeTerminalInside=terminalY>=0&&terminalX>=0&&terminalY<H&&terminalX<W;
             const terminalOutside=(nextDir.dy===1&&terminalY===H)||(nextDir.dx===1&&terminalX===W);
-            if(!terminalOutside&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||extraLetters.has(terminal)||occupied.has(terminal)||reservedKeys.has(terminal)))continue;
+            if(!routeTerminalInside&&!terminalOutside)continue;
+            if(routeTerminalInside&&(extraLetters.has(terminal)||occupied.has(terminal)||reservedKeys.has(terminal)))continue;
             // The bottom-right square cannot start an answer in either
             // permitted direction, so it must never be offered as a terminal.
-            if(terminalInside&&terminalY===H-1&&terminalX===W-1)continue;
+            if(routeTerminalInside&&terminalY===H-1&&terminalX===W-1)continue;
             const candidates=possible===null?pool:possible;
             const starts=(clueAt.get(routeY+","+routeX)||[]).length>0;
             for(const next of candidates){
@@ -1574,6 +1578,56 @@ function buildScanword(entries){
         }
       }
     }
+    // Greedy closure can strand a few terminal clues even when a different
+    // ordering of the remaining words would complete them. Resolve those
+    // clues with bounded backtracking, choosing the tightest cell first.
+    let closureNodes=0;
+    const closureOptions=key=>{
+      const [y,x]=key.split(",").map(Number),at=clueAt.get(key)||[],options=[];
+      for(let di=0;di<dirs.length;di++){
+        const dir=dirs[di];
+        if(at.some(word=>word.dir===dir.name))continue;
+        const border=y===0&&x>0?"down":x===0&&y>0?"right":null;
+        if(border&&dir.name!==border)continue;
+        const max=Math.min(12,dir.dy>0?H-1-y:W-1-x);
+        for(let length=max;length>=2;length--){
+          if(length===2&&!(y>0&&x>=5&&terminalKeys.has(key)))continue;
+          const cells=[];let valid=true;
+          for(let k=1;k<=length;k++){
+            const yy=y+dir.dy*k,xx=x+dir.dx*k,cellKey=yy+","+xx;
+            if(yy<0||xx<0||yy>=H||xx>=W||clueAt.has(cellKey)||reservedKeys.has(cellKey)){valid=false;break;}
+            cells.push([yy,xx]);
+          }
+          if(!valid)continue;
+          const ty=y+dir.dy*(length+1),tx=x+dir.dx*(length+1),terminalInside=ty>=0&&tx>=0&&ty<H&&tx<W;
+          const terminalOutside=(dir.dy===1&&ty===H)||(dir.dx===1&&tx===W);
+          if(!terminalInside&&!terminalOutside)continue;
+          const terminalKey=ty+","+tx;
+          if(terminalInside&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)||(ty===H-1&&tx===W-1)))continue;
+          const pool=(entriesByLength.get(length)||[]).filter(entry=>
+            !used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7&&at.length===0))&&
+            cells.every(([cy,cx],index)=>{const old=occupied.get(cy+","+cx);return old===undefined||old===entry.answer[index];})
+          );
+          pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||quality(b)-quality(a));
+          for(const entry of pool.slice(0,18))options.push({entry,y,x,di,length});
+        }
+      }
+      return options;
+    };
+    const closeRemainingQuestions=()=>{
+      if(++closureNodes>1800)return false;
+      const empty=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key])=>key);
+      if(!empty.length)return true;
+      const ranked=empty.map(key=>({key,options:closureOptions(key)})).sort((a,b)=>a.options.length-b.options.length);
+      if(!ranked[0].options.length)return false;
+      for(const option of ranked[0].options){
+        const snapshot=saveSeedState();
+        if(addWord(option.entry,option.y,option.x,option.di,"w"+words.length,"edge")&&closeRemainingQuestions())return true;
+        restoreSeedState(snapshot);
+      }
+      return false;
+    };
+    if([...clueAt.values()].some(list=>!list.length))closeRemainingQuestions();
     const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
     return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit};
   };
