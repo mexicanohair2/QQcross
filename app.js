@@ -1124,7 +1124,17 @@ function buildScanword(entries){
       // Keep a distinct unused dictionary answer for every existing open
       // terminal and for the terminal created by this candidate. Seed words
       // are the only exception: their full border is validated as one unit.
-      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues)){if(allowSeed==="border-seed")lastSeedReject={answer:entry.answer,start:key,terminal:terminalInside?terminalKey:null,open:[...futureOpenKeys]};return false;}
+      if(futureOpenKeys.size){
+        if(allowSeed==="border-seed"){
+          for(const openKey of futureOpenKeys){
+            const [openY,openX]=openKey.split(",").map(Number);
+            if(!playableEntriesFor(openY,openX,candidateLetterKeys,plannedClues).length){
+              lastSeedReject={answer:entry.answer,start:key,terminal:terminalInside?terminalKey:null,open:openKey};
+              return false;
+            }
+          }
+        }else if(!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      }
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
@@ -1287,7 +1297,7 @@ function buildScanword(entries){
           const terminalY=routeY+nextDir.dy*(length+1),terminalX=routeX+nextDir.dx*(length+1);
           const terminalInside=terminalY>=0&&terminalX>=0&&terminalY<H&&terminalX<W;
           const terminalAtEdge=(nextDir.dy===1&&terminalY===H)||(nextDir.dx===1&&terminalX===W);
-          if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)))continue;
+          if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)||(terminalY===H-1&&terminalX===W-1)))continue;
           if(!terminalInside&&!terminalAtEdge)continue;
           const candidates=possible===null?pool:[...possible];
           const viable=candidates.filter(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7)));
