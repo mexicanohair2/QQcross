@@ -1040,43 +1040,6 @@ function buildScanword(entries){
       // A question cell needs a dictionary-backed route for a future answer.
       // Existing letters may be crossed when they match; planned letters from
       // this placement are treated the same way instead of being blocked.
-      // Reject a continuation whose own terminal cannot be played.
-      // Without this lookahead, a route could end at the bottom-right corner.
-      const hasAnyContinuation=(startY,startX,extraLetters,extraClues,excludedAnswer)=>{
-        const startKey=startY+","+startX;
-        const border=startY===0&&startX>0?"down":startX===0&&startY>0?"right":null;
-        for(const nextDir of dirs){
-          if(border&&nextDir.name!==border)continue;
-          const max=Math.min(12,nextDir.dy>0?H-1-startY:nextDir.dx>0?W-1-startX:0);
-          for(let length=2;length<=max;length++){
-            if(length===2&&!(startY>0&&startX>=5&&(terminalKeys.has(startKey)||extraClues.has(startKey))))continue;
-            const positions=byLength.get(length),pool=entriesByLength.get(length);
-            if(!positions||!pool?.length)continue;
-            let possible=null,clear=true;
-            for(let step=1;step<=length;step++){
-              const cellKey=(startY+nextDir.dy*step)+","+(startX+nextDir.dx*step);
-              if(extraClues.has(cellKey)||clueAt.has(cellKey)||reservedKeys.has(cellKey)){clear=false;break}
-              const letter=extraLetters.has(cellKey)?extraLetters.get(cellKey):occupied.get(cellKey);
-              if(letter===undefined)continue;
-              const matches=new Set(positions[step-1].get(letter)||[]);
-              if(possible===null)possible=matches;
-              else for(const item of possible)if(!matches.has(item))possible.delete(item);
-              if(possible&&!possible.size){clear=false;break}
-            }
-            if(!clear)continue;
-            const terminalY=startY+nextDir.dy*(length+1),terminalX=startX+nextDir.dx*(length+1);
-            const terminalInside=terminalY>=0&&terminalX>=0&&terminalY<H&&terminalX<W;
-            const terminalAtEdge=(nextDir.dy===1&&terminalY===H)||(nextDir.dx===1&&terminalX===W);
-            const terminalKey=terminalY+","+terminalX;
-            if(terminalInside&&(extraLetters.has(terminalKey)||occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
-            if(!terminalInside&&!terminalAtEdge)continue;
-            const candidates=possible===null?pool:possible;
-            if([...candidates].some(candidate=>!used.has(candidate.key)&&candidate.key!==excludedAnswer&&
-              (!candidate.imageKey||(!usedImages.has(candidate.imageKey)&&usedImages.size<7))))return true;
-          }
-        }
-        return false;
-      };
       const playableEntriesFor=(routeY,routeX,extraLetters,extraClues)=>{
         const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
         const playable=new Map();
@@ -1108,22 +1071,14 @@ function buildScanword(entries){
             const terminalY=routeY+nextDir.dy*(length+1),terminalX=routeX+nextDir.dx*(length+1),terminal=terminalY+","+terminalX;
             const terminalOutside=(nextDir.dy===1&&terminalY===H)||(nextDir.dx===1&&terminalX===W);
             if(!terminalOutside&&(terminalY<0||terminalX<0||terminalY>=H||terminalX>=W||extraLetters.has(terminal)||occupied.has(terminal)||reservedKeys.has(terminal)))continue;
+            // The bottom-right square cannot start an answer in either
+            // permitted direction, so it must never be offered as a terminal.
+            if(terminalInside&&terminalY===H-1&&terminalX===W-1)continue;
             const candidates=possible===null?pool:possible;
             const starts=(clueAt.get(routeY+","+routeX)||[]).length>0;
             for(const next of candidates){
               if(used.has(next.key)||next.key===entry.key)continue;
               if(next.imageKey&&(starts||futureImageKeys.has(next.imageKey)||futureImageKeys.size>=7))continue;
-              if(terminalInside&&!(clueAt.get(terminal)||[]).length){
-                const nextLetters=new Map(extraLetters);
-                for(let index=0;index<next.answer.length;index++){
-                  const cellKey=(routeY+nextDir.dy*(index+1))+","+(routeX+nextDir.dx*(index+1));
-                  nextLetters.set(cellKey,next.answer[index]);
-                }
-                const nextClues=new Set(extraClues);
-                nextClues.add(routeY+","+routeX);
-                nextClues.add(terminal);
-                if(!hasAnyContinuation(terminalY,terminalX,nextLetters,nextClues,next.key))continue;
-              }
               playable.set(next.key,next);
             }
           }
