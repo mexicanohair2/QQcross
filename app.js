@@ -1121,6 +1121,7 @@ function buildScanword(entries){
                 }
                 const nextClues=new Set(extraClues);
                 nextClues.add(routeY+","+routeX);
+                nextClues.add(terminal);
                 if(!hasAnyContinuation(terminalY,terminalX,nextLetters,nextClues,next.key))continue;
               }
               playable.set(next.key,next);
