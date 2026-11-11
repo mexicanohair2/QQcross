@@ -1222,7 +1222,7 @@ function buildScanword(entries){
             !chosen.has(entry.key)&&entry.answer.length<=W-1&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
           );
-          const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=7)
+          const pool=available.filter(entry=>entry.answer.length>=3&&(entry.answer.length<=4||entry.answer.length===7))
             .sort((a,b)=>{
               const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
               const recentPenalty=entry=>{
