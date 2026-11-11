@@ -1739,12 +1739,17 @@ function buildScanword(entries){
     const rowImbalance=rowCounts.reduce((sum,count)=>sum+Math.max(0,count-3)*3+Math.max(0,1-count)*2,0);
     const columnImbalance=columnCounts.reduce((sum,count)=>sum+Math.max(0,count-4)*3+Math.max(0,1-count)*2,0);
     const spreadScore=rowSpread*100+columnSpread*100+quadrants.size*35-rowImbalance-columnImbalance;
-    // A fully chained scanword is more important than maximizing logic clues:
-    // first minimize terminal-only question cells, then maximize logic variety.
-    const rank=[-orphanCount,result?.coverage||0,borderScore,imageCount,-Math.abs(splitPromptCount-5),-Math.abs(promptCount-34),-Math.abs(startTileCount-29),logicCount,promptCount,spreadScore,-singleCount];
+    // Add 2–4 extra prompts in the central area, without crowding the borders.
+    const centerSplitCount=[...(result?.clueAt||new Map()).entries()].reduce((sum,[key,list])=>{
+      const [y,x]=key.split(",").map(Number);
+      return y>=3&&y<=8&&x>=2&&x<=5?sum+Math.max(0,list.length-1):sum;
+    },0);
+    // Prefer 7–9 split prompts overall, including 2–4 additional prompts in the center.
+    const rank=[-orphanCount,result?.coverage||0,borderScore,imageCount,-Math.abs(centerSplitCount-3),-Math.abs(splitPromptCount-8),-Math.abs(promptCount-37),-Math.abs(startTileCount-29),logicCount,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=5&&promptCount===34&&startTileCount===29)break;
+    const centerSplitCount=[...(result?.clueAt||new Map()).entries()].reduce((sum,[key,list])=>{const [y,x]=key.split(",").map(Number);return y>=3&&y<=8&&x>=2&&x<=5?sum+Math.max(0,list.length-1):sum},0);
+    if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&centerSplitCount>=2&&centerSplitCount<=4&&promptCount>=36&&promptCount<=38&&startTileCount===29)break;
   }
   if(best){
     // Remove only unlinked placeholders; every real answer terminal must
