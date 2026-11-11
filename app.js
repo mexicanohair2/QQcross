@@ -1209,7 +1209,9 @@ function buildScanword(entries){
       const initial=entry.answer[0],pool=firstLetterPools.get(initial)||[];
       pool.push(entry);firstLetterPools.set(initial,pool);
     }
-    const borderQuality=entry=>quality(entry)+(entry.answer.length===7?80:entry.answer.length===4?45:entry.answer.length===3?20:entry.answer.length===5?5:entry.answer.length===6?-40:-60);
+    // Keep the mandatory first left-border word wide, but prefer shorter
+    // later rows so they do not over-constrain all seven top-down crossings.
+    const borderQuality=entry=>quality(entry)+(entry.answer.length===4?85:entry.answer.length===5?70:entry.answer.length===3?55:entry.answer.length===6?25:entry.answer.length===7?0:-60);
     const borderPlans=[];
     for(const firstCandidate of eleven){
       const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
@@ -1235,7 +1237,7 @@ function buildScanword(entries){
           return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
         });
         if(!pool.length){valid=false;break}
-        const shortlist=pool.slice(0,Math.min(12,pool.length));
+        const shortlist=pool.slice(0,Math.min(20,pool.length));
         rowOptions.push(shortlist);
         const preferred=shortlist[0];
         rowEntries.push(preferred);chosen.add(preferred.key);
