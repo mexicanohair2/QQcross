@@ -1203,13 +1203,12 @@ function buildScanword(entries){
     for(const firstCandidate of eleven){
       for(const topCandidate of eleven){
         if(firstCandidate.key===topCandidate.key)continue;
-        const rowEntries=[],chosen=new Set([firstCandidate.key,topCandidate.key]);
+        const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key,topCandidate.key]);
         let score=quality(firstCandidate)+quality(topCandidate),valid=true;
         for(let row=1;row<H;row++){
           const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
           const available=(prefixPools.get(prefix)||[]).filter(entry=>
             !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-            (!entry.imageKey||rowEntries.filter(item=>item.imageKey).length<7)&&
             (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
           );
           const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=7)
@@ -1222,13 +1221,14 @@ function buildScanword(entries){
               },0);
               return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
             });
-          const eligible=pool.filter(candidate=>!candidate.imageKey||!usedImages.has(candidate.imageKey));
-          if(!eligible.length){valid=false;break}
-          // Keep high-quality everyday words, but vary the border plan between
-          // attempts so a locally attractive word cannot lock every crossing.
-          const shortlist=eligible.slice(0,Math.min(8,eligible.length));
-          const entry=shortlist[Math.floor(Math.random()*shortlist.length)];
-          rowEntries.push(entry);chosen.add(entry.key);score+=quality(entry);
+          if(!pool.length){valid=false;break}
+          // Keep several alternatives per border row. The actual seed is
+          // selected with bounded backtracking against live route constraints.
+          const shortlist=pool.slice(0,Math.min(12,pool.length));
+          rowOptions.push(shortlist);
+          const preferred=shortlist[0];
+          rowEntries.push(preferred);
+          score+=quality(preferred);
         }
         if(valid){
           const terminalColumns=rowEntries.map(entry=>entry.answer.length+1);
@@ -1237,7 +1237,7 @@ function buildScanword(entries){
             if(distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
           }
           score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
-          borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowEntries,score});
+          borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowOptions,score});
         }
       }
     }
@@ -1254,15 +1254,43 @@ function buildScanword(entries){
     frontier.add("0,1");
     firstCells.forEach(cell=>addFrontier(cell[0],cell[1]));
 
-    // Each left-edge answer is selected by the two crossing letters from
-    // the opening and the second top-edge vertical answer.
-    for(let row=1;row<H;row++){
-      const entry=plan.rows[row-1];
-      lastSeedReject=null;
-      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed")){rejectedSeed++;if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});return null;}
-    }
+    // Place the second vertical answer first, then solve the eleven left
+    // border rows as a constrained seed problem. Backtracking is essential:
+    // a locally valid row can consume the only route needed by a later clue.
     lastSeedReject=null;
     if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed")){rejectedSeed++;if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row:0,answer:topAnchor.answer,reason:lastSeedReject});return null;}
+    const saveSeedState=()=>({
+      occupied:new Map(occupied),
+      clueAt:new Map([...clueAt].map(([key,list])=>[key,list.slice()])),
+      used:new Set(used),
+      usedImages:new Set(usedImages),
+      words:words.slice(),
+      frontier:new Set(frontier),
+      terminalKeys:new Set(terminalKeys)
+    });
+    const restoreSeedState=state=>{
+      occupied.clear();for(const [key,value] of state.occupied)occupied.set(key,value);
+      clueAt.clear();for(const [key,list] of state.clueAt)clueAt.set(key,list.slice());
+      used.clear();for(const value of state.used)used.add(value);
+      usedImages.clear();for(const value of state.usedImages)usedImages.add(value);
+      words.length=0;words.push(...state.words);
+      frontier.clear();for(const value of state.frontier)frontier.add(value);
+      terminalKeys.clear();for(const value of state.terminalKeys)terminalKeys.add(value);
+    };
+    const placeBorderRows=row=>{
+      if(row>=H)return true;
+      for(const entry of plan.rows[row-1]){
+        if(used.has(entry.key))continue;
+        const snapshot=saveSeedState();
+        lastSeedReject=null;
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1))return true;
+        if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
+        if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
+        restoreSeedState(snapshot);
+      }
+      return false;
+    };
+    if(!placeBorderRows(1)){rejectedSeed++;return null;}
 
     // Reject a border plan before greedy filling if any of its mandatory
     // clue cells is already trapped. Every empty question must have at least
