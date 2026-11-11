@@ -1404,7 +1404,10 @@ function buildScanword(entries){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(false)&&placeBorderRows(row+1))return true;
+        // Do not prune a partial left-border plan by checking every top column
+        // too early: later rows may supply the crossings those columns need.
+        // Validate all top-border routes only after the complete left edge exists.
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
