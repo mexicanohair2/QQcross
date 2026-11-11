@@ -1337,9 +1337,39 @@ function buildScanword(entries){
       return order.every(route=>assign(route,new Set()));
     };
     let seedSearchNodes=0;
+    const placeTopBorderClues=column=>{
+      if(++seedSearchNodes>8000)return false;
+      if(column>=W)return borderTerminalsHaveDistinctAnswers();
+      const startKey="0,"+column;
+      if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1);
+      const options=[];
+      for(let length=3;length<=H-1;length++){
+        for(const entry of entriesByLength.get(length)||[]){
+          if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7)))continue;
+          let fits=true;
+          for(let step=1;step<=length;step++){
+            const cellKey=step+","+column;
+            if(clueAt.has(cellKey)||reservedKeys.has(cellKey)){fits=false;break}
+            const oldLetter=occupied.get(cellKey);
+            if(oldLetter!==undefined&&oldLetter!==entry.answer[step-1]){fits=false;break}
+          }
+          if(fits)options.push(entry);
+        }
+      }
+      // Image clues are intentionally ranked first here: all remaining top
+      // border cells are mandatory starts, and this is the cleanest place to
+      // reach the seven distinct picture clues without duplicating clue tiles.
+      options.sort((a,b)=>quality(b)-quality(a));
+      for(const entry of options.slice(0,48)){
+        const snapshot=saveSeedState();
+        if(addWord(entry,0,column,1,"w"+words.length,"border-seed")&&placeTopBorderClues(column+1))return true;
+        restoreSeedState(snapshot);
+      }
+      return false;
+    };
     const placeBorderRows=row=>{
-      if(++seedSearchNodes>4000)return false;
-      if(row>=H)return borderTerminalsHaveDistinctAnswers();
+      if(++seedSearchNodes>8000)return false;
+      if(row>=H)return placeTopBorderClues(3);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
