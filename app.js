@@ -999,7 +999,7 @@ function buildScanword(entries){
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
   let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
   const rejectedSeedSamples=[],closureRejectSamples=[];
-  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
+  let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity,bestCenterSplitCount=0,bestPromptCount=0,bestStartTileCount=0;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set(),terminalKeys=new Set();
@@ -1752,8 +1752,8 @@ function buildScanword(entries){
     // Prefer 7–9 split prompts overall, including 2–4 additional prompts in the center.
     const rank=[-orphanCount,result?.coverage||0,borderScore,imageCount,-Math.abs(centerSplitCount-3),-Math.abs(splitPromptCount-8),-Math.abs(promptCount-37),-Math.abs(startTileCount-29),logicCount,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
-    if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&centerSplitCount>=2&&centerSplitCount<=4&&promptCount>=36&&promptCount<=38&&startTileCount===29)break;
+    if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;bestCenterSplitCount=centerSplitCount;bestPromptCount=promptCount;bestStartTileCount=startTileCount;best=result;}
+    if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&bestCenterSplitCount>=2&&bestCenterSplitCount<=4&&bestPromptCount>=36&&bestPromptCount<=38&&bestStartTileCount===29)break;
   }
   if(best){
     // Remove only unlinked placeholders; every real answer terminal must
@@ -1778,7 +1778,7 @@ function buildScanword(entries){
     }
     best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
   }
-  if(!best||best.coverage!==TOTAL||bestImageCount!==7||bestOrphanCount!==0||bestTopCount!==7||bestLeftCount!==11){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");
+  if(!best||best.coverage!==TOTAL||bestImageCount!==7||bestOrphanCount!==0||bestTopCount!==7||bestLeftCount!==11||bestSingleCount!==0||bestLogicCount<3||bestSplitCount<7||bestSplitCount>9||bestCenterSplitCount<2||bestCenterSplitCount>4||bestPromptCount<36||bestPromptCount>38||bestStartTileCount!==29){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");
     const orphanDetails=openEnds.map(key=>{
       const [oy,ox]=key.split(",").map(Number);
       const incoming=(best?.words||[]).filter(word=>{
