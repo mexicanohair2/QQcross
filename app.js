@@ -855,7 +855,7 @@ function fitScanwordClue(value,answer=""){
   }
   return compact;
 }
-const SCANWORD_BLOCKED_SHORT_ANSWERS=new Set(["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ","ДО","РЕ","МИ","ФА","ЛЯ","СИ"]);
+const SCANWORD_BLOCKED_SHORT_ANSWERS=new Set(["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ","ДО","РЕ","МИ","ФА","ЛЯ"]);
 const SCANWORD_IMAGE_KEYS=new Set(["airplane","apple","ball","banana","bear","bee","bicycle","boat","book","bus","butterfly","car","carrot","cat","clock","cloud","crocodile","cucumber","cup","dog","dolphin","fish","fox","giraffe","grapes","guitar","hedgehog","house","kangaroo","key","lemon","lion","octopus","orange","owl","parrot","penguin","snail","spider","strawberry","sun","sunflower","tiger","tomato","whale","zebra"]);
 function normalizeScanwordEntry(item){
   if(!item||typeof item!=="object")return null;
