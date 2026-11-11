@@ -1049,7 +1049,7 @@ function buildScanword(entries){
           for(let length=2;length<=max;length++){
             // Two-letter words are scarce and should close only the tight
             // right-edge terminals created by left-border answers.
-            if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(routeY+","+routeX)))continue;
+            if(length===2&&!(routeY>0&&routeX>=5&&(terminalKeys.has(routeY+","+routeX)||extraClues.has(routeY+","+routeX))))continue;
             const positions=byLength.get(length),pool=entriesByLength.get(length);
             if(!positions||!pool?.length)continue;
             let possible=null,clear=true;
@@ -1120,7 +1120,7 @@ function buildScanword(entries){
       // Keep a distinct unused dictionary answer for every existing open
       // terminal and for the terminal created by this candidate. Seed words
       // are the only exception: their full border is validated as one unit.
-      if(allowSeed!=="border-seed"&&futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
