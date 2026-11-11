@@ -1201,7 +1201,8 @@ function buildScanword(entries){
     // Select the eleven-letter opening and its crossing border plan from
     // dictionary content. Only the geometry is fixed: clue (0,1), downward,
     // exactly eleven letters. No answer or row-word list is hard-coded.
-    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey);
+    const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ)$/;
+    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
     const prefixPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<2)continue;
