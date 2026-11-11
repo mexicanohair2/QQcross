@@ -1203,64 +1203,58 @@ function buildScanword(entries){
     // exactly eleven letters. No answer or row-word list is hard-coded.
     const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
     const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
-    const prefixPools=new Map();
+    const firstLetterPools=new Map();
     for(const entry of normalized){
-      if(entry.answer.length<2)continue;
-      const prefix=entry.answer.slice(0,2),pool=prefixPools.get(prefix)||[];
-      pool.push(entry);prefixPools.set(prefix,pool);
+      if(entry.answer.length<3||entry.answer.length>7)continue;
+      const initial=entry.answer[0],pool=firstLetterPools.get(initial)||[];
+      pool.push(entry);firstLetterPools.set(initial,pool);
     }
     const borderQuality=entry=>quality(entry)+(entry.answer.length===7?80:entry.answer.length===4?45:entry.answer.length===3?20:entry.answer.length===5?5:entry.answer.length===6?-40:-60);
     const borderPlans=[];
     for(const firstCandidate of eleven){
-      for(const topCandidate of eleven){
-        if(firstCandidate.key===topCandidate.key)continue;
-        const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key,topCandidate.key]);
-        let score=quality(firstCandidate)+quality(topCandidate),valid=true;
-        for(let row=1;row<H;row++){
-          const prefix=firstCandidate.answer[row-1]+topCandidate.answer[row-1];
-          const available=(prefixPools.get(prefix)||[]).filter(entry=>
-            !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-            (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
-          );
-          const pool=available.filter(entry=>entry.answer.length>=3&&entry.answer.length<=7)
-            .sort((a,b)=>{
-              const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
-              const recentPenalty=entry=>{
-                const column=terminalColumn(entry);
-                if(column===null)return 0;
-                return rowEntries.reduce((penalty,previous,index)=>{
-                  const distance=row-(index+1),previousColumn=terminalColumn(previous);
-                  if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
-                  return penalty+(distance===1?180:distance===2?100:0);
-                },0);
-              };
-              return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
-            });
-          if(!pool.length){valid=false;break}
-          // Keep several alternatives per border row. The actual seed is
-          // selected with bounded backtracking against live route constraints.
-          const shortlist=pool.slice(0,Math.min(12,pool.length));
-          rowOptions.push(shortlist);
-          const preferred=shortlist[0];
-          rowEntries.push(preferred);
-          score+=quality(preferred);
+      const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
+      let score=quality(firstCandidate),valid=true;
+      for(let row=1;row<H;row++){
+        const initial=firstCandidate.answer[row-1];
+        const available=(firstLetterPools.get(initial)||[]).filter(entry=>
+          !chosen.has(entry.key)&&entry.answer.length<=W-1&&
+          (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
+        );
+        const pool=available.slice().sort((a,b)=>{
+          const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
+          const recentPenalty=entry=>{
+            const column=terminalColumn(entry);
+            if(column===null)return 0;
+            return rowEntries.reduce((penalty,previous,index)=>{
+              const distance=row-(index+1),previousColumn=terminalColumn(previous);
+              if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
+              return penalty+(distance===1?180:distance===2?100:0);
+            },0);
+          };
+          return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
+        });
+        if(!pool.length){valid=false;break}
+        const shortlist=pool.slice(0,Math.min(12,pool.length));
+        rowOptions.push(shortlist);
+        const preferred=shortlist[0];
+        rowEntries.push(preferred);chosen.add(preferred.key);
+        score+=quality(preferred);
+      }
+      if(valid){
+        const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
+        for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
+          const distance=j-i;
+          if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
         }
-        if(valid){
-          const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
-          for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
-            const distance=j-i;
-            if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
-          }
-          score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
-          borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowOptions,score});
-        }
+        score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
+        borderPlans.push({first:firstCandidate,rows:rowOptions,score});
       }
     }
     if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
     const preferredPlans=borderPlans.slice(0,Math.min(24,borderPlans.length));
     const plan=preferredPlans[Math.floor(Math.random()*preferredPlans.length)];
-    const first=plan.first,topAnchor=plan.top;
+    const first=plan.first;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
     const firstWord={id:"w0",answer:first.answer,sourceAnswer:first.answer,clue:first.clue,clueShort:first.clueShort,isEmoji:first.emoji,logic:!!first.logic,imageKey:null,dir:"down",dirIndex:1,cells:firstCells,clueCell:[0,1]};
@@ -1272,8 +1266,6 @@ function buildScanword(entries){
     // Place the second vertical answer first, then solve the eleven left
     // border rows as a constrained seed problem. Backtracking is essential:
     // a locally valid row can consume the only route needed by a later clue.
-    lastSeedReject=null;
-    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed")){rejectedSeed++;if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row:0,answer:topAnchor.answer,reason:lastSeedReject});return null;}
     const saveSeedState=()=>({
       occupied:new Map(occupied),
       clueAt:new Map([...clueAt].map(([key,list])=>[key,list.slice()])),
@@ -1369,7 +1361,7 @@ function buildScanword(entries){
     };
     const placeBorderRows=row=>{
       if(++seedSearchNodes>8000)return false;
-      if(row>=H)return placeTopBorderClues(3);
+      if(row>=H)return placeTopBorderClues(2);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
