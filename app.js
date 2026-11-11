@@ -998,7 +998,7 @@ function buildScanword(entries){
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
   let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
-  const rejectedSeedSamples=[];
+  const rejectedSeedSamples=[],closureRejectSamples=[];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1137,7 +1137,13 @@ function buildScanword(entries){
               return false;
             }
           }
-        }else if(!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+        }else if(!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues)){
+          if(allowSeed==="edge"&&closureRejectSamples.length<24)closureRejectSamples.push({
+            answer:entry.answer,start:key,
+            open:[...futureOpenKeys].map(openKey=>({key:openKey,answers:playableEntriesFor(...openKey.split(",").map(Number),candidateLetterKeys,plannedClues).slice(0,8).map(next=>next.answer)}))
+          });
+          return false;
+        }
       }
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
@@ -1629,7 +1635,7 @@ function buildScanword(entries){
     };
     if([...clueAt.values()].some(list=>!list.length))closeRemainingQuestions();
     const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
-    return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit};
+    return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit,closureRejectSamples:closureRejectSamples.slice(-24)};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
   // Retry substantially more often, but stop immediately once a fully valid
@@ -1730,7 +1736,7 @@ function buildScanword(entries){
       }).filter(Boolean);
       return {key,incoming,routes};
     });
-    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", примеры отказа старта: "+JSON.stringify(rejectedSeedSamples)+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", примеры отказа старта: "+JSON.stringify(rejectedSeedSamples)+", отказы закрытия: "+JSON.stringify(best?.closureRejectSamples||[])+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
