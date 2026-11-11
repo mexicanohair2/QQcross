@@ -1213,12 +1213,16 @@ function buildScanword(entries){
           );
           const pool=available.filter(entry=>entry.answer.length>=2&&entry.answer.length<=7)
             .sort((a,b)=>{
-              const terminalColumn=entry=>entry.answer.length+1;
-              const recentPenalty=entry=>rowEntries.reduce((penalty,previous,index)=>{
-                const distance=row-(index+1);
-                if(distance>2||terminalColumn(previous)!==terminalColumn(entry))return penalty;
-                return penalty+(distance===1?180:distance===2?100:0);
-              },0);
+              const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
+              const recentPenalty=entry=>{
+                const column=terminalColumn(entry);
+                if(column===null)return 0;
+                return rowEntries.reduce((penalty,previous,index)=>{
+                  const distance=row-(index+1),previousColumn=terminalColumn(previous);
+                  if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
+                  return penalty+(distance===1?180:distance===2?100:0);
+                },0);
+              };
               return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
             });
           if(!pool.length){valid=false;break}
@@ -1231,10 +1235,10 @@ function buildScanword(entries){
           score+=quality(preferred);
         }
         if(valid){
-          const terminalColumns=rowEntries.map(entry=>entry.answer.length+1);
+          const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
           for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
             const distance=j-i;
-            if(distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
+            if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
           }
           score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
           borderPlans.push({first:firstCandidate,top:topCandidate,rows:rowOptions,score});
