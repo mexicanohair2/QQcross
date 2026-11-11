@@ -1251,6 +1251,7 @@ function buildScanword(entries){
     // Reject a border plan before greedy filling if any of its mandatory
     // clue cells is already trapped. Every empty question must have at least
     // one unused dictionary answer that can legally leave it rightward/downward.
+    const borderRouteAudit=[];
     const hasViableOpenRoute=startKey=>{
       const [routeY,routeX]=startKey.split(",").map(Number);
       const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
@@ -1283,7 +1284,11 @@ function buildScanword(entries){
           if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)))continue;
           if(!terminalInside&&!terminalAtEdge)continue;
           const candidates=possible===null?pool:[...possible];
-          if(candidates.some(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7))))return true;
+          const viable=candidates.filter(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7)));
+          if(viable.length){
+            borderRouteAudit.push({key:startKey,dir:nextDir.name,length,pattern:Array.from({length},(_,index)=>occupied.get((routeY+nextDir.dy*(index+1))+","+(routeX+nextDir.dx*(index+1)))||".").join(""),answers:viable.slice(0,8).map(entry=>entry.answer)});
+            return true;
+          }
         }
       }
       return false;
@@ -1476,7 +1481,7 @@ function buildScanword(entries){
       }
     }
     const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
-    return {coverage,dangling,occupied,clueAt,words,reservedKeys};
+    return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit};
   };
   // Randomized restarts avoid the dead ends of a single greedy fill.
   // Retry substantially more often, but stop immediately once a fully valid
@@ -1577,7 +1582,7 @@ function buildScanword(entries){
       }).filter(Boolean);
       return {key,incoming,routes};
     });
-    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
