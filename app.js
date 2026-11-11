@@ -1052,7 +1052,7 @@ function buildScanword(entries){
           for(let length=2;length<=max;length++){
             // Two-letter words are scarce and should close only the tight
             // right-edge terminals created by left-border answers.
-            if(length===2&&!(routeY>0&&routeX>=5&&(terminalKeys.has(routeY+","+routeX)||extraClues.has(routeY+","+routeX))))continue;
+            if(length===2&&!(routeY===0&&routeX>0)&&!(routeY>0&&routeX>=5&&(terminalKeys.has(routeY+","+routeX)||extraClues.has(routeY+","+routeX))))continue;
             const positions=byLength.get(length),pool=entriesByLength.get(length);
             if(!positions||!pool?.length)continue;
             let possible=null,clear=true;
@@ -1292,7 +1292,7 @@ function buildScanword(entries){
         if(border&&dir.name!==border)continue;
         const max=Math.min(12,dir.dy>0?H-1-routeY:W-1-routeX);
         for(let length=2;length<=max;length++){
-          if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
+          if(length===2&&!(routeY===0&&routeX>0)&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
           const pool=entriesByLength.get(length)||[];
           const matching=pool.filter(candidate=>{
             if(used.has(candidate.key)||(candidate.imageKey&&(usedImages.has(candidate.imageKey)||usedImages.size>=7)))return false;
@@ -1330,7 +1330,7 @@ function buildScanword(entries){
       return order.every(route=>assign(route,new Set()));
     };
     const topColumnHasCandidate= (column,requireCross=false)=>{
-      for(let length=3;length<=H-1;length++){
+      for(let length=2;length<=H-1;length++){
         const positions=byLength.get(length),pool=entriesByLength.get(length);
         if(!positions||!pool?.length)continue;
         let possible=null,clear=true,crosses=0;
@@ -1373,7 +1373,7 @@ function buildScanword(entries){
       const startKey="0,"+column;
       if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1);
       const options=[];
-      for(let length=3;length<=H-1;length++){
+      for(let length=2;length<=H-1;length++){
         for(const entry of entriesByLength.get(length)||[]){
           if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7)))continue;
           let fits=true;
@@ -1429,7 +1429,7 @@ function buildScanword(entries){
         if(active.some(word=>word.dir===nextDir.name))continue;
         const max=Math.min(12,nextDir.dy>0?H-1-routeY:nextDir.dx>0?W-1-routeX:0);
         for(let length=2;length<=max;length++){
-          if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
+          if(length===2&&!(routeY===0&&routeX>0)&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
           const positions=byLength.get(length),pool=entriesByLength.get(length);
           if(!positions||!pool?.length)continue;
           let possible=null,clear=true;
