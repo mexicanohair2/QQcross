@@ -1281,13 +1281,54 @@ function buildScanword(entries){
       frontier.clear();for(const value of state.frontier)frontier.add(value);
       terminalKeys.clear();for(const value of state.terminalKeys)terminalKeys.add(value);
     };
+    const borderRouteCandidates=startKey=>{
+      const [routeY,routeX]=startKey.split(",").map(Number),candidates=new Set();
+      const border=routeY===0&&routeX>0?"down":routeX===0&&routeY>0?"right":null;
+      for(const dir of dirs){
+        if(border&&dir.name!==border)continue;
+        const max=Math.min(12,dir.dy>0?H-1-routeY:W-1-routeX);
+        for(let length=2;length<=max;length++){
+          if(length===2&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
+          const pool=entriesByLength.get(length)||[];
+          const matching=pool.filter(candidate=>{
+            if(used.has(candidate.key)||(candidate.imageKey&&(usedImages.has(candidate.imageKey)||usedImages.size>=7)))return false;
+            for(let step=1;step<=length;step++){
+              const y=routeY+dir.dy*step,x=routeX+dir.dx*step,key=y+","+x;
+              if(clueAt.has(key)||reservedKeys.has(key))return false;
+              const letter=occupied.get(key);
+              if(letter!==undefined&&letter!==candidate.answer[step-1])return false;
+            }
+            const ty=routeY+dir.dy*(length+1),tx=routeX+dir.dx*(length+1);
+            const inside=ty>=0&&tx>=0&&ty<H&&tx<W;
+            const edge=(dir.dy===1&&ty===H)||(dir.dx===1&&tx===W);
+            if(!inside&&!edge)return false;
+            if(inside&&(occupied.has(ty+","+tx)||reservedKeys.has(ty+","+tx)||(ty===H-1&&tx===W-1)))return false;
+            return true;
+          });
+          matching.forEach(candidate=>candidates.add(candidate.key));
+        }
+      }
+      return [...candidates];
+    };
+    const borderTerminalsHaveDistinctAnswers=()=>{
+      const routes=[...terminalKeys].filter(key=>!(clueAt.get(key)||[]).length).map(borderRouteCandidates);
+      if(routes.some(route=>!route.length))return false;
+      const order=routes.slice().sort((a,b)=>a.length-b.length),owners=new Map();
+      const assign=(route,seen)=>{
+        for(const key of route){
+          if(seen.has(key))continue;
+          seen.add(key);
+          const previous=owners.get(key);
+          if(previous===undefined||assign(previous,seen)){owners.set(key,route);return true;}
+        }
+        return false;
+      };
+      return order.every(route=>assign(route,new Set()));
+    };
     let seedSearchNodes=0;
     const placeBorderRows=row=>{
       if(++seedSearchNodes>4000)return false;
-      if(row>=H){
-        const openBorderTerminals=[...terminalKeys].filter(openKey=>!(clueAt.get(openKey)||[]).length);
-        return hasDistinctFutureAnswers(openBorderTerminals,new Map(),new Set());
-      }
+      if(row>=H)return borderTerminalsHaveDistinctAnswers();
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
