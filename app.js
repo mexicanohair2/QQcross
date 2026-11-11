@@ -997,7 +997,8 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
-  let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0;
+  let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
+  const rejectedSeedSamples=[];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
@@ -1123,7 +1124,7 @@ function buildScanword(entries){
       // Keep a distinct unused dictionary answer for every existing open
       // terminal and for the terminal created by this candidate. Seed words
       // are the only exception: their full border is validated as one unit.
-      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues))return false;
+      if(futureOpenKeys.size&&!hasDistinctFutureAnswers([...futureOpenKeys],candidateLetterKeys,plannedClues)){if(allowSeed==="border-seed")lastSeedReject={answer:entry.answer,start:key,terminal:terminalInside?terminalKey:null,open:[...futureOpenKeys]};return false;}
       for(let k=1;k<=entry.answer.length;k++){
         const yy=y+dir.dy*k,xx=x+dir.dx*k;
         if(yy<0||xx<0||yy>=H||xx>=W)return false;
@@ -1247,9 +1248,11 @@ function buildScanword(entries){
     // the opening and the second top-edge vertical answer.
     for(let row=1;row<H;row++){
       const entry=plan.rows[row-1];
-      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed")){rejectedSeed++;return null;}
+      lastSeedReject=null;
+      if(!addWord(entry,row,0,0,"w"+words.length,"border-seed")){rejectedSeed++;if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});return null;}
     }
-    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed")){rejectedSeed++;return null;}
+    lastSeedReject=null;
+    if(!addWord(topAnchor,0,2,1,"w"+words.length,"border-seed")){rejectedSeed++;if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row:0,answer:topAnchor.answer,reason:lastSeedReject});return null;}
 
     // Reject a border plan before greedy filling if any of its mandatory
     // clue cells is already trapped. Every empty question must have at least
@@ -1585,7 +1588,7 @@ function buildScanword(entries){
       }).filter(Boolean);
       return {key,incoming,routes};
     });
-    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", примеры отказа старта: "+JSON.stringify(rejectedSeedSamples)+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
