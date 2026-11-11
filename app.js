@@ -1748,7 +1748,6 @@ function buildScanword(entries){
     const rank=[-orphanCount,result?.coverage||0,borderScore,imageCount,-Math.abs(centerSplitCount-3),-Math.abs(splitPromptCount-8),-Math.abs(promptCount-37),-Math.abs(startTileCount-29),logicCount,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    const centerSplitCount=[...(result?.clueAt||new Map()).entries()].reduce((sum,[key,list])=>{const [y,x]=key.split(",").map(Number);return y>=3&&y<=8&&x>=2&&x<=5?sum+Math.max(0,list.length-1):sum},0);
     if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&centerSplitCount>=2&&centerSplitCount<=4&&promptCount>=36&&promptCount<=38&&startTileCount===29)break;
   }
   if(best){
