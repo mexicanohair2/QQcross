@@ -1277,7 +1277,9 @@ function buildScanword(entries){
       frontier.clear();for(const value of state.frontier)frontier.add(value);
       terminalKeys.clear();for(const value of state.terminalKeys)terminalKeys.add(value);
     };
+    let seedSearchNodes=0;
     const placeBorderRows=row=>{
+      if(++seedSearchNodes>400)return false;
       if(row>=H)return true;
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
