@@ -1198,7 +1198,7 @@ function buildScanword(entries){
       const prefix=entry.answer.slice(0,2),pool=prefixPools.get(prefix)||[];
       pool.push(entry);prefixPools.set(prefix,pool);
     }
-    const borderQuality=entry=>quality(entry)+(entry.answer.length===7?52:entry.answer.length===6?34:entry.answer.length===5?12:entry.answer.length===4?-4:entry.answer.length===3?-18:-42);
+    const borderQuality=entry=>quality(entry)+(entry.answer.length===7?80:entry.answer.length===4?45:entry.answer.length===3?20:entry.answer.length===5?5:entry.answer.length===6?-40:-60);
     const borderPlans=[];
     for(const firstCandidate of eleven){
       for(const topCandidate of eleven){
