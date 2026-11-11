@@ -1255,7 +1255,7 @@ function buildScanword(entries){
     }
     if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
-    const preferredPlans=borderPlans.slice(0,Math.min(24,borderPlans.length));
+    const preferredPlans=borderPlans.slice(0,Math.min(48,borderPlans.length));
     const plan=preferredPlans[Math.floor(Math.random()*preferredPlans.length)];
     const first=plan.first;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
@@ -1370,7 +1370,7 @@ function buildScanword(entries){
     };
     let seedSearchNodes=0;
     const placeTopBorderClues=column=>{
-      if(++seedSearchNodes>3000)return false;
+      if(++seedSearchNodes>6000)return false;
       if(column>=W)return borderTerminalsHaveDistinctAnswers();
       const startKey="0,"+column;
       if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1);
@@ -1400,16 +1400,16 @@ function buildScanword(entries){
       return false;
     };
     const placeBorderRows=row=>{
-      if(++seedSearchNodes>8000)return false;
+      if(++seedSearchNodes>20000)return false;
       if(row>=H)return topBordersHavePotential(true)&&placeTopBorderClues(2);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        // Keep each top clue viable while extending the left border. Two-letter
-        // top answers are now permitted, so this pruning no longer excludes
-        // valid short crossings.
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(false)&&placeBorderRows(row+1))return true;
+        // Backtrack across the entire left edge before solving the top row.
+        // A partial row can temporarily block a top route that a later choice
+        // would preserve; the completed top border is checked at the leaf.
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
