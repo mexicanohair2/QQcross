@@ -134,7 +134,16 @@ function validate(puzzle, run) {
   }
   const startTileCount = new Set(puzzle.words.map(word => word.clueCell.join(","))).size;
   const splitPromptCount = puzzle.words.length - startTileCount;
-  if(startTileCount!==29||puzzle.words.length!==34||splitPromptCount!==5) throw new Error("Run "+run+": expected 29 clue tiles and 34 prompts, got "+startTileCount+" tiles and "+puzzle.words.length+" prompts");
+  const promptsByCell = new Map();
+  for (const word of puzzle.words) {
+    const key = word.clueCell.join(",");
+    promptsByCell.set(key, (promptsByCell.get(key) || 0) + 1);
+  }
+  const centerSplitCount = [...promptsByCell.entries()].reduce((sum, [key, count]) => {
+    const [y, x] = key.split(",").map(Number);
+    return y >= 3 && y <= 8 && x >= 2 && x <= 5 ? sum + Math.max(0, count - 1) : sum;
+  }, 0);
+  if(startTileCount!==29||puzzle.words.length<36||puzzle.words.length>38||splitPromptCount<7||splitPromptCount>9||centerSplitCount<2||centerSplitCount>4) throw new Error("Run "+run+": expected 29 clue tiles, 36–38 prompts, 7–9 split prompts and 2–4 extra center prompts; got "+startTileCount+" tiles, "+puzzle.words.length+" prompts, "+splitPromptCount+" splits and "+centerSplitCount+" center splits");
   const commonAnswerCount = puzzle.words.filter(word => commonWords.has(normalizeAnswer(word.answer))).length;
   const commonAnswerRatio = commonAnswerCount / puzzle.words.length;
   if (commonAnswerRatio < 0.65) throw new Error("Run " + run + ": too few everyday words (" + commonAnswerCount + "/" + puzzle.words.length + ")");
