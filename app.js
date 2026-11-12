@@ -1028,7 +1028,6 @@ function buildScanword(entries){
     const borderPlans=[];
     for(const firstCandidate of eleven){
       const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
-      let feasibleRow2Keys=null;
       let score=quality(firstCandidate),valid=true;
       for(let row=1;row<H;row++){
         const initial=firstCandidate.answer[row-1];
@@ -1040,10 +1039,6 @@ function buildScanword(entries){
         );
         // Both first left-border answers must span all seven columns: every top
         // clue needs at least two letters before its vertical route can continue.
-        if(row===2){
-          const firstRow=rowEntries[0];
-          available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
-        }
         let pool=available.slice().sort((a,b)=>{
           const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
           const recentPenalty=entry=>{
@@ -1059,32 +1054,24 @@ function buildScanword(entries){
         });
         if(row===1){
           const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
-            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
-          let selectedFirst=null,selectedSecondKeys=new Set();
-          for(const candidate of pool){
-            const feasibleSeconds=secondCandidates.filter(second=>
-              second.key!==candidate.key&&
-              !(candidate.imageKey&&candidate.imageKey===second.imageKey)&&
-              compatibleTopPrefixRows(candidate,second)
-            );
-            if(feasibleSeconds.length){
-              selectedFirst=candidate;
-              selectedSecondKeys=new Set(feasibleSeconds.map(second=>second.key));
-              break;
-            }
-          }
-          feasibleRow2Keys=selectedSecondKeys;
-          pool=selectedFirst?[selectedFirst]:[];
+            .filter(entry=>entry.answer.length===W-1&&entry.key!==firstCandidate.key);
+          // Keep several first-row alternatives. The paired second row is
+          // chosen later against the actual first-row answer in backtracking.
+          pool=pool.filter(candidate=>secondCandidates.some(second=>
+            second.key!==candidate.key&&
+            !(candidate.imageKey&&candidate.imageKey===second.imageKey)&&
+            compatibleTopPrefixRows(candidate,second)
+          ));
         }
         if(row>=3){
           // Keep a wider pool: real top-down crossings are known during
           // recursive placement, so later rows can be checked against them.
           pool=pool.slice(0,55);
         }
-        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
-        const shortlist=pool.slice(0,Math.min(row>=3?55:20,pool.length));
+        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
+        const shortlist=pool.slice(0,Math.min(row===1?40:55,pool.length));
         const preferred=shortlist[0];
-        rowOptions.push(row===1?[preferred]:shortlist);
+        rowOptions.push(shortlist);
         rowEntries.push(preferred);chosen.add(preferred.key);
         score+=quality(preferred);
       }
@@ -1444,21 +1431,23 @@ function buildScanword(entries){
       }
       return false;
     };
-    const placeBorderRows=(row,topDone=false)=>{
+    const placeBorderRows=(row,topDone=false,chosenRows=[])=>{
       if(++seedSearchNodes>30000)return false;
       if(row>=H)return borderTerminalsHaveDistinctAnswers();
-      // Both mandatory left-row seeds are now fixed. Place the six actual
-      // upper vertical answers before the remaining horizontal rows, so those
-      // rows are chosen against their real crossing letters.
+      // Place the top-down answers only after the actual first two left rows
+      // are selected; continue with the remaining rows against exact crossings.
       if(row===3&&!topDone){
         if(!topBordersHavePotential(true))return false;
-        return placeTopBorderClues(2,()=>placeBorderRows(3,true));
+        return placeTopBorderClues(2,()=>placeBorderRows(3,true,chosenRows));
       }
-      for(const entry of plan.rows[row-1]){
+      let candidates=plan.rows[row-1];
+      if(row===2)candidates=candidates.filter(entry=>compatibleTopPrefixRows(chosenRows[0],entry));
+      for(const entry of candidates){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,topDone))return true;
+        const nextRows=[...chosenRows,entry];
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,topDone,nextRows))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
