@@ -1007,6 +1007,12 @@ function buildScanword(entries){
     const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
     const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
     const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
+    const topPrefixPools=new Map();
+    for(const entry of normalized){
+      if(entry.answer.length<2||entry.answer.length>H-1)continue;
+      const prefix=entry.answer.slice(0,2),pool=topPrefixPools.get(prefix)||[];
+      pool.push(entry);topPrefixPools.set(prefix,pool);
+    }
     // A left-border word only blocks top-down routes in the columns it actually
     // occupies. Shorter second-row words leave the remaining vertical cells open.
     const compatibleTopPrefixRows=(first,second)=>{
@@ -1400,33 +1406,47 @@ function buildScanword(entries){
       return true;
     };
     let seedSearchNodes=0;
-    const placeTopBorderClues=(column,continuation=()=>true)=>{
+    const placeTopBorderClues=(remainingColumns=Array.from({length:W-2},(_,index)=>index+2),continuation=()=>true)=>{
       if(++seedSearchNodes>12000)return false;
-      if(column>=W)return borderTerminalsHaveDistinctAnswers()&&continuation();
-      const startKey="0,"+column;
-      if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1,continuation);
-      const options=[];
-      for(let length=2;length<=H-1;length++){
-        for(const entry of entriesByLength.get(length)||[]){
+      if(!remainingColumns.length)return borderTerminalsHaveDistinctAnswers()&&continuation();
+      // The seven top answers do not cross one another, but their prefixes
+      // have very different dictionary sizes. Pick the tightest column first
+      // (minimum remaining values) instead of wasting backtracking on a
+      // flexible column before discovering that a constrained one has no fit.
+      let selectedColumn=-1,selectedOptions=null;
+      for(const column of remainingColumns){
+        const prefix=(occupied.get("1,"+column)||"")+(occupied.get("2,"+column)||"");
+        if(prefix.length!==2)return false;
+        const candidates=topPrefixPools.get(prefix)||[];
+        const options=[];
+        for(const entry of candidates){
           if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7)))continue;
           let fits=true;
-          for(let step=1;step<=length;step++){
+          for(let step=1;step<=entry.answer.length;step++){
             const cellKey=step+","+column;
             if(clueAt.has(cellKey)||reservedKeys.has(cellKey)){fits=false;break}
             const oldLetter=occupied.get(cellKey);
             if(oldLetter!==undefined&&oldLetter!==entry.answer[step-1]){fits=false;break}
           }
-          if(fits)options.push(entry);
+          if(!fits)continue;
+          const terminalY=entry.answer.length+1,terminalKey=terminalY+","+column;
+          if(terminalY<H&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
+          options.push(entry);
+        }
+        if(!options.length)return false;
+        if(selectedOptions===null||options.length<selectedOptions.length){
+          selectedColumn=column;selectedOptions=options;
+          if(options.length===1)break;
         }
       }
-      // Image clues are intentionally ranked first here: all remaining top
-      // border cells are mandatory starts, and this is the cleanest place to
-      // reach the seven distinct picture clues without duplicating clue tiles.
+      // Keep picture clues near the front, but prefer answers with enough
+      // length to create real crossings in the remaining grid.
       const topQuality=entry=>quality(entry)+(entry.answer.length>=3&&entry.answer.length<=5?75:entry.answer.length===6?45:entry.answer.length===7?20:entry.answer.length>=9?-90:0);
-      options.sort((a,b)=>topQuality(b)-topQuality(a));
-      for(const entry of options.slice(0,48)){
+      selectedOptions.sort((a,b)=>topQuality(b)-topQuality(a));
+      const nextColumns=remainingColumns.filter(column=>column!==selectedColumn);
+      for(const entry of selectedOptions.slice(0,48)){
         const snapshot=saveSeedState();
-        if(addWord(entry,0,column,1,"w"+words.length,"border-seed")&&placeTopBorderClues(column+1,continuation))return true;
+        if(addWord(entry,0,selectedColumn,1,"w"+words.length,"border-seed")&&placeTopBorderClues(nextColumns,continuation))return true;
         restoreSeedState(snapshot);
       }
       return false;
@@ -1438,7 +1458,7 @@ function buildScanword(entries){
       // are selected; continue with the remaining rows against exact crossings.
       if(row===3&&!topDone){
         if(!topBordersHavePotential(true))return false;
-        return placeTopBorderClues(2,()=>placeBorderRows(3,true,chosenRows));
+        return placeTopBorderClues(Array.from({length:W-2},(_,index)=>index+2),()=>placeBorderRows(3,true,chosenRows));
       }
       let candidates=plan.rows[row-1];
       if(row===2)candidates=candidates.filter(entry=>compatibleTopPrefixRows(chosenRows[0],entry));
