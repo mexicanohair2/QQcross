@@ -1875,6 +1875,7 @@ function buildScanwordInWorker(entries){
   }
   const source=[
     "const SCANWORD_IMAGE_KEYS=new Set("+JSON.stringify([...SCANWORD_IMAGE_KEYS])+");",
+    "const SCANWORD_BLOCKED_SHORT_ANSWERS=new Set("+JSON.stringify([...SCANWORD_BLOCKED_SHORT_ANSWERS])+");",
     "const compactScanwordClue="+compactScanwordClue.toString()+";",
     "const normalizeScanwordEntry="+normalizeScanwordEntry.toString()+";",
     "const assertValidScanwordLayout="+assertValidScanwordLayout.toString()+";",
