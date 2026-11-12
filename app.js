@@ -1452,8 +1452,22 @@ function buildScanword(entries){
         lastSeedReject=null;
         // Check the six top-down routes against the letters actually occupied
         // so far. Unoccupied cells remain available to the vertical answers.
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(true)&&placeBorderRows(row+1))return true;
-        if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
+        const added=addWord(entry,row,0,0,"w"+words.length,"border-seed");
+        if(added){
+          const failedColumns=[];
+          for(let column=2;column<W;column++){
+            if(!topColumnHasCandidate(column,true)){
+              failedColumns.push({
+                column,
+                pattern:Array.from({length:H-1},(_,index)=>occupied.get((index+1)+","+column)||".").join(""),
+                blockedRows:Array.from({length:H-1},(_,index)=>{const key=(index+1)+","+column;return clueAt.has(key)||reservedKeys.has(key)?key:null}).filter(Boolean)
+              });
+            }
+          }
+          if(!failedColumns.length&&placeBorderRows(row+1))return true;
+          if(failedColumns.length)lastSeedReject={answer:entry.answer,start:row+",0",reason:{type:"top-route",failedColumns}};
+        }
+        if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:added?"later border route conflict":"addWord rejected without a route diagnostic"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
       }
