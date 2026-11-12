@@ -1204,6 +1204,8 @@ function buildScanword(entries){
     const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
     const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
     const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
+    const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
+    const compatibleTopPrefixRows=(first,second)=>Array.from({length:W-2},(_,index)=>index+2).every(column=>topPrefixes.has(first.answer[column-1]+second.answer[column-1]));
     const firstLetterPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<3||entry.answer.length>7)continue;
@@ -1219,13 +1221,24 @@ function buildScanword(entries){
       let score=quality(firstCandidate),valid=true;
       for(let row=1;row<H;row++){
         const initial=firstCandidate.answer[row-1];
-        const available=(firstLetterPools.get(initial)||[]).filter(entry=>
+        let available=(firstLetterPools.get(initial)||[]).filter(entry=>
           !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          (row!==1||entry.answer.length===W-1)&&
+          ((row!==1&&row!==2)||entry.answer.length===W-1)&&
           (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
-        const pool=available.slice().sort((a,b)=>{
+        // All six top-down routes need at least two answer letters. Therefore
+        // both first left-border answers must span all seven columns, and their
+        // paired letters must be a prefix of at least one dictionary answer.
+        if(row===1){
+          const secondInitial=firstCandidate.answer[1];
+          const secondOptions=(firstLetterPools.get(secondInitial)||[]).filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
+          available=available.filter(candidate=>secondOptions.some(second=>second.key!==candidate.key&&compatibleTopPrefixRows(candidate,second)));
+        }else if(row===2){
+          const firstRow=rowEntries[0];
+          available=available.filter(candidate=>compatibleTopPrefixRows(firstRow,candidate));
+        }
+        let pool=available.slice().sort((a,b)=>{
           const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
           const recentPenalty=entry=>{
             const column=terminalColumn(entry);
@@ -1240,8 +1253,8 @@ function buildScanword(entries){
         });
         if(!pool.length){valid=false;break}
         const shortlist=pool.slice(0,Math.min(20,pool.length));
-        rowOptions.push(shortlist);
         const preferred=shortlist[0];
+        rowOptions.push(row===1?[preferred]:shortlist);
         rowEntries.push(preferred);chosen.add(preferred.key);
         score+=quality(preferred);
       }
