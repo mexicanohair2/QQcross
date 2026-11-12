@@ -1220,7 +1220,7 @@ function buildScanword(entries){
         const initial=firstCandidate.answer[row-1];
         const available=(firstLetterPools.get(initial)||[]).filter(entry=>
           !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          (row!==1||entry.answer.length===W-1)&&
+          (row>2||entry.answer.length===W-1)&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
         const pool=available.slice().sort((a,b)=>{
