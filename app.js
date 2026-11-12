@@ -1038,9 +1038,8 @@ function buildScanword(entries){
           (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
-        // All six top-down routes need at least two answer letters. Therefore
-        // both first left-border answers must span all seven columns, and their
-        // paired letters must be a prefix of at least one dictionary answer.
+        // The first left-border answer spans all seven columns. A shorter second
+        // answer constrains only the top-down columns it actually crosses.
         if(row===2){
           const firstRow=rowEntries[0];
           available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
@@ -1444,17 +1443,16 @@ function buildScanword(entries){
       }
       return false;
     };
-    const placeBorderRows=(row,chosenRows=[])=>{
+    const placeBorderRows=row=>{
       if(++seedSearchNodes>20000)return false;
-      if(row>=H)return topBordersHavePotential(true)&&borderRowsKeepTopRoutes(first,chosenRows)&&placeTopBorderClues(2);
+      if(row>=H)return topBordersHavePotential(true)&&placeTopBorderClues(2);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
-        const nextRows=[...chosenRows,entry];
-        // Check top-down options against the actual rows chosen in this branch.
-        if(row>=3&&!borderRowsKeepTopRoutes(first,nextRows))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,nextRows))return true;
+        // Check the six top-down routes against the letters actually occupied
+        // so far. Unoccupied cells remain available to the vertical answers.
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(true)&&placeBorderRows(row+1))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
