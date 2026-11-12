@@ -1000,6 +1000,162 @@ function buildScanword(entries){
   let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
   const rejectedSeedSamples=[],closureRejectSamples=[],planRejectSamples=[];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity,bestCenterSplitCount=0,bestPromptCount=0,bestStartTileCount=0;
+    // Select the eleven-letter opening and its crossing border plan from
+    // dictionary content. Only the geometry is fixed: clue (0,1), downward,
+    // exactly eleven letters. No answer or row-word list is hard-coded.
+    const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
+    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
+    const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
+    const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
+    const compatibleTopPrefixRows=(first,second)=>Array.from({length:W-2},(_,index)=>index+2).every(column=>topPrefixes.has(first.answer[column-1]+second.answer[column-1]));
+    const borderRowsKeepTopRoutes=(opening,rows)=>{
+      const blocked=new Set([opening.key,...rows.map(entry=>entry.key)]);
+      const usedImages=new Set(rows.map(entry=>entry.imageKey).filter(Boolean));
+      const routeOptions=[];
+      for(let column=2;column<W;column++){
+        const optionsByAnswer=new Map();
+        for(let length=2;length<=H-1;length++){
+          const positions=byLength.get(length),pool=entriesByLength.get(length);
+          if(!positions||!pool?.length)continue;
+          let possible=null,clear=true;
+          for(let step=1;step<=length&&step<=rows.length;step++){
+            const rowEntry=rows[step-1];
+            if(column<=rowEntry.answer.length){
+              const matches=positions[step-1].get(rowEntry.answer[column-1])||[];
+              if(!matches.length){clear=false;break}
+              if(possible===null)possible=new Set(matches);
+              else{
+                const matchSet=new Set(matches);
+                for(const entry of possible)if(!matchSet.has(entry))possible.delete(entry);
+              }
+              if(!possible.size){clear=false;break}
+            }else if(column===rowEntry.answer.length+1){
+              clear=false;
+              break;
+            }
+          }
+          if(!clear)continue;
+          const terminalRow=length+1;
+          if(terminalRow<=rows.length&&column<=rows[terminalRow-1].answer.length)continue;
+          const candidates=possible===null?pool:possible;
+          for(const entry of candidates){
+            if(blocked.has(entry.key))continue;
+            if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7))continue;
+            optionsByAnswer.set(entry.key,entry);
+          }
+        }
+        const options=[...optionsByAnswer.values()];
+        if(!options.length)return false;
+        routeOptions.push(options);
+      }
+      routeOptions.sort((a,b)=>a.length-b.length);
+      const chosenAnswers=new Set(),chosenImages=new Set();
+      const assign=index=>{
+        if(index===routeOptions.length)return true;
+        for(const entry of routeOptions[index]){
+          if(chosenAnswers.has(entry.key))continue;
+          if(entry.imageKey&&(chosenImages.has(entry.imageKey)||usedImages.has(entry.imageKey)||usedImages.size+chosenImages.size>=7))continue;
+          chosenAnswers.add(entry.key);
+          if(entry.imageKey)chosenImages.add(entry.imageKey);
+          if(assign(index+1))return true;
+          chosenAnswers.delete(entry.key);
+          if(entry.imageKey)chosenImages.delete(entry.imageKey);
+        }
+        return false;
+      };
+      return assign(0);
+    };
+    const firstLetterPools=new Map();
+    for(const entry of normalized){
+      if(entry.answer.length<3||entry.answer.length>7)continue;
+      const initial=entry.answer[0],pool=firstLetterPools.get(initial)||[];
+      pool.push(entry);firstLetterPools.set(initial,pool);
+    }
+    // Keep the mandatory first left-border word wide, but prefer shorter
+    // later rows so they do not over-constrain all seven top-down crossings.
+    const borderQuality=entry=>quality(entry)+(entry.answer.length===4?85:entry.answer.length===5?70:entry.answer.length===3?55:entry.answer.length===6?25:entry.answer.length===7?0:-60);
+    const borderPlans=[];
+    for(const firstCandidate of eleven){
+      const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
+      let feasibleRow2Keys=null;
+      let score=quality(firstCandidate),valid=true;
+      for(let row=1;row<H;row++){
+        const initial=firstCandidate.answer[row-1];
+        let available=(firstLetterPools.get(initial)||[]).filter(entry=>
+          !chosen.has(entry.key)&&entry.answer.length<=W-1&&
+          ((row!==1&&row!==2)||entry.answer.length===W-1)&&
+          (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
+          (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
+        );
+        // All six top-down routes need at least two answer letters. Therefore
+        // both first left-border answers must span all seven columns, and their
+        // paired letters must be a prefix of at least one dictionary answer.
+        if(row===2){
+          const firstRow=rowEntries[0];
+          available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
+        }
+        let pool=available.slice().sort((a,b)=>{
+          const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
+          const recentPenalty=entry=>{
+            const column=terminalColumn(entry);
+            if(column===null)return 0;
+            return rowEntries.reduce((penalty,previous,index)=>{
+              const distance=row-(index+1),previousColumn=terminalColumn(previous);
+              if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
+              return penalty+(distance===1?180:distance===2?100:0);
+            },0);
+          };
+          return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
+        });
+        if(row===1){
+          const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
+            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
+          const thirdCandidates=firstLetterPools.get(firstCandidate.answer[2])||[];
+          let selectedFirst=null,selectedSecondKeys=new Set();
+          for(const candidate of pool){
+            const feasibleSeconds=[];
+            for(const second of secondCandidates){
+              if(second.key===candidate.key||(candidate.imageKey&&candidate.imageKey===second.imageKey))continue;
+              if(!compatibleTopPrefixRows(candidate,second))continue;
+              const hasThird=thirdCandidates.some(third=>
+                third.key!==candidate.key&&third.key!==second.key&&
+                !(third.imageKey&&(third.imageKey===candidate.imageKey||third.imageKey===second.imageKey))&&
+                borderRowsKeepTopRoutes(firstCandidate,[candidate,second,third])
+              );
+              if(hasThird)feasibleSeconds.push(second.key);
+            }
+            if(feasibleSeconds.length){
+              selectedFirst=candidate;
+              selectedSecondKeys=new Set(feasibleSeconds);
+              break;
+            }
+          }
+          feasibleRow2Keys=selectedSecondKeys;
+          pool=selectedFirst?[selectedFirst]:[];
+        }
+        if(row>=3){
+          // Do not validate future rows against a single preferred hypothetical
+          // path. The selected row options are explored by backtracking below.
+          pool=pool.slice(0,40);
+        }
+        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
+        const shortlist=pool.slice(0,Math.min(row>=3?40:20,pool.length));
+        const preferred=shortlist[0];
+        rowOptions.push(row===1?[preferred]:shortlist);
+        rowEntries.push(preferred);chosen.add(preferred.key);
+        score+=quality(preferred);
+      }
+      if(valid){
+        const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
+        for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
+          const distance=j-i;
+          if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
+        }
+        score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
+        borderPlans.push({first:firstCandidate,rows:rowOptions,score});
+      }
+    }
+
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set(),terminalKeys=new Set();
@@ -1198,161 +1354,6 @@ function buildScanword(entries){
       used.add(entry.key);if(entry.imageKey)usedImages.add(entry.imageKey);words.push(word);
       return true;
     };
-    // Select the eleven-letter opening and its crossing border plan from
-    // dictionary content. Only the geometry is fixed: clue (0,1), downward,
-    // exactly eleven letters. No answer or row-word list is hard-coded.
-    const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
-    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
-    const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
-    const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
-    const compatibleTopPrefixRows=(first,second)=>Array.from({length:W-2},(_,index)=>index+2).every(column=>topPrefixes.has(first.answer[column-1]+second.answer[column-1]));
-    const borderRowsKeepTopRoutes=(opening,rows)=>{
-      const blocked=new Set([opening.key,...rows.map(entry=>entry.key)]);
-      const usedImages=new Set(rows.map(entry=>entry.imageKey).filter(Boolean));
-      const routeOptions=[];
-      for(let column=2;column<W;column++){
-        const optionsByAnswer=new Map();
-        for(let length=2;length<=H-1;length++){
-          const positions=byLength.get(length),pool=entriesByLength.get(length);
-          if(!positions||!pool?.length)continue;
-          let possible=null,clear=true;
-          for(let step=1;step<=length&&step<=rows.length;step++){
-            const rowEntry=rows[step-1];
-            if(column<=rowEntry.answer.length){
-              const matches=positions[step-1].get(rowEntry.answer[column-1])||[];
-              if(!matches.length){clear=false;break}
-              if(possible===null)possible=new Set(matches);
-              else{
-                const matchSet=new Set(matches);
-                for(const entry of possible)if(!matchSet.has(entry))possible.delete(entry);
-              }
-              if(!possible.size){clear=false;break}
-            }else if(column===rowEntry.answer.length+1){
-              clear=false;
-              break;
-            }
-          }
-          if(!clear)continue;
-          const terminalRow=length+1;
-          if(terminalRow<=rows.length&&column<=rows[terminalRow-1].answer.length)continue;
-          const candidates=possible===null?pool:possible;
-          for(const entry of candidates){
-            if(blocked.has(entry.key))continue;
-            if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7))continue;
-            optionsByAnswer.set(entry.key,entry);
-          }
-        }
-        const options=[...optionsByAnswer.values()];
-        if(!options.length)return false;
-        routeOptions.push(options);
-      }
-      routeOptions.sort((a,b)=>a.length-b.length);
-      const chosenAnswers=new Set(),chosenImages=new Set();
-      const assign=index=>{
-        if(index===routeOptions.length)return true;
-        for(const entry of routeOptions[index]){
-          if(chosenAnswers.has(entry.key))continue;
-          if(entry.imageKey&&(chosenImages.has(entry.imageKey)||usedImages.has(entry.imageKey)||usedImages.size+chosenImages.size>=7))continue;
-          chosenAnswers.add(entry.key);
-          if(entry.imageKey)chosenImages.add(entry.imageKey);
-          if(assign(index+1))return true;
-          chosenAnswers.delete(entry.key);
-          if(entry.imageKey)chosenImages.delete(entry.imageKey);
-        }
-        return false;
-      };
-      return assign(0);
-    };
-    const firstLetterPools=new Map();
-    for(const entry of normalized){
-      if(entry.answer.length<3||entry.answer.length>7)continue;
-      const initial=entry.answer[0],pool=firstLetterPools.get(initial)||[];
-      pool.push(entry);firstLetterPools.set(initial,pool);
-    }
-    // Keep the mandatory first left-border word wide, but prefer shorter
-    // later rows so they do not over-constrain all seven top-down crossings.
-    const borderQuality=entry=>quality(entry)+(entry.answer.length===4?85:entry.answer.length===5?70:entry.answer.length===3?55:entry.answer.length===6?25:entry.answer.length===7?0:-60);
-    const borderPlans=[];
-    for(const firstCandidate of eleven){
-      const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
-      let feasibleRow2Keys=null;
-      let score=quality(firstCandidate),valid=true;
-      for(let row=1;row<H;row++){
-        const initial=firstCandidate.answer[row-1];
-        let available=(firstLetterPools.get(initial)||[]).filter(entry=>
-          !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          ((row!==1&&row!==2)||entry.answer.length===W-1)&&
-          (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
-          (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
-        );
-        // All six top-down routes need at least two answer letters. Therefore
-        // both first left-border answers must span all seven columns, and their
-        // paired letters must be a prefix of at least one dictionary answer.
-        if(row===2){
-          const firstRow=rowEntries[0];
-          available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
-        }
-        let pool=available.slice().sort((a,b)=>{
-          const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
-          const recentPenalty=entry=>{
-            const column=terminalColumn(entry);
-            if(column===null)return 0;
-            return rowEntries.reduce((penalty,previous,index)=>{
-              const distance=row-(index+1),previousColumn=terminalColumn(previous);
-              if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
-              return penalty+(distance===1?180:distance===2?100:0);
-            },0);
-          };
-          return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
-        });
-        if(row===1){
-          const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
-            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
-          const thirdCandidates=firstLetterPools.get(firstCandidate.answer[2])||[];
-          let selectedFirst=null,selectedSecondKeys=new Set();
-          for(const candidate of pool){
-            const feasibleSeconds=[];
-            for(const second of secondCandidates){
-              if(second.key===candidate.key||(candidate.imageKey&&candidate.imageKey===second.imageKey))continue;
-              if(!compatibleTopPrefixRows(candidate,second))continue;
-              const hasThird=thirdCandidates.some(third=>
-                third.key!==candidate.key&&third.key!==second.key&&
-                !(third.imageKey&&(third.imageKey===candidate.imageKey||third.imageKey===second.imageKey))&&
-                borderRowsKeepTopRoutes(firstCandidate,[candidate,second,third])
-              );
-              if(hasThird)feasibleSeconds.push(second.key);
-            }
-            if(feasibleSeconds.length){
-              selectedFirst=candidate;
-              selectedSecondKeys=new Set(feasibleSeconds);
-              break;
-            }
-          }
-          feasibleRow2Keys=selectedSecondKeys;
-          pool=selectedFirst?[selectedFirst]:[];
-        }
-        if(row>=3){
-          // Do not validate future rows against a single preferred hypothetical
-          // path. The selected row options are explored by backtracking below.
-          pool=pool.slice(0,40);
-        }
-        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
-        const shortlist=pool.slice(0,Math.min(row>=3?40:20,pool.length));
-        const preferred=shortlist[0];
-        rowOptions.push(row===1?[preferred]:shortlist);
-        rowEntries.push(preferred);chosen.add(preferred.key);
-        score+=quality(preferred);
-      }
-      if(valid){
-        const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
-        for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
-          const distance=j-i;
-          if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
-        }
-        score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
-        borderPlans.push({first:firstCandidate,rows:rowOptions,score});
-      }
-    }
     if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
     const preferredPlans=borderPlans.slice(0,Math.min(48,borderPlans.length));
