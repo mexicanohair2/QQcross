@@ -1013,6 +1013,25 @@ function buildScanword(entries){
       const prefix=entry.answer.slice(0,2),pool=topPrefixPools.get(prefix)||[];
       pool.push(entry);topPrefixPools.set(prefix,pool);
     }
+    // Score a pair of full-width left answers by how many distinct vertical
+    // dictionary routes each of the six top clues can choose from. The old
+    // plan ranking favored clue quality alone and could repeatedly pick
+    // technically valid but extremely brittle letter pairs.
+    const topPairFlexibility=(first,second,opening)=>{
+      let score=0;
+      for(let column=2;column<W;column++){
+        const pool=topPrefixPools.get(first.answer[column-1]+second.answer[column-1])||[];
+        let count=0;
+        for(const vertical of pool){
+          if(vertical.key===first.key||vertical.key===second.key||vertical.key===opening.key)continue;
+          if(vertical.imageKey&&(vertical.imageKey===first.imageKey||vertical.imageKey===second.imageKey))continue;
+          count++;
+        }
+        if(!count)return -Infinity;
+        score+=Math.min(count,12)+(count>=4?1:0);
+      }
+      return score;
+    };
     // A left-border word only blocks top-down routes in the columns it actually
     // occupies. Shorter second-row words leave the remaining vertical cells open.
     const compatibleTopPrefixRows=(first,second)=>{
@@ -1061,13 +1080,22 @@ function buildScanword(entries){
         if(row===1){
           const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
             .filter(entry=>entry.answer.length===W-1&&entry.key!==firstCandidate.key);
-          // Keep several first-row alternatives. The paired second row is
-          // chosen later against the actual first-row answer in backtracking.
-          pool=pool.filter(candidate=>secondCandidates.some(second=>
-            second.key!==candidate.key&&
-            !(candidate.imageKey&&candidate.imageKey===second.imageKey)&&
-            compatibleTopPrefixRows(candidate,second)
-          ));
+          const flexibility=new Map();
+          for(const candidate of pool){
+            let best=-Infinity;
+            for(const second of secondCandidates){
+              if(second.key===candidate.key||(candidate.imageKey&&candidate.imageKey===second.imageKey))continue;
+              if(!compatibleTopPrefixRows(candidate,second))continue;
+              best=Math.max(best,topPairFlexibility(candidate,second,firstCandidate));
+            }
+            if(Number.isFinite(best))flexibility.set(candidate.key,best);
+          }
+          // Keep several first-row alternatives, but lead with the pair that
+          // has the largest vertical answer pools across all six top clues.
+          pool=pool.filter(candidate=>flexibility.has(candidate.key)).sort((a,b)=>
+            (flexibility.get(b.key)-flexibility.get(a.key))||
+            (borderQuality(b)-borderQuality(a))
+          );
         }
         if(row>=3){
           // Keep a wider pool: real top-down crossings are known during
@@ -1430,7 +1458,7 @@ function buildScanword(entries){
           }
           if(!fits)continue;
           const terminalY=entry.answer.length+1,terminalKey=terminalY+","+column;
-          if(terminalY<H&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
+          if(terminalY<H&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)||(terminalY===H-1&&column===W-1)))continue;
           options.push(entry);
         }
         if(!options.length)return false;
@@ -1461,7 +1489,9 @@ function buildScanword(entries){
         return placeTopBorderClues(Array.from({length:W-2},(_,index)=>index+2),()=>placeBorderRows(3,true,chosenRows));
       }
       let candidates=plan.rows[row-1];
-      if(row===2)candidates=candidates.filter(entry=>compatibleTopPrefixRows(chosenRows[0],entry));
+      if(row===2)candidates=candidates.filter(entry=>compatibleTopPrefixRows(chosenRows[0],entry)).sort((a,b)=>
+        topPairFlexibility(chosenRows[0],b,first)-topPairFlexibility(chosenRows[0],a,first)
+      );
       for(const entry of candidates){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
