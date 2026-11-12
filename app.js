@@ -1090,8 +1090,23 @@ function buildScanword(entries){
             }
             if(Number.isFinite(best))flexibility.set(candidate.key,best);
           }
-          // Keep several first-row alternatives, but lead with the pair that
-          // has the largest vertical answer pools across all six top clues.
+          pool=pool.filter(candidate=>flexibility.has(candidate.key)).sort((a,b)=>
+            (flexibility.get(b.key)-flexibility.get(a.key))||
+            (borderQuality(b)-borderQuality(a))
+          );
+        }
+        if(row===2&&rowOptions[0]){
+          // Preserve second-row words that pair well with at least one of the
+          // retained first-row alternatives, not only the first preferred one.
+          const flexibility=new Map();
+          for(const candidate of pool){
+            let best=-Infinity;
+            for(const firstRow of rowOptions[0]){
+              if(!compatibleTopPrefixRows(firstRow,candidate))continue;
+              best=Math.max(best,topPairFlexibility(firstRow,candidate,firstCandidate));
+            }
+            if(Number.isFinite(best))flexibility.set(candidate.key,best);
+          }
           pool=pool.filter(candidate=>flexibility.has(candidate.key)).sort((a,b)=>
             (flexibility.get(b.key)-flexibility.get(a.key))||
             (borderQuality(b)-borderQuality(a))
@@ -1108,6 +1123,17 @@ function buildScanword(entries){
         rowOptions.push(shortlist);
         rowEntries.push(preferred);chosen.add(preferred.key);
         score+=quality(preferred);
+      }
+      if(valid){
+        if(rowOptions.length>=2){
+          let bestPairFlex=-Infinity;
+          for(const firstRow of rowOptions[0])for(const secondRow of rowOptions[1]){
+            if(!compatibleTopPrefixRows(firstRow,secondRow))continue;
+            bestPairFlex=Math.max(bestPairFlex,topPairFlexibility(firstRow,secondRow,firstCandidate));
+          }
+          if(!Number.isFinite(bestPairFlex)){valid=false;}
+          else score+=bestPairFlex*4;
+        }
       }
       if(valid){
         const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
