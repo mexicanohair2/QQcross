@@ -1275,6 +1275,7 @@ function buildScanword(entries){
     const borderPlans=[];
     for(const firstCandidate of eleven){
       const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
+      let feasibleRow2Keys=null;
       let score=quality(firstCandidate),valid=true;
       for(let row=1;row<H;row++){
         const initial=firstCandidate.answer[row-1];
@@ -1287,13 +1288,9 @@ function buildScanword(entries){
         // All six top-down routes need at least two answer letters. Therefore
         // both first left-border answers must span all seven columns, and their
         // paired letters must be a prefix of at least one dictionary answer.
-        if(row===1){
-          const secondInitial=firstCandidate.answer[1];
-          const secondOptions=(firstLetterPools.get(secondInitial)||[]).filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
-          available=available.filter(candidate=>secondOptions.some(second=>second.key!==candidate.key&&compatibleTopPrefixRows(candidate,second)));
-        }else if(row===2){
+        if(row===2){
           const firstRow=rowEntries[0];
-          available=available.filter(candidate=>compatibleTopPrefixRows(firstRow,candidate));
+          available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
         }
         let pool=available.slice().sort((a,b)=>{
           const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
@@ -1308,6 +1305,32 @@ function buildScanword(entries){
           };
           return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
         });
+        if(row===1){
+          const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
+            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
+          const thirdCandidates=firstLetterPools.get(firstCandidate.answer[2])||[];
+          let selectedFirst=null,selectedSecondKeys=new Set();
+          for(const candidate of pool){
+            const feasibleSeconds=[];
+            for(const second of secondCandidates){
+              if(second.key===candidate.key||(candidate.imageKey&&candidate.imageKey===second.imageKey))continue;
+              if(!compatibleTopPrefixRows(candidate,second))continue;
+              const hasThird=thirdCandidates.some(third=>
+                third.key!==candidate.key&&third.key!==second.key&&
+                !(third.imageKey&&(third.imageKey===candidate.imageKey||third.imageKey===second.imageKey))&&
+                borderRowsKeepTopRoutes(firstCandidate,[candidate,second,third])
+              );
+              if(hasThird)feasibleSeconds.push(second.key);
+            }
+            if(feasibleSeconds.length){
+              selectedFirst=candidate;
+              selectedSecondKeys=new Set(feasibleSeconds);
+              break;
+            }
+          }
+          feasibleRow2Keys=selectedSecondKeys;
+          pool=selectedFirst?[selectedFirst]:[];
+        }
         if(row>=3){
           const viable=[];
           for(const candidate of pool){
