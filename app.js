@@ -1411,7 +1411,7 @@ function buildScanword(entries){
         // Backtrack across the entire left edge before solving the top row.
         // A partial row can temporarily block a top route that a later choice
         // would preserve; the completed top border is checked at the leaf.
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1))return true;
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(true)&&placeBorderRows(row+1))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
