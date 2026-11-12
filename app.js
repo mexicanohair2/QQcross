@@ -1203,6 +1203,7 @@ function buildScanword(entries){
     // exactly eleven letters. No answer or row-word list is hard-coded.
     const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
     const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
+    const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
     const firstLetterPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<3||entry.answer.length>7)continue;
@@ -1220,7 +1221,8 @@ function buildScanword(entries){
         const initial=firstCandidate.answer[row-1];
         const available=(firstLetterPools.get(initial)||[]).filter(entry=>
           !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          (row>2||entry.answer.length===W-1)&&
+          (row!==1||entry.answer.length===W-1)&&
+          (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
         const pool=available.slice().sort((a,b)=>{
