@@ -1007,63 +1007,14 @@ function buildScanword(entries){
     const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
     const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
     const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
-    const compatibleTopPrefixRows=(first,second)=>Array.from({length:W-2},(_,index)=>index+2).every(column=>topPrefixes.has(first.answer[column-1]+second.answer[column-1]));
-    const borderRowsKeepTopRoutes=(opening,rows)=>{
-      const blocked=new Set([opening.key,...rows.map(entry=>entry.key)]);
-      const usedImages=new Set(rows.map(entry=>entry.imageKey).filter(Boolean));
-      const routeOptions=[];
-      for(let column=2;column<W;column++){
-        const optionsByAnswer=new Map();
-        for(let length=2;length<=H-1;length++){
-          const positions=byLength.get(length),pool=entriesByLength.get(length);
-          if(!positions||!pool?.length)continue;
-          let possible=null,clear=true;
-          for(let step=1;step<=length&&step<=rows.length;step++){
-            const rowEntry=rows[step-1];
-            if(column<=rowEntry.answer.length){
-              const matches=positions[step-1].get(rowEntry.answer[column-1])||[];
-              if(!matches.length){clear=false;break}
-              if(possible===null)possible=new Set(matches);
-              else{
-                const matchSet=new Set(matches);
-                for(const entry of possible)if(!matchSet.has(entry))possible.delete(entry);
-              }
-              if(!possible.size){clear=false;break}
-            }else if(column===rowEntry.answer.length+1){
-              clear=false;
-              break;
-            }
-          }
-          if(!clear)continue;
-          const terminalRow=length+1;
-          if(terminalRow<=rows.length&&column<=rows[terminalRow-1].answer.length)continue;
-          const candidates=possible===null?pool:possible;
-          for(const entry of candidates){
-            if(blocked.has(entry.key))continue;
-            if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7))continue;
-            optionsByAnswer.set(entry.key,entry);
-          }
-        }
-        const options=[...optionsByAnswer.values()];
-        if(!options.length)return false;
-        routeOptions.push(options);
+    // A left-border word only blocks top-down routes in the columns it actually
+    // occupies. Shorter second-row words leave the remaining vertical cells open.
+    const compatibleTopPrefixRows=(first,second)=>{
+      const max=Math.min(W-1,second.answer.length);
+      for(let column=2;column<=max;column++){
+        if(!topPrefixes.has(first.answer[column-1]+second.answer[column-1]))return false;
       }
-      routeOptions.sort((a,b)=>a.length-b.length);
-      const chosenAnswers=new Set(),chosenImages=new Set();
-      const assign=index=>{
-        if(index===routeOptions.length)return true;
-        for(const entry of routeOptions[index]){
-          if(chosenAnswers.has(entry.key))continue;
-          if(entry.imageKey&&(chosenImages.has(entry.imageKey)||usedImages.has(entry.imageKey)||usedImages.size+chosenImages.size>=7))continue;
-          chosenAnswers.add(entry.key);
-          if(entry.imageKey)chosenImages.add(entry.imageKey);
-          if(assign(index+1))return true;
-          chosenAnswers.delete(entry.key);
-          if(entry.imageKey)chosenImages.delete(entry.imageKey);
-        }
-        return false;
-      };
-      return assign(0);
+      return true;
     };
     const firstLetterPools=new Map();
     for(const entry of normalized){
@@ -1083,7 +1034,7 @@ function buildScanword(entries){
         const initial=firstCandidate.answer[row-1];
         let available=(firstLetterPools.get(initial)||[]).filter(entry=>
           !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          ((row!==1&&row!==2)||entry.answer.length===W-1)&&
+          (row!==1||entry.answer.length===W-1)&&
           (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
@@ -1109,24 +1060,17 @@ function buildScanword(entries){
         });
         if(row===1){
           const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
-            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
-          const thirdCandidates=firstLetterPools.get(firstCandidate.answer[2])||[];
+            .filter(entry=>!chosen.has(entry.key));
           let selectedFirst=null,selectedSecondKeys=new Set();
           for(const candidate of pool){
-            const feasibleSeconds=[];
-            for(const second of secondCandidates){
-              if(second.key===candidate.key||(candidate.imageKey&&candidate.imageKey===second.imageKey))continue;
-              if(!compatibleTopPrefixRows(candidate,second))continue;
-              const hasThird=thirdCandidates.some(third=>
-                third.key!==candidate.key&&third.key!==second.key&&
-                !(third.imageKey&&(third.imageKey===candidate.imageKey||third.imageKey===second.imageKey))&&
-                borderRowsKeepTopRoutes(firstCandidate,[candidate,second,third])
-              );
-              if(hasThird)feasibleSeconds.push(second.key);
-            }
+            const feasibleSeconds=secondCandidates.filter(second=>
+              second.key!==candidate.key&&
+              !(candidate.imageKey&&candidate.imageKey===second.imageKey)&&
+              compatibleTopPrefixRows(candidate,second)
+            );
             if(feasibleSeconds.length){
               selectedFirst=candidate;
-              selectedSecondKeys=new Set(feasibleSeconds);
+              selectedSecondKeys=new Set(feasibleSeconds.map(second=>second.key));
               break;
             }
           }
