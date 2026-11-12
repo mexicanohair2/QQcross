@@ -1034,12 +1034,12 @@ function buildScanword(entries){
         const initial=firstCandidate.answer[row-1];
         let available=(firstLetterPools.get(initial)||[]).filter(entry=>
           !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          (row!==1||entry.answer.length===W-1)&&
+          ((row!==1&&row!==2)||entry.answer.length===W-1)&&
           (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
           (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
         );
-        // The first left-border answer spans all seven columns. A shorter second
-        // answer constrains only the top-down columns it actually crosses.
+        // Both first left-border answers must span all seven columns: every top
+        // clue needs at least two letters before its vertical route can continue.
         if(row===2){
           const firstRow=rowEntries[0];
           available=available.filter(candidate=>feasibleRow2Keys?.has(candidate.key)&&compatibleTopPrefixRows(firstRow,candidate));
@@ -1059,7 +1059,7 @@ function buildScanword(entries){
         });
         if(row===1){
           const secondCandidates=(firstLetterPools.get(firstCandidate.answer[1])||[])
-            .filter(entry=>!chosen.has(entry.key));
+            .filter(entry=>entry.answer.length===W-1&&!chosen.has(entry.key));
           let selectedFirst=null,selectedSecondKeys=new Set();
           for(const candidate of pool){
             const feasibleSeconds=secondCandidates.filter(second=>
