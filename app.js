@@ -1077,12 +1077,12 @@ function buildScanword(entries){
           pool=selectedFirst?[selectedFirst]:[];
         }
         if(row>=3){
-          // Do not validate future rows against a single preferred hypothetical
-          // path. The selected row options are explored by backtracking below.
-          pool=pool.slice(0,40);
+          // Keep a wider pool: real top-down crossings are known during
+          // recursive placement, so later rows can be checked against them.
+          pool=pool.slice(0,55);
         }
         if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
-        const shortlist=pool.slice(0,Math.min(row>=3?40:20,pool.length));
+        const shortlist=pool.slice(0,Math.min(row>=3?55:20,pool.length));
         const preferred=shortlist[0];
         rowOptions.push(row===1?[preferred]:shortlist);
         rowEntries.push(preferred);chosen.add(preferred.key);
@@ -1413,11 +1413,11 @@ function buildScanword(entries){
       return true;
     };
     let seedSearchNodes=0;
-    const placeTopBorderClues=column=>{
-      if(++seedSearchNodes>6000)return false;
-      if(column>=W)return borderTerminalsHaveDistinctAnswers();
+    const placeTopBorderClues=(column,continuation=()=>true)=>{
+      if(++seedSearchNodes>12000)return false;
+      if(column>=W)return borderTerminalsHaveDistinctAnswers()&&continuation();
       const startKey="0,"+column;
-      if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1);
+      if((clueAt.get(startKey)||[]).length)return placeTopBorderClues(column+1,continuation);
       const options=[];
       for(let length=2;length<=H-1;length++){
         for(const entry of entriesByLength.get(length)||[]){
@@ -1435,39 +1435,31 @@ function buildScanword(entries){
       // Image clues are intentionally ranked first here: all remaining top
       // border cells are mandatory starts, and this is the cleanest place to
       // reach the seven distinct picture clues without duplicating clue tiles.
-      options.sort((a,b)=>quality(b)-quality(a));
+      const topQuality=entry=>quality(entry)+(entry.answer.length>=3&&entry.answer.length<=5?75:entry.answer.length===6?45:entry.answer.length===7?20:entry.answer.length>=9?-90:0);
+      options.sort((a,b)=>topQuality(b)-topQuality(a));
       for(const entry of options.slice(0,48)){
         const snapshot=saveSeedState();
-        if(addWord(entry,0,column,1,"w"+words.length,"border-seed")&&placeTopBorderClues(column+1))return true;
+        if(addWord(entry,0,column,1,"w"+words.length,"border-seed")&&placeTopBorderClues(column+1,continuation))return true;
         restoreSeedState(snapshot);
       }
       return false;
     };
-    const placeBorderRows=row=>{
-      if(++seedSearchNodes>20000)return false;
-      if(row>=H)return topBordersHavePotential(true)&&placeTopBorderClues(2);
+    const placeBorderRows=(row,topDone=false)=>{
+      if(++seedSearchNodes>30000)return false;
+      if(row>=H)return borderTerminalsHaveDistinctAnswers();
+      // Both mandatory left-row seeds are now fixed. Place the six actual
+      // upper vertical answers before the remaining horizontal rows, so those
+      // rows are chosen against their real crossing letters.
+      if(row===3&&!topDone){
+        if(!topBordersHavePotential(true))return false;
+        return placeTopBorderClues(2,()=>placeBorderRows(3,true));
+      }
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        // Check the six top-down routes against the letters actually occupied
-        // so far. Unoccupied cells remain available to the vertical answers.
-        const added=addWord(entry,row,0,0,"w"+words.length,"border-seed");
-        if(added){
-          const failedColumns=[];
-          for(let column=2;column<W;column++){
-            if(!topColumnHasCandidate(column,true)){
-              failedColumns.push({
-                column,
-                pattern:Array.from({length:H-1},(_,index)=>occupied.get((index+1)+","+column)||".").join(""),
-                blockedRows:Array.from({length:H-1},(_,index)=>{const key=(index+1)+","+column;return clueAt.has(key)||reservedKeys.has(key)?key:null}).filter(Boolean)
-              });
-            }
-          }
-          if(!failedColumns.length&&placeBorderRows(row+1))return true;
-          if(failedColumns.length)lastSeedReject={answer:entry.answer,start:row+",0",reason:{type:"top-route",failedColumns}};
-        }
-        if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:added?"later border route conflict":"addWord rejected without a route diagnostic"};
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,topDone))return true;
+        if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
       }
