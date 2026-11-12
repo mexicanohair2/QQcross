@@ -1206,6 +1206,63 @@ function buildScanword(entries){
     const topInitials=new Set(normalized.filter(entry=>entry.answer.length>=2&&entry.answer.length<=H-1).map(entry=>entry.answer[0]));
     const topPrefixes=new Set(normalized.filter(entry=>entry.answer.length>=2).map(entry=>entry.answer.slice(0,2)));
     const compatibleTopPrefixRows=(first,second)=>Array.from({length:W-2},(_,index)=>index+2).every(column=>topPrefixes.has(first.answer[column-1]+second.answer[column-1]));
+    const borderRowsKeepTopRoutes=(opening,rows)=>{
+      const blocked=new Set([opening.key,...rows.map(entry=>entry.key)]);
+      const usedImages=new Set(rows.map(entry=>entry.imageKey).filter(Boolean));
+      const routeOptions=[];
+      for(let column=2;column<W;column++){
+        const optionsByAnswer=new Map();
+        for(let length=2;length<=H-1;length++){
+          const positions=byLength.get(length),pool=entriesByLength.get(length);
+          if(!positions||!pool?.length)continue;
+          let possible=null,clear=true;
+          for(let step=1;step<=length&&step<=rows.length;step++){
+            const rowEntry=rows[step-1];
+            if(column<=rowEntry.answer.length){
+              const matches=positions[step-1].get(rowEntry.answer[column-1])||[];
+              if(!matches.length){clear=false;break}
+              if(possible===null)possible=new Set(matches);
+              else{
+                const matchSet=new Set(matches);
+                for(const entry of possible)if(!matchSet.has(entry))possible.delete(entry);
+              }
+              if(!possible.size){clear=false;break}
+            }else if(column===rowEntry.answer.length+1){
+              clear=false;
+              break;
+            }
+          }
+          if(!clear)continue;
+          const terminalRow=length+1;
+          if(terminalRow<=rows.length&&column<=rows[terminalRow-1].answer.length)continue;
+          const candidates=possible===null?pool:possible;
+          for(const entry of candidates){
+            if(blocked.has(entry.key))continue;
+            if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7))continue;
+            optionsByAnswer.set(entry.key,entry);
+          }
+        }
+        const options=[...optionsByAnswer.values()];
+        if(!options.length)return false;
+        routeOptions.push(options);
+      }
+      routeOptions.sort((a,b)=>a.length-b.length);
+      const chosenAnswers=new Set(),chosenImages=new Set();
+      const assign=index=>{
+        if(index===routeOptions.length)return true;
+        for(const entry of routeOptions[index]){
+          if(chosenAnswers.has(entry.key))continue;
+          if(entry.imageKey&&(chosenImages.has(entry.imageKey)||usedImages.has(entry.imageKey)||usedImages.size+chosenImages.size>=7))continue;
+          chosenAnswers.add(entry.key);
+          if(entry.imageKey)chosenImages.add(entry.imageKey);
+          if(assign(index+1))return true;
+          chosenAnswers.delete(entry.key);
+          if(entry.imageKey)chosenImages.delete(entry.imageKey);
+        }
+        return false;
+      };
+      return assign(0);
+    };
     const firstLetterPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<3||entry.answer.length>7)continue;
@@ -1251,6 +1308,14 @@ function buildScanword(entries){
           };
           return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
         });
+        if(row>=3){
+          const viable=[];
+          for(const candidate of pool){
+            if(borderRowsKeepTopRoutes(firstCandidate,[...rowEntries,candidate]))viable.push(candidate);
+            if(viable.length>=20)break;
+          }
+          pool=viable;
+        }
         if(!pool.length){valid=false;break}
         const shortlist=pool.slice(0,Math.min(20,pool.length));
         const preferred=shortlist[0];
