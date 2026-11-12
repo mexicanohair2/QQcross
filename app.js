@@ -1332,15 +1332,12 @@ function buildScanword(entries){
           pool=selectedFirst?[selectedFirst]:[];
         }
         if(row>=3){
-          const viable=[];
-          for(const candidate of pool){
-            if(borderRowsKeepTopRoutes(firstCandidate,[...rowEntries,candidate]))viable.push(candidate);
-            if(viable.length>=20)break;
-          }
-          pool=viable;
+          // Do not validate future rows against a single preferred hypothetical
+          // path. The selected row options are explored by backtracking below.
+          pool=pool.slice(0,40);
         }
         if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
-        const shortlist=pool.slice(0,Math.min(20,pool.length));
+        const shortlist=pool.slice(0,Math.min(row>=3?40:20,pool.length));
         const preferred=shortlist[0];
         rowOptions.push(row===1?[preferred]:shortlist);
         rowEntries.push(preferred);chosen.add(preferred.key);
@@ -1502,17 +1499,17 @@ function buildScanword(entries){
       }
       return false;
     };
-    const placeBorderRows=row=>{
+    const placeBorderRows=(row,chosenRows=[])=>{
       if(++seedSearchNodes>20000)return false;
-      if(row>=H)return topBordersHavePotential(true)&&placeTopBorderClues(2);
+      if(row>=H)return topBordersHavePotential(true)&&borderRowsKeepTopRoutes(first,chosenRows)&&placeTopBorderClues(2);
       for(const entry of plan.rows[row-1]){
         if(used.has(entry.key))continue;
+        const nextRows=[...chosenRows,entry];
+        // Check top-down options against the actual rows chosen in this branch.
+        if(row>=3&&!borderRowsKeepTopRoutes(first,nextRows))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
-        // Backtrack across the entire left edge before solving the top row.
-        // A partial row can temporarily block a top route that a later choice
-        // would preserve; the completed top border is checked at the leaf.
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&topBordersHavePotential(true)&&placeBorderRows(row+1))return true;
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,nextRows))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
