@@ -1339,7 +1339,7 @@ function buildScanword(entries){
           }
           pool=viable;
         }
-        if(!pool.length){if(planRejectSamples.length<24)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
+        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),feasibleSecond:feasibleRow2Keys?.size||0,previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
         const shortlist=pool.slice(0,Math.min(20,pool.length));
         const preferred=shortlist[0];
         rowOptions.push(row===1?[preferred]:shortlist);
@@ -1909,7 +1909,7 @@ function buildScanword(entries){
       }).filter(Boolean);
       return {key,incoming,routes};
     });
-    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", примеры отказа старта: "+JSON.stringify(rejectedSeedSamples)+", отказы закрытия: "+JSON.stringify(best?.closureRejectSamples||[])+", причины планов: "+JSON.stringify(planRejectSamples.slice(0,24))+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
+    throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+", открытые концы: "+JSON.stringify(orphanDetails)+", стартовые маршруты: "+JSON.stringify(best?.borderRouteAudit||[])+", ответы в сетке: "+JSON.stringify((best?.words||[]).map(word=>({answer:word.answer,from:word.clueCell,dir:word.dir})))+", примеры отказа старта: "+JSON.stringify(rejectedSeedSamples)+", отказы закрытия: "+JSON.stringify(best?.closureRejectSamples||[])+", причины планов: "+JSON.stringify(planRejectSamples.slice(0,128))+", причины отказа: планов без связок "+rejectedNoPlan+", конфликтов стартовых слов "+rejectedSeed+", тупиковых окончаний "+rejectedRoute+"). Повтори генерацию.")}
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
