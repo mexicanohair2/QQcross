@@ -1000,15 +1000,9 @@ function buildScanword(entries){
   let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
   const rejectedSeedSamples=[],closureRejectSamples=[],planRejectSamples=[];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity,bestCenterSplitCount=0,bestPromptCount=0,bestStartTileCount=0;
-    // Select the eleven-letter opening and its crossing border plan from
-    // dictionary content. Only the geometry is fixed: clue (0,1), downward,
-    // exactly eleven letters. No answer or row-word list is hard-coded.
+    // Every left-border clue must begin a real answer. The opening word
+    // remains a dictionary-selected eleven-letter vertical answer.
     const openingBlocked=/^(КЛЕРИКАЛИЗМ|ВЕРИФИКАЦИЯ|ТОКЕНИЗАЦИЯ|ДЕТЕРМИНАНТ|ЭКЗОПЛАНЕТА|КОНГЛОМЕРАТ|ТРАНСФОРМЕР|МАНУФАКТУРА|АМОРТИЗАЦИЯ|ЭМАНСИПАЦИЯ|СУВЕРЕНИТЕТ|ТРАССИРОВКА|КАЛЛИГРАФИЯ|АРХЕОГРАФИЯ|ПОЛЯРИЗАЦИЯ|ДИВЕРГЕНЦИЯ|ДИСТИЛЛЯЦИЯ|ЭКЗИСТЕНЦИЯ|ПЕРЕКРЕСТОК)$/;
-    const eleven=normalized.filter(entry=>entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer));
-    // Top answers need only cross the first full-width left answer.
-    // The second left-border answer is selected later against the actual
-    // letters written by these vertical answers; forcing two full-width
-    // horizontal rows creates an unnecessary and brittle prefix constraint.
     const topFirstLetterPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<2||entry.answer.length>H-1)continue;
@@ -1016,65 +1010,35 @@ function buildScanword(entries){
       pool.push(entry);topFirstLetterPools.set(initial,pool);
     }
     const topInitials=new Set(topFirstLetterPools.keys());
+    const topPrefixPools=new Map();
+    for(const entry of normalized){
+      if(entry.answer.length<2||entry.answer.length>H-1)continue;
+      const prefix=entry.answer.slice(0,2),pool=topPrefixPools.get(prefix)||[];
+      pool.push(entry);topPrefixPools.set(prefix,pool);
+    }
     const firstLetterPools=new Map();
     for(const entry of normalized){
       if(entry.answer.length<3||entry.answer.length>7)continue;
       const initial=entry.answer[0],pool=firstLetterPools.get(initial)||[];
       pool.push(entry);firstLetterPools.set(initial,pool);
     }
-    // Keep the mandatory first left-border word wide, but prefer shorter
-    // later rows so they do not over-constrain all seven top-down crossings.
-    const borderQuality=entry=>quality(entry)+(entry.answer.length===4?85:entry.answer.length===5?70:entry.answer.length===3?55:entry.answer.length===6?25:entry.answer.length===7?0:-60);
+    const eleven=normalized.filter(entry=>
+      entry.answer.length===11&&!entry.imageKey&&!openingBlocked.test(entry.answer)&&
+      [...entry.answer].every(letter=>(firstLetterPools.get(letter)||[]).length>0)
+    );
+    const borderQuality=entry=>quality(entry)+
+      (entry.answer.length===4?85:entry.answer.length===5?70:entry.answer.length===3?55:
+       entry.answer.length===6?25:entry.answer.length===7?0:-60);
     const borderPlans=[];
-    for(const firstCandidate of eleven){
-      const rowEntries=[],rowOptions=[],chosen=new Set([firstCandidate.key]);
-      let score=quality(firstCandidate),valid=true;
-      for(let row=1;row<H;row++){
-        const initial=firstCandidate.answer[row-1];
-        let available=(firstLetterPools.get(initial)||[]).filter(entry=>
-          !chosen.has(entry.key)&&entry.answer.length<=W-1&&
-          (row!==1||entry.answer.length===W-1)&&
-          (row!==1||entry.answer.slice(1).split("").every(letter=>topInitials.has(letter)))&&
-          (row<H-2||entry.answer.length<=4||entry.answer.length===W-1)
-        );
-        // Both first left-border answers must span all seven columns: every top
-        // clue needs at least two letters before its vertical route can continue.
-        let pool=available.slice().sort((a,b)=>{
-          const terminalColumn=entry=>entry.answer.length===W-1?null:entry.answer.length+1;
-          const recentPenalty=entry=>{
-            const column=terminalColumn(entry);
-            if(column===null)return 0;
-            return rowEntries.reduce((penalty,previous,index)=>{
-              const distance=row-(index+1),previousColumn=terminalColumn(previous);
-              if(distance>2||previousColumn===null||previousColumn!==column)return penalty;
-              return penalty+(distance===1?180:distance===2?100:0);
-            },0);
-          };
-          return (borderQuality(b)-recentPenalty(b))-(borderQuality(a)-recentPenalty(a));
-        });
-
-        if(row>=2){
-          // The row is checked against real top-down letters during backtracking.
-          pool=pool.slice(0,55);
-        }
-        if(!pool.length){if(planRejectSamples.length<128)planRejectSamples.push({opening:firstCandidate.answer,row,available:available.length,availableSample:available.slice(0,8).map(entry=>entry.answer),previous:rowEntries.map(entry=>entry.answer),rowOptions:rowOptions.map(list=>list.map(entry=>entry.answer).slice(0,5))});valid=false;break}
-        const shortlist=pool.slice(0,Math.min(row===1?40:55,pool.length));
-        const preferred=shortlist[0];
-        rowOptions.push(shortlist);
-        rowEntries.push(preferred);chosen.add(preferred.key);
-        score+=quality(preferred);
-      }
-      if(valid){
-        const terminalColumns=rowEntries.map(entry=>entry.answer.length===W-1?null:entry.answer.length+1);
-        for(let i=0;i<terminalColumns.length;i++)for(let j=i+1;j<terminalColumns.length;j++){
-          const distance=j-i;
-          if(terminalColumns[i]!==null&&distance<=2&&terminalColumns[i]===terminalColumns[j])score-=distance===1?180:110;
-        }
-        score+=rowEntries.reduce((sum,entry)=>sum+(entry.answer.length===7?35:entry.answer.length===6?22:entry.answer.length===5?8:0),0);
-        borderPlans.push({first:firstCandidate,rows:rowOptions,score});
-      }
+    for(const opening of eleven){
+      const firstRows=(firstLetterPools.get(opening.answer[0])||[]).filter(entry=>
+        entry.key!==opening.key&&entry.answer.length===W-1&&
+        [...entry.answer.slice(1)].every(letter=>topInitials.has(letter))
+      );
+      if(!firstRows.length)continue;
+      const bestFirst=Math.max(...firstRows.map(borderQuality));
+      borderPlans.push({first:opening,rows:[firstRows],score:quality(opening)+bestFirst});
     }
-
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set(),terminalKeys=new Set();
@@ -1400,7 +1364,10 @@ function buildScanword(entries){
       for(const column of remainingColumns){
         const initial=occupied.get("1,"+column);
         if(!initial)return false;
-        const candidates=topFirstLetterPools.get(initial)||[];
+        const second=occupied.get("2,"+column);
+        const candidates=second===undefined
+          ?(topFirstLetterPools.get(initial)||[])
+          :(topPrefixPools.get(initial+second)||[]);
         const options=[];
         for(const entry of candidates){
           if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7)))continue;
@@ -1437,14 +1404,44 @@ function buildScanword(entries){
     const placeBorderRows=(row,topDone=false,chosenRows=[])=>{
       if(++seedSearchNodes>30000)return false;
       if(row>=H)return borderTerminalsHaveDistinctAnswers();
-      // The first left answer is full width and supplies the first letters for
-      // all six top-down clues. Place those real vertical answers immediately;
-      // the shorter second left answer will then be fitted to their crossings.
-      if(row===2&&!topDone){
-        if(!topBordersHavePotential(true))return false;
-        return placeTopBorderClues(Array.from({length:W-2},(_,index)=>index+2),()=>placeBorderRows(2,true,chosenRows));
+
+      let candidates;
+      if(row===1){
+        candidates=plan.rows[0]||[];
+      }else{
+        // Build each remaining left answer from all matching dictionary words.
+        // Rows two and three are placed before the top clues so the vertical
+        // routes are selected against their real crossing letters.
+        const pool=firstLetterPools.get(first.answer[row-1])||[];
+        candidates=pool.map(entry=>{
+          if(used.has(entry.key)||entry.answer.length>W-1)return null;
+          let crosses=0;
+          for(let index=1;index<=entry.answer.length;index++){
+            const cellKey=row+","+index;
+            if(clueAt.has(cellKey)||reservedKeys.has(cellKey))return null;
+            const existing=occupied.get(cellKey);
+            if(existing!==undefined){
+              if(existing!==entry.answer[index-1])return null;
+              crosses++;
+            }
+          }
+          const terminalKey=row+","+(entry.answer.length+1);
+          if(occupied.has(terminalKey)||reservedKeys.has(terminalKey))return null;
+          const lengthBonus=row<=3?(entry.answer.length===7?70:entry.answer.length===6?55:entry.answer.length===5?40:entry.answer.length===4?20:0):0;
+          return {entry,crosses,lengthBonus};
+        }).filter(Boolean).sort((a,b)=>
+          (b.crosses-a.crosses)||(b.lengthBonus-a.lengthBonus)||
+          (borderQuality(b.entry)-borderQuality(a.entry))
+        ).map(item=>item.entry);
       }
-      const candidates=plan.rows[row-1];
+
+      // Fix three actual left-border rows first. The top-down answers then
+      // inherit up to three known letters per column, reducing blind branching.
+      if(row===4&&!topDone){
+        if(!topBordersHavePotential(true))return false;
+        return placeTopBorderClues(Array.from({length:W-2},(_,index)=>index+2),()=>placeBorderRows(4,true,chosenRows));
+      }
+
       for(const entry of candidates){
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
