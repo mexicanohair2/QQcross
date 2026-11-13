@@ -209,3 +209,30 @@ test('rejects a slot whose direction does not match its coordinates', () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'INVALID_SLOT');
 });
+
+test('does not reuse the same normalized clue text for different answers', () => {
+  const slots = [
+    slot('first', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+      { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+    ], 'right', 'left'),
+    slot('second', { row: 5, col: 0 }, { row: 5, col: 4 }, [
+      { row: 5, col: 1 }, { row: 5, col: 2 }, { row: 5, col: 3 }
+    ], 'right', 'left')
+  ];
+  const dictionary = [
+    entry('cat', 'КОТ', '  Домашнее   животное! '),
+    entry('home', 'ДОМ', 'домашнее животное')
+  ];
+
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 21,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'NO_CSP_SOLUTION');
+});
