@@ -34,28 +34,37 @@ function createRandomMatrix(random) {
   matrix[0][1] = '#';
   for (let row = 1; row < CONFIG.HEIGHT; row++) matrix[row][0] = '#';
 
-  // Column 1 and 2 stay as answer cells so every left-edge clue can launch
-  // a meaningful horizontal answer. Interior clue anchors are distributed
-  // over columns 3..7, creating independent vertical and horizontal bridges.
-  for (let row = 0; row < CONFIG.HEIGHT; row++) {
-    const firstColumn = row === 0 ? 2 : 3;
-    const candidates = [];
-    for (let col = firstColumn; col < CONFIG.WIDTH; col++) {
-      if (random() < (row === 0 ? 0.48 : 0.43)) candidates.push(col);
-    }
+  // Every row has a real right-hand terminal clue. Two staggered vertical
+  // clue chains create crossings that connect the horizontal rows without
+  // relying on the optional eleven-letter boundary answer.
+  for (let row = 0; row < CONFIG.HEIGHT; row++) matrix[row][7] = '#';
+  matrix[0][4] = '#';
 
-    // A row needs at least two interior clue boundaries to avoid dangling
-    // runs at the right edge and to create a useful horizontal answer slot.
-    while (candidates.length < 2) {
-      const col = firstColumn + Math.floor(random() * (CONFIG.WIDTH - firstColumn));
-      if (!candidates.includes(col)) candidates.push(col);
-    }
-    candidates.sort((a, b) => a - b);
-    for (const col of candidates) matrix[row][col] = '#';
+  const verticalThreePatterns = [
+    [1, 4, 7, 10],
+    [1, 5, 9],
+    [2, 5, 8, 11],
+    [1, 5, 8, 11]
+  ];
+  const verticalFourPatterns = [
+    [0, 4, 8],
+    [0, 5, 10],
+    [0, 5, 9]
+  ];
+  const threeRows = verticalThreePatterns[Math.floor(random() * verticalThreePatterns.length)];
+  const fourRows = verticalFourPatterns[Math.floor(random() * verticalFourPatterns.length)];
+
+  for (const row of threeRows) matrix[row][3] = '#';
+  for (const row of fourRows) matrix[row][4] = '#';
+
+  // Optional seeded variation adds a secondary clue only where it remains
+  // a valid endpoint in an existing vertical run.
+  if (random() < 0.5) {
+    const row = 2 + Math.floor(random() * 7);
+    if (row !== 4 && row !== 5 && row !== 8) matrix[row][3] = '#';
   }
   return matrix;
 }
-
 function toRoleGrid(matrix) {
   const grid = createEmptyGrid();
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
