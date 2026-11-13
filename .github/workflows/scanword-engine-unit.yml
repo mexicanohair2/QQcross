@@ -26,3 +26,5 @@ jobs:
           node-version: 22
       - name: Run isolated engine tests
         run: npm test
+      - name: Audit the real QQCross dictionary
+        run: npm run audit
