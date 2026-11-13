@@ -1,8 +1,8 @@
 const { test, expect } = require("@playwright/test");
 function cssGridTrackCount(template) {
-  const repeated = String(template || "").match(/^repeat\\(\\s*(\\d+)\\s*,/);
+  const repeated = String(template || "").match(/^repeat\(\s*(\d+)\s*,/);
   if (repeated) return Number(repeated[1]);
-  return String(template || "").trim().split(/\\s+/).filter(Boolean).length;
+  return String(template || "").trim().split(/\s+/).filter(Boolean).length;
 }
 
 async function startGuestGame(page) {
