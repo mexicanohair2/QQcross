@@ -34,6 +34,6 @@ The isolated generator runs the deterministic feasibility preflight and refuses 
 
 ## Verification and integration status
 
-The isolated engine unit suite currently contains **59 tests**. The latest confirmed run before the newest metadata-cleanup commit passed all 59; the next run is checking the new cleanup. The production scanword verification and browser acceptance checks still expose the known 6×12 legacy generator, not a functioning 8×12 gameplay path. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
+The isolated engine unit suite currently contains **60 tests**. The latest confirmed GitHub Actions run passed all 60, including retained image/logic variants, picture metadata cleanup, and independent metadata validation. The production scanword verification and browser acceptance checks still expose the known 6×12 legacy generator, not a functioning 8×12 gameplay path. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
 
 Production currently uses classic scripts, primary generation in `app.js`, and `data/scanword-dictionary.json`. A compatibility adapter must preserve renderer, expected, clueAt, wordTerminals, hints, saves, daily mode, solo, multiplayer and AI flows. No live gameplay change is made by adding this directory.
