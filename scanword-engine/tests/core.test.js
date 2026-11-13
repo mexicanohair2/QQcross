@@ -122,3 +122,30 @@ test('dictionary rejects one-letter and over-eleven-letter entries', () => {
   assert.equal(prepared.errors.length, 2);
   assert.ok(prepared.errors.some(item => item.codes.includes('ANSWER_LENGTH_OUT_OF_RANGE')));
 });
+
+test('independent validator rejects duplicate normalized clue text for different answers', () => {
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  const words = [
+    { id: 'w1', entryId: 'e1', answer: 'КОТ', question: 'Домашнее животное.', clue: { row: 1, col: 0 }, direction: 'right', length: 3, coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }] },
+    { id: 'w2', entryId: 'e2', answer: 'ДОМ', question: 'Домашнее животное', clue: { row: 3, col: 0 }, direction: 'right', length: 3, coordinates: [{ row: 3, col: 1 }, { row: 3, col: 2 }, { row: 3, col: 3 }] }
+  ];
+  const questions = words.map((word, index) => ({
+    id: 'q' + (index + 1), wordId: word.id, text: word.question,
+    clue: word.clue, direction: word.direction, length: word.length
+  }));
+  words.forEach((word, index) => {
+    const clue = grid[word.clue.row][word.clue.col];
+    clue.type = 'question'; clue.questionIds = ['q' + (index + 1)];
+    word.coordinates.forEach((point, letterIndex) => {
+      grid[point.row][point.col] = {
+        ...grid[point.row][point.col], type: 'letter',
+        letter: word.answer[letterIndex], wordIds: [word.id]
+      };
+    });
+  });
+  const result = validateScanword({
+    width: 8, height: 12, grid, words, questions
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(result.errors.some(item => item.type === 'DUPLICATE_QUESTION_TEXT'));
+});
