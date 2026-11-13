@@ -24,7 +24,7 @@ function setQuestion(grid, row, col) {
   };
 }
 
-test('derives horizontal slots and all horizontal orientations', () => {
+test('derives horizontal slots and both horizontal orientations', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 4);
@@ -60,7 +60,7 @@ test('derives vertical slots and both vertical orientations', () => {
   assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down', 'up']);
 });
 
-test('does not turn one-letter gaps into answers', () => {
+test('does not turn a one-letter gap into an answer', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 2);
@@ -84,7 +84,7 @@ test('recognizes only the exact eleven-letter bottom boundary exception', () => 
   assert.deepEqual(special.directionOptions.map(item => item.direction), ['down']);
 });
 
-test('rejects the special exception when an intermediate cell is not a letter', () => {
+test('does not grant the boundary exception when an intermediate cell is a clue', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 1);
   setQuestion(grid, 7, 1);
@@ -93,12 +93,12 @@ test('rejects the special exception when an intermediate cell is not a letter', 
   assert.equal(result.slots.some(item => item.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
-test('validates the required borders and identifies orphan letters', () => {
-  const grid = makeGrid('unassigned');
+test('validates borders and reports unassigned and orphan cells independently', () => {
+  const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
-
   for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
+  grid[5][5] = { row: 5, col: 5, type: 'unassigned', letter: null, questionIds: [], wordIds: [] };
 
   const result = validateTopology(grid);
   assert.equal(result.valid, false);
