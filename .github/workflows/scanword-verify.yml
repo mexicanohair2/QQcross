@@ -21,4 +21,6 @@ jobs:
         run: node --check app.js
       - name: Diagnose one constrained production generation with an extended search budget
         run: node scripts/diagnose-scanword.cjs
+      - name: Search compatible eleven-letter answers and their crossing words
+        run: node scripts/diagnose-special-candidates.cjs
       # Restore the 100-seed stress test after the CSP blocker is resolved.
