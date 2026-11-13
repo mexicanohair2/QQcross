@@ -7,7 +7,7 @@ async function main() {
   const seed = 17919;
   const options = {
     seed,
-    specialElevenLetterChance: 0,
+    specialElevenLetterChance: 1,
     maxTopologyAttempts: 1,
     maxNodes: 240000,
     maxCspTimeMs: 5000,
@@ -38,6 +38,7 @@ async function main() {
     success: result.ok ? {
       answers: result.scanword.words.length,
       specialEleven: result.scanword.metadata.specialElevenLetterQuestion,
+      stats: result.stats,
       score: result.scanword.metadata.score,
       metrics: result.validation.metrics,
       words: result.scanword.words.map(word => ({
