@@ -25,6 +25,8 @@ jobs:
         run: node scripts/diagnose-special-candidates.cjs
       - name: Audit topology slot lengths before dictionary assignment
         run: node scripts/diagnose-topologies.mjs
+      - name: Validate redesigned low-short-slot 8x12 topology
+        run: node scripts/diagnose-custom-topology.mjs
       - name: Solve and independently validate the redesigned 8x12 topology
         run: node scripts/diagnose-target-topology.cjs
       - name: Stress-test normal full 8x12 scanwords with a production search budget
