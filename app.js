@@ -1262,18 +1262,12 @@ function buildScanword(entries){
     const rank=[imageCount,result?.coverage||0,borderScore,result?.words?.length||0,logicCount,-orphanCount,spreadScore,-(result?.dangling||999),-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1&&bestTopCount>=3&&bestLeftCount>=3&&bestOrphanCount<=10&&bestLogicCount>=2)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount<=1&&bestTopCount>=3&&bestLeftCount>=3&&bestOrphanCount<=10&&bestLogicCount>=3)break;
   }
-  if(best){
-    // An 8×12 board may leave a small number of structurally unusable
-    // squares. Mark them as intentional dark blocks instead of exposing
-    // accidental blank holes or inventing one-letter answers.
-    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
-      const key=y+","+x;
-      if(!best.reservedKeys.has(key)&&!best.occupied.has(key)&&!best.clueAt.has(key))best.reservedKeys.add(key);
-    }
-    best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
-  }
+  // Never disguise uncovered cells as dark blocks. A complete scanword
+  // has exactly one reserved cell: the top-left corner. If the generator
+  // cannot cover every other cell with a real answer or a playable clue,
+  // it must fail with diagnostics rather than publish a broken board.
   if(!best||best.coverage!==TOTAL||bestImageCount!==5){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");throw new Error("Не удалось собрать поле 8×12 (8 столбцов × 12 строк) с вопросом после каждого ответа (заполнение: "+bestCoverage+"/"+TOTAL+", буквы: "+(best?.occupied.size||0)+", вопросы: "+(best?.clueAt.size||0)+", пересечения: "+overlaps.join(" ")+", вне поля: "+outside.join(" ")+", пустые клетки: "+holes.join(" ")+", незаполненные вопросы: "+openEnds.join(" ")+", сетка: "+debugGrid+"). Повтори генерацию.")}
   // Keep every cell purposeful: unlinked border placeholders become dark
   // crossword blocks rather than blank, unclickable question tiles.
