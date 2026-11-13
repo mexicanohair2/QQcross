@@ -17,7 +17,13 @@ function crossingConstraints(orientation, letters) {
 }
 
 function validateSlotGeometry(slot) {
-  if (!slot || !Array.isArray(slot.endpoints) || slot.endpoints.length !== 2) return false;
+  if (
+    !slot
+    || !Array.isArray(slot.endpoints)
+    || slot.endpoints.length !== 2
+    || !Array.isArray(slot.coordinates)
+    || slot.coordinates.length !== slot.length
+  ) return false;
   const firstKey = pointKey(slot.endpoints[0]);
   const lastKey = pointKey(slot.endpoints[1]);
 
@@ -33,7 +39,10 @@ function validateSlotGeometry(slot) {
       || option.coordinates.length !== 11
     ) return false;
     return option.coordinates.every((coordinate, index) =>
-      coordinate.row === index + 1 && coordinate.col === 1
+      coordinate.row === index + 1
+      && coordinate.col === 1
+      && slot.coordinates[index]?.row === coordinate.row
+      && slot.coordinates[index]?.col === coordinate.col
     );
   }
 
@@ -50,6 +59,8 @@ function validateSlotGeometry(slot) {
     )) return false;
 
     if (!Array.isArray(option.coordinates) || option.coordinates.length !== slot.length) return false;
+    const baseCoordinates = new Set(slot.coordinates.map(pointKey));
+    if (option.coordinates.some(coordinate => !baseCoordinates.has(pointKey(coordinate)))) return false;
     for (let index = 0; index < option.coordinates.length; index++) {
       const expectedRow = option.clueCell.row + vector.dr * (index + 1);
       const expectedCol = option.clueCell.col + vector.dc * (index + 1);
