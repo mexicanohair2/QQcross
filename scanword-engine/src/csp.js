@@ -249,6 +249,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
+      if (slot.length === 2 && (!entry.imageKey || !allowedShortAnswers.has(canonicalAnswerKey(entry.answer)))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
       const previousQuestionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
@@ -312,6 +313,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const requireEveryClueStarts = options.requireEveryClueStarts !== false;
+  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ']).map(canonicalAnswerKey));
 
   if (!Array.isArray(inputSlots) || inputSlots.length === 0) {
     return {
