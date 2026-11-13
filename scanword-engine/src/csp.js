@@ -185,6 +185,59 @@ function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, r
   return true;
 }
 
+function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, indexes) {
+  const specialKeys = new Set(specialSlot.coordinates.map(pointKey));
+  const crossingSlots = allSlots.filter(slot =>
+    slot.id !== specialSlot.id
+    && slot.coordinates.some(point => specialKeys.has(pointKey(point)))
+  );
+
+  return candidates.map(candidate => {
+    const imposedLetters = new Map(candidate.coordinates.map((point, index) => [
+      pointKey(point),
+      candidate.entry.answer[index]
+    ]));
+    let unsupported = 0;
+    let supportVariants = 0;
+    let supportAnswers = 0;
+
+    for (const slot of crossingSlots) {
+      let bestVariants = 0;
+      let bestAnswers = 0;
+      for (const orientation of slot.directionOptions) {
+        const constraints = crossingConstraints(orientation, imposedLetters);
+        if (!constraints.length) continue;
+        const matches = findCandidates(indexes, slot.length, constraints)
+          .filter(entry => entry.answer !== candidate.entry.answer);
+        const distinctAnswers = new Set(matches.map(entry => entry.answer)).size;
+        if (distinctAnswers > bestAnswers) {
+          bestAnswers = distinctAnswers;
+          bestVariants = matches.length;
+        }
+      }
+      if (bestAnswers === 0) unsupported++;
+      supportAnswers += bestAnswers;
+      supportVariants += bestVariants;
+    }
+
+    return {
+      ...candidate,
+      specialSupport: {
+        unsupported,
+        supportedSlots: crossingSlots.length - unsupported,
+        answers: supportAnswers,
+        variants: supportVariants
+      }
+    };
+  }).sort((a, b) =>
+    a.specialSupport.unsupported - b.specialSupport.unsupported
+    || b.specialSupport.supportedSlots - a.specialSupport.supportedSlots
+    || b.specialSupport.answers - a.specialSupport.answers
+    || b.priority - a.priority
+    || a.tie - b.tie
+  );
+}
+
 function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
   for (const orientation of slot.directionOptions ?? []) {
@@ -454,30 +507,55 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     let chosenCandidates = null;
     let chosenDegree = -1;
 
-    const selectionOrder = shuffle(unassigned, random);
-    for (const slot of selectionOrder) {
-      const candidates = makePlacementCandidates(slot, state, indexes, {
+    // The optional eleven-letter edge answer intersects every horizontal
+    // word in the left column. Assign it first and rank candidates by how
+    // many real dictionary answers remain available at those crossings.
+    const specialElevenSlot = unassigned.find(slot =>
+      slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
+    );
+
+    if (specialElevenSlot) {
+      const candidates = makePlacementCandidates(specialElevenSlot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
         history: options.history,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty
       }, random);
-
       if (candidates.length === 0) {
-        lastDeadEnd = { reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id };
+        lastDeadEnd = { reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id };
         return false;
       }
+      chosenSlot = specialElevenSlot;
+      chosenCandidates = prioritizeSpecialElevenCandidates(
+        candidates, specialElevenSlot, slots, indexes
+      );
+    } else {
+      const selectionOrder = shuffle(unassigned, random);
+      for (const slot of selectionOrder) {
+        const candidates = makePlacementCandidates(slot, state, indexes, {
+          requiredImageCount,
+          minimumLogicClueCells,
+          history: options.history,
+          repeatWordPenalty: options.repeatWordPenalty,
+          repeatQuestionPenalty: options.repeatQuestionPenalty
+        }, random);
 
-      const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
-      if (
-        chosenCandidates === null
-        || candidates.length < chosenCandidates.length
-        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
-      ) {
-        chosenSlot = slot;
-        chosenCandidates = candidates;
-        chosenDegree = slotDegree;
+        if (candidates.length === 0) {
+          lastDeadEnd = { reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id };
+          return false;
+        }
+
+        const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
+        if (
+          chosenCandidates === null
+          || candidates.length < chosenCandidates.length
+          || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+        ) {
+          chosenSlot = slot;
+          chosenCandidates = candidates;
+          chosenDegree = slotDegree;
+        }
       }
     }
 
