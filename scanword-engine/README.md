@@ -15,7 +15,7 @@ This directory is an experimental engine source area inside the existing QQCross
 - `config.js`, `grid.js`: canonical dimensions and cell model.
 - `dictionary.js`: Russian normalization, entry validation, duplicate handling and positional indexes.
 - `topology.js`: derives geometric slots and independently validates cell roles/coverage.
-- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and unique normalized clue text.
+- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text, with the standard picture prompt reusable only for distinct image keys.
 - `assembler.js`: converts CSP assignments into the canonical clue/letter grid and crossing references. It does not mark partial output as complete.
 - `validator.js`: independently reconstructs answer geometry, validates dictionary references, question/answer links, crossings, image keys, connectedness and all 96 cell roles.
 - `history.js`: tracks word combinations, exact structures and normalized clue reuse.
