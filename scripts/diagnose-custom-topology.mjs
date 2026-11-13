@@ -2,18 +2,18 @@ import { createEmptyGrid } from "../scanword-engine/src/grid.js";
 import { deriveWordSlots, validateTopology } from "../scanword-engine/src/topology.js";
 
 const pattern = [
-  ".#...###",
-  "#...#...",
-  "#...#...",
-  "#...#...",
+  ".#..#..#",
   "#......#",
-  "#....##.",
-  "#...#...",
-  "#...#...",
-  "#......#",
-  "#....##.",
   "#.....#.",
-  "#......#"
+  "#....#..",
+  "#...#...",
+  "#......#",
+  "#.....#.",
+  "#....#..",
+  "#...#...",
+  "#.....#.",
+  "#......#",
+  "#...#..#"
 ];
 const grid = createEmptyGrid();
 for(let row=0;row<12;row++){
