@@ -20,7 +20,7 @@ async function main() {
     "#....#..",
     "#...#..#",
     "#.....#.",
-    "#.....##",
+    "#.....#.",
     "#...#..#"
   ];
   const grid = createEmptyGrid();
