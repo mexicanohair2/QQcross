@@ -337,3 +337,11 @@ test('assembler and independent validator recognize only the two exact left-bord
   ].includes(error.type));
   assert.deepEqual(boundaryErrors, []);
 });
+
+
+test('normalizes Ё and Е consistently when comparing duplicate clue text', () => {
+  assert.equal(
+    normalizeQuestion('Берёза растёт у реки.'),
+    normalizeQuestion('Береза растёт у реки.')
+  );
+});
