@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { normalizeAnswer, prepareDictionary } from './dictionary.js';
+import { normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
 function pointKey(point) {
