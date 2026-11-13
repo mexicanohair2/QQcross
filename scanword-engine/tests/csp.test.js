@@ -328,6 +328,6 @@ test('history penalizes recently used answers and avoids an exact recent structu
     maxNodes: 100,
     maxTimeMs: 1000
   });
-  assert.equal(repeated.ok, false);
-  assert.equal(repeated.lastDeadEnd.reason, 'RECENT_STRUCTURE_REPEAT');
+  assert.equal(repeated.ok, true, repeated.message);
+  assert.equal(exactHistory.hasStructure(repeated.words), false);
 });
