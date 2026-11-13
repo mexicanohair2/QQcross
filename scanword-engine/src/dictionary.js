@@ -15,6 +15,7 @@ export function normalizeQuestion(value) {
     .normalize('NFC')
     .trim()
     .toLocaleLowerCase('ru-RU')
+    .replace(/ё/gu, 'е')
     .replace(/[«»"'“”]/gu, '')
     .replace(/[.,!?;:(){}—–-]+/gu, ' ')
     .replace(/\s+/gu, ' ')
