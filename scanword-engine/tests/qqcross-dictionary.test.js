@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildIndexes, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { buildIndexes, findCandidates, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const productionDictionary = JSON.parse(
