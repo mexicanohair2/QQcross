@@ -379,4 +379,14 @@ test('independent validator accepts a selected logic variant when the answer als
   });
   assert.equal(validation.errors.some(error => error.type === 'WORD_NOT_IN_DICTIONARY'), false);
   assert.equal(validation.errors.some(error => error.type === 'DICTIONARY_QUESTION_MISMATCH'), false);
+
+  const forged = JSON.parse(JSON.stringify(assembled.scanword));
+  forged.words[0].logic = false;
+  const forgedValidation = validateScanword(forged, dictionary, {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.ok(forgedValidation.errors.some(error => error.type === 'LOGIC_METADATA_MISMATCH'));
 });
