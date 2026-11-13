@@ -8,6 +8,7 @@ import { generateScanword } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
+import { assembleScanword } from '../src/assembler.js';
 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
@@ -179,4 +180,52 @@ test('generation history tracks combinations, structures, and normalized clue re
   history.add({ words: [{ ...first.words[0], entryId: 'home', answer: 'ДОМ', question: 'Место для жизни.' }] });
   assert.equal(history.items.length, 2);
   assert.equal(history.usageCount('cat'), 0);
+});
+
+test('assembler builds clue cells, terminal cells and crossing letter ownership', () => {
+  const assembled = assembleScanword({
+    seed: 5,
+    words: [
+      {
+        id: 'w1', entryId: 'cat', answer: 'КОТ', question: 'Домашнее животное.',
+        clue: { row: 1, col: 0 }, direction: 'right',
+        coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+      },
+      {
+        id: 'w2', entryId: 'wasp', answer: 'ОСА', question: 'Полосатое жалящее насекомое.',
+        clue: { row: 0, col: 2 }, direction: 'down',
+        coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
+      }
+    ]
+  });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  assert.equal(assembled.scanword.width, 8);
+  assert.equal(assembled.scanword.height, 12);
+  assert.equal(assembled.scanword.grid[0][0].type, 'corner');
+  assert.equal(assembled.scanword.grid[1][0].type, 'question');
+  assert.equal(assembled.scanword.grid[1][4].type, 'question');
+  assert.equal(assembled.scanword.grid[4][2].type, 'question');
+  assert.equal(assembled.scanword.grid[1][2].letter, 'О');
+  assert.deepEqual(assembled.scanword.grid[1][2].wordIds.sort(), ['w1', 'w2']);
+  assert.equal(assembled.metrics.crossings, 1);
+  assert.equal(assembled.scanword.metadata.complete, false);
+});
+
+test('assembler rejects crossing letter conflicts and invalid answer paths', () => {
+  const assembled = assembleScanword({
+    words: [
+      {
+        id: 'w1', answer: 'КОТ', question: 'Домашнее животное.',
+        clue: { row: 1, col: 0 }, direction: 'right',
+        coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+      },
+      {
+        id: 'w2', answer: 'ЛЕС', question: 'Большая территория с деревьями.',
+        clue: { row: 0, col: 2 }, direction: 'down',
+        coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
+      }
+    ]
+  });
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(item => item.type === 'CROSSING_LETTER_CONFLICT'));
 });
