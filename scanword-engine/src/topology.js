@@ -68,23 +68,10 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
 
   const allowed = new Set(allowedRows);
-  const conflicts = [];
-  for (const row of [1, 2]) {
-    if (row >= height || allowed.has(row)) continue;
-    conflicts.push({
-      clueCell: { row, col: 0 },
-      blockedDirections: {
-        left: 'граница поля',
-        up: row === 1 ? 'пустой угол (0,0)' : 'обязательная вопросная клетка левого края',
-        down: 'обязательная вопросная клетка левого края'
-      },
-      forcedHorizontalPath: Array.from({ length: width - 1 }, (_, index) => ({
-        row,
-        col: index + 1
-      })),
-      reason: 'В первых двух строках все клетки справа уже вынужденно заняты буквами верхних вопросов.'
-    });
-  }
+  // Rows 1 and 2 on the left border are not inherently impossible:
+  // their answers may terminate at an interior clue cell after at least
+  // two letters. The proven unavoidable contradiction is the second
+  // top clue, whose entire column is forced to be letters by the left clues.
 
   // The second top clue is impossible even when the two left-edge exceptions
   // are enabled: every left-border clue forces columns 1 and 2 to be letters
