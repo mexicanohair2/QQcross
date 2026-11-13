@@ -83,7 +83,8 @@ const report = {
   topDuplicateAnswers: duplicateAnswers.slice(0, 12),
   warningCounts: {
     duplicateAnswers: prepared.stats.duplicateAnswerWarnings,
-    duplicateQuestions: prepared.stats.duplicateQuestionWarnings
+    duplicateQuestions: prepared.stats.duplicateQuestionWarnings,
+    shortQuestionReview: prepared.stats.shortQuestionWarnings
   }
 };
 
