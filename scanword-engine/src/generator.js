@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { prepareDictionary } from './dictionary.js';
+import { buildIndexes, prepareDictionary } from './dictionary.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
@@ -41,8 +41,8 @@ export function generateScanword(inputDictionary, options = {}) {
   const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
   const random = createRng(seed);
   const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
-  const maxNodes = Math.max(500, options.maxNodes ?? 24000);
-  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 180);
+  const maxNodes = Math.max(500, options.maxNodes ?? 120000);
+  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 450);
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
@@ -59,6 +59,10 @@ export function generateScanword(inputDictionary, options = {}) {
       dictionaryErrors: prepared.errors.slice(0, 20)
     });
   }
+
+  // Dictionary validation and positional indexes are invariant across topology attempts.
+  // Build them once, not again inside every CSP retry.
+  const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
 
   const hasElevenLetterAnswers = prepared.variants.some(entry => entry.answer.length === 11);
   const wantsEleven = hasElevenLetterAnswers
@@ -104,6 +108,8 @@ export function generateScanword(inputDictionary, options = {}) {
     const solved = solveSlotsCsp(topology.slots, inputDictionary, {
       seed: cspSeed,
       foldYo: options.foldYo === true,
+      preparedDictionary: prepared,
+      indexes,
       maxNodes,
       maxTimeMs: maxCspTimeMs,
       requiredImageCount,
