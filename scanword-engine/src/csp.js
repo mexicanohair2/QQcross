@@ -304,7 +304,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     seenSlotIds.add(slot.id);
   }
 
-  const indexes = buildIndexes(prepared.entries, { foldYo: options.foldYo === true });
+  const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
   const slots = inputSlots.map(slot => ({
     ...slot,
     coordinates: slot.coordinates.map(point => ({ ...point })),
