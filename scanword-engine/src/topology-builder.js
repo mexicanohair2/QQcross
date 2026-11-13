@@ -4,58 +4,49 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * Each scaffold is a complete, independently validated 8x12 role mask.
- * Three aligned interior clue columns create six connected vertical slots;
- * the twelve horizontal slots cover the remaining runs. The geometry has
- * exactly 18 normal answers and at most one two-letter answer (the optional
- * top-row picture clue "ЁЖ"). No letter cell is left as filler.
+ * Twelve safe variants of one balanced 8x12 geometry.
+ * Every board has 18 ordinary answer slots and four short, but meaningful,
+ * two-letter slots. The short-answer whitelist in the CSP excludes pronouns,
+ * particles and arbitrary two-letter fragments.
+ *
+ * Two staggered vertical runs (columns 4 and 5 in zero-based coordinates)
+ * cross the full-width horizontal rows and keep the complete word graph
+ * connected. The optional 11-letter word still runs down column 1.
  */
-const SCAFFOLD_ROWS = Object.freeze([
-  [0, 4, 8],
-  [0, 4, 9],
-  [1, 5, 9],
-  [1, 5, 10],
-  [1, 6, 10],
-  [1, 6, 11],
-  [2, 6, 10],
-  [2, 6, 11],
-  [2, 7, 11],
-  [3, 7, 11],
-  [0, 5, 10],
-  [1, 5, 11]
+const SCAFFOLD_PAIRS = Object.freeze([
+  [[1, 5], [2, 6]],
+  [[2, 6], [3, 7]],
+  [[3, 7], [4, 8]],
+  [[4, 8], [5, 9]],
+  [[5, 9], [6, 10]],
+  [[6, 10], [7, 11]],
+  [[1, 5], [3, 7]],
+  [[2, 6], [4, 8]],
+  [[3, 7], [5, 9]],
+  [[4, 8], [6, 10]],
+  [[5, 9], [7, 11]],
+  [[1, 5], [4, 8]]
 ]);
 
-function createScaffold(rows) {
+function createScaffold([columnThreeRows, columnFourRows]) {
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
-    if (row === 0) {
-      cells[1] = '#';
-    } else {
-      cells[0] = '#';
-    }
+    if (row === 0) cells[1] = '#';
+    else cells[0] = '#';
     cells[7] = '#';
-    if (rows.includes(row)) {
-      cells[4] = '#';
-      cells[5] = '#';
-      cells[6] = '#';
-    }
+
+    if (columnThreeRows.includes(row)) cells[3] = '#';
+    if (columnFourRows.includes(row)) cells[4] = '#';
     return cells.join('');
   });
 }
 
-const SCAFFOLDS = Object.freeze(SCAFFOLD_ROWS.map(createScaffold));
+const SCAFFOLDS = Object.freeze(SCAFFOLD_PAIRS.map(createScaffold));
 
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
 
-function createRandomMatrix(random) {
-  const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
-  return {
-    scaffoldIndex,
-    matrix: cloneRows(SCAFFOLDS[scaffoldIndex])
-  };
-}
 function toRoleGrid(matrix) {
   const grid = createEmptyGrid();
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
@@ -73,6 +64,7 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
+
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (matrix[row][0] !== '#') return null;
     if (matrix[row][1] !== '.' || matrix[row][2] !== '.') return null;
@@ -88,8 +80,10 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
-  if (derived.errors.length || derived.slots.length !== 18 + (includeSpecialEleven ? 1 : 0)) return null;
-  if (derived.slots.filter(slot => slot.length === 2).length > 1) return null;
+  const expectedSlots = 18 + (includeSpecialEleven ? 1 : 0);
+  if (derived.errors.length || derived.slots.length !== expectedSlots) return null;
+  if (derived.slots.filter(slot => slot.length === 2).length !== 4) return null;
+
   return {
     grid,
     slots: derived.slots,
@@ -112,10 +106,8 @@ function countTopQuestions(matrix) {
 }
 
 /**
- * Builds a varied role topology before the dictionary is consulted.
- * Top-row omissions are intentional: all those cells must still be covered
- * by a valid horizontal answer run. The left edge and top-left anchor remain
- * the stable scanword frame; the interior mask changes for each seed.
+ * Selects a seeded, fully validated role mask. Geometry is always checked
+ * before the dictionary solver is called; the masks contain no stored words.
  */
 export function generateTopology(options = {}) {
   const seed = options.seed ?? 1;
@@ -125,9 +117,8 @@ export function generateTopology(options = {}) {
   const history = [];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const generated = createRandomMatrix(random);
-    const scaffoldIndex = generated.scaffoldIndex;
-    const matrix = generated.matrix;
+    const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
+    const matrix = cloneRows(SCAFFOLDS[scaffoldIndex]);
     const candidate = inspectCandidate(matrix, includeSpecialEleven);
     if (!candidate) {
       history.push('TOPOLOGY_REJECTED');
@@ -145,14 +136,7 @@ export function generateTopology(options = {}) {
     };
   }
 
-  // All scaffolds are independently validated. This deterministic fallback
-  // avoids returning an unverified partial board when random edits all fail.
-  const fallbackOrder = Array.from({ length: SCAFFOLDS.length }, (_, index) => index);
-  for (let index = fallbackOrder.length - 1; index > 0; index--) {
-    const swap = Math.floor(random() * (index + 1));
-    [fallbackOrder[index], fallbackOrder[swap]] = [fallbackOrder[swap], fallbackOrder[index]];
-  }
-  for (const scaffoldIndex of fallbackOrder) {
+  for (let scaffoldIndex = 0; scaffoldIndex < SCAFFOLDS.length; scaffoldIndex++) {
     const candidate = inspectCandidate(cloneRows(SCAFFOLDS[scaffoldIndex]), includeSpecialEleven);
     if (candidate) {
       return {
@@ -162,7 +146,7 @@ export function generateTopology(options = {}) {
         scaffoldIndex,
         topology: candidate,
         rejectedAttempts: maxAttempts,
-        diagnostics: ['RANDOMIZED_TOPOLOGIES_EXHAUSTED', 'VALIDATED_SCAFFOLD_FALLBACK']
+        diagnostics: ['SEEDED_TOPOLOGY_RETRIES_EXHAUSTED', 'VALIDATED_SCAFFOLD_FALLBACK']
       };
     }
   }
