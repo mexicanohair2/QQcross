@@ -17,7 +17,7 @@ Source: `data/scanword-dictionary.json` on `feature/qqcross-scanword-engine`; me
 ## Image and logic coverage
 
 - Image records / unique image keys / unique playable image answers: **46 / 46 / 46**
-- Raw logic-tagged records: **710**
+- Raw logic-tagged records after the picture-metadata correction: **709**
 - Distinct playable answers with at least one valid logic variant: **622**
 - Distinct playable answers with an image and a separate logic variant: **13**
 - The same answer may have separate image and logic formulations. The runtime now retains all valid variants for CSP selection while enforcing one use of each answer per puzzle. It no longer discards a valid logic formulation just because the image variant scored higher during answer deduplication.
