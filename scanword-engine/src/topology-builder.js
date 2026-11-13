@@ -28,33 +28,82 @@ function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
 
-function mirrorInnerColumns(matrix) {
+function createRandomMatrix(random) {
+  const matrix = Array.from({ length: CONFIG.HEIGHT }, () => Array(CONFIG.WIDTH).fill('.'));
+  matrix[0][0] = '.';
+  matrix[0][1] = '#';
+  for (let row = 1; row < CONFIG.HEIGHT; row++) matrix[row][0] = '#';
+
+  // Column 1 and 2 stay as answer cells so every left-edge clue can launch
+  // a meaningful horizontal answer. Interior clue anchors are distributed
+  // over columns 3..7, creating independent vertical and horizontal bridges.
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
-    const before = matrix[row].slice(3, 8);
-    for (let col = 3; col < 8; col++) matrix[row][col] = before[7 - col];
+    const firstColumn = row === 0 ? 2 : 3;
+    const candidates = [];
+    for (let col = firstColumn; col < CONFIG.WIDTH; col++) {
+      if (random() < (row === 0 ? 0.48 : 0.43)) candidates.push(col);
+    }
+
+    // A row needs at least two interior clue boundaries to avoid dangling
+    // runs at the right edge and to create a useful horizontal answer slot.
+    while (candidates.length < 2) {
+      const col = firstColumn + Math.floor(random() * (CONFIG.WIDTH - firstColumn));
+      if (!candidates.includes(col)) candidates.push(col);
+    }
+    candidates.sort((a, b) => a - b);
+    for (const col of candidates) matrix[row][col] = '#';
   }
+  return matrix;
 }
 
-function reverseInteriorRows(matrix) {
-  const before = matrix.slice(1).map(row => row.slice());
-  for (let row = 1; row < CONFIG.HEIGHT; row++) {
-    matrix[row] = before[CONFIG.HEIGHT - row - 1].slice();
+function toRoleGrid(matrix) {
+  const grid = createEmptyGrid();
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    for (let col = 0; col < CONFIG.WIDTH; col++) {
+      if (row === 0 && col === 0) continue;
+      const cell = grid[row][col];
+      cell.type = matrix[row][col] === '#' ? 'question' : 'letter';
+      cell.letter = cell.type === 'letter' ? 'А' : null;
+    }
   }
+  return grid;
 }
 
-function toggleRandomCells(matrix, random) {
-  const mutable = [];
+function inspectCandidate(matrix, includeSpecialEleven) {
+  if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
+  if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
+  if (countTopQuestions(matrix) < 3) return null;
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
-    for (let col = 3; col < CONFIG.WIDTH; col++) mutable.push([row, col]);
+    if (matrix[row][0] !== '#') return null;
+    if (matrix[row][1] !== '.' || matrix[row][2] !== '.') return null;
   }
-  for (let col = 4; col < CONFIG.WIDTH; col++) mutable.push([0, col]);
 
-  const count = 1 + Math.floor(random() * 5);
-  for (let change = 0; change < count; change++) {
-    const index = Math.floor(random() * mutable.length);
-    const [row, col] = mutable.splice(index, 1)[0];
-    matrix[row][col] = matrix[row][col] === '#' ? '.' : '#';
-  }
+  const grid = toRoleGrid(matrix);
+  const topologyOptions = {
+    requireConnected: true,
+    allowSpecialElevenBoundary: includeSpecialEleven
+  };
+  const validation = validateTopology(grid, topologyOptions);
+  if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
+  if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
+
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  if (derived.errors.length || derived.slots.length < 18) return null;
+  return {
+    grid,
+    slots: derived.slots,
+    validation,
+    pattern: matrix.map(row => row.join('')),
+    metrics: {
+      totalCells: CONFIG.TOTAL_CELLS,
+      questionCells: validation.metrics.questionCells,
+      letterCells: validation.metrics.letterCells,
+      slotCount: derived.slots.length,
+      horizontalSlots: validation.metrics.horizontalSlots,
+      verticalSlots: validation.metrics.verticalSlots,
+      crossingsPotential: validation.metrics.coveredLetters
+    }
+  };
 }
 
 function countTopQuestions(matrix) {
@@ -125,12 +174,8 @@ export function generateTopology(options = {}) {
   const history = [];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
-    const matrix = cloneRows(SCAFFOLDS[scaffoldIndex]);
-    if (random() < 0.5) mirrorInnerColumns(matrix);
-    if (random() < 0.5) reverseInteriorRows(matrix);
-    toggleRandomCells(matrix, random);
-
+    const scaffoldIndex = -1;
+    const matrix = createRandomMatrix(random);
     const candidate = inspectCandidate(matrix, includeSpecialEleven);
     if (!candidate) {
       history.push('TOPOLOGY_REJECTED');

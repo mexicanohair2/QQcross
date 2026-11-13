@@ -45,7 +45,7 @@ test('seeded random generator is reproducible', () => {
   const a = createRng(123), b = createRng(123);
   assert.deepEqual([a(),a(),a()], [b(),b(),b()]);
 });
-test('generator fails fast on the proven mandatory-border contradiction', () => {
+test('generator rejects a dictionary that cannot satisfy picture and logic quotas', () => {
   const dictionary = [
     { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
     { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
@@ -53,15 +53,12 @@ test('generator fails fast on the proven mandatory-border contradiction', () => 
   ];
   const result = generateScanword(dictionary, { seed: 1, specialElevenLetterChance: 0 });
 
-  assert.equal(analyzeRequiredBorderFeasibility().feasible, false);
+  assert.equal(analyzeRequiredBorderFeasibility().feasible, true);
   assert.equal(result.ok, false);
-  assert.equal(result.reason, 'TOPOLOGY_CONSTRAINT_CONFLICT');
-  assert.equal(result.nodes, 0);
-  assert.equal(result.topology.conflicts.length, 1);
-  assert.deepEqual(result.topology.conflicts.map(item => item.clueCell), [
-    { row: 0, col: 2 }
-  ]);
+  assert.equal(result.reason, 'INSUFFICIENT_DICTIONARY');
   assert.equal(result.dictionaryStats.accepted, 3);
+  assert.equal(result.dictionaryStats.withImages, 0);
+  assert.equal(result.dictionaryStats.logicEntries, 0);
 });
 test('validator rejects an ordinary answer ending at the board boundary', () => {
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
@@ -249,7 +246,7 @@ test('assembler rejects crossing letter conflicts and invalid answer paths', () 
   assert.ok(assembled.errors.some(item => item.type === 'CROSSING_LETTER_CONFLICT'));
 });
 
-test('optional eleven-letter mode is not attempted while the required topology is impossible', () => {
+test('eleven-letter preference never bypasses mandatory dictionary content quotas', () => {
   const result = generateScanword([
     { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
     { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
@@ -258,11 +255,11 @@ test('optional eleven-letter mode is not attempted while the required topology i
     seed: 9,
     specialElevenLetterChance: 1,
     maxNodes: 100,
-    maxTimeMs: 100
+    maxCspTimeMs: 100
   });
   assert.equal(result.ok, false);
-  assert.equal(result.reason, 'TOPOLOGY_CONSTRAINT_CONFLICT');
-  assert.equal(result.nodes, 0);
+  assert.equal(result.reason, 'INSUFFICIENT_DICTIONARY');
+  assert.equal(result.dictionaryStats.withImages, 0);
 });
 
 test('independent validator reports malformed word records without throwing', () => {
