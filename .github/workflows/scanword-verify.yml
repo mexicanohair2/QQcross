@@ -25,6 +25,8 @@ jobs:
         run: node scripts/diagnose-special-candidates.cjs
       - name: Audit topology slot lengths before dictionary assignment
         run: node scripts/diagnose-topologies.mjs
+      - name: Solve and independently validate the redesigned 8x12 topology
+        run: node scripts/diagnose-target-topology.cjs
       - name: Stress-test normal full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs
       # Restore the 100-seed stress test after the CSP blocker is resolved.
