@@ -512,8 +512,8 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   const grid = await board.evaluate(node => {
     const trackCount = template => {
       const value = String(template || "");
-      const repeated = value.match(/^repeat\\(\\s*(\\d+)\\s*,/);
-      return repeated ? Number(repeated[1]) : value.trim().split(/\\s+/).filter(Boolean).length;
+      if (value.startsWith("repeat(")) return Number(value.slice(7).split(",")[0]);
+      return value.trim().split(" ").filter(Boolean).length;
     };
     return {
     columns: trackCount(getComputedStyle(node).gridTemplateColumns),
