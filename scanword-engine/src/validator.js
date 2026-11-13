@@ -345,9 +345,14 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
             wordId: word.id, expected: entry.question, actual: word.question
           });
         }
-        if (word.imageKey && word.imageKey !== entry.imageKey) {
+        if ((word.imageKey ?? null) !== (entry.imageKey ?? null)) {
           add('IMAGE_METADATA_MISMATCH', 'Ключ картинки не совпадает с записью словаря.', {
-            wordId: word.id, expected: entry.imageKey ?? null, actual: word.imageKey
+            wordId: word.id, expected: entry.imageKey ?? null, actual: word.imageKey ?? null
+          });
+        }
+        if (Boolean(word.logic) !== (entry.logic === true)) {
+          add('LOGIC_METADATA_MISMATCH', 'Метка логического вопроса не совпадает с проверенной записью словаря.', {
+            wordId: word.id, expected: entry.logic === true, actual: Boolean(word.logic)
           });
         }
       }
