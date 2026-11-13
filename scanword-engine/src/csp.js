@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, DIRECTIONS } from './config.js';
 import { buildIndexes, findCandidates, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
@@ -14,6 +14,61 @@ function crossingConstraints(orientation, letters) {
     if (letter !== undefined) constraints.push({ position, letter });
   }
   return constraints;
+}
+
+function validateSlotGeometry(slot) {
+  if (!slot || !Array.isArray(slot.endpoints) || slot.endpoints.length !== 2) return false;
+  const firstKey = pointKey(slot.endpoints[0]);
+  const lastKey = pointKey(slot.endpoints[1]);
+
+  if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
+    if (slot.length !== 11 || slot.directionOptions.length !== 1) return false;
+    const option = slot.directionOptions[0];
+    if (
+      pointKey(option.clueCell) !== '0,1'
+      || option.direction !== 'down'
+      || !option.terminalCell?.boundary
+      || option.terminalCell.row !== CONFIG.HEIGHT
+      || option.terminalCell.col !== 1
+      || option.coordinates.length !== 11
+    ) return false;
+    return option.coordinates.every((coordinate, index) =>
+      coordinate.row === index + 1 && coordinate.col === 1
+    );
+  }
+
+  if (slot.endpoints.some(endpoint => endpoint.boundary)) return false;
+  for (const option of slot.directionOptions ?? []) {
+    const vector = DIRECTIONS[option.direction];
+    if (!vector || !option.clueCell || !option.terminalCell) return false;
+
+    const clueKey = pointKey(option.clueCell);
+    const terminalKey = pointKey(option.terminalCell);
+    if (!(
+      (clueKey === firstKey && terminalKey === lastKey)
+      || (clueKey === lastKey && terminalKey === firstKey)
+    )) return false;
+
+    if (!Array.isArray(option.coordinates) || option.coordinates.length !== slot.length) return false;
+    for (let index = 0; index < option.coordinates.length; index++) {
+      const expectedRow = option.clueCell.row + vector.dr * (index + 1);
+      const expectedCol = option.clueCell.col + vector.dc * (index + 1);
+      if (
+        option.coordinates[index].row !== expectedRow
+        || option.coordinates[index].col !== expectedCol
+        || expectedRow < 0
+        || expectedCol < 0
+        || expectedRow >= CONFIG.HEIGHT
+        || expectedCol >= CONFIG.WIDTH
+      ) return false;
+    }
+    const last = option.coordinates[option.coordinates.length - 1];
+    const terminalRow = last.row + vector.dr;
+    const terminalCol = last.col + vector.dc;
+    if (terminalRow !== option.terminalCell.row || terminalCol !== option.terminalCell.col) return false;
+  }
+
+  return slot.directionOptions.length > 0;
 }
 
 function calculateSlotDegrees(slots) {
@@ -140,7 +195,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   for (const slot of inputSlots) {
     if (!slot?.id || seenSlotIds.has(slot.id) || !Number.isInteger(slot.length) || slot.length < 2
       || !Array.isArray(slot.coordinates) || slot.coordinates.length !== slot.length
-      || !Array.isArray(slot.directionOptions) || slot.directionOptions.length === 0) {
+      || !Array.isArray(slot.directionOptions) || slot.directionOptions.length === 0
+      || !validateSlotGeometry(slot)) {
       return {
         ok: false,
         reason: 'INVALID_SLOT',
