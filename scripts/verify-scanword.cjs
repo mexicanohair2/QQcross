@@ -17,7 +17,7 @@ function seededRandom(seed) {
 }
 
 function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 8) throw new Error("Run " + run + ": grid is not 12 columns × 8 rows");
+  if (!puzzle || puzzle.w !== 8 || puzzle.h !== 12) throw new Error("Run " + run + ": grid is not 8 columns × 12 rows");
   const total = puzzle.w * puzzle.h;
   if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
     throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
@@ -47,7 +47,7 @@ function validate(puzzle, run) {
       if (word.cells[k][0] !== expectedY || word.cells[k][1] !== expectedX) {
         throw new Error("Run " + run + ": non-contiguous or misdirected cells in " + word.id);
       }
-      if (word.answer[k] < "А" || word.answer[k] > "Я") throw new Error("Run " + run + ": invalid answer character in " + word.id);
+      if (!/^[А-ЯЁ]+$/u.test(word.answer)) throw new Error("Run " + run + ": invalid Russian answer characters in " + word.id);
     }
     if (cy < 0 || cx < 0 || cy >= puzzle.h || cx >= puzzle.w || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
     for (let k = 0; k < word.cells.length; k++) {
@@ -62,7 +62,13 @@ function validate(puzzle, run) {
       owners.get(key).add(i);
     }
     const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    if(word.special==="ELEVEN_LETTER_BOTTOM_BOUNDARY"){
+      const specialCells=word.cells.every(([y,x],index)=>y===index+1&&x===1);
+      if(word.answer.length!==11||cy!==0||cx!==1||word.dir!=="down"||!specialCells||terminalY!==puzzle.h||terminalX!==1)
+        throw new Error("Run "+run+": invalid special eleven-letter boundary answer "+word.id);
+    }else if(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey)){
+      throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
+    }
   }
   if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
   for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
