@@ -16,7 +16,7 @@ export function normalizeQuestion(value) {
     .trim()
     .toLocaleLowerCase('ru-RU')
     .replace(/[«»"'“”]/gu, '')
-    .replace(/[.,!?;:()[\]{}—–-]+/gu, ' ')
+    .replace(/[.,!?;:(){}—–-]+/gu, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
 }
