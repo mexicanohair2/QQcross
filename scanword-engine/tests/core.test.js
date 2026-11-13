@@ -53,16 +53,16 @@ test('validator rejects an ordinary answer ending at the board boundary', () => 
     words: [{
       id: 'w1',
       entryId: 'e1',
-      answer: 'КОТ',
-      question: 'Домашнее животное.',
+      answer: 'КОТЛЕСЫ',
+      question: 'Составное тестовое слово.',
       clue: { row: 1, col: 0 },
       direction: 'right',
-      length: 3,
-      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+      length: 7,
+      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }, { row: 1, col: 5 }, { row: 1, col: 6 }, { row: 1, col: 7 }]
     }],
     questions: []
   };
-  for (let col = 1; col <= 3; col++) grid[1][col] = { row: 1, col, type: 'letter', letter: 'КОТ'[col - 1], questionIds: [], wordIds: ['w1'] };
+  for (let col = 1; col <= 7; col++) grid[1][col] = { row: 1, col, type: 'letter', letter: 'КОТЛЕСЫ'[col - 1], questionIds: [], wordIds: ['w1'] };
   grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
 
   const result = validateScanword(fake, [], { requireBorderClues: false, requireConnected: false });
