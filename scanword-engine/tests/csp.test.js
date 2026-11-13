@@ -491,3 +491,31 @@ test('CSP cannot place ЕЖ and ЁЖ as two answers in one puzzle', () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'NO_CSP_SOLUTION');
 });
+
+
+test('allows a two-letter answer only when it is an approved picture entry', () => {
+  const slots = [slot(
+    'short-picture',
+    { row: 0, col: 1 },
+    { row: 0, col: 4 },
+    [{ row: 0, col: 2 }, { row: 0, col: 3 }],
+    'right',
+    'left'
+  )];
+  const dictionary = [
+    { id: 'hedgehog', answer: 'ЁЖ', question: 'Что изображено на картинке?', imageKey: 'hedgehog' },
+    { id: 'poison', answer: 'ЯД', question: 'Вещество, способное вызвать отравление.' },
+    { id: 'mind', answer: 'УМ', question: 'Способность человека думать и рассуждать.' }
+  ];
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 91,
+    requiredImageCount: 1,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ЁЖ');
+  assert.equal(result.words[0].imageKey, 'hedgehog');
+});
