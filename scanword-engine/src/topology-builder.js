@@ -4,66 +4,57 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * The rows below are validated topology seeds, not finished puzzles.
- * Every generation applies seeded geometric transforms and edits, then
- * derives every answer slot from the resulting 8x12 role mask. The CSP
- * supplies all actual words; no answer or clue is stored in these masks.
+ * Each scaffold is a complete, independently validated 8x12 role mask.
+ * Three aligned interior clue columns create six connected vertical slots;
+ * the twelve horizontal slots cover the remaining runs. The geometry has
+ * exactly 18 normal answers and at most one two-letter answer (the optional
+ * top-row picture clue "ЁЖ"). No letter cell is left as filler.
  */
-const SCAFFOLDS = Object.freeze([
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#...#.##','#..#..#.','#....##.','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#...#..#','#..#..#.','#....#..','#..#...#','#....#..','#.....#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#.....##','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#...#..#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#......#','#.....#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#....##.','#..#....','#......#','#...#..#','#......#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#......#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#..#...#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#......#','#..#..#.','#....#..','#......#','#....#..','#..#..#.','#.....##'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#...#..#','#....#.#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#..#...#','#...#..#','#......#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#..#.##.','#..#....','#......#','#..##..#','#......#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#'],
-  ['.#..#..#','#....##.','#..#....','#......#','#..##..#','#......#','#..#..#.','#....#..','#..#...#','#....#..','#..#..#.','#......#']
+const SCAFFOLD_ROWS = Object.freeze([
+  [0, 4, 8],
+  [0, 4, 9],
+  [1, 5, 9],
+  [1, 5, 10],
+  [1, 6, 10],
+  [1, 6, 11],
+  [2, 6, 10],
+  [2, 6, 11],
+  [2, 7, 11],
+  [3, 7, 11],
+  [0, 5, 10],
+  [1, 5, 10]
 ]);
+
+function createScaffold(rows) {
+  return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
+    const cells = Array(CONFIG.WIDTH).fill('.');
+    if (row === 0) {
+      cells[1] = '#';
+    } else {
+      cells[0] = '#';
+    }
+    cells[7] = '#';
+    if (rows.includes(row)) {
+      cells[4] = '#';
+      cells[5] = '#';
+      cells[6] = '#';
+    }
+    return cells.join('');
+  });
+}
+
+const SCAFFOLDS = Object.freeze(SCAFFOLD_ROWS.map(createScaffold));
 
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
 
 function createRandomMatrix(random) {
-  const matrix = Array.from({ length: CONFIG.HEIGHT }, () => Array(CONFIG.WIDTH).fill('.'));
-  matrix[0][0] = '.';
-  matrix[0][1] = '#';
-  for (let row = 1; row < CONFIG.HEIGHT; row++) matrix[row][0] = '#';
-
-  // Every row has a real right-hand terminal clue. Two staggered vertical
-  // clue chains create crossings that connect the horizontal rows without
-  // relying on the optional eleven-letter boundary answer.
-  for (let row = 0; row < CONFIG.HEIGHT; row++) matrix[row][7] = '#';
-  matrix[0][4] = '#';
-
-  const verticalThreePatterns = [
-    [1, 4, 7, 10],
-    [1, 5, 9],
-    [2, 5, 8, 11],
-    [1, 5, 8, 11]
-  ];
-  const verticalFourPatterns = [
-    [0, 4, 8],
-    [0, 5, 10],
-    [0, 5, 9]
-  ];
-  const threeRows = verticalThreePatterns[Math.floor(random() * verticalThreePatterns.length)];
-  const fourRows = verticalFourPatterns[Math.floor(random() * verticalFourPatterns.length)];
-
-  for (const row of threeRows) matrix[row][3] = '#';
-  for (const row of fourRows) matrix[row][4] = '#';
-
-  // Optional seeded variation adds a secondary clue only where it remains
-  // a valid endpoint in an existing vertical run.
-  if (random() < 0.5) {
-    const row = 2 + Math.floor(random() * 7);
-    if (row !== 4 && row !== 5 && row !== 8) matrix[row][3] = '#';
-  }
-  return matrix;
+  const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
+  return {
+    scaffoldIndex,
+    matrix: cloneRows(SCAFFOLDS[scaffoldIndex])
+  };
 }
 function toRoleGrid(matrix) {
   const grid = createEmptyGrid();
@@ -81,7 +72,7 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 3) return null;
+  if (countTopQuestions(matrix) < 2) return null;
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (matrix[row][0] !== '#') return null;
     if (matrix[row][1] !== '.' || matrix[row][2] !== '.') return null;
@@ -97,7 +88,8 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
-  if (derived.errors.length || derived.slots.length < 18) return null;
+  if (derived.errors.length || derived.slots.length !== 18) return null;
+  if (derived.slots.filter(slot => slot.length === 2).length > 1) return null;
   return {
     grid,
     slots: derived.slots,
@@ -133,8 +125,9 @@ export function generateTopology(options = {}) {
   const history = [];
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const scaffoldIndex = -1;
-    const matrix = createRandomMatrix(random);
+    const generated = createRandomMatrix(random);
+    const scaffoldIndex = generated.scaffoldIndex;
+    const matrix = generated.matrix;
     const candidate = inspectCandidate(matrix, includeSpecialEleven);
     if (!candidate) {
       history.push('TOPOLOGY_REJECTED');
