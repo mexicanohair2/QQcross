@@ -57,7 +57,12 @@ test('generator fails fast on the proven mandatory-border contradiction', () => 
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'TOPOLOGY_CONSTRAINT_CONFLICT');
   assert.equal(result.nodes, 0);
-  assert.equal(result.topology.conflicts.length, 2);
+  assert.equal(result.topology.conflicts.length, 3);
+  assert.deepEqual(result.topology.conflicts.map(item => item.clueCell), [
+    { row: 1, col: 0 },
+    { row: 2, col: 0 },
+    { row: 0, col: 2 }
+  ]);
   assert.equal(result.dictionaryStats.accepted, 3);
 });
 test('validator rejects an ordinary answer ending at the board boundary', () => {
