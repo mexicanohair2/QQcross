@@ -432,7 +432,12 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       const last = horizontal ? { row: fixedIndex, col: end } : { row: end, col: fixedIndex };
       const key = slotKey(axis, first, last);
       const matches = words.filter(word => {
-        if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') return false;
+        if (
+          !word
+          || typeof word.answer !== 'string'
+          || !word.clue
+          || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
+        ) return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
         if (!vector) return false;
@@ -493,6 +498,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         if (!sameStringSet(cell.wordIds, [...expected])) {
           add('LETTER_WORD_REFERENCES_MISMATCH', 'Список слов буквенной клетки не совпадает с независимо восстановленными пересечениями.', {
             row, col, expected: [...expected].sort(), actual: sortedUnique(cell.wordIds)
+          });
+        }
+        if ((cell.questionIds?.length ?? 0) > 0) {
+          add('LETTER_HAS_QUESTION_REFERENCES', 'Буквенная клетка не может содержать ссылки на вопросы.', {
+            row, col, actual: cell.questionIds
           });
         }
         const expectedLetter = expectedLetters.get(key);
