@@ -3,6 +3,72 @@ import { CONFIG, DIRECTIONS } from './config.js';
 export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter']);
 export const MIN_ANSWER_LENGTH = 2;
 
+/**
+ * Proves whether the required top/left clue borders can satisfy the rule
+ * that every ordinary answer ends at an in-board question cell.
+ */
+export function analyzeRequiredBorderFeasibility(options = {}) {
+  const width = options.width ?? CONFIG.WIDTH;
+  const height = options.height ?? CONFIG.HEIGHT;
+  const minimumLength = options.minimumAnswerLength ?? MIN_ANSWER_LENGTH;
+
+  if (!Number.isInteger(width) || !Number.isInteger(height)
+    || !Number.isInteger(minimumLength) || width < 2
+    || height <= minimumLength || minimumLength < 2) {
+    return {
+      feasible: null,
+      reason: 'UNSUPPORTED_DIMENSIONS',
+      width,
+      height,
+      minimumAnswerLength: minimumLength,
+      conflicts: [],
+      message: 'Невозможно выполнить предварительную проверку для переданных размеров или минимальной длины.'
+    };
+  }
+
+  // The seven top clues can only point down. Their minimum-length answers
+  // force every cell in these rows, columns 1..width-1, to be a letter.
+  const forcedLetterCells = [];
+  for (let row = 1; row <= minimumLength; row++) {
+    for (let col = 1; col < width; col++) {
+      forcedLetterCells.push({ row, col, forcedByTopClue: { row: 0, col } });
+    }
+  }
+
+  // Each left clue in those rows is blocked vertically by mandatory left
+  // border clues (or by the reserved corner at row 1), and horizontally by
+  // the forced letters through the right edge.
+  const conflicts = [];
+  for (let row = 1; row <= minimumLength; row++) {
+    conflicts.push({
+      clueCell: { row, col: 0 },
+      blockedDirections: {
+        left: 'граница поля',
+        up: row === 1 ? 'пустой угол (0,0)' : 'обязательная вопросная клетка левого края',
+        down: 'обязательная вопросная клетка левого края'
+      },
+      forcedHorizontalPath: Array.from({ length: width - 1 }, (_, index) => ({
+        row,
+        col: index + 1
+      })),
+      reason: 'Все клетки справа вынужденно являются буквами, поэтому внутри строки нет терминальной вопросной клетки.'
+    });
+  }
+
+  return {
+    feasible: conflicts.length === 0,
+    reason: conflicts.length ? 'BORDER_TERMINAL_CONFLICT' : 'NO_BORDER_CONFLICT_FOUND',
+    width,
+    height,
+    minimumAnswerLength: minimumLength,
+    forcedLetterCells,
+    conflicts,
+    message: conflicts.length
+      ? 'Обязательные верхняя и левая рамки несовместимы с правилом завершения каждого обычного ответа во внутренней вопросной клетке.'
+      : 'Предварительная проверка не обнаружила противоречия обязательных рамок.'
+  };
+}
+
 function keyOf(point) {
   return point.row + ',' + point.col;
 }
