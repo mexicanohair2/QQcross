@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
 function pointKey(point) {
@@ -170,12 +170,13 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, expected: answer.length, actual: word.length
       });
     }
-    if (answerOwners.has(answer)) {
-      add('DUPLICATE_ANSWER', 'Один ответ нельзя использовать дважды в одном сканворде.', {
-        wordId: word.id, otherWordId: answerOwners.get(answer), answer
+    const answerKey = canonicalAnswerKey(answer);
+    if (answerOwners.has(answerKey)) {
+      add('DUPLICATE_ANSWER', 'Один ответ нельзя использовать дважды в одном сканворде (включая варианты Е/Ё).', {
+        wordId: word.id, otherWordId: answerOwners.get(answerKey), answer
       });
     } else {
-      answerOwners.set(answer, word.id);
+      answerOwners.set(answerKey, word.id);
     }
 
     const vector = DIRECTIONS[word.direction];
