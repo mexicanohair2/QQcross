@@ -42,7 +42,7 @@ function clueQuality(entry) {
 
   if (/[.!?]$/u.test(question)) score += 3;
   if (entry.logic) score += 18;
-  // Preserve the production picture-answer variants; image selection is a hard content preference.
+  // Picture variants are a required gameplay content class; keep their asset metadata.
   if (entry.imageKey) score += 1000;
 
   if (/первая буква слова|последняя буква слова|начинается на букву|заканчивается на букву/iu.test(question)) score -= 30;
@@ -55,11 +55,7 @@ function clueQuality(entry) {
 export function validateEntry(raw, index = 0, options = {}) {
   const errors = [];
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
-    return {
-      valid: false,
-      errors: ['ENTRY_NOT_OBJECT'],
-      entry: null
-    };
+    return { valid: false, errors: ['ENTRY_NOT_OBJECT'], entry: null };
   }
 
   const answer = normalizeAnswer(raw.answer, options);
@@ -94,11 +90,9 @@ export function validateEntry(raw, index = 0, options = {}) {
 
 /**
  * Normalizes the production QQCross dictionary schema.
- *
- * The live source uses { answer, clue, clueShort, imageKey?, logic? };
- * the isolated engine originally expected { answer, question }. Both shapes
- * are accepted here. Duplicate answers are represented by one best candidate
- * in entries, while every valid source variant remains available in variants.
+ * The source uses { answer, clue, clueShort, imageKey?, logic? }.
+ * All valid variants remain available in variants; entries contains one
+ * highest-quality representative per answer to prevent duplicate answers.
  */
 export function prepareDictionary(input, options = {}) {
   const errors = [];
@@ -106,8 +100,8 @@ export function prepareDictionary(input, options = {}) {
   const variants = [];
   const byAnswer = new Map();
   const questionOwners = new Map();
-
   const source = Array.isArray(input) ? input : [];
+
   for (let index = 0; index < source.length; index++) {
     const result = validateEntry(source[index], index, options);
     if (!result.valid) {
@@ -173,6 +167,7 @@ export function prepareDictionary(input, options = {}) {
     variants,
     errors,
     warnings,
+    foldYo: options.foldYo === true,
     stats: {
       input: source.length,
       validVariants: variants.length,
@@ -189,14 +184,23 @@ export function prepareDictionary(input, options = {}) {
   };
 }
 
-export function buildIndexes(entries) {
+/**
+ * Builds indexes for the unique playable entries.
+ * byLetter uses "position:letter" keys so an intersection can narrow a slot
+ * without scanning the full dictionary.
+ */
+export function buildIndexes(entries, options = {}) {
   const byLength = new Map();
   const byLetter = new Map();
+  const byId = new Map();
+  const byAnswer = new Map();
 
   for (const entry of entries) {
     const length = entry.answer.length;
     if (!byLength.has(length)) byLength.set(length, []);
     byLength.get(length).push(entry);
+    byId.set(entry.id, entry);
+    byAnswer.set(entry.answer, entry);
 
     for (let position = 0; position < length; position++) {
       const key = position + ':' + entry.answer[position];
@@ -205,5 +209,54 @@ export function buildIndexes(entries) {
     }
   }
 
-  return { byLength, byLetter };
+  return {
+    byLength,
+    byLetter,
+    byId,
+    byAnswer,
+    foldYo: options.foldYo === true
+  };
+}
+
+/**
+ * Finds dictionary answers of a fixed length that satisfy all crossing letters.
+ * constraints may be [{ position, letter }] or an object like { 0: 'К', 2: 'Т' }.
+ * The smallest positional bucket is scanned first (MRV-style candidate narrowing).
+ */
+export function findCandidates(indexes, length, constraints = []) {
+  if (!indexes || !Number.isInteger(length) || length < 1) return [];
+  const lengthBucket = indexes.byLength.get(length);
+  if (!lengthBucket?.length) return [];
+
+  const rawConstraints = Array.isArray(constraints)
+    ? constraints
+    : Object.entries(constraints ?? {}).map(([position, letter]) => ({
+      position: Number(position),
+      letter
+    }));
+
+  const normalized = [];
+  for (const constraint of rawConstraints) {
+    const position = Number(constraint?.position);
+    const letter = normalizeAnswer(constraint?.letter, { foldYo: indexes.foldYo });
+    if (!Number.isInteger(position) || position < 0 || position >= length || letter.length !== 1) return [];
+    normalized.push({ position, letter });
+  }
+
+  if (!normalized.length) return [...lengthBucket];
+
+  const buckets = [];
+  for (const constraint of normalized) {
+    const bucket = indexes.byLetter.get(constraint.position + ':' + constraint.letter);
+    if (!bucket?.length) return [];
+    buckets.push(bucket);
+  }
+
+  buckets.sort((a, b) => a.length - b.length);
+  const remainingSets = buckets.slice(1).map(bucket => new Set(bucket.map(entry => entry.id)));
+
+  return buckets[0].filter(entry =>
+    entry.answer.length === length
+    && remainingSets.every(set => set.has(entry.id))
+  );
 }
