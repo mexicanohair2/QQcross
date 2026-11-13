@@ -75,7 +75,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const questions = Array.isArray(scanword.questions) ? scanword.questions : [];
   const prepared = prepareDictionary(dictionary, { foldYo: options.foldYo === true });
   warnings.push(...prepared.warnings);
-  const dictionaryById = new Map(prepared.entries.map(entry => [entry.id, entry]));
+  const dictionaryById = new Map(prepared.variants.map(entry => [entry.id, entry]));
 
   if (grid[0][0]?.type !== 'corner') {
     add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным пустым углом.', { row: 0, col: 0 });
