@@ -4,28 +4,17 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * Twelve safe variants of one balanced 8x12 geometry.
- * Every board has 18 ordinary answer slots and four short, but meaningful,
- * two-letter slots. The short-answer whitelist in the CSP excludes pronouns,
- * particles and arbitrary two-letter fragments.
- *
- * Two staggered vertical runs (columns 4 and 5 in zero-based coordinates)
- * cross the full-width horizontal rows and keep the complete word graph
- * connected. The optional 11-letter word still runs down column 1.
+ * Balanced connected 8x12 geometry. Two offset vertical chains span the
+ * full board and cross horizontal answers, linking every row into one word
+ * graph. Four interior clue cells lie at column 3 and four at column 4;
+ * horizontal runs create four short answers, while the vertical chains add
+ * two more. All short answers are restricted by a reviewed CSP whitelist.
  */
 const SCAFFOLD_PAIRS = Object.freeze([
-  [[1, 5], [2, 6]],
-  [[2, 6], [3, 7]],
-  [[3, 7], [4, 8]],
-  [[4, 8], [5, 9]],
-  [[5, 9], [6, 10]],
-  [[6, 10], [7, 11]],
-  [[1, 5], [3, 7]],
-  [[2, 6], [4, 8]],
-  [[3, 7], [5, 9]],
-  [[4, 8], [6, 10]],
-  [[5, 9], [7, 11]],
-  [[1, 5], [4, 8]]
+  [[1, 4, 7, 10], [0, 3, 8, 11]],
+  [[1, 5, 8, 11], [0, 3, 6, 9]],
+  [[1, 4, 7, 10], [0, 3, 7, 11]],
+  [[1, 5, 8, 11], [0, 4, 7, 10]]
 ]);
 
 function createScaffold([columnThreeRows, columnFourRows]) {
@@ -82,7 +71,7 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
   const expectedSlots = 18 + (includeSpecialEleven ? 1 : 0);
   if (derived.errors.length || derived.slots.length !== expectedSlots) return null;
-  if (derived.slots.filter(slot => slot.length === 2).length !== 4) return null;
+  if (derived.slots.filter(slot => slot.length === 2).length !== 6) return null;
 
   return {
     grid,
