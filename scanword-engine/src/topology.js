@@ -14,7 +14,7 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   const allowedRows = options.allowLeftBorderRightBoundaryRows ?? [];
 
   if (!Number.isInteger(width) || !Number.isInteger(height)
-    || !Number.isInteger(minimumLength) || width < 2
+    || !Number.isInteger(minimumLength) || width < 3
     || height <= minimumLength || minimumLength < 2) {
     return {
       feasible: null,
@@ -43,18 +43,34 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     };
   }
 
-  // Top clues force the first two cells below them to be letters.
   const forcedLetterCells = [];
-  for (let row = 1; row <= minimumLength; row++) {
-    for (let col = 1; col < width; col++) {
-      forcedLetterCells.push({ row, col, forcedByTopClue: { row: 0, col } });
+  const forcedKeys = new Set();
+  const forceLetter = (row, col, cause) => {
+    const key = row + ',' + col;
+    if (forcedKeys.has(key)) return;
+    forcedKeys.add(key);
+    forcedLetterCells.push({ row, col, forcedBy: cause });
+  };
+
+  // Every left-border clue can only point right: up/down are occupied by
+  // neighbouring mandatory clue cells and left is outside the board.
+  for (let row = 1; row < height; row++) {
+    for (let col = 1; col <= minimumLength; col++) {
+      forceLetter(row, col, { type: 'LEFT_BORDER_CLUE', row, col: 0 });
+    }
+  }
+
+  // The top-row answers also force their first minimumLength cells to letters.
+  for (let col = 1; col < width; col++) {
+    for (let row = 1; row <= minimumLength; row++) {
+      forceLetter(row, col, { type: 'TOP_BORDER_CLUE', row: 0, col });
     }
   }
 
   const allowed = new Set(allowedRows);
   const conflicts = [];
-  for (let row = 1; row <= minimumLength; row++) {
-    if (allowed.has(row)) continue;
+  for (const row of [1, 2]) {
+    if (row >= height || allowed.has(row)) continue;
     conflicts.push({
       clueCell: { row, col: 0 },
       blockedDirections: {
@@ -66,27 +82,38 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
         row,
         col: index + 1
       })),
-      reason: 'Все клетки справа вынужденно являются буквами, поэтому внутри строки нет терминальной вопросной клетки.'
+      reason: 'В первых двух строках все клетки справа уже вынужденно заняты буквами верхних вопросов.'
     });
   }
 
-  const completeException = allowed.has(1) && allowed.has(2);
+  // The second top clue is impossible even when the two left-edge exceptions
+  // are enabled: every left-border clue forces columns 1 and 2 to be letters
+  // all the way down. Thus (0,2) can only end after 11 letters at the bottom
+  // boundary, but the specification permits that exception only at (0,1).
+  conflicts.push({
+    clueCell: { row: 0, col: 2 },
+    blockedDirections: {
+      left: 'обязательная вопросная клетка (0,1)',
+      right: 'обязательная вопросная клетка (0,3)',
+      up: 'граница поля'
+    },
+    forcedVerticalPath: Array.from({ length: height - 1 }, (_, index) => ({
+      row: index + 1,
+      col: 2
+    })),
+    reason: 'Все левые вопросы требуют минимум две буквы вправо, поэтому весь второй столбец букв занят до нижней границы. Для ответа из 11 букв в столбце 2 отдельного разрешения нет.'
+  });
+
   return {
-    feasible: conflicts.length === 0,
-    reason: conflicts.length === 0 && completeException
-      ? 'EXPLICIT_LEFT_BOUNDARY_EXCEPTION'
-      : conflicts.length ? 'BORDER_TERMINAL_CONFLICT' : 'NO_BORDER_CONFLICT_FOUND',
+    feasible: false,
+    reason: 'TOP_BORDER_SECOND_COLUMN_CONFLICT',
     width,
     height,
     minimumAnswerLength: minimumLength,
     forcedLetterCells,
     allowedLeftBoundaryRows: [...allowed].sort((a, b) => a - b),
     conflicts,
-    message: conflicts.length
-      ? 'Обязательные рамки конфликтуют: для первых двух левых вопросов требуется разрешённое завершение у правой границы.'
-      : completeException
-        ? 'Топологическое противоречие первых двух левых вопросов снято только явным исключением для строк 1 и 2.'
-        : 'Предварительная проверка не обнаружила противоречия обязательных рамок.'
+    message: 'Поле невозможно полностью заполнить при текущих правилах: верхний вопрос (0,2) вынужден идти на 11 букв до нижней границы, но такое исключение разрешено только для (0,1).'
   };
 }
 
