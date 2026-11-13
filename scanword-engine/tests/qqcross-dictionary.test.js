@@ -86,7 +86,7 @@ test('audits the real production dictionary without losing valid content', () =>
   assert.equal(prepared.stats.withImages, uniqueImageAnswers.size);
   assert.equal(prepared.stats.logicEntries, uniqueLogicAnswers.size);
   assert.equal(prepared.stats.withImages, 46);
-  assert.equal(prepared.stats.logicEntries, 610);
+  assert.equal(prepared.stats.logicEntries, 622);
 });
 
 test('prioritizes a real picture variant when duplicate answers exist', () => {
@@ -144,4 +144,11 @@ test('content availability statistics count distinct answers across all valid va
   assert.equal(prepared.variants.length, 4);
   assert.equal(prepared.stats.withImages, 2);
   assert.equal(prepared.stats.logicEntries, 2);
+});
+
+
+test('picture-only clues are not incorrectly counted as logical questions', () => {
+  const catPicture = productionDictionary.find(item => item.imageKey === 'cat');
+  assert.ok(catPicture);
+  assert.notEqual(catPicture.logic, true);
 });
