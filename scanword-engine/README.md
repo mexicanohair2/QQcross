@@ -40,6 +40,6 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 - A puzzle is accepted into the game only after the independent validator reports success.
 
 
-## Dynamic topology sampling
+## Dynamic topology sampling (seeded bridge patterns)
 
 The production sampler now proposes seeded 8×12 role masks directly instead of mutating a single fixed scaffold. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
