@@ -41,8 +41,9 @@ function clueQuality(entry) {
   else if (words <= 1) score -= 8;
 
   if (/[.!?]$/u.test(question)) score += 3;
-  if (entry.logic) score += 2;
-  if (entry.imageKey) score += 4;
+  if (entry.logic) score += 18;
+  // Preserve the production picture-answer variants; image selection is a hard content preference.
+  if (entry.imageKey) score += 1000;
 
   if (/первая буква слова|последняя буква слова|начинается на букву|заканчивается на букву/iu.test(question)) score -= 30;
   if (/сколько будет|чему равно|вычисли|посчитай/iu.test(question)) score -= 12;
@@ -122,6 +123,15 @@ export function prepareDictionary(input, options = {}) {
     const entry = result.entry;
     variants.push(entry);
 
+    if (entry.question.length < 15 && !entry.imageKey && !entry.logic) {
+      warnings.push({
+        code: 'SHORT_QUESTION_REVIEW',
+        id: entry.id,
+        answer: entry.answer,
+        question: entry.question
+      });
+    }
+
     const previous = byAnswer.get(entry.answer);
     if (!previous) {
       byAnswer.set(entry.answer, entry);
@@ -171,6 +181,7 @@ export function prepareDictionary(input, options = {}) {
       duplicateAnswerRecords: variants.length - entries.length,
       duplicateAnswerWarnings: warnings.filter(item => item.code === 'DUPLICATE_ANSWER').length,
       duplicateQuestionWarnings: warnings.filter(item => item.code === 'DUPLICATE_QUESTION').length,
+      shortQuestionWarnings: warnings.filter(item => item.code === 'SHORT_QUESTION_REVIEW').length,
       withImages: entries.filter(item => item.imageKey).length,
       logicEntries: entries.filter(item => item.logic).length,
       byLength: lengthCounts
