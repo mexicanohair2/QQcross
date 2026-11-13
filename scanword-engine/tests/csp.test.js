@@ -157,3 +157,55 @@ test('stops safely when the search budget is exhausted', () => {
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'SEARCH_BUDGET_EXCEEDED');
 });
+
+test('validates the unique eleven-letter bottom-edge boundary slot', () => {
+  const coordinates = Array.from({ length: 11 }, (_, index) => ({ row: index + 1, col: 1 }));
+  const specialSlot = {
+    id: 'special-eleven',
+    special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY',
+    length: 11,
+    endpoints: [
+      { row: 0, col: 1 },
+      { row: 12, col: 1, boundary: true }
+    ],
+    coordinates,
+    directionOptions: [{
+      clueCell: { row: 0, col: 1 },
+      terminalCell: { row: 12, col: 1, boundary: true },
+      direction: 'down',
+      coordinates
+    }]
+  };
+
+  const result = solveSlotsCsp([specialSlot], [
+    entry('electronics', 'ЭЛЕКТРОНИКА', 'Раздел техники, связанный с электрическими сигналами.')
+  ], {
+    seed: 11,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ЭЛЕКТРОНИКА');
+  assert.equal(result.words[0].direction, 'down');
+  assert.equal(result.words[0].coordinates.length, 11);
+});
+
+test('rejects a slot whose direction does not match its coordinates', () => {
+  const a = { row: 1, col: 1 };
+  const b = { row: 1, col: 5 };
+  const bad = slot('wrong-direction', a, b, [
+    { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }
+  ], 'down', 'up');
+
+  const result = solveSlotsCsp([bad], fourWords, {
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'INVALID_SLOT');
+});
