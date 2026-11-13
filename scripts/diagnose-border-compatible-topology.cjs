@@ -196,6 +196,7 @@ async function main() {
     rejectedCount: report.rejectedCount,
     examples: rejected.slice(0, 8)
   }, null, 2));
+  console.log("PUZZLE_BUNDLE " + JSON.stringify(accepted));
 
   if (accepted.length < 10) {
     throw new Error("Only " + accepted.length + " independently valid puzzles were generated; 10 are required.");
