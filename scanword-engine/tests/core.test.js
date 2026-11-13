@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { CONFIG } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
-import { normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
 import { generateScanword } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
@@ -88,4 +88,37 @@ test('validator rejects duplicate clue directions and non-contiguous coordinates
   }, [], { requireBorderClues: false, requireConnected: false });
   assert.ok(result.errors.some(item => item.type === 'DUPLICATE_CLUE_DIRECTION'));
   assert.ok(result.errors.some(item => item.type === 'NON_CONTIGUOUS_WORD'));
+});
+
+test('dictionary normalization makes punctuation and spacing variants comparable', () => {
+  assert.equal(
+    normalizeQuestion('  «Домашнее   животное!» '),
+    normalizeQuestion('домашнее животное')
+  );
+});
+
+test('dictionary indexes narrow candidates by every crossing position', () => {
+  const prepared = prepareDictionary([
+    { id: 'cat', answer: 'КОТ', clue: 'Домашнее животное из семейства кошачьих.' },
+    { id: 'home', answer: 'ДОМ', clue: 'Место, где живут люди.' },
+    { id: 'nose', answer: 'НОС', clue: 'Часть лица для дыхания и обоняния.' },
+    { id: 'forest', answer: 'ЛЕС', clue: 'Большая территория, покрытая деревьями.' }
+  ]);
+  const indexes = buildIndexes(prepared.entries);
+  assert.deepEqual(
+    findCandidates(indexes, 3, [{ position: 0, letter: 'К' }, { position: 2, letter: 'Т' }]).map(item => item.answer),
+    ['КОТ']
+  );
+  assert.deepEqual(findCandidates(indexes, 3, [{ position: 1, letter: 'Я' }]), []);
+});
+
+test('dictionary rejects one-letter and over-eleven-letter entries', () => {
+  const prepared = prepareDictionary([
+    { id: 'one', answer: 'Я', clue: 'Личная форма местоимения.' },
+    { id: 'long', answer: 'ЭЛЕКТРОНИКАА', clue: 'Тестовая строка длиннее лимита.' },
+    { id: 'valid', answer: 'ЭЛЕКТРОНИКА', clue: 'Область техники, связанная с электрическими сигналами.' }
+  ]);
+  assert.deepEqual(prepared.entries.map(item => item.answer), ['ЭЛЕКТРОНИКА']);
+  assert.equal(prepared.errors.length, 2);
+  assert.ok(prepared.errors.some(item => item.codes.includes('ANSWER_LENGTH_OUT_OF_RANGE')));
 });
