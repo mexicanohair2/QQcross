@@ -71,6 +71,8 @@ export function validateEntry(raw, index = 0, options = {}) {
   if (!answer || !ANSWER_RE.test(answer)) errors.push('INVALID_ANSWER_CHARACTERS');
   if (answer.length < 2 || answer.length > 11) errors.push('ANSWER_LENGTH_OUT_OF_RANGE');
   if (!question) errors.push('EMPTY_QUESTION');
+  // Grammar-only entries (pronouns, prepositions and interjections) make weak filler clues in this scanword format.
+  if (/местоимени|предлог|междомет/iu.test(question)) errors.push('FUNCTION_WORD_CLUE');
   if (questionContainsWholeAnswer(question, answer)) errors.push('ANSWER_LEAKS_INTO_QUESTION');
 
   const entry = {
