@@ -397,3 +397,40 @@ test('dictionary rejects answer leakage even when the clue uses the Е spelling 
     error.id === 'hedgehog' && error.codes.includes('ANSWER_LEAKS_INTO_QUESTION')
   ));
 });
+
+
+test('connects answers that terminate at the same shared question cell', () => {
+  const assembled = assembleScanword({
+    seed: 71,
+    words: [
+      {
+        id: 'w-left',
+        answer: 'КОТ',
+        question: 'Домашнее животное из семейства кошачьих.',
+        clue: { row: 0, col: 1 },
+        direction: 'right',
+        coordinates: [{ row: 0, col: 2 }, { row: 0, col: 3 }, { row: 0, col: 4 }]
+      },
+      {
+        id: 'w-right',
+        answer: 'ЛЕС',
+        question: 'Большая территория, покрытая деревьями.',
+        clue: { row: 0, col: 7 },
+        direction: 'left',
+        coordinates: [{ row: 0, col: 6 }, { row: 0, col: 5 }, { row: 0, col: 4 }]
+      }
+    ]
+  });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  const validation = validateScanword(assembled.scanword, [], {
+    requireBorderClues: false,
+    requireConnected: true,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(
+    validation.errors.some(item => item.type === 'DISCONNECTED_WORD_GRAPH'),
+    false,
+    JSON.stringify(validation.errors)
+  );
+});
