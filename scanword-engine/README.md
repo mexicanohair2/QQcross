@@ -8,21 +8,21 @@ This directory is an experimental engine source area inside the existing QQCross
 - Rows 0..11; columns 0..7.
 - (0,0) is the only reserved blank corner.
 - Top row and left column (except the corner) are clue cells.
-- The optional 11-letter answer is specified from (0,1) down to the bottom boundary, with a target frequency around 25%.
+- The 11-letter answer is currently specified from (0,1) down to the bottom boundary, with a target frequency around 25%.
 
 ## Implemented isolated modules
 
 - `config.js`, `grid.js`: canonical dimensions and cell model.
-- `dictionary.js`: Russian normalization, entry validation, duplicate handling and positional indexes.
+- `dictionary.js`: Russian normalization, entry validation, answer deduplication, retained clue variants, and positional indexes.
 - `topology.js`: derives geometric slots and independently validates cell roles/coverage; preflight checks mandatory-border feasibility.
-- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text.
+- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text. It indexes all accepted variants but uses each answer at most once per puzzle.
 - `assembler.js`: converts CSP assignments into the canonical clue/letter grid and crossing references. It does not mark partial output as complete.
-- `validator.js`: independently reconstructs answer geometry, validates dictionary references, question/answer links, crossings, image keys, connectedness and all 96 cell roles.
+- `validator.js`: independently reconstructs answer geometry, validates all accepted dictionary variant IDs, question/answer links, crossings, image keys, connectedness and all 96 cell roles.
 - `history.js`: tracks word combinations, exact structures and normalized clue reuse.
 
 ## Measured dictionary status
 
-The current source dictionary has 2,287 records, 2,034 unique accepted answers after normalization/deduplication, 46 unique image keys and 46 unique accepted image answers, plus 610 unique accepted logic-tagged answers. See `docs/QQCROSS_DICTIONARY_AUDIT_2026-11-13.md`. This is not a 25,000- or 50,000-word dictionary.
+The current source dictionary has 2,287 records, 2,214 valid runtime variants, and 2,032 distinct playable answers. It has 46 unique picture answers and 622 distinct answers with a valid logic variant. Thirteen answers have both image and logic formulations; both remain available to the CSP, while the per-puzzle duplicate-answer rule remains in force. See `docs/QQCROSS_DICTIONARY_AUDIT_2026-11-13.md`. This is not a 25,000- or 50,000-word dictionary.
 
 ## Blocking topology issue
 
@@ -34,6 +34,6 @@ The isolated generator runs the deterministic feasibility preflight and refuses 
 
 ## Verification and integration status
 
-The existing production `app.js` generator is still the legacy 6×12 implementation. The browser acceptance checks require 8×12, but those requirements are not yet met. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
+The isolated engine unit suite currently contains **59 tests**. The latest confirmed run before the newest metadata-cleanup commit passed all 59; the next run is checking the new cleanup. The production scanword verification and browser acceptance checks still expose the known 6×12 legacy generator, not a functioning 8×12 gameplay path. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
 
 Production currently uses classic scripts, primary generation in `app.js`, and `data/scanword-dictionary.json`. A compatibility adapter must preserve renderer, expected, clueAt, wordTerminals, hints, saves, daily mode, solo, multiplayer and AI flows. No live gameplay change is made by adding this directory.
