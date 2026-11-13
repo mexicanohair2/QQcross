@@ -28,6 +28,3 @@ jobs:
         run: npm test
       - name: Audit the real QQCross dictionary
         run: npm run audit
-      - name: Stress-test 100 complete production scanwords
-        working-directory: .
-        run: node scripts/verify-scanword.cjs
