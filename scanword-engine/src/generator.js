@@ -18,7 +18,8 @@ export function generateScanword(inputDictionary, options = {}) {
   const random = createRng(seed);
   const wantsEleven = random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
   const specialEntry = wantsEleven ? prepared.entries.find(e => e.answer.length === 11) : null;
-  if (wantsEleven && !specialEntry) return { ok: false, reason: 'NO_ELEVEN_LETTER_ENTRY', errors: prepared.errors, warnings: prepared.warnings, seed };
+  // If no real 11-letter entry exists, silently fall back to ordinary generation.
+  // The special mechanic is optional; a missing candidate must not kill the run.
   const grid = createEmptyGrid();
   const anchors = [
     ...Array.from({ length: 7 }, (_, i) => ({ row: 0, col: i + 1, direction: 'down' })),
@@ -36,6 +37,7 @@ export function generateScanword(inputDictionary, options = {}) {
       const snapshot = grid.map(row => row.map(c => ({ ...c, questionIds: [...c.questionIds], wordIds: [...c.wordIds] })));
       const placed = placeWord(grid, grid[anchor.row][anchor.col], entry, anchor.direction, `w${index + 1}`);
       if (placed.ok) {
+        if (entry.id === specialEntry?.id) placed.word.special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
         used.add(entry.id); words.push(placed.word);
         questions.push({ id: placed.questionId, wordId: placed.word.id, text: entry.question, answer: entry.answer, clue: placed.word.clue, direction: anchor.direction });
         if (dfs(index + 1)) return true;
@@ -49,7 +51,7 @@ export function generateScanword(inputDictionary, options = {}) {
   if (!solved) return { ok: false, reason: 'NO_COMPLETE_SOLUTION', nodes, elapsedMs: Date.now() - started, seed,
     message: 'Не найдено совместимое размещение обязательных ответов. Частичная сетка не возвращена как готовый сканворд.', dictionaryStats: prepared.stats, dictionaryErrors: prepared.errors, warnings: prepared.warnings };
   const result = { version: 1, width: CONFIG.WIDTH, height: CONFIG.HEIGHT, grid, questions, words,
-    metadata: { seed, score: 0, valid: false, generationTimeMs: Date.now() - started, specialElevenLetterQuestion: words.some(w => w.answer.length === 11) } };
+    metadata: { seed, score: 0, valid: false, generationTimeMs: Date.now() - started, specialElevenLetterQuestion: words.some(w => w.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') } };
   const validation = validateScanword(result, prepared.entries);
   result.metadata.valid = validation.valid;
   result.metadata.score = scoreScanword(result, validation);
