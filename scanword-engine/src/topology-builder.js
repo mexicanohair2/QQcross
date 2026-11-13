@@ -4,33 +4,34 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * Balanced connected 8x12 geometry. Two offset vertical chains span the
- * full board and cross horizontal answers, linking every row into one word
- * graph. Four interior clue cells lie at column 3 and four at column 4;
- * horizontal runs create four short answers, while the vertical chains add
- * two more. All short answers are restricted by a reviewed CSP whitelist.
+ * Connected 8x12 geometry with one vertical clue chain in column 4.
+ * The chain starts at the top border and reaches the bottom border; every
+ * horizontal answer crosses it, so all 12 rows belong to one word graph.
+ * Its four clue cells split only four rows and create six controlled
+ * two-letter answers in total.
  */
-const SCAFFOLD_PAIRS = Object.freeze([
-  [[1, 4, 7, 10], [0, 3, 8, 11]],
-  [[1, 5, 8, 11], [0, 3, 6, 9]],
-  [[1, 4, 7, 10], [0, 3, 7, 11]],
-  [[1, 5, 8, 11], [0, 4, 7, 10]]
+const SCAFFOLD_ROWS = Object.freeze([
+  [4, 8, 11],
+  [3, 7, 11],
+  [4, 7, 11]
 ]);
 
-function createScaffold([columnThreeRows, columnFourRows]) {
+function createScaffold(extraRows) {
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
-    if (row === 0) cells[1] = '#';
-    else cells[0] = '#';
+    if (row === 0) {
+      cells[1] = '#';
+      cells[4] = '#';
+    } else {
+      cells[0] = '#';
+      if (extraRows.includes(row)) cells[4] = '#';
+    }
     cells[7] = '#';
-
-    if (columnThreeRows.includes(row)) cells[3] = '#';
-    if (columnFourRows.includes(row)) cells[4] = '#';
     return cells.join('');
   });
 }
 
-const SCAFFOLDS = Object.freeze(SCAFFOLD_PAIRS.map(createScaffold));
+const SCAFFOLDS = Object.freeze(SCAFFOLD_ROWS.map(createScaffold));
 
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
@@ -70,7 +71,7 @@ function inspectCandidate(matrix, includeSpecialEleven) {
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
   const expectedSlots = 18 + (includeSpecialEleven ? 1 : 0);
-  if (derived.errors.length || derived.slots.length !== expectedSlots) return null;
+  if (derived.errors.length || derived.slots.length !== 19 + (includeSpecialEleven ? 1 : 0)) return null;
   if (derived.slots.filter(slot => slot.length === 2).length !== 6) return null;
 
   return {
