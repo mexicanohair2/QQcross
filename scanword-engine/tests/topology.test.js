@@ -148,16 +148,20 @@ test('preflight proves the mandatory 8×12 border conflicts with in-board answer
   const result = analyzeRequiredBorderFeasibility();
 
   assert.equal(result.feasible, false);
-  assert.equal(result.reason, 'BORDER_TERMINAL_CONFLICT');
+  assert.equal(result.reason, 'TOP_BORDER_SECOND_COLUMN_CONFLICT');
   assert.equal(result.width, 8);
   assert.equal(result.height, 12);
-  assert.equal(result.forcedLetterCells.length, 14);
+  assert.equal(result.forcedLetterCells.length, 28);
   assert.deepEqual(result.conflicts.map(item => item.clueCell), [
     { row: 1, col: 0 },
-    { row: 2, col: 0 }
+    { row: 2, col: 0 },
+    { row: 0, col: 2 }
   ]);
-  assert.ok(result.conflicts.every(item => item.forcedHorizontalPath.length === 7));
-  assert.ok(result.conflicts.every(item => item.blockedDirections.left === 'граница поля'));
+  assert.ok(result.conflicts[0].forcedHorizontalPath.length === 7);
+  assert.ok(result.conflicts[1].forcedHorizontalPath.length === 7);
+  assert.equal(result.conflicts[2].forcedVerticalPath.length, 11);
+  assert.ok(result.conflicts[0].blockedDirections.left === 'граница поля');
+  assert.ok(result.conflicts[2].blockedDirections.up === 'граница поля');
 });
 
 test('preflight does not silently claim feasibility for unsupported dimensions', () => {
@@ -167,20 +171,24 @@ test('preflight does not silently claim feasibility for unsupported dimensions',
 });
 
 
-test('explicitly permits only the two top-forced left answers to end at the right edge', () => {
+test('left-edge exceptions for rows 1 and 2 do not solve the second top-column contradiction', () => {
   const approved = analyzeRequiredBorderFeasibility({
     allowLeftBorderRightBoundaryRows: [1, 2]
   });
-  assert.equal(approved.feasible, true);
-  assert.equal(approved.reason, 'EXPLICIT_LEFT_BOUNDARY_EXCEPTION');
+  assert.equal(approved.feasible, false);
+  assert.equal(approved.reason, 'TOP_BORDER_SECOND_COLUMN_CONFLICT');
   assert.deepEqual(approved.allowedLeftBoundaryRows, [1, 2]);
-  assert.deepEqual(approved.conflicts, []);
+  assert.deepEqual(approved.conflicts.map(item => item.clueCell), [{ row: 0, col: 2 }]);
+  assert.equal(approved.conflicts[0].forcedVerticalPath.length, 11);
 
   const partial = analyzeRequiredBorderFeasibility({
     allowLeftBorderRightBoundaryRows: [1]
   });
   assert.equal(partial.feasible, false);
-  assert.deepEqual(partial.conflicts.map(item => item.clueCell), [{ row: 2, col: 0 }]);
+  assert.deepEqual(partial.conflicts.map(item => item.clueCell), [
+    { row: 2, col: 0 },
+    { row: 0, col: 2 }
+  ]);
 
   const invalid = analyzeRequiredBorderFeasibility({
     allowLeftBorderRightBoundaryRows: [1, 3]
