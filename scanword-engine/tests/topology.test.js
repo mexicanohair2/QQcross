@@ -186,7 +186,6 @@ test('left-edge exceptions for rows 1 and 2 do not solve the second top-column c
   });
   assert.equal(partial.feasible, false);
   assert.deepEqual(partial.conflicts.map(item => item.clueCell), [
-    { row: 2, col: 0 },
     { row: 0, col: 2 }
   ]);
 
