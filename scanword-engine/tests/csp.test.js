@@ -359,3 +359,62 @@ test('allows the shared picture prompt only for distinct image keys', () => {
   assert.equal(new Set(result.words.map(word => word.question)).size, 1);
   assert.equal(new Set(result.words.map(word => word.imageKey)).size, 5);
 });
+
+
+test('CSP accepts only the explicit 7-letter left-border edge slot', () => {
+  const coordinates = Array.from({ length: 7 }, (_, index) => ({ row: 1, col: index + 1 }));
+  const allowed = {
+    id: 'left-edge-row-1',
+    special: 'LEFT_BORDER_RIGHT_BOUNDARY',
+    length: 7,
+    endpoints: [
+      { row: 1, col: 0 },
+      { row: 1, col: 8, boundary: true }
+    ],
+    coordinates,
+    directionOptions: [{
+      clueCell: { row: 1, col: 0 },
+      terminalCell: { row: 1, col: 8, boundary: true },
+      direction: 'right',
+      coordinates
+    }]
+  };
+  const result = solveSlotsCsp([allowed], [
+    entry('emerald', 'ИЗУМРУД', 'Зелёный драгоценный камень.')
+  ], {
+    seed: 17,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ИЗУМРУД');
+  assert.equal(result.words[0].special, 'LEFT_BORDER_RIGHT_BOUNDARY');
+
+  const invalid = {
+    ...allowed,
+    id: 'left-edge-row-3',
+    endpoints: [
+      { row: 3, col: 0 },
+      { row: 3, col: 8, boundary: true }
+    ],
+    coordinates: coordinates.map(point => ({ ...point, row: 3 })),
+    directionOptions: [{
+      clueCell: { row: 3, col: 0 },
+      terminalCell: { row: 3, col: 8, boundary: true },
+      direction: 'right',
+      coordinates: coordinates.map(point => ({ ...point, row: 3 }))
+    }]
+  };
+  const rejected = solveSlotsCsp([invalid], [
+    entry('emerald', 'ИЗУМРУД', 'Зелёный драгоценный камень.')
+  ], {
+    seed: 17,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.reason, 'INVALID_SLOT');
+});
