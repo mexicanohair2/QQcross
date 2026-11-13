@@ -34,3 +34,26 @@ A full 8×12 board satisfying every current rule does not exist. A generator tha
 Before implementing a full topology generator, one rule must be relaxed. The smallest practical change is to permit ordinary answers from left-border clues to terminate at the right edge when the intervening cells are all valid dictionary letters. Another possible change is to exempt one or more left-border cells from the mandatory-question rule. Either change alters the current specification and must be explicitly approved.
 
 Until this conflict is resolved, the topology module and CSP kernel are kept separate and must not be integrated into live gameplay.
+
+
+## Narrow candidate if a boundary exception is approved
+
+A dictionary-only search was run against the 2,034 unique accepted answers. It found a compatible *two-row prefix rectangle* for the first two left-border clues:
+
+- Row 1, from clue (1,0) toward the right edge: **ИЗУМРУД**
+- Row 2, from clue (2,0) toward the right edge: **МОЗАИКА**
+- The seven top clues (0,1)..(0,7), directed downward, can begin with these letter pairs using the following dictionary answers:
+
+| Column | First two letters | Candidate downward answer |
+|---:|:---:|---|
+| 1 | ИМ | ИМПУЛЬС |
+| 2 | ЗО | ЗОНТ |
+| 3 | УЗ | УЗЕЛ |
+| 4 | МА | МАНСАРДА |
+| 5 | РИ | РИСУНОК |
+| 6 | УК | УКРОП |
+| 7 | ДА | ДАНИЯ |
+
+This proves that the smallest two problematic left-border clues are not blocked by the available letter vocabulary if, and only if, the specification permits those two 7-letter horizontal answers to end at the right board boundary. It does **not** prove a complete 8×12 board exists: the remaining terminals, intersections, center clues, five image answers, three logic clues and 96-cell coverage still need CSP/backtracking validation.
+
+This is a proposal only. No new boundary exception has been enabled in code.
