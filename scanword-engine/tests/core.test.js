@@ -404,25 +404,25 @@ test('connects answers that terminate at the same shared question cell', () => {
     seed: 71,
     words: [
       {
-        id: 'w-left',
+        id: 'w-horizontal',
         answer: 'КОТ',
         question: 'Домашнее животное из семейства кошачьих.',
-        clue: { row: 1, col: 0 },
+        clue: { row: 4, col: 0 },
         direction: 'right',
-        coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+        coordinates: [{ row: 4, col: 1 }, { row: 4, col: 2 }, { row: 4, col: 3 }]
       },
       {
-        id: 'w-right',
-        answer: 'СЕЛ',
-        question: 'Небольшой населённый пункт.',
-        clue: { row: 1, col: 7 },
-        direction: 'left',
-        coordinates: [{ row: 1, col: 6 }, { row: 1, col: 5 }, { row: 1, col: 4 }]
+        id: 'w-vertical',
+        answer: 'ЛЕС',
+        question: 'Большая территория, покрытая деревьями.',
+        clue: { row: 0, col: 4 },
+        direction: 'down',
+        coordinates: [{ row: 1, col: 4 }, { row: 2, col: 4 }, { row: 3, col: 4 }]
       }
     ]
   });
   assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
-  assert.equal(assembled.scanword.grid[1][4].type, 'question');
+  assert.equal(assembled.scanword.grid[4][4].type, 'question');
   const validation = validateScanword(assembled.scanword, [], {
     requireBorderClues: false,
     requireConnected: true,
@@ -434,4 +434,26 @@ test('connects answers that terminate at the same shared question cell', () => {
     false,
     JSON.stringify(validation.errors)
   );
+});
+
+test('independent validator rejects a two-letter answer without an approved picture', () => {
+  const assembled = assembleScanword({
+    seed: 72,
+    words: [{
+      id: 'w-short',
+      answer: 'ЯД',
+      question: 'Вещество, способное вызвать отравление.',
+      clue: { row: 1, col: 0 },
+      direction: 'right',
+      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }]
+    }]
+  });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  const validation = validateScanword(assembled.scanword, [], {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.ok(validation.errors.some(item => item.type === 'UNAPPROVED_SHORT_ANSWER'));
 });
