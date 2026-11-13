@@ -493,7 +493,7 @@ test('CSP cannot place ЕЖ and ЁЖ as two answers in one puzzle', () => {
 });
 
 
-test('allows only the reviewed two-letter scanword answers', () => {
+test('allows only an approved picture-backed two-letter scanword answer', () => {
   const slots = [slot(
     'short-picture',
     { row: 0, col: 1 },
@@ -520,5 +520,6 @@ test('allows only the reviewed two-letter scanword answers', () => {
     maxTimeMs: 1000
   });
   assert.equal(result.ok, true, result.message);
-  assert.ok(['ЁЖ','ЯД','УМ','ЮГ','АС','УС'].includes(result.words[0].answer));
+  assert.equal(result.words[0].answer, 'ЁЖ');
+  assert.equal(result.words[0].imageKey, 'hedgehog');
 });
