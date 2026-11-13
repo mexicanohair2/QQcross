@@ -23,4 +23,6 @@ jobs:
         run: node scripts/diagnose-scanword.cjs
       - name: Search compatible eleven-letter answers and their crossing words
         run: node scripts/diagnose-special-candidates.cjs
+      - name: Stress-test normal full 8x12 scanwords with a production search budget
+        run: node scripts/diagnose-normal-batch.cjs
       # Restore the 100-seed stress test after the CSP blocker is resolved.
