@@ -170,7 +170,16 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
 
     for (const entry of candidates) {
       if (state.usedAnswers.has(entry.answer)) continue;
-      if (state.usedQuestions.has(normalizeQuestion(entry.question))) continue;
+      const normalizedQuestion = normalizeQuestion(entry.question);
+      const previousQuestionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
+      if (previousQuestionUses.length) {
+        const reusablePicturePrompt = Boolean(
+          entry.imageKey
+          && /изображено на картинке|показано на картинке/u.test(normalizedQuestion)
+          && previousQuestionUses.every(use => use.imageKey && use.imageKey !== entry.imageKey)
+        );
+        if (!reusablePicturePrompt) continue;
+      }
 
       if (entry.imageKey) {
         if (state.usedImages.has(entry.imageKey)) continue;
@@ -288,7 +297,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     letters: new Map(),
     directionUse: new Map(),
     usedAnswers: new Set(),
-    usedQuestions: new Set(),
+    usedQuestions: new Map(),
     usedEntryIds: new Set(),
     usedImages: new Set(),
     usedLogicClues: new Set(),
@@ -318,7 +327,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     }
 
     state.usedAnswers.add(entry.answer);
-    state.usedQuestions.add(normalizeQuestion(entry.question));
+    const normalizedQuestion = normalizeQuestion(entry.question);
+    if (!state.usedQuestions.has(normalizedQuestion)) state.usedQuestions.set(normalizedQuestion, []);
+    state.usedQuestions.get(normalizedQuestion).push({ entryId: entry.id, imageKey: entry.imageKey ?? null });
     state.usedEntryIds.add(entry.id);
     if (entry.imageKey) state.usedImages.add(entry.imageKey);
     if (entry.logic) state.usedLogicClues.add(clueKey);
@@ -342,7 +353,11 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (directions?.size === 0) state.directionUse.delete(saved.clueKey);
 
     state.usedAnswers.delete(saved.entry.answer);
-    state.usedQuestions.delete(normalizeQuestion(saved.entry.question));
+    const normalizedQuestion = normalizeQuestion(saved.entry.question);
+    const questionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
+    const remainingQuestionUses = questionUses.filter(use => use.entryId !== saved.entry.id);
+    if (remainingQuestionUses.length) state.usedQuestions.set(normalizedQuestion, remainingQuestionUses);
+    else state.usedQuestions.delete(normalizedQuestion);
     state.usedEntryIds.delete(saved.entry.id);
     if (saved.entry.imageKey) state.usedImages.delete(saved.entry.imageKey);
     if (saved.entry.logic) {
