@@ -38,3 +38,8 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 - npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
 - Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
 - A puzzle is accepted into the game only after the independent validator reports success.
+
+
+## Dynamic topology sampling
+
+The production sampler now proposes seeded 8×12 role masks directly instead of mutating a single fixed scaffold. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
