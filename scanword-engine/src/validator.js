@@ -151,6 +151,9 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, expected: answer, actual: word.answer
       });
     }
+    if (!String(word.question ?? '').trim()) {
+      add('EMPTY_WORD_QUESTION', 'У каждого ответа должен быть непустой текст вопроса.', { wordId: word.id });
+    }
     if (answer.length < 2 || answer.length > CONFIG.MAX_WORD_LENGTH) {
       add('ANSWER_LENGTH_OUT_OF_RANGE', 'Длина ответа должна быть от 2 до 11 букв.', {
         wordId: word.id, length: answer.length
@@ -332,6 +335,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
   const questionById = new Map();
   const questionIdsByCell = new Map();
+  const normalizedQuestionOwners = new Map();
   for (const question of questions) {
     if (!question?.id || questionById.has(question.id)) {
       add('DUPLICATE_OR_MISSING_QUESTION_ID', 'У каждого вопроса должен быть уникальный ID.', {
@@ -342,6 +346,34 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     questionById.set(question.id, question);
 
     const word = wordById.get(question.wordId);
+    const normalizedText = normalizeQuestion(question.text);
+    if (!normalizedText) {
+      add('EMPTY_QUESTION_TEXT', 'Текст вопроса не может быть пустым.', { questionId: question.id });
+    } else {
+      const previous = normalizedQuestionOwners.get(normalizedText);
+      if (previous && previous.wordId !== question.wordId) {
+        const sharedPicturePrompt = Boolean(
+          previous.imageKey
+          && word?.imageKey
+          && previous.imageKey !== word.imageKey
+          && /изображено на картинке|показано на картинке/u.test(normalizedText)
+        );
+        if (!sharedPicturePrompt) {
+          add('DUPLICATE_QUESTION_TEXT', 'Одинаковый нормализованный текст вопроса нельзя использовать для разных ответов.', {
+            questionId: question.id,
+            otherQuestionId: previous.questionId,
+            wordId: question.wordId,
+            otherWordId: previous.wordId
+          });
+        }
+      } else if (!previous) {
+        normalizedQuestionOwners.set(normalizedText, {
+          questionId: question.id,
+          wordId: question.wordId,
+          imageKey: word?.imageKey ?? null
+        });
+      }
+    }
     if (!word) {
       add('QUESTION_WITHOUT_WORD', 'Вопрос не связан с существующим ответом.', {
         questionId: question.id, wordId: question.wordId ?? null
