@@ -230,3 +230,18 @@ test('assembler rejects crossing letter conflicts and invalid answer paths', () 
   assert.equal(assembled.ok, false);
   assert.ok(assembled.errors.some(item => item.type === 'CROSSING_LETTER_CONFLICT'));
 });
+
+test('missing optional eleven-letter entry falls back instead of aborting immediately', () => {
+  const result = generateScanword([
+    { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
+    { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
+    { id: 'forest', answer: 'ЛЕС', question: 'Большая территория, покрытая деревьями.' }
+  ], {
+    seed: 9,
+    specialElevenLetterChance: 1,
+    maxNodes: 100,
+    maxTimeMs: 100
+  });
+  assert.equal(result.ok, false);
+  assert.notEqual(result.reason, 'NO_ELEVEN_LETTER_ENTRY');
+});
