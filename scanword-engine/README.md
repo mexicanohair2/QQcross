@@ -32,7 +32,7 @@ No relaxation has been enabled. The engine must not fabricate words, permit one-
 
 ## Verification status
 
-The isolated engine unit suite currently passes **45/45** tests in GitHub Actions. This validates modules and test fixtures, not full-board generation.
+The isolated engine unit suite currently passes **47/47** tests in GitHub Actions. This validates modules and test fixtures, not full-board generation.
 
 The full scanword verification still fails in the existing production `app.js` generator before integration; its current legacy implementation is not the new 8×12 engine. Browser acceptance tests are being aligned to the required 8×12 board and five distinct picture clues. The new engine is not wired into gameplay.
 
