@@ -111,3 +111,12 @@ test('candidate lookup preserves Ё and does not mutate index buckets', () => {
   assert.equal(findCandidates(indexes, 2, [{ position: 0, letter: 'Ё' }])[0].answer, 'ЁЖ');
   assert.deepEqual(indexes.byLength.get(2).map(item => item.id), before);
 });
+
+test('allows the same picture prompt when each answer has a distinct image asset', () => {
+  const prepared = prepareDictionary([
+    { answer: 'ЯБЛОКО', clue: 'Что изображено на картинке?', imageKey: 'apple' },
+    { answer: 'БАНАН', clue: 'Что изображено на картинке?', imageKey: 'banana' }
+  ]);
+  assert.equal(prepared.entries.length, 2);
+  assert.equal(prepared.stats.duplicateQuestionWarnings, 0);
+});
