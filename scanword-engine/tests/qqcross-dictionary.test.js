@@ -96,7 +96,7 @@ test('uses positional indexes to narrow candidates by every crossing letter', ()
     { id: 'd', answer: 'ЛЕС', clue: 'Множество деревьев на большой территории.' }
   ]);
   const indexes = buildIndexes(prepared.entries);
-  assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'К' }, { position: 2, letter: 'Т' }]).map(item => item.answer), ['КОТ']);
+  assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'К' }, { position: 1, letter: 'О' }, { position: 2, letter: 'Т' }]).map(item => item.answer), ['КОТ']);
   assert.deepEqual(findCandidates(indexes, 3, { 1: 'И' }).map(item => item.answer), ['КИТ']);
   assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'Я' }]), []);
 });
