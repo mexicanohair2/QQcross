@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { buildIndexes, findCandidates, prepareDictionary } from './dictionary.js';
+import { buildIndexes, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
 function pointKey(point) {
@@ -127,6 +127,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
 
     for (const entry of candidates) {
       if (state.usedAnswers.has(entry.answer)) continue;
+      if (state.usedQuestions.has(normalizeQuestion(entry.question))) continue;
 
       if (entry.imageKey) {
         if (state.usedImages.has(entry.imageKey)) continue;
@@ -242,6 +243,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     letters: new Map(),
     directionUse: new Map(),
     usedAnswers: new Set(),
+    usedQuestions: new Set(),
     usedEntryIds: new Set(),
     usedImages: new Set(),
     usedLogicClues: new Set(),
@@ -271,6 +273,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     }
 
     state.usedAnswers.add(entry.answer);
+    state.usedQuestions.add(normalizeQuestion(entry.question));
     state.usedEntryIds.add(entry.id);
     if (entry.imageKey) state.usedImages.add(entry.imageKey);
     if (entry.logic) state.usedLogicClues.add(clueKey);
@@ -294,6 +297,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (directions?.size === 0) state.directionUse.delete(saved.clueKey);
 
     state.usedAnswers.delete(saved.entry.answer);
+    state.usedQuestions.delete(normalizeQuestion(saved.entry.question));
     state.usedEntryIds.delete(saved.entry.id);
     if (saved.entry.imageKey) state.usedImages.delete(saved.entry.imageKey);
     if (saved.entry.logic) {
