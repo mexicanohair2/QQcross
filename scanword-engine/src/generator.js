@@ -68,7 +68,7 @@ export function generateScanword(inputDictionary, options = {}) {
     message: 'Не найдено совместимое размещение обязательных ответов. Частичная сетка не возвращена как готовый сканворд.', dictionaryStats: prepared.stats, dictionaryErrors: prepared.errors, warnings: prepared.warnings };
   const result = { version: 1, width: CONFIG.WIDTH, height: CONFIG.HEIGHT, grid, questions, words,
     metadata: { seed, score: 0, valid: false, generationTimeMs: Date.now() - started, specialElevenLetterQuestion: words.some(w => w.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') } };
-  const validation = validateScanword(result, prepared.entries);
+  const validation = validateScanword(result, prepared.variants);
   result.metadata.valid = validation.valid;
   result.metadata.score = scoreScanword(result, validation);
   if (!validation.valid) return { ok: false, reason: 'VALIDATION_FAILED', validation, result: null, seed };
