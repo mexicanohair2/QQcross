@@ -9,18 +9,18 @@ async function main() {
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
 
   const pattern = [
-    ".#..####",
+    ".#..#..#",
+    "#..#...#",
     "#......#",
+    "#..#...#",
+    "#..#...#",
     "#......#",
+    "#..#...#",
+    "#..#...#",
     "#......#",
-    "#...####",
-    "#......#",
-    "#......#",
-    "#......#",
-    "#...####",
-    "#......#",
-    "#......#",
-    "#......#"
+    "#..#...#",
+    "#..#...#",
+    "#...#..#"
   ];
   const grid = createEmptyGrid();
   for (let row = 0; row < 12; row++) {
@@ -40,7 +40,7 @@ async function main() {
   const filteredDictionary = rawDictionary.filter(entry => {
     const answer = String(entry.answer ?? "").trim().toUpperCase();
     if (answer.length !== 2) return true;
-    return answer === "ЁЖ" && entry.imageKey === "hedgehog";
+    return ["ЁЖ","ЯД","УМ","ЮГ","ДО","РЕ","МИ","ФА","ЛЯ","СИ"].includes(answer);
   });
   const topology = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false });
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
@@ -106,7 +106,7 @@ async function main() {
     modes
   };
   console.log(JSON.stringify(report, null, 2));
-  if (!topology.valid || derived.slots.length !== 18) throw new Error("Balanced topology failed geometry checks.");
+  if (!topology.valid || derived.slots.length !== 26 || derived.slots.filter(slot => slot.length === 2).length !== 6) throw new Error("Balanced topology failed geometry checks.");
   if (!modes.some(item => item.ok && item.valid)) throw new Error("No independently valid puzzle solved from the balanced 8x12 topology.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
