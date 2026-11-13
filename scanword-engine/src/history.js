@@ -13,8 +13,8 @@ function structureKey(words) {
       : '';
     return [
       word.entryId ?? word.id ?? word.answer,
-      clue.row ?? word.clueCell?.[0] ?? '',
-      clue.col ?? word.clueCell?.[1] ?? '',
+      clue.row ?? (Array.isArray(word.clueCell) ? word.clueCell[0] : word.clueCell?.row) ?? '',
+      clue.col ?? (Array.isArray(word.clueCell) ? word.clueCell[1] : word.clueCell?.col) ?? '',
       word.direction ?? word.dir ?? '',
       coordinates
     ].join(':');
