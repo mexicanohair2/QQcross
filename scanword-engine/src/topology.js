@@ -68,6 +68,7 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
 
   const allowed = new Set(allowedRows);
+  const conflicts = [];
   // Rows 1 and 2 on the left border are not inherently impossible:
   // their answers may terminate at an interior clue cell after at least
   // two letters. The proven unavoidable contradiction is the second
