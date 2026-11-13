@@ -604,34 +604,37 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
 
-    const byClue = new Map();
+    // A question cell is a shared junction whether a word starts there,
+    // ends there, or several words terminate there. The topology validator
+    // treats all endpoint pairs symmetrically, so the independent word-graph
+    // validator must do the same instead of connecting only terminal→start.
+    const ownersByQuestionCell = new Map();
     for (const word of words) {
-      const key = pointKey(word.clue);
-      if (!byClue.has(key)) byClue.set(key, []);
-      byClue.get(key).push(word.id);
-    }
-    for (const owners of byClue.values()) {
-      for (let i = 0; i < owners.length; i++) {
-        for (let j = i + 1; j < owners.length; j++) {
-          adjacency.get(owners[i])?.add(owners[j]);
-          adjacency.get(owners[j])?.add(owners[i]);
+      const endpoints = [word.clue];
+      if (word.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
+        && word.special !== 'LEFT_BORDER_RIGHT_BOUNDARY') {
+        const vector = DIRECTIONS[word.direction];
+        if (vector) {
+          endpoints.push({
+            row: word.clue.row + vector.dr * (word.answer.length + 1),
+            col: word.clue.col + vector.dc * (word.answer.length + 1)
+          });
         }
       }
+      for (const endpoint of endpoints) {
+        if (!inBounds(endpoint?.row, endpoint?.col)) continue;
+        const key = pointKey(endpoint);
+        if (!ownersByQuestionCell.has(key)) ownersByQuestionCell.set(key, new Set());
+        ownersByQuestionCell.get(key).add(word.id);
+      }
     }
-
-    for (const word of words) {
-      if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-        || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') continue;
-      const vector = DIRECTIONS[word.direction];
-      if (!vector) continue;
-      const terminal = {
-        row: word.clue.row + vector.dr * (word.answer.length + 1),
-        col: word.clue.col + vector.dc * (word.answer.length + 1)
-      };
-      const terminalOwners = byClue.get(pointKey(terminal)) ?? [];
-      for (const otherId of terminalOwners) {
-        adjacency.get(word.id)?.add(otherId);
-        adjacency.get(otherId)?.add(word.id);
+    for (const owners of ownersByQuestionCell.values()) {
+      const ids = [...owners];
+      for (let i = 0; i < ids.length; i++) {
+        for (let j = i + 1; j < ids.length; j++) {
+          adjacency.get(ids[i])?.add(ids[j]);
+          adjacency.get(ids[j])?.add(ids[i]);
+        }
       }
     }
 
