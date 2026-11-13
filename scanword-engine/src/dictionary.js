@@ -190,17 +190,22 @@ export function prepareDictionary(input, options = {}) {
       duplicateAnswerWarnings: warnings.filter(item => item.code === 'DUPLICATE_ANSWER').length,
       duplicateQuestionWarnings: warnings.filter(item => item.code === 'DUPLICATE_QUESTION').length,
       shortQuestionWarnings: warnings.filter(item => item.code === 'SHORT_QUESTION_REVIEW').length,
-      withImages: entries.filter(item => item.imageKey).length,
-      logicEntries: entries.filter(item => item.logic).length,
+      // Count unique answers that have at least one variant of each content type.
+      // A picture and a logic clue may legitimately be alternate formulations
+      // of the same answer; the CSP can select either one for a given puzzle.
+      withImages: new Set(variants.filter(item => item.imageKey).map(item => item.answer)).size,
+      logicEntries: new Set(variants.filter(item => item.logic).map(item => item.answer)).size,
       byLength: lengthCounts
     }
   };
 }
 
 /**
- * Builds indexes for the unique playable entries.
- * byLetter uses "position:letter" keys so an intersection can narrow a slot
- * without scanning the full dictionary.
+ * Builds indexes for accepted dictionary variants.
+ * Multiple formulations may share an answer; the CSP's usedAnswers constraint
+ * prevents using that answer more than once in a puzzle while allowing the
+ * solver to select the best available clue/image/logic variant.
+ * byLetter uses "position:letter" keys so intersections narrow candidates.
  */
 export function buildIndexes(entries, options = {}) {
   const byLength = new Map();
