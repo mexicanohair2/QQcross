@@ -34,7 +34,7 @@ No relaxation has been enabled. The engine must not fabricate words, permit one-
 
 The isolated engine unit suite currently passes **48/48** tests in GitHub Actions. This validates modules and test fixtures, not full-board generation.
 
-The full scanword verification still fails in the existing production `app.js` generator before integration; its current legacy implementation is not the new 8×12 engine. Browser acceptance tests are being aligned to the required 8×12 board and five distinct picture clues. The new engine is not wired into gameplay.
+The full scanword verification still fails in the existing production `app.js` generator before integration; its current legacy implementation is 6×12, not the new 8×12 engine. Browser acceptance assertions now target 8×12 and five distinct picture clues, but the latest Playwright run was cancelled, so there is no successful end-to-end confirmation. The new engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
 
 ## Integration contract
 
