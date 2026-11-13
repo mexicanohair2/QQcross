@@ -1,59 +1,49 @@
-# QQCross topology feasibility blocker — required clarification
+# QQCross topology feasibility blocker
 
-Status: blocking for full-grid topology generation. The current border and terminal-cell requirements cannot all be true at once.
+Status: **hard blocker** for a full 8×12 board under the current rules. The previous proof that only left-border rows 1 and 2 were blocked was incomplete. A stronger contradiction affects the second top-row clue regardless of any partial left-edge exception.
 
-## Constraints used in this proof
+## Rules used
 
-1. Every cell in the top row except (0,0) is a question cell.
-2. Every cell in the left column except (0,0) is a question cell.
-3. A question cell has one of four orthogonal directions.
-4. Answers contain at least two letters; one-letter filler answers are forbidden.
-5. An ordinary answer must terminate at another in-board question cell.
-6. The only boundary exception is the 11-letter answer from (0,1) downward to row 11.
+1. The board is 8 columns × 12 rows.
+2. Every cell in the top row except (0,0) is a clue cell.
+3. Every cell in the left column except (0,0) is a clue cell.
+4. (0,0) is the only reserved blank cell.
+5. A clue may point only orthogonally: right, left, up or down.
+6. Every answer has at least two letters; no one-letter filler answers.
+7. Every ordinary answer must end at another in-board clue cell.
+8. The only currently specified boundary exception is an 11-letter answer from (0,1) down through (11,1), ending at the bottom boundary.
+9. The 11-letter answer is intended to appear only in roughly one quarter of puzzles.
 
-## Contradiction
+## Strong contradiction: top clue (0,2)
 
-Take any top-row question cell (0,c), where c is from 1 through 7.
+For every left-border clue (r,0), where r is 1 through 11:
 
-Its immediate left and right neighbours are also question cells (or the empty corner at c=1). Its upward neighbour is outside the board. Therefore its only possible answer direction is down.
+- left points outside the board;
+- up and down point to mandatory clue cells in the same left border;
+- therefore its only possible direction is right.
 
-Because ordinary answers need at least two letters before their terminal question cell, cells (1,c) and (2,c) must both be letter cells. This is true for every c=1..7.
+Since an answer needs at least two letters, cells (r,1) and (r,2) must both be letters for every r=1..11.
 
-Consequently, all cells (1,1)..(1,7) and (2,1)..(2,7) must be letters.
+That forces the entire second column below the top edge — (1,2) through (11,2) — to be letters. But the top clue at (0,2) can only point down: its left and right neighbours are also top-row clues, and up is outside the board. Its answer therefore has to occupy all eleven cells and end at the bottom boundary.
 
-Now consider the required left-border question at (1,0). Its only possible answer direction is right: up points to the empty corner, down points to another question cell, and left is outside the board. Its answer must therefore begin at (1,1) and terminate at a later question cell in row 1.
+The only specified 11-letter boundary exception is at (0,1), not (0,2). Consequently, clue (0,2) has no legal answer. This remains true even if the left-border clues in rows 1 and 2 are separately allowed to end at the right edge.
 
-But every cell (1,1)..(1,7) is already required to be a letter by the top-row clues. No in-board terminal question exists. The ordinary answer cannot end at the right edge under the current rules. Therefore the question at (1,0) cannot have an answer.
+## Additional consequence for the optional 11-letter mechanic
 
-The same contradiction applies to (2,0). It is independent of the dictionary, CSP implementation, seed, and all other interior cells. The special 11-letter exception at (0,1) does not resolve it.
+The left-border rule also forces cells (1,1)..(11,1) to be letters. Thus clue (0,1) must also use the 11-letter bottom-boundary answer in every complete puzzle. A rule that permits it only about 25% of the time is incompatible with the mandatory full left border.
 
-## What this means
+## Why a partial fix is not enough
 
-A full 8×12 board satisfying every current rule does not exist. A generator that claims success would have to violate at least one constraint or fabricate a question/answer.
+An opt-in prototype can describe two horizontal edge slots from (1,0) and (2,0), each seven letters long. These slots are geometrically valid in isolation, but they do not solve the forced 11-letter path in column 2 and do not create a valid complete board. The option remains disabled in the production generator, and the full topology preflight still rejects the specification.
 
-Before implementing a full topology generator, one rule must be relaxed. The smallest practical change is to permit ordinary answers from left-border clues to terminate at the right edge when the intervening cells are all valid dictionary letters. Another possible change is to exempt one or more left-border cells from the mandatory-question rule. Either change alters the current specification and must be explicitly approved.
+A complete solution requires an explicit rule change to at least one of the underlying constraints: the mandatory left border, minimum answer length, top clue directions, allowed boundary answers, or the frequency/number of 11-letter boundary answers. No such rule change is silently applied.
 
-Until this conflict is resolved, the topology module and CSP kernel are kept separate and must not be integrated into live gameplay.
+## Engineering policy
 
+- Do not fabricate answers or letters.
+- Do not reclassify ordinary letters as clue cells to conceal a broken path.
+- Do not add one-letter filler answers.
+- Do not call a partial board a complete scanword.
+- Do not connect the experimental engine to live gameplay while this blocker remains.
 
-## Narrow candidate if a boundary exception is approved
-
-A dictionary-only search was run against the 2,034 unique accepted answers. It found a compatible *two-row prefix rectangle* for the first two left-border clues:
-
-- Row 1, from clue (1,0) toward the right edge: **ИЗУМРУД**
-- Row 2, from clue (2,0) toward the right edge: **МОЗАИКА**
-- The seven top clues (0,1)..(0,7), directed downward, can begin with these letter pairs using the following dictionary answers:
-
-| Column | First two letters | Candidate downward answer |
-|---:|:---:|---|
-| 1 | ИМ | ИМПУЛЬС |
-| 2 | ЗО | ЗОНТ |
-| 3 | УЗ | УЗЕЛ |
-| 4 | МА | МАНСАРДА |
-| 5 | РИ | РИСУНОК |
-| 6 | УК | УКРОП |
-| 7 | ДА | ДАНИЯ |
-
-This proves that the smallest two problematic left-border clues are not blocked by the available letter vocabulary if, and only if, the specification permits those two 7-letter horizontal answers to end at the right board boundary. It does **not** prove a complete 8×12 board exists: the remaining terminals, intersections, center clues, five image answers, three logic clues and 96-cell coverage still need CSP/backtracking validation.
-
-This is a proposal only. No new boundary exception has been enabled in code.
+The independent topology preflight returns `TOP_BORDER_SECOND_COLUMN_CONFLICT` before CSP search. This is an explicit refusal to produce an invalid puzzle, not a successful generation result.
