@@ -204,6 +204,7 @@ test('assembler builds clue cells, terminal cells and crossing letter ownership'
   assert.equal(assembled.scanword.grid[0][0].type, 'corner');
   assert.equal(assembled.scanword.grid[1][0].type, 'question');
   assert.equal(assembled.scanword.grid[1][4].type, 'question');
+  assert.deepEqual(assembled.scanword.grid[1][4].questionIds, []);
   assert.equal(assembled.scanword.grid[4][2].type, 'question');
   assert.equal(assembled.scanword.grid[1][2].letter, 'О');
   assert.deepEqual(assembled.scanword.grid[1][2].wordIds.sort(), ['w1', 'w2']);
