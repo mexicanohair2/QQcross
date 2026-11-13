@@ -28,7 +28,14 @@ function validateSlotGeometry(slot) {
   const lastKey = pointKey(slot.endpoints[1]);
 
   if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
-    if (slot.length !== 11 || slot.directionOptions.length !== 1) return false;
+    if (
+      slot.length !== 11
+      || slot.directionOptions.length !== 1
+      || pointKey(slot.endpoints[0]) !== '0,1'
+      || slot.endpoints[1]?.row !== CONFIG.HEIGHT
+      || slot.endpoints[1]?.col !== 1
+      || slot.endpoints[1]?.boundary !== true
+    ) return false;
     const option = slot.directionOptions[0];
     if (
       pointKey(option.clueCell) !== '0,1'
@@ -46,7 +53,43 @@ function validateSlotGeometry(slot) {
     );
   }
 
-  if (slot.endpoints.some(endpoint => endpoint.boundary)) return false;
+  if (
+    slot.endpoints.some(endpoint =>
+      endpoint.boundary
+      || !Number.isInteger(endpoint.row)
+      || !Number.isInteger(endpoint.col)
+      || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
+      || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
+    )
+    || slot.directionOptions.length !== 2
+  ) return false;
+
+  const [start, end] = slot.endpoints;
+  const horizontal = start.row === end.row;
+  const vertical = start.col === end.col;
+  if (horizontal === vertical) return false;
+  const distance = Math.abs(end.row - start.row) + Math.abs(end.col - start.col);
+  if (distance !== slot.length + 1) return false;
+
+  const rowStep = Math.sign(end.row - start.row);
+  const colStep = Math.sign(end.col - start.col);
+  for (let index = 0; index < slot.length; index++) {
+    const expected = {
+      row: start.row + rowStep * (index + 1),
+      col: start.col + colStep * (index + 1)
+    };
+    if (
+      slot.coordinates[index]?.row !== expected.row
+      || slot.coordinates[index]?.col !== expected.col
+    ) return false;
+  }
+
+  const expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
+  if (
+    slot.directionOptions.length !== expectedDirections.size
+    || slot.directionOptions.some(option => !expectedDirections.has(option.direction))
+  ) return false;
+
   for (const option of slot.directionOptions ?? []) {
     const vector = DIRECTIONS[option.direction];
     if (!vector || !option.clueCell || !option.terminalCell) return false;
