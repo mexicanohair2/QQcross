@@ -43,3 +43,49 @@ test('small dictionary fails safely instead of returning a fake puzzle', () => {
   const result = generateScanword([{id:'a',answer:'КОТ',question:'Домашнее животное'}], {seed:1, specialElevenLetterChance:0, maxNodes:100});
   assert.equal(result.ok, false); assert.ok(result.reason);
 });
+test('validator rejects an ordinary answer ending at the board boundary', () => {
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  const fake = {
+    width: 8,
+    height: 12,
+    grid,
+    words: [{
+      id: 'w1',
+      entryId: 'e1',
+      answer: 'КОТ',
+      question: 'Домашнее животное.',
+      clue: { row: 1, col: 0 },
+      direction: 'right',
+      length: 3,
+      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+    }],
+    questions: []
+  };
+  for (let col = 1; col <= 3; col++) grid[1][col] = { row: 1, col, type: 'letter', letter: 'КОТ'[col - 1], questionIds: [], wordIds: ['w1'] };
+  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
+
+  const result = validateScanword(fake, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(result.errors.some(item => item.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
+});
+
+test('validator rejects duplicate clue directions and non-contiguous coordinates', () => {
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
+  for (let col = 1; col <= 3; col++) grid[1][col] = { row: 1, col, type: 'letter', letter: 'КОТ'[col - 1], questionIds: [], wordIds: ['w1', 'w2'] };
+  const word = {
+    id: 'w1', entryId: 'e1', answer: 'КОТ', question: 'Домашнее животное.',
+    clue: { row: 1, col: 0 }, direction: 'right', length: 3,
+    coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+  };
+  const second = {
+    ...word, id: 'w2', entryId: 'e2',
+    coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
+  };
+  const result = validateScanword({
+    width: 8, height: 12, grid, words: [word, second], questions: []
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(result.errors.some(item => item.type === 'DUPLICATE_CLUE_DIRECTION'));
+  assert.ok(result.errors.some(item => item.type === 'NON_CONTIGUOUS_WORD'));
+});
