@@ -53,6 +53,33 @@ function validateSlotGeometry(slot) {
     );
   }
 
+  if (slot.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
+    if (
+      slot.length !== CONFIG.WIDTH - 1
+      || slot.directionOptions.length !== 1
+      || ![1, 2].includes(slot.endpoints[0]?.row)
+      || pointKey(slot.endpoints[0]) !== slot.endpoints[0].row + ',0'
+      || slot.endpoints[1]?.row !== slot.endpoints[0].row
+      || slot.endpoints[1]?.col !== CONFIG.WIDTH
+      || slot.endpoints[1]?.boundary !== true
+    ) return false;
+    const option = slot.directionOptions[0];
+    if (
+      pointKey(option.clueCell) !== slot.endpoints[0].row + ',0'
+      || option.direction !== 'right'
+      || !option.terminalCell?.boundary
+      || option.terminalCell.row !== slot.endpoints[0].row
+      || option.terminalCell.col !== CONFIG.WIDTH
+      || option.coordinates.length !== CONFIG.WIDTH - 1
+    ) return false;
+    return option.coordinates.every((coordinate, index) =>
+      coordinate.row === slot.endpoints[0].row
+      && coordinate.col === index + 1
+      && slot.coordinates[index]?.row === coordinate.row
+      && slot.coordinates[index]?.col === coordinate.col
+    );
+  }
+
   if (
     slot.endpoints.some(endpoint =>
       endpoint.boundary
