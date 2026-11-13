@@ -513,7 +513,7 @@ test('allows only an approved picture-backed two-letter scanword answer', () => 
   ];
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 91,
-    requiredImageCount: 0,
+    requiredImageCount: 1,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     maxNodes: 100,
