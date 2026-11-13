@@ -24,10 +24,12 @@ export function normalizeQuestion(value) {
 
 function questionContainsWholeAnswer(question, answer) {
   if (!answer || answer.length < 2) return false;
+  const normalizedAnswer = normalizeAnswer(answer, { foldYo: true });
   const tokens = String(question ?? '')
     .toLocaleUpperCase('ru-RU')
-    .match(/[А-ЯЁ]+/gu) ?? [];
-  return tokens.includes(answer);
+    .replace(/Ё/gu, 'Е')
+    .match(/[А-ЯЕ]+/gu) ?? [];
+  return tokens.includes(normalizedAnswer);
 }
 
 function clueQuality(entry) {
