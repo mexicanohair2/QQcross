@@ -18,7 +18,7 @@ test('normalization preserves Ё unless folding is explicitly enabled', () => {
 });
 test('dictionary rejects malformed and duplicate records', () => {
   const r = prepareDictionary([{id:'1',answer:'КОТ',question:'Домашнее животное'}, {id:'2',answer:'КОТ',question:'Зверь'}, {id:'3',answer:'123',question:'Число'}, {id:'4',answer:'ЛЕС',question:''}]);
-  assert.equal(r.entries.length, 1); assert.equal(r.errors.length, 2); assert.equal(r.warnings.length, 1);
+  assert.equal(r.entries.length, 1); assert.equal(r.errors.length, 2); assert.ok(r.warnings.some(w => w.code === 'DUPLICATE_ANSWER'));
 });
 test('coordinates respect direction and bounds', () => {
   assert.deepEqual(getCoordinates(0,0,'right',3), [{row:0,col:1},{row:0,col:2},{row:0,col:3}]);
