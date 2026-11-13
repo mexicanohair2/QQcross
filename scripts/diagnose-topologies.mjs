@@ -35,6 +35,21 @@ function metrics(rows) {
   };
 }
 
+const targetPattern = [
+  ".#...###",
+  "#...#...",
+  "#...#...",
+  "#...#...",
+  "#......#",
+  "#....##.",
+  "#...#...",
+  "#...#...",
+  "#......#",
+  "#....##.",
+  "#.....#.",
+  "#......#"
+];
+const targetMetrics = metrics(targetPattern);
 const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows)}));
 const randomResults = [];
 for(let seed=1;seed<=48;seed++){
@@ -42,7 +57,7 @@ for(let seed=1;seed<=48;seed++){
   if(result.ok)randomResults.push({seed,...metrics(result.topology.pattern)});
 }
 console.log(JSON.stringify({
-  scaffolds:scaffoldResults,
+  target:{rows:targetPattern,...targetMetrics},\n  scaffolds:scaffoldResults,
   randomSample:randomResults,
   averages:{
     scaffoldShorts:scaffoldResults.reduce((sum,x)=>sum+x.shortSlots,0)/scaffoldResults.length,
