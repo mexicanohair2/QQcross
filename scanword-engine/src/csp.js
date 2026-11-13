@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { buildIndexes, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
 function pointKey(point) {
@@ -249,7 +249,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
-      if (state.usedAnswers.has(entry.answer)) continue;
+      if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
       const previousQuestionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
       if (previousQuestionUses.length) {
@@ -306,7 +306,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const started = Date.now();
   const seed = options.seed ?? 1;
   const random = createRng(seed);
-  const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
+  const prepared = options.preparedDictionary ?? prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
   const maxNodes = options.maxNodes ?? CONFIG.MAX_SEARCH_NODES;
   const maxTimeMs = options.maxTimeMs ?? CONFIG.MAX_GENERATION_MS;
   const requiredImageCount = options.requiredImageCount ?? 5;
@@ -357,7 +357,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     seenSlotIds.add(slot.id);
   }
 
-  const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
+  const indexes = options.indexes ?? buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
   const slots = inputSlots.map(slot => ({
     ...slot,
     coordinates: slot.coordinates.map(point => ({ ...point })),
@@ -406,7 +406,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       }
     }
 
-    state.usedAnswers.add(entry.answer);
+    state.usedAnswers.add(canonicalAnswerKey(entry.answer));
     const normalizedQuestion = normalizeQuestion(entry.question);
     if (!state.usedQuestions.has(normalizedQuestion)) state.usedQuestions.set(normalizedQuestion, []);
     state.usedQuestions.get(normalizedQuestion).push({ entryId: entry.id, imageKey: entry.imageKey ?? null });
@@ -432,7 +432,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     directions?.delete(saved.direction);
     if (directions?.size === 0) state.directionUse.delete(saved.clueKey);
 
-    state.usedAnswers.delete(saved.entry.answer);
+    state.usedAnswers.delete(canonicalAnswerKey(saved.entry.answer));
     const normalizedQuestion = normalizeQuestion(saved.entry.question);
     const questionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
     const remainingQuestionUses = questionUses.filter(use => use.entryId !== saved.entry.id);
