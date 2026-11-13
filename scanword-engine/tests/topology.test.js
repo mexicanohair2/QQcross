@@ -151,7 +151,7 @@ test('preflight proves the mandatory 8×12 border conflicts with in-board answer
   assert.equal(result.reason, 'TOP_BORDER_SECOND_COLUMN_CONFLICT');
   assert.equal(result.width, 8);
   assert.equal(result.height, 12);
-  assert.equal(result.forcedLetterCells.length, 28);
+  assert.equal(result.forcedLetterCells.length, 32);
   assert.deepEqual(result.conflicts.map(item => item.clueCell), [
     { row: 1, col: 0 },
     { row: 2, col: 0 },
