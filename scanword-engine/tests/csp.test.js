@@ -418,3 +418,40 @@ test('CSP accepts only the explicit 7-letter left-border edge slot', () => {
   assert.equal(rejected.ok, false);
   assert.equal(rejected.reason, 'INVALID_SLOT');
 });
+
+
+test('keeps image and logic variants for the same answer available to CSP', () => {
+  const onlySlot = [slot(
+    'single',
+    { row: 1, col: 0 },
+    { row: 1, col: 4 },
+    [
+      { row: 1, col: 1 },
+      { row: 1, col: 2 },
+      { row: 1, col: 3 }
+    ],
+    'right',
+    'left'
+  )];
+  const dictionary = [
+    { id: 'kot-image', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
+    { id: 'kot-logic', answer: 'КОТ', clue: 'Кто ловит мышей и живёт рядом с человеком?', logic: true }
+  ];
+
+  const result = solveSlotsCsp(onlySlot, dictionary, {
+    seed: 51,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 1,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words.length, 1);
+  assert.equal(result.words[0].answer, 'КОТ');
+  assert.equal(result.words[0].entryId, 'kot-logic');
+  assert.equal(result.words[0].logic, true);
+  assert.equal(result.words[0].imageKey, null);
+  assert.equal(result.metrics.uniqueAnswers, 1);
+});
