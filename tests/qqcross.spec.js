@@ -1,4 +1,9 @@
 const { test, expect } = require("@playwright/test");
+function cssGridTrackCount(template) {
+  const repeated = String(template || "").match(/^repeat\\(\\s*(\\d+)\\s*,/);
+  if (repeated) return Number(repeated[1]);
+  return String(template || "").trim().split(/\\s+/).filter(Boolean).length;
+}
 
 async function startGuestGame(page) {
   const pageErrors = [];
@@ -505,8 +510,8 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
   const grid = await board.evaluate(node => ({
-    columns: getComputedStyle(node).gridTemplateColumns.split(" ").length,
-    rows: getComputedStyle(node).gridTemplateRows.split(" ").length,
+    columns: cssGridTrackCount(getComputedStyle(node).gridTemplateColumns),
+    rows: cssGridTrackCount(getComputedStyle(node).gridTemplateRows),
     width: node.getBoundingClientRect().width,
     height: node.getBoundingClientRect().height,
     viewportWidth: document.documentElement.clientWidth,
