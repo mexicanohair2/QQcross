@@ -7,6 +7,7 @@ import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
 import { generateScanword } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
+import { GenerationHistory } from '../src/history.js';
 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
@@ -148,4 +149,79 @@ test('independent validator rejects duplicate normalized clue text for different
     width: 8, height: 12, grid, words, questions
   }, [], { requireBorderClues: false, requireConnected: false });
   assert.ok(result.errors.some(item => item.type === 'DUPLICATE_QUESTION_TEXT'));
+});
+
+test('generation history tracks combinations, structures, and normalized clue reuse', () => {
+  const history = new GenerationHistory(2);
+  const first = {
+    seed: 12,
+    words: [{
+      entryId: 'cat', answer: 'КОТ', question: 'Домашнее животное.',
+      clue: { row: 1, col: 0 }, direction: 'right',
+      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }]
+    }]
+  };
+  history.add(first);
+  assert.equal(history.usageCount('cat'), 1);
+  assert.equal(history.questionUsageCount('домашнее животное'), 1);
+  assert.equal(history.hasCombination(first.words), true);
+  assert.equal(history.hasStructure(first.words), true);
+
+  const moved = [{
+    ...first.words[0],
+    clue: { row: 2, col: 0 },
+    coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
+  }];
+  assert.equal(history.hasCombination(moved), true);
+  assert.equal(history.hasStructure(moved), false);
+
+  history.add({ words: [{ ...first.words[0], entryId: 'dog', answer: 'ПЁС', question: 'Сторожит дом.' }] });
+  history.add({ words: [{ ...first.words[0], entryId: 'home', answer: 'ДОМ', question: 'Место для жизни.' }] });
+  assert.equal(history.items.length, 2);
+  assert.equal(history.usageCount('cat'), 0);
+});
+
+test('CSP result is deterministic for an identical seed and input', () => {
+  const slots = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+    { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+  ], 'right', 'left')];
+  const dictionary = [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.'),
+    entry('home', 'ДОМ', 'Место, где живут люди.'),
+    entry('nose', 'НОС', 'Часть лица для дыхания и обоняния.'),
+    entry('forest', 'ЛЕС', 'Большая территория, покрытая деревьями.')
+  ];
+  const options = {
+    seed: 456,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  };
+  const first = solveSlotsCsp(slots, dictionary, options);
+  const second = solveSlotsCsp(slots, dictionary, options);
+  assert.equal(first.ok, true, first.message);
+  assert.equal(second.ok, true, second.message);
+  assert.deepEqual(
+    first.words.map(word => ({ answer: word.answer, direction: word.direction, clue: word.clue })),
+    second.words.map(word => ({ answer: word.answer, direction: word.direction, clue: word.clue }))
+  );
+});
+
+test('CSP respects an already-aborted cancellation signal', () => {
+  const controller = new AbortController();
+  controller.abort();
+  const result = solveSlotsCsp([
+    slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+      { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+    ], 'right', 'left')
+  ], fourWords, {
+    signal: controller.signal,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'CANCELLED');
 });
