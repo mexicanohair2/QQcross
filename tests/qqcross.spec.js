@@ -105,8 +105,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
-  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.9);
-  expect(Math.abs(layout.board.width / layout.board.height - 1.5)).toBeLessThan(0.03);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
+  expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -514,7 +514,9 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   }));
   expect(grid.columns).toBe(8);
   expect(grid.rows).toBe(12);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.8 + 1);
+  expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth + 1);
+  expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
