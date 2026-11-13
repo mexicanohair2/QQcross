@@ -493,7 +493,7 @@ test('CSP cannot place ЕЖ and ЁЖ as two answers in one puzzle', () => {
 });
 
 
-test('allows a two-letter answer only when it is an approved picture entry', () => {
+test('allows only the reviewed two-letter scanword answers', () => {
   const slots = [slot(
     'short-picture',
     { row: 0, col: 1 },
@@ -505,17 +505,20 @@ test('allows a two-letter answer only when it is an approved picture entry', () 
   const dictionary = [
     { id: 'hedgehog', answer: 'ЁЖ', question: 'Что изображено на картинке?', imageKey: 'hedgehog' },
     { id: 'poison', answer: 'ЯД', question: 'Вещество, способное вызвать отравление.' },
-    { id: 'mind', answer: 'УМ', question: 'Способность человека думать и рассуждать.' }
+    { id: 'mind', answer: 'УМ', question: 'Способность человека думать и рассуждать.' },
+    { id: 'south', answer: 'ЮГ', question: 'Сторона света, противоположная северу.' },
+    { id: 'ace', answer: 'АС', question: 'Мастер своего дела, особенно опытный пилот.' },
+    { id: 'moustache', answer: 'УС', question: 'Один волосок над верхней губой.' },
+    { id: 'note', answer: 'МИ', question: 'Третья ступень гаммы до мажор.' }
   ];
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 91,
-    requiredImageCount: 1,
+    requiredImageCount: 0,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     maxNodes: 100,
     maxTimeMs: 1000
   });
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.words[0].answer, 'ЁЖ');
-  assert.equal(result.words[0].imageKey, 'hedgehog');
+  assert.ok(['ЁЖ','ЯД','УМ','ЮГ','АС','УС'].includes(result.words[0].answer));
 });
