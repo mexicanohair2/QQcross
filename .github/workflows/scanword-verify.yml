@@ -19,5 +19,7 @@ jobs:
           node-version: 20
       - name: Check JavaScript syntax
         run: node --check app.js
+      - name: Diagnose one constrained production generation with an extended search budget
+        run: node scripts/diagnose-scanword.cjs
       - name: Verify dictionary and generated grids
         run: node scripts/verify-scanword.cjs
