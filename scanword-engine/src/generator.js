@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import { analyzeRequiredBorderFeasibility } from './topology.js';
 import { prepareDictionary } from './dictionary.js';
 import { createEmptyGrid } from './grid.js';
 import { placeWord } from './placement.js';
@@ -15,6 +16,21 @@ import { createRng, shuffle } from './rng.js';
 export function generateScanword(inputDictionary, options = {}) {
   const started = Date.now(), seed = options.seed ?? Date.now();
   const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo ?? false });
+  const topology = analyzeRequiredBorderFeasibility();
+  if (topology.feasible === false) {
+    return {
+      ok: false,
+      reason: 'TOPOLOGY_CONSTRAINT_CONFLICT',
+      seed,
+      nodes: 0,
+      elapsedMs: Date.now() - started,
+      message: topology.message,
+      topology,
+      dictionaryStats: prepared.stats,
+      dictionaryErrors: prepared.errors,
+      warnings: prepared.warnings
+    };
+  }
   const random = createRng(seed);
   const wantsEleven = random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
   const specialEntry = wantsEleven ? prepared.entries.find(e => e.answer.length === 11) : null;
