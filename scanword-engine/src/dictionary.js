@@ -10,6 +10,14 @@ export function normalizeAnswer(value, { foldYo = false } = {}) {
   return result;
 }
 
+/**
+ * Lexical identity key: Е and Ё are treated as the same answer for duplicate
+ * prevention, while the displayed answer keeps its original spelling.
+ */
+export function canonicalAnswerKey(value, options = {}) {
+  return normalizeAnswer(value, options).replaceAll('Ё', 'Е');
+}
+
 export function normalizeQuestion(value) {
   return String(value ?? '')
     .normalize('NFC')
@@ -131,14 +139,15 @@ export function prepareDictionary(input, options = {}) {
       });
     }
 
-    const previous = byAnswer.get(entry.answer);
+    const answerKey = canonicalAnswerKey(entry.answer);
+    const previous = byAnswer.get(answerKey);
     if (!previous) {
-      byAnswer.set(entry.answer, entry);
+      byAnswer.set(answerKey, entry);
     } else {
       const keepNew = clueQuality(entry) > clueQuality(previous);
       const winner = keepNew ? entry : previous;
       const alternate = keepNew ? previous : entry;
-      byAnswer.set(entry.answer, winner);
+      byAnswer.set(answerKey, winner);
       warnings.push({
         code: 'DUPLICATE_ANSWER',
         answer: entry.answer,
@@ -149,7 +158,7 @@ export function prepareDictionary(input, options = {}) {
 
     const normalizedQuestion = normalizeQuestion(entry.question);
     const owner = questionOwners.get(normalizedQuestion);
-    if (owner && owner.answer !== entry.answer) {
+    if (owner && canonicalAnswerKey(owner.answer) !== answerKey) {
       const sharedPicturePrompt = Boolean(
         owner.imageKey
         && entry.imageKey
@@ -197,8 +206,8 @@ export function prepareDictionary(input, options = {}) {
       // Count unique answers that have at least one variant of each content type.
       // A picture and a logic clue may legitimately be alternate formulations
       // of the same answer; the CSP can select either one for a given puzzle.
-      withImages: new Set(variants.filter(item => item.imageKey).map(item => item.answer)).size,
-      logicEntries: new Set(variants.filter(item => item.logic).map(item => item.answer)).size,
+      withImages: new Set(variants.filter(item => item.imageKey).map(item => canonicalAnswerKey(item.answer))).size,
+      logicEntries: new Set(variants.filter(item => item.logic).map(item => canonicalAnswerKey(item.answer))).size,
       byLength: lengthCounts
     }
   };
