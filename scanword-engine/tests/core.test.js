@@ -245,3 +245,30 @@ test('missing optional eleven-letter entry falls back instead of aborting immedi
   assert.equal(result.ok, false);
   assert.notEqual(result.reason, 'NO_ELEVEN_LETTER_ENTRY');
 });
+
+test('independent validator reports malformed word records without throwing', () => {
+  const grid = createEmptyGrid();
+  grid[0][0].type = 'corner';
+  const result = validateScanword({
+    width: 8,
+    height: 12,
+    grid,
+    words: [{ id: 'broken' }],
+    questions: []
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some(item => item.type === 'INVALID_DIRECTION'));
+});
+
+test('independent validator rejects question references on a letter cell', () => {
+  const grid = createEmptyGrid();
+  grid[0][0].type = 'corner';
+  grid[1][1] = {
+    row: 1, col: 1, type: 'letter', letter: 'А',
+    questionIds: ['fake-question'], wordIds: []
+  };
+  const result = validateScanword({
+    width: 8, height: 12, grid, words: [], questions: []
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(result.errors.some(item => item.type === 'LETTER_HAS_QUESTION_REFERENCES'));
+});
