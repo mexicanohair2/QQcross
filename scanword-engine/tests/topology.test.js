@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { deriveWordSlots, getAnswerCoordinates, validateTopology } from '../src/topology.js';
+import { analyzeRequiredBorderFeasibility, deriveWordSlots, getAnswerCoordinates, validateTopology } from '../src/topology.js';
 
 function makeGrid(defaultType = 'letter') {
   return Array.from({ length: 12 }, (_, row) => Array.from({ length: 8 }, (_, col) => ({
@@ -142,4 +142,26 @@ test('documents the border-anchor contradiction under strict terminal-question r
 
   assert.equal(missingRowOne, true);
   assert.equal(missingRowTwo, true);
+});
+
+test('preflight proves the mandatory 8×12 border conflicts with in-board answer terminals', () => {
+  const result = analyzeRequiredBorderFeasibility();
+
+  assert.equal(result.feasible, false);
+  assert.equal(result.reason, 'BORDER_TERMINAL_CONFLICT');
+  assert.equal(result.width, 8);
+  assert.equal(result.height, 12);
+  assert.equal(result.forcedLetterCells.length, 14);
+  assert.deepEqual(result.conflicts.map(item => item.clueCell), [
+    { row: 1, col: 0 },
+    { row: 2, col: 0 }
+  ]);
+  assert.ok(result.conflicts.every(item => item.forcedHorizontalPath.length === 7));
+  assert.ok(result.conflicts.every(item => item.blockedDirections.left === 'граница поля'));
+});
+
+test('preflight does not silently claim feasibility for unsupported dimensions', () => {
+  const result = analyzeRequiredBorderFeasibility({ width: 1, height: 12 });
+  assert.equal(result.feasible, null);
+  assert.equal(result.reason, 'UNSUPPORTED_DIMENSIONS');
 });
