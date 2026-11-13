@@ -181,7 +181,9 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
       const priority =
         (entry.imageKey && state.usedImages.size < options.requiredImageCount ? 1000 : 0)
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
-        - Math.max(0, Number(entry.difficulty) - 1);
+        - Math.max(0, Number(entry.difficulty) - 1)
+        - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
+        - (options.history?.questionUsageCount?.(entry.question) ?? 0) * (options.repeatQuestionPenalty ?? 12);
 
       result.push({
         slotId: slot.id,
@@ -368,9 +370,25 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     deepest = Math.max(deepest, state.assignments.size);
 
     if (state.assignments.size === slots.length) {
-      return (!requireEveryClueStarts || questionKeys.every(key => (state.directionUse.get(key)?.size ?? 0) > 0))
+      const contentValid = (!requireEveryClueStarts || questionKeys.every(key => (state.directionUse.get(key)?.size ?? 0) > 0))
         && state.usedImages.size === requiredImageCount
         && state.usedLogicClues.size >= minimumLogicClueCells;
+      if (!contentValid) return false;
+
+      const completedStructure = slots.map(slot => {
+        const assignment = state.assignments.get(slot.id);
+        return {
+          entryId: assignment.entry.id,
+          clueCell: assignment.clueCell,
+          direction: assignment.direction,
+          coordinates: assignment.coordinates
+        };
+      });
+      if (options.history?.hasStructure?.(completedStructure)) {
+        lastDeadEnd = { reason: 'RECENT_STRUCTURE_REPEAT' };
+        return false;
+      }
+      return true;
     }
 
     const unassigned = slots.filter(slot => !state.assignments.has(slot.id));
@@ -398,7 +416,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     for (const slot of selectionOrder) {
       const candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
-        minimumLogicClueCells
+        minimumLogicClueCells,
+        history: options.history,
+        repeatWordPenalty: options.repeatWordPenalty,
+        repeatQuestionPenalty: options.repeatQuestionPenalty
       }, random);
 
       if (candidates.length === 0) {
