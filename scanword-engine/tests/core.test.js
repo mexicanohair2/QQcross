@@ -312,7 +312,7 @@ test('assembler and independent validator recognize only the two exact left-bord
       coordinates,
       special: 'LEFT_BORDER_RIGHT_BOUNDARY'
     }]
-  });
+  }, { allowLeftBorderRightBoundary: true });
 
   assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
   assert.equal(assembled.scanword.grid[1][0].type, 'question');
@@ -321,6 +321,7 @@ test('assembler and independent validator recognize only the two exact left-bord
   const validation = validateScanword(assembled.scanword, dictionary, {
     requireBorderClues: false,
     requireConnected: false,
+    allowLeftBorderRightBoundary: true,
     requiredImageCount: 0,
     minimumLogicClueCells: 0
   });
