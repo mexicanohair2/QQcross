@@ -165,6 +165,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, length: answer.length
       });
     }
+    const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ'])
+      .map(canonicalAnswerKey));
+    if (answer.length === 2 && (
+      !word.imageKey
+      || !allowedShortAnswers.has(canonicalAnswerKey(answer))
+    )) {
+      add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ разрешён только из утверждённого списка и при наличии картинки.', {
+        wordId: word.id,
+        answer,
+        imageKey: word.imageKey ?? null
+      });
+    }
     if (word.length !== answer.length) {
       add('WORD_LENGTH_MISMATCH', 'Заявленная длина не совпадает с длиной ответа.', {
         wordId: word.id, expected: answer.length, actual: word.length
