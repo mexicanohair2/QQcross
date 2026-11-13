@@ -390,3 +390,15 @@ test('independent validator accepts a selected logic variant when the answer als
   });
   assert.ok(forgedValidation.errors.some(error => error.type === 'LOGIC_METADATA_MISMATCH'));
 });
+
+
+test('dictionary rejects answer leakage even when the clue uses the Е spelling of Ё', () => {
+  const prepared = prepareDictionary([
+    { id: 'hedgehog', answer: 'ЁЖ', clue: 'Какой ЕЖ выходит ночью?' },
+    { id: 'valid', answer: 'КОТ', clue: 'Домашнее животное из семейства кошачьих.' }
+  ]);
+  assert.deepEqual(prepared.entries.map(entry => entry.answer), ['КОТ']);
+  assert.ok(prepared.errors.some(error =>
+    error.id === 'hedgehog' && error.codes.includes('ANSWER_LEAKS_INTO_QUESTION')
+  ));
+});
