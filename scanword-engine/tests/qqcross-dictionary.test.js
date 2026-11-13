@@ -87,3 +87,27 @@ test('prioritizes a real picture variant when duplicate answers exist', () => {
   assert.equal(prepared.entries.length, 1);
   assert.equal(prepared.entries[0].imageKey, 'giraffe');
 });
+
+test('uses positional indexes to narrow candidates by every crossing letter', () => {
+  const prepared = prepareDictionary([
+    { id: 'a', answer: 'КОТ', clue: 'Домашнее животное из семейства кошачьих.' },
+    { id: 'b', answer: 'КИТ', clue: 'Крупное морское млекопитающее.' },
+    { id: 'c', answer: 'ТОК', clue: 'Направленное движение электрических зарядов.' },
+    { id: 'd', answer: 'ЛЕС', clue: 'Множество деревьев на большой территории.' }
+  ]);
+  const indexes = buildIndexes(prepared.entries);
+  assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'К' }, { position: 2, letter: 'Т' }]).map(item => item.answer), ['КОТ']);
+  assert.deepEqual(findCandidates(indexes, 3, { 1: 'И' }).map(item => item.answer), ['КИТ']);
+  assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'Я' }]), []);
+});
+
+test('candidate lookup preserves Ё and does not mutate index buckets', () => {
+  const prepared = prepareDictionary([
+    { id: 'a', answer: 'ЁЖ', clue: 'Небольшое животное с иголками.' },
+    { id: 'b', answer: 'ЕЖ', clue: 'Сочетание двух букв.' }
+  ]);
+  const indexes = buildIndexes(prepared.entries);
+  const before = indexes.byLength.get(2).map(item => item.id);
+  assert.equal(findCandidates(indexes, 2, [{ position: 0, letter: 'Ё' }])[0].answer, 'ЁЖ');
+  assert.deepEqual(indexes.byLength.get(2).map(item => item.id), before);
+});
