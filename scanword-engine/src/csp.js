@@ -241,7 +241,7 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
 function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
   const allowedShortAnswers = new Set((options.allowedShortAnswers
-    ?? ['ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'])
+    ?? ['ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'])
     .map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     const clueKey = pointKey(orientation.clueCell);
