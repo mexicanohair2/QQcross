@@ -43,7 +43,7 @@ for (const item of raw) {
 
   if (questionKey) {
     if (!questionGroups.has(questionKey)) questionGroups.set(questionKey, []);
-    questionGroups.get(questionKey).push(answer);
+    questionGroups.get(questionKey).push({ answer, imageKey: item?.imageKey ?? null });
   }
 }
 
