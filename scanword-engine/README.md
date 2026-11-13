@@ -22,7 +22,7 @@ This directory is an experimental engine source area inside the existing QQCross
 
 ## Measured dictionary status
 
-The current source dictionary has 2,287 records, 2,034 unique accepted answers after normalization/deduplication, 46 unique image keys, and 496 unique accepted logic-tagged answers. See `docs/QQCROSS_DICTIONARY_AUDIT_2026-11-13.md`. This is not a 25,000- or 50,000-word dictionary.
+The current source dictionary has 2,287 records, 2,034 unique accepted answers after normalization/deduplication, 46 unique image keys and 46 unique accepted image answers, plus 610 unique accepted logic-tagged answers. See `docs/QQCROSS_DICTIONARY_AUDIT_2026-11-13.md`. This is not a 25,000- or 50,000-word dictionary.
 
 ## Blocking topology issue
 
