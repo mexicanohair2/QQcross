@@ -345,3 +345,38 @@ test('normalizes Ё and Е consistently when comparing duplicate clue text', () 
     normalizeQuestion('Береза растёт у реки.')
   );
 });
+
+
+test('independent validator accepts a selected logic variant when the answer also has an image variant', () => {
+  const dictionary = [
+    { id: 'kot-image', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
+    { id: 'kot-logic', answer: 'КОТ', clue: 'Кто ловит мышей и живёт рядом с человеком?', logic: true }
+  ];
+  const assembled = assembleScanword({
+    seed: 51,
+    words: [{
+      id: 'w1',
+      entryId: 'kot-logic',
+      answer: 'КОТ',
+      question: dictionary[1].clue,
+      clue: { row: 1, col: 0 },
+      direction: 'right',
+      coordinates: [
+        { row: 1, col: 1 },
+        { row: 1, col: 2 },
+        { row: 1, col: 3 }
+      ],
+      logic: true
+    }]
+  });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+
+  const validation = validateScanword(assembled.scanword, dictionary, {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 1
+  });
+  assert.equal(validation.errors.some(error => error.type === 'WORD_NOT_IN_DICTIONARY'), false);
+  assert.equal(validation.errors.some(error => error.type === 'DICTIONARY_QUESTION_MISMATCH'), false);
+});
