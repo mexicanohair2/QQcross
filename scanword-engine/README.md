@@ -30,6 +30,11 @@ The strict border and terminal-question rules are mutually incompatible at left-
 
 No relaxation has been enabled. The engine must not fabricate words, permit one-letter fillers, or claim that a full 8×12 board exists under the contradictory rules.
 
+The isolated generator now runs this proof as a deterministic preflight and returns
+`TOPOLOGY_CONSTRAINT_CONFLICT` with the two blocked left-border clue coordinates
+before entering randomized placement. This is an explicit refusal, not a successful
+generator or a workaround for the contradictory specification.
+
 ## Verification status
 
 The isolated engine unit suite currently passes **49/49** tests in GitHub Actions. This validates modules and test fixtures, not full-board generation.
