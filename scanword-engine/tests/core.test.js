@@ -407,21 +407,22 @@ test('connects answers that terminate at the same shared question cell', () => {
         id: 'w-left',
         answer: 'КОТ',
         question: 'Домашнее животное из семейства кошачьих.',
-        clue: { row: 0, col: 1 },
+        clue: { row: 0, col: 0 },
         direction: 'right',
-        coordinates: [{ row: 0, col: 2 }, { row: 0, col: 3 }, { row: 0, col: 4 }]
+        coordinates: [{ row: 0, col: 1 }, { row: 0, col: 2 }]
       },
       {
         id: 'w-right',
         answer: 'ЛЕС',
         question: 'Большая территория, покрытая деревьями.',
-        clue: { row: 0, col: 7 },
+        clue: { row: 0, col: 6 },
         direction: 'left',
-        coordinates: [{ row: 0, col: 6 }, { row: 0, col: 5 }, { row: 0, col: 4 }]
+        coordinates: [{ row: 0, col: 5 }, { row: 0, col: 4 }]
       }
     ]
   });
   assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  assert.equal(assembled.scanword.grid[0][3].type, 'question');
   const validation = validateScanword(assembled.scanword, [], {
     requireBorderClues: false,
     requireConnected: true,
