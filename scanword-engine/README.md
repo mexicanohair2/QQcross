@@ -6,16 +6,16 @@ This directory is an experimental engine source area inside the existing QQCross
 
 - 8 columns × 12 rows, 96 cells.
 - Rows 0..11; columns 0..7.
-- (0,0) is the only empty corner.
+- (0,0) is the only reserved blank corner.
 - Top row and left column (except the corner) are clue cells.
-- The optional 11-letter answer starts at (0,1), goes down to (11,1), and has a 25% target frequency only across successful generation batches.
+- The optional 11-letter answer is specified from (0,1) down to the bottom boundary, with a target frequency around 25%.
 
 ## Implemented isolated modules
 
 - `config.js`, `grid.js`: canonical dimensions and cell model.
 - `dictionary.js`: Russian normalization, entry validation, duplicate handling and positional indexes.
-- `topology.js`: derives geometric slots and independently validates cell roles/coverage.
-- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text, with the standard picture prompt reusable only for distinct image keys.
+- `topology.js`: derives geometric slots and independently validates cell roles/coverage; preflight checks mandatory-border feasibility.
+- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text.
 - `assembler.js`: converts CSP assignments into the canonical clue/letter grid and crossing references. It does not mark partial output as complete.
 - `validator.js`: independently reconstructs answer geometry, validates dictionary references, question/answer links, crossings, image keys, connectedness and all 96 cell roles.
 - `history.js`: tracks word combinations, exact structures and normalized clue reuse.
@@ -26,21 +26,14 @@ The current source dictionary has 2,287 records, 2,034 unique accepted answers a
 
 ## Blocking topology issue
 
-The strict border and terminal-question rules are mutually incompatible at left-border cells (1,0) and (2,0): every top clue must point down, forcing all cells (1,1)..(2,7) to be letters, while the first two left-border clues have no legal outgoing answer of at least two letters. Ordinary answers are not allowed to end at the outer edge. See `docs/QQCROSS_TOPOLOGY_FEASIBILITY_BLOCKER.md`.
+The full-border rules force both columns 1 and 2 below the top row to be letters, because every clue in the mandatory left border can only point right and every answer needs at least two letters. The top clue (0,2) can only point down, so it would need an 11-letter answer terminating at the bottom boundary. The only current exception is the 11-letter answer from (0,1). In addition, (0,1) itself must use that 11-letter exception in every complete puzzle, which conflicts with the requested roughly 25% frequency. See `docs/QQCROSS_TOPOLOGY_FEASIBILITY_BLOCKER.md`.
 
-No relaxation has been enabled. The engine must not fabricate words, permit one-letter fillers, or claim that a full 8×12 board exists under the contradictory rules.
+The prototype contains an opt-in helper for the two seven-letter horizontal edge slots at (1,0) and (2,0). These are only partial geometry helpers; they do not solve the full topology conflict. They are not enabled by the generator or live gameplay.
 
-The isolated generator now runs this proof as a deterministic preflight and returns
-`TOPOLOGY_CONSTRAINT_CONFLICT` with the two blocked left-border clue coordinates
-before entering randomized placement. This is an explicit refusal, not a successful
-generator or a workaround for the contradictory specification.
+The isolated generator runs the deterministic feasibility preflight and refuses the current rule set before randomized placement. It must not fabricate words, use one-letter fillers, or mark an incomplete layout as valid.
 
-## Verification status
+## Verification and integration status
 
-The isolated engine unit suite currently passes **51/51** tests in GitHub Actions. This validates modules and test fixtures, not full-board generation.
-
-The full scanword verification still fails in the existing production `app.js` generator before integration; its current legacy implementation is 6×12, not the new 8×12 engine. Browser acceptance assertions now target 8×12 and five distinct picture clues, but the latest Playwright run was cancelled, so there is no successful end-to-end confirmation. The new engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
-
-## Integration contract
+The existing production `app.js` generator is still the legacy 6×12 implementation. The browser acceptance checks require 8×12, but those requirements are not yet met. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
 
 Production currently uses classic scripts, primary generation in `app.js`, and `data/scanword-dictionary.json`. A compatibility adapter must preserve renderer, expected, clueAt, wordTerminals, hints, saves, daily mode, solo, multiplayer and AI flows. No live gameplay change is made by adding this directory.
