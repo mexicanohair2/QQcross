@@ -37,10 +37,16 @@ async function main() {
   }
 
   const rawDictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
-  const filteredDictionary = rawDictionary.filter(entry => {
+  // Assign IDs before filtering so solver and independent validator use the
+  // same stable source identity even when some short records are excluded.
+  const sourceDictionary = rawDictionary.map((entry, index) => ({
+    ...entry,
+    id: entry.id ?? ("dictionary_" + String(index + 1).padStart(4, "0"))
+  }));
+  const filteredDictionary = sourceDictionary.filter(entry => {
     const answer = String(entry.answer ?? "").trim().toUpperCase();
     if (answer.length !== 2) return true;
-    return ["ЁЖ","ЯД","УМ","ЮГ","АС","УС"].includes(answer);
+    return answer === "ЁЖ" && Boolean(entry.imageKey);
   });
   const topology = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false });
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
@@ -72,7 +78,7 @@ async function main() {
       const assembled = assembleScanword({ seed, words: solved.words, questions: solved.questions });
       item.assembled = assembled.ok;
       if (assembled.ok) {
-        const validation = validateScanword(assembled.scanword, rawDictionary, {
+        const validation = validateScanword(assembled.scanword, sourceDictionary, {
           requiredImageCount: 5,
           minimumLogicClueCells: 3,
           requireLeftBorderClues: true,
