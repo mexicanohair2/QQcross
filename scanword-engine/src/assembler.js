@@ -14,7 +14,7 @@ function keyOf(point) {
 export function assembleScanword(assignments, options = {}) {
   const errors = [];
   const grid = createEmptyGrid();
-  const words = Array.isArray(assignments?.words) ? assignments.words : [];
+  const words = Array.isArray(assignments?.words) ? assignments.words.map(word => ({ ...word })) : [];
   const suppliedQuestions = Array.isArray(assignments?.questions) ? assignments.questions : [];
   const questionByWord = new Map(suppliedQuestions.map(question => [question.wordId, question]));
   const questions = [];
@@ -24,7 +24,7 @@ export function assembleScanword(assignments, options = {}) {
 
   const fail = (type, message, extra = {}) => errors.push({ type, message, ...extra });
 
-  function markQuestion(point, questionId) {
+  function markQuestion(point, questionId = null) {
     if (!inBounds(point?.row, point?.col)) {
       fail('QUESTION_OUT_OF_BOUNDS', 'Вопросная клетка находится вне поля.', { point });
       return;
@@ -37,7 +37,7 @@ export function assembleScanword(assignments, options = {}) {
       return;
     }
     cell.type = 'question';
-    if (!cell.questionIds.includes(questionId)) cell.questionIds.push(questionId);
+    if (questionId && !cell.questionIds.includes(questionId)) cell.questionIds.push(questionId);
   }
 
   for (const sourceWord of words) {
@@ -144,7 +144,7 @@ export function assembleScanword(assignments, options = {}) {
         });
       }
     } else {
-      markQuestion(terminal, 'q_terminal_' + sourceWord.id);
+      markQuestion(terminal);
     }
 
     const word = {
