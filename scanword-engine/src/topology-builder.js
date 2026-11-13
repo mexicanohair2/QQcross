@@ -22,7 +22,7 @@ const SCAFFOLD_ROWS = Object.freeze([
   [2, 7, 11],
   [3, 7, 11],
   [0, 5, 10],
-  [1, 5, 10]
+  [1, 5, 11]
 ]);
 
 function createScaffold(rows) {
