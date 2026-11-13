@@ -145,14 +145,26 @@ export function prepareDictionary(input, options = {}) {
     const normalizedQuestion = normalizeQuestion(entry.question);
     const owner = questionOwners.get(normalizedQuestion);
     if (owner && owner.answer !== entry.answer) {
-      warnings.push({
-        code: 'DUPLICATE_QUESTION',
-        question: entry.question,
-        ids: [owner.id, entry.id],
-        answers: [owner.answer, entry.answer]
-      });
+      const sharedPicturePrompt = Boolean(
+        owner.imageKey
+        && entry.imageKey
+        && owner.imageKey !== entry.imageKey
+        && /изображено на картинке|показано на картинке/u.test(normalizedQuestion)
+      );
+      if (!sharedPicturePrompt) {
+        warnings.push({
+          code: 'DUPLICATE_QUESTION',
+          question: entry.question,
+          ids: [owner.id, entry.id],
+          answers: [owner.answer, entry.answer]
+        });
+      }
     } else if (!owner) {
-      questionOwners.set(normalizedQuestion, { id: entry.id, answer: entry.answer });
+      questionOwners.set(normalizedQuestion, {
+        id: entry.id,
+        answer: entry.answer,
+        imageKey: entry.imageKey
+      });
     }
   }
 
