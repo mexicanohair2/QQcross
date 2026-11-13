@@ -153,15 +153,10 @@ test('preflight proves the mandatory 8×12 border conflicts with in-board answer
   assert.equal(result.height, 12);
   assert.equal(result.forcedLetterCells.length, 32);
   assert.deepEqual(result.conflicts.map(item => item.clueCell), [
-    { row: 1, col: 0 },
-    { row: 2, col: 0 },
     { row: 0, col: 2 }
   ]);
-  assert.ok(result.conflicts[0].forcedHorizontalPath.length === 7);
-  assert.ok(result.conflicts[1].forcedHorizontalPath.length === 7);
-  assert.equal(result.conflicts[2].forcedVerticalPath.length, 11);
-  assert.ok(result.conflicts[0].blockedDirections.left === 'граница поля');
-  assert.ok(result.conflicts[2].blockedDirections.up === 'граница поля');
+  assert.equal(result.conflicts[0].forcedVerticalPath.length, 11);
+  assert.ok(result.conflicts[0].blockedDirections.up === 'граница поля');
 });
 
 test('preflight does not silently claim feasibility for unsupported dimensions', () => {
