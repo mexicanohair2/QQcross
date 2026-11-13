@@ -77,6 +77,16 @@ test('audits the real production dictionary without losing valid content', () =>
   assert.ok(indexes.byLetter.size > 0);
   assert.ok(prepared.stats.rejected > 0);
   assert.ok(prepared.stats.duplicateAnswerRecords > 0);
+  const uniqueImageAnswers = new Set(
+    prepared.variants.filter(item => item.imageKey).map(item => item.answer)
+  );
+  const uniqueLogicAnswers = new Set(
+    prepared.variants.filter(item => item.logic).map(item => item.answer)
+  );
+  assert.equal(prepared.stats.withImages, uniqueImageAnswers.size);
+  assert.equal(prepared.stats.logicEntries, uniqueLogicAnswers.size);
+  assert.equal(prepared.stats.withImages, 46);
+  assert.equal(prepared.stats.logicEntries, 610);
 });
 
 test('prioritizes a real picture variant when duplicate answers exist', () => {
