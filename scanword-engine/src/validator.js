@@ -81,18 +81,20 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным пустым углом.', { row: 0, col: 0 });
   }
 
-  if (options.requireBorderClues !== false) {
-    for (let col = 1; col < CONFIG.WIDTH; col++) {
-      if (grid[0][col]?.type !== 'question') {
-        add('TOP_ROW_NOT_QUESTION', 'Верхняя строка должна содержать вопросные клетки, кроме угла.', { row: 0, col });
-      }
-    }
+  if (options.requireTopAnchor !== false && grid[0][1]?.type !== 'question') {
+    add('TOP_LEFT_BORDER_ANCHOR_MISSING', 'Клетка (0,1) должна быть вопросной.', { row: 0, col: 1 });
+  }
+  const requireLeftBorderClues = options.requireLeftBorderClues
+    ?? (options.requireBorderClues !== false);
+  if (requireLeftBorderClues) {
     for (let row = 1; row < CONFIG.HEIGHT; row++) {
       if (grid[row][0]?.type !== 'question') {
         add('LEFT_COLUMN_NOT_QUESTION', 'Левый столбец должен содержать вопросные клетки, кроме угла.', { row, col: 0 });
       }
     }
   }
+  // Top-row question placement is deliberately dynamic. Any non-question
+  // cell must still be covered by a reconstructed answer slot below.
 
   let questionCells = 0;
   let letterCells = 0;
@@ -133,6 +135,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const expectedWordIds = new Map();
   const expectedLetters = new Map();
   const questionRecordsByWord = new Map();
+  const terminalQuestionKeys = new Set();
   const registeredNormalSlots = new Set();
   let specialCount = 0;
   const leftBoundaryRows = new Set();
@@ -321,6 +324,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           wordId: word.id, terminal
         });
       } else {
+        terminalQuestionKeys.add(pointKey(terminal));
         const first = { row: clue.row, col: clue.col };
         const last = terminal;
         const axis = vector.dr === 0 ? 'horizontal' : 'vertical';
@@ -561,8 +565,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
       if (cell?.type === 'question') {
         const expected = questionIdsByCell.get(key) ?? new Set();
-        if (expected.size === 0) {
-          add('QUESTION_CELL_WITHOUT_QUESTION', 'Вопросная клетка не содержит ни одного связанного вопроса.', { row, col });
+        if (expected.size === 0 && !terminalQuestionKeys.has(key)) {
+          add('QUESTION_CELL_WITHOUT_QUESTION', 'Вопросная клетка не является ни началом ответа, ни его корректным конечным ограничителем.', { row, col });
         }
         if (!sameStringSet(cell.questionIds, [...expected])) {
           add('QUESTION_REFERENCES_MISMATCH', 'Список вопросов в клетке не совпадает с вопросными записями.', {

@@ -1,5 +1,5 @@
 {
-  "name": "qqcross-scanword-engine-prototype",
+  "name": "qqcross-scanword-engine",
   "private": true,
   "type": "module",
   "scripts": {

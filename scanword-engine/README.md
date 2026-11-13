@@ -1,39 +1,40 @@
-QQCross scanword engine — integration prototype
+# QQCross scanword engine — production integration
 
-This directory is an experimental engine source area inside the existing QQCross repository. It is NOT yet connected to live gameplay. Do not import it from app.js or replace buildScanword() until the full-grid topology, independent validator, dictionary integration, and mobile/regression tests pass.
+The scanword engine is the only production path for creating scanword boards in app.js. It runs in a module Web Worker in browsers and has a bounded main-thread fallback where Workers are unavailable. The previous greedy buildScanword() generator is no longer used by gameplay.
 
-## Canonical format
+## Canonical board contract
 
-- 8 columns × 12 rows, 96 cells.
-- Rows 0..11; columns 0..7.
-- (0,0) is the only reserved blank corner.
-- Top row and left column (except the corner) are clue cells.
-- The 11-letter answer is currently specified from (0,1) down to the bottom boundary, with a target frequency around 25%.
+- Exactly 8 columns × 12 rows = 96 cells.
+- The upper-left cell (0,0) is the only reserved blank corner.
+- The left border (rows 1–11, column 0) contains question/end cells.
+- (0,1) is the required top-left anchor.
+- Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
+- Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
+- Horizontal and vertical answers are supported in both directions.
+- The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
-## Implemented isolated modules
+## Pipeline
 
-- `config.js`, `grid.js`: canonical dimensions and cell model.
-- `dictionary.js`: Russian normalization, entry validation, answer deduplication, retained clue variants, and positional indexes.
-- `topology.js`: derives geometric slots and independently validates cell roles/coverage; preflight checks mandatory-border feasibility.
-- `csp.js`: bounded CSP/backtracking, MRV, degree tie-break, crossing propagation, seed-based ordering, cancellation, image/logic quotas, unique answers and normalized clue text. It indexes all accepted variants but uses each answer at most once per puzzle.
-- `assembler.js`: converts CSP assignments into the canonical clue/letter grid and crossing references. It does not mark partial output as complete.
-- `validator.js`: independently reconstructs answer geometry, validates all accepted dictionary variant IDs, question/answer links, crossings, image keys, connectedness and all 96 cell roles.
-- `history.js`: tracks word combinations, exact structures and normalized clue reuse.
+1. dictionary.js normalizes Russian answers and questions, rejects malformed records and answer leakage, preserves meaningful clue variants, and builds positional-letter indexes.
+2. topology-builder.js generates a seeded role mask from multiple validated geometric seeds, applies randomized transforms and cell mutations, and independently rejects masks with uncovered letters, question cells without slots, or disconnected geometry.
+3. topology.js derives every horizontal and vertical slot from consecutive question cells. It checks actual 8×12 geometry rather than forcing a complete top row.
+4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, five distinct image assets and at least three distinct logic-clue cells.
+5. assembler.js reconstructs the cell grid and word/question links.
+6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
+7. scoring.js evaluates completeness, crossings, clue length/clarity proxies, direction variety, answer-length variety, theme diversity, picture count and logic clues. A score never overrides a validation failure.
+8. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
-## Measured dictionary status
+## Bounded generation
 
-The current source dictionary has 2,287 records, 2,214 valid runtime variants, and 2,032 distinct playable answers. It has 46 unique picture answers and 622 distinct answers with a valid logic variant. Thirteen answers have both image and logic formulations; both remain available to the CSP, while the per-puzzle duplicate-answer rule remains in force. See `docs/QQCROSS_DICTIONARY_AUDIT_2026-11-13.md`. This is not a 25,000- or 50,000-word dictionary.
+The engine has seed-based randomness and explicit limits for topology attempts, CSP nodes and CSP time. It returns structured failure diagnostics rather than a partial board. The module worker keeps generation off the UI thread. There are no new runtime dependencies and no Supabase schema changes.
 
-## Blocking topology issue
+## Production dictionary status
 
-The full-border rules force both columns 1 and 2 below the top row to be letters, because every clue in the mandatory left border can only point right and every answer needs at least two letters. The top clue (0,2) can only point down, so it would need an 11-letter answer terminating at the bottom boundary. The only current exception is the 11-letter answer from (0,1). In addition, (0,1) itself must use that 11-letter exception in every complete puzzle, which conflicts with the requested roughly 25% frequency. See `docs/QQCROSS_TOPOLOGY_FEASIBILITY_BLOCKER.md`.
+The repository dictionary currently has 2,287 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
 
-The prototype contains an opt-in helper for the two seven-letter horizontal edge slots at (1,0) and (2,0). These are only partial geometry helpers; they do not solve the full topology conflict. They are not enabled by the generator or live gameplay.
+## Verification
 
-The isolated generator runs the deterministic feasibility preflight and refuses the current rule set before randomized placement. It must not fabricate words, use one-letter fillers, or mark an incomplete layout as valid.
-
-## Verification and integration status
-
-The isolated engine unit suite currently contains **61 tests**. The latest confirmed GitHub Actions run passed all 61, including retained image/logic variants, picture metadata cleanup, independent metadata validation, and Ё/Е answer-leak detection. The production scanword verification and browser acceptance checks still expose the known 6×12 legacy generator, not a functioning 8×12 gameplay path. The experimental engine is not wired into gameplay. The real renderer contract is documented in `docs/QQCROSS_LEGACY_ADAPTER_CONTRACT.md`.
-
-Production currently uses classic scripts, primary generation in `app.js`, and `data/scanword-dictionary.json`. A compatibility adapter must preserve renderer, expected, clueAt, wordTerminals, hints, saves, daily mode, solo, multiplayer and AI flows. No live gameplay change is made by adding this directory.
+- npm --prefix scanword-engine test runs isolated engine tests.
+- npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
+- Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
+- A puzzle is accepted into the game only after the independent validator reports success.

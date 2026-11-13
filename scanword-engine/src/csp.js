@@ -542,8 +542,12 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       direction: assignment.direction,
       length: assignment.entry.answer.length,
       coordinates: assignment.coordinates.map(point => ({ ...point })),
+      clueShort: assignment.entry.clueShort ?? assignment.entry.question,
       imageKey: assignment.entry.imageKey ?? null,
       logic: assignment.entry.logic === true,
+      type: assignment.entry.type ?? 'text',
+      difficulty: assignment.entry.difficulty ?? 1,
+      tags: Array.isArray(assignment.entry.tags) ? [...assignment.entry.tags] : [],
       special: slot.special ?? null
     };
   });

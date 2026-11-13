@@ -1,76 +1,227 @@
 import { CONFIG } from './config.js';
-import { analyzeRequiredBorderFeasibility } from './topology.js';
 import { prepareDictionary } from './dictionary.js';
-import { createEmptyGrid } from './grid.js';
-import { placeWord } from './placement.js';
+import { solveSlotsCsp } from './csp.js';
+import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
+import { generateTopology } from './topology-builder.js';
 import { scoreScanword } from './scoring.js';
-import { createRng, shuffle } from './rng.js';
+import { createRng } from './rng.js';
 
-/*
- * Bounded CSP placement kernel. It deliberately refuses to label a partial
- * board as a successful scanword. This prototype is incomplete: a production
- * 96-cell puzzle still needs a topology-specific slot plan and central clue
- * placement. Do not wire it into live gameplay until that work is complete.
+function now() {
+  return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
+}
+
+function countFailure(target, reason) {
+  target[reason] = (target[reason] ?? 0) + 1;
+}
+
+function fail(reason, seed, started, attempts, rejectedReasons, extra = {}) {
+  return {
+    ok: false,
+    reason,
+    seed,
+    attempts,
+    rejectedReasons,
+    elapsedMs: Math.round(now() - started),
+    message: reason === 'INSUFFICIENT_DICTIONARY'
+      ? 'В словаре недостаточно качественных ответов, картинок или логических вопросов.'
+      : 'Не удалось собрать полностью проверенный сканворд в заданных пределах поиска.',
+    ...extra
+  };
+}
+
+/**
+ * Production entry point. Geometry is generated first, answer slots are
+ * derived from the actual role grid, then the bounded CSP assigns dictionary
+ * entries. An independent validator reconstructs the complete 8x12 board
+ * before the result can be returned to QQCross.
  */
 export function generateScanword(inputDictionary, options = {}) {
-  const started = Date.now(), seed = options.seed ?? Date.now();
-  const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo ?? false });
-  const topology = analyzeRequiredBorderFeasibility();
-  if (topology.feasible === false) {
-    return {
-      ok: false,
-      reason: 'TOPOLOGY_CONSTRAINT_CONFLICT',
-      seed,
-      nodes: 0,
-      elapsedMs: Date.now() - started,
-      message: topology.message,
-      topology,
+  const started = now();
+  const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
+  const random = createRng(seed);
+  const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
+  const maxNodes = Math.max(500, options.maxNodes ?? 24000);
+  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 180);
+  const requiredImageCount = options.requiredImageCount ?? 5;
+  const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
+  const rejectedReasons = Object.create(null);
+  const attempts = [];
+
+  if (!Array.isArray(inputDictionary) || inputDictionary.length === 0) {
+    return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
+  }
+
+  const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
+  if (prepared.stats.withImages < requiredImageCount || prepared.stats.logicEntries < minimumLogicClueCells) {
+    return fail('INSUFFICIENT_DICTIONARY', seed, started, attempts, rejectedReasons, {
       dictionaryStats: prepared.stats,
-      dictionaryErrors: prepared.errors,
-      warnings: prepared.warnings
+      dictionaryErrors: prepared.errors.slice(0, 20)
+    });
+  }
+
+  const hasElevenLetterAnswers = prepared.variants.some(entry => entry.answer.length === 11);
+  const wantsEleven = hasElevenLetterAnswers
+    && random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
+  const specialAttempts = wantsEleven ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8) : 0;
+  let bestDiagnostic = null;
+
+  for (let attempt = 0; attempt < maxTopologies; attempt++) {
+    const useSpecial = wantsEleven && attempt < specialAttempts;
+    const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
+    const topologyResult = generateTopology({
+      seed: topologySeed,
+      includeSpecialEleven: useSpecial,
+      maxAttempts: options.topologyMutationAttempts ?? 96
+    });
+
+    if (!topologyResult.ok) {
+      countFailure(rejectedReasons, topologyResult.reason);
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: topologyResult.reason,
+        topologyAttempts: topologyResult.attempts
+      });
+      bestDiagnostic = topologyResult;
+      continue;
+    }
+
+    const topology = topologyResult.topology;
+    const topologyValidation = topology.validation;
+    if (!topologyValidation.valid || topology.slots.length < 18) {
+      countFailure(rejectedReasons, 'TOPOLOGY_VALIDATION_FAILED');
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: 'TOPOLOGY_VALIDATION_FAILED',
+        errors: topologyValidation.errors.slice(0, 8)
+      });
+      continue;
+    }
+
+    const cspSeed = (seed ^ Math.imul(attempt + 1, 104729)) >>> 0;
+    const solved = solveSlotsCsp(topology.slots, inputDictionary, {
+      seed: cspSeed,
+      foldYo: options.foldYo === true,
+      maxNodes,
+      maxTimeMs: maxCspTimeMs,
+      requiredImageCount,
+      minimumLogicClueCells,
+      requireEveryClueStarts: false,
+      history: options.history,
+      signal: options.signal,
+      repeatWordPenalty: options.repeatWordPenalty,
+      repeatQuestionPenalty: options.repeatQuestionPenalty
+    });
+
+    if (!solved.ok) {
+      countFailure(rejectedReasons, solved.reason);
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: solved.reason,
+        nodes: solved.nodes,
+        deepest: solved.deepest,
+        elapsedMs: solved.elapsedMs,
+        lastDeadEnd: solved.lastDeadEnd
+      });
+      bestDiagnostic = solved;
+      continue;
+    }
+
+    const assembled = assembleScanword({
+      seed,
+      words: solved.words,
+      questions: solved.questions
+    }, {
+      foldYo: options.foldYo === true
+    });
+
+    if (!assembled.ok) {
+      countFailure(rejectedReasons, 'ASSEMBLY_FAILED');
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: 'ASSEMBLY_FAILED',
+        errors: assembled.errors.slice(0, 12)
+      });
+      bestDiagnostic = assembled;
+      continue;
+    }
+
+    const scanword = assembled.scanword;
+    scanword.metadata = {
+      ...scanword.metadata,
+      seed,
+      topologySeed,
+      topologyScaffold: topologyResult.scaffoldIndex,
+      topologyAttempts: topologyResult.attempts,
+      cspNodes: solved.nodes,
+      cspElapsedMs: solved.elapsedMs,
+      specialElevenLetterQuestion: scanword.words.some(
+        word => word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
+      ),
+      valid: false,
+      score: 0
+    };
+
+    const validation = validateScanword(scanword, inputDictionary, {
+      foldYo: options.foldYo === true,
+      requiredImageCount,
+      minimumLogicClueCells,
+      requireLeftBorderClues: true,
+      requireTopAnchor: true,
+      requireConnected: true
+    });
+
+    if (!validation.valid) {
+      countFailure(rejectedReasons, 'INDEPENDENT_VALIDATION_FAILED');
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: 'INDEPENDENT_VALIDATION_FAILED',
+        nodes: solved.nodes,
+        errors: validation.errors.slice(0, 16)
+      });
+      bestDiagnostic = validation;
+      continue;
+    }
+
+    const score = scoreScanword(scanword, validation);
+    scanword.metadata.valid = true;
+    scanword.metadata.score = score;
+    scanword.metadata.generationTimeMs = Math.round(now() - started);
+
+    return {
+      ok: true,
+      scanword,
+      validation,
+      topology: {
+        ...topology.metrics,
+        scaffoldIndex: topologyResult.scaffoldIndex,
+        attempts: topologyResult.attempts,
+        seed: topologySeed
+      },
+      stats: {
+        seed,
+        attempts: attempt + 1,
+        topologyAttempts: topologyResult.attempts,
+        nodes: solved.nodes,
+        deepest: solved.deepest,
+        elapsedMs: Math.round(now() - started),
+        cspElapsedMs: solved.elapsedMs,
+        score,
+        specialElevenLetterQuestion: scanword.metadata.specialElevenLetterQuestion,
+        dictionary: prepared.stats,
+        rejectedReasons: { ...rejectedReasons }
+      }
     };
   }
-  const random = createRng(seed);
-  const wantsEleven = random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
-  const specialEntry = wantsEleven ? prepared.entries.find(e => e.answer.length === 11) : null;
-  // If no real 11-letter entry exists, silently fall back to ordinary generation.
-  // The special mechanic is optional; a missing candidate must not kill the run.
-  const grid = createEmptyGrid();
-  const anchors = [
-    ...Array.from({ length: 7 }, (_, i) => ({ row: 0, col: i + 1, direction: 'down' })),
-    ...Array.from({ length: 11 }, (_, i) => ({ row: i + 1, col: 0, direction: 'right' }))
-  ];
-  const words = [], questions = [], used = new Set();
-  const ordered = shuffle(prepared.entries.filter(e => e.id !== specialEntry?.id), random).sort((a, b) => b.answer.length - a.answer.length);
-  let nodes = 0;
-  function dfs(index) {
-    if (index === anchors.length) return true;
-    if (++nodes > (options.maxNodes ?? CONFIG.MAX_SEARCH_NODES) || Date.now() - started > (options.maxTimeMs ?? CONFIG.MAX_GENERATION_MS)) return false;
-    const anchor = anchors[index];
-    const candidates = index === 0 && specialEntry ? [specialEntry] : shuffle(ordered.filter(e => !used.has(e.id)), random);
-    for (const entry of candidates) {
-      const snapshot = grid.map(row => row.map(c => ({ ...c, questionIds: [...c.questionIds], wordIds: [...c.wordIds] })));
-      const placed = placeWord(grid, grid[anchor.row][anchor.col], entry, anchor.direction, `w${index + 1}`);
-      if (placed.ok) {
-        if (entry.id === specialEntry?.id) placed.word.special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
-        used.add(entry.id); words.push(placed.word);
-        questions.push({ id: placed.questionId, wordId: placed.word.id, text: entry.question, answer: entry.answer, clue: placed.word.clue, direction: anchor.direction });
-        if (dfs(index + 1)) return true;
-        used.delete(entry.id); words.pop(); questions.pop();
-      }
-      for (let r = 0; r < grid.length; r++) for (let c = 0; c < grid[r].length; c++) grid[r][c] = snapshot[r][c];
-    }
-    return false;
-  }
-  const solved = dfs(0);
-  if (!solved) return { ok: false, reason: 'NO_COMPLETE_SOLUTION', nodes, elapsedMs: Date.now() - started, seed,
-    message: 'Не найдено совместимое размещение обязательных ответов. Частичная сетка не возвращена как готовый сканворд.', dictionaryStats: prepared.stats, dictionaryErrors: prepared.errors, warnings: prepared.warnings };
-  const result = { version: 1, width: CONFIG.WIDTH, height: CONFIG.HEIGHT, grid, questions, words,
-    metadata: { seed, score: 0, valid: false, generationTimeMs: Date.now() - started, specialElevenLetterQuestion: words.some(w => w.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') } };
-  const validation = validateScanword(result, prepared.variants);
-  result.metadata.valid = validation.valid;
-  result.metadata.score = scoreScanword(result, validation);
-  if (!validation.valid) return { ok: false, reason: 'VALIDATION_FAILED', validation, result: null, seed };
-  return { ok: true, scanword: result, validation, nodes, elapsedMs: Date.now() - started };
+
+  return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
+    dictionaryStats: prepared.stats,
+    lastDiagnostic: bestDiagnostic,
+    requestedSpecialEleven: wantsEleven
+  });
 }

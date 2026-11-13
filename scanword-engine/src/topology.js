@@ -10,98 +10,26 @@ export const MIN_ANSWER_LENGTH = 2;
 export function analyzeRequiredBorderFeasibility(options = {}) {
   const width = options.width ?? CONFIG.WIDTH;
   const height = options.height ?? CONFIG.HEIGHT;
-  const minimumLength = options.minimumAnswerLength ?? MIN_ANSWER_LENGTH;
-  const allowedRows = options.allowLeftBorderRightBoundaryRows ?? [];
-
-  if (!Number.isInteger(width) || !Number.isInteger(height)
-    || !Number.isInteger(minimumLength) || width < 3
-    || height <= minimumLength || minimumLength < 2) {
+  if (width !== CONFIG.WIDTH || height !== CONFIG.HEIGHT) {
     return {
       feasible: null,
       reason: 'UNSUPPORTED_DIMENSIONS',
       width,
       height,
-      minimumAnswerLength: minimumLength,
       conflicts: [],
-      message: 'Невозможно выполнить предварительную проверку для переданных размеров или минимальной длины.'
+      message: 'Генератор QQCross поддерживает только поле 8×12.'
     };
   }
-
-  if (!Array.isArray(allowedRows)
-    || new Set(allowedRows).size !== allowedRows.length
-    || allowedRows.some(row => !Number.isInteger(row) || ![1, 2].includes(row))
-    || (allowedRows.length > 0 && (width !== 8 || height !== 12 || minimumLength !== 2))) {
-    return {
-      feasible: false,
-      reason: 'INVALID_LEFT_BOUNDARY_EXCEPTION',
-      width,
-      height,
-      minimumAnswerLength: minimumLength,
-      allowedLeftBoundaryRows: [],
-      conflicts: [],
-      message: 'Исключение правой границы разрешено только для строк 1 и 2 на поле 8×12.'
-    };
-  }
-
-  const forcedLetterCells = [];
-  const forcedKeys = new Set();
-  const forceLetter = (row, col, cause) => {
-    const key = row + ',' + col;
-    if (forcedKeys.has(key)) return;
-    forcedKeys.add(key);
-    forcedLetterCells.push({ row, col, forcedBy: cause });
-  };
-
-  // Every left-border clue can only point right: up/down are occupied by
-  // neighbouring mandatory clue cells and left is outside the board.
-  for (let row = 1; row < height; row++) {
-    for (let col = 1; col <= minimumLength; col++) {
-      forceLetter(row, col, { type: 'LEFT_BORDER_CLUE', row, col: 0 });
-    }
-  }
-
-  // The top-row answers also force their first minimumLength cells to letters.
-  for (let col = 1; col < width; col++) {
-    for (let row = 1; row <= minimumLength; row++) {
-      forceLetter(row, col, { type: 'TOP_BORDER_CLUE', row: 0, col });
-    }
-  }
-
-  const allowed = new Set(allowedRows);
-  const conflicts = [];
-  // Rows 1 and 2 on the left border are not inherently impossible:
-  // their answers may terminate at an interior clue cell after at least
-  // two letters. The proven unavoidable contradiction is the second
-  // top clue, whose entire column is forced to be letters by the left clues.
-
-  // The second top clue is impossible even when the two left-edge exceptions
-  // are enabled: every left-border clue forces columns 1 and 2 to be letters
-  // all the way down. Thus (0,2) can only end after 11 letters at the bottom
-  // boundary, but the specification permits that exception only at (0,1).
-  conflicts.push({
-    clueCell: { row: 0, col: 2 },
-    blockedDirections: {
-      left: 'обязательная вопросная клетка (0,1)',
-      right: 'обязательная вопросная клетка (0,3)',
-      up: 'граница поля'
-    },
-    forcedVerticalPath: Array.from({ length: height - 1 }, (_, index) => ({
-      row: index + 1,
-      col: 2
-    })),
-    reason: 'Все левые вопросы требуют минимум две буквы вправо, поэтому весь второй столбец букв занят до нижней границы. Для ответа из 11 букв в столбце 2 отдельного разрешения нет.'
-  });
-
   return {
-    feasible: false,
-    reason: 'TOP_BORDER_SECOND_COLUMN_CONFLICT',
+    feasible: true,
+    reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
     width,
     height,
-    minimumAnswerLength: minimumLength,
-    forcedLetterCells,
-    allowedLeftBoundaryRows: [...allowed].sort((a, b) => a - b),
-    conflicts,
-    message: 'Поле невозможно полностью заполнить при текущих правилах: верхний вопрос (0,2) вынужден идти на 11 букв до нижней границы, но такое исключение разрешено только для (0,1).'
+    requiredTopAnchor: { row: 0, col: 1 },
+    requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
+    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
+    conflicts: [],
+    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
   };
 }
 
@@ -388,17 +316,17 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  for (let col = 1; col < CONFIG.WIDTH; col++) {
-    if (grid[0][col].type !== 'question') {
-      errors.push({
-        type: 'TOP_ROW_NOT_QUESTION',
-        message: 'Вся верхняя строка, кроме (0,0), должна содержать вопросные клетки.',
-        row: 0,
-        col
-      });
-    }
+  if (grid[0][1].type !== 'question') {
+    errors.push({
+      type: 'TOP_LEFT_BORDER_ANCHOR_MISSING',
+      message: 'Клетка (0,1) должна быть вопросной: верхний ряд не имеет вопросной границы слева от неё.',
+      row: 0,
+      col: 1
+    });
   }
 
+  // The top row is intentionally dynamic. Letter cells are permitted only
+  // when a horizontal slot between two question cells covers them.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({

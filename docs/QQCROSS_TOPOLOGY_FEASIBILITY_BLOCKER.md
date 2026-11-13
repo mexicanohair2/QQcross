@@ -1,49 +1,38 @@
-# QQCross topology feasibility blocker
+# QQCross topology feasibility — previous blocker resolved
 
-Status: **hard blocker** for a full 8×12 board under the current rules. The previous proof that only left-border rows 1 and 2 were blocked was incomplete. A stronger contradiction affects the second top-row clue regardless of any partial left-edge exception.
+Status: **the former contradiction was caused by an over-restrictive top-row rule**, not by the 8×12 geometry itself.
 
-## Rules used
+## Correct rule interpretation
 
-1. The board is 8 columns × 12 rows.
-2. Every cell in the top row except (0,0) is a clue cell.
-3. Every cell in the left column except (0,0) is a clue cell.
-4. (0,0) is the only reserved blank cell.
-5. A clue may point only orthogonally: right, left, up or down.
-6. Every answer has at least two letters; no one-letter filler answers.
-7. Every ordinary answer must end at another in-board clue cell.
-8. The only currently specified boundary exception is an 11-letter answer from (0,1) down through (11,1), ending at the bottom boundary.
-9. The 11-letter answer is intended to appear only in roughly one quarter of puzzles.
+The board remains exactly 8 columns × 12 rows. The (0,0) corner remains the only reserved blank cell. The left border (rows 1–11, column 0) remains question/end cells. Cell (0,1) remains the top-left question anchor.
 
-## Strong contradiction: top clue (0,2)
+The top row is not required to consist entirely of question cells. It may contain letters when those letters are part of a horizontal answer run bounded by two question cells. Answers can point in all four orthogonal directions.
 
-For every left-border clue (r,0), where r is 1 through 11:
+## Why the prior proof was incomplete
 
-- left points outside the board;
-- up and down point to mandatory clue cells in the same left border;
-- therefore its only possible direction is right.
+The former proof assumed that (0,2) must be a question cell and therefore could only point downward. That assumption was incorrect under the agreed allowance for strategic top-row omissions.
 
-Since an answer needs at least two letters, cells (r,1) and (r,2) must both be letters for every r=1..11.
+In the new geometry, the upper row may be arranged as a horizontal chain such as question cells at (0,1), (0,4) and (0,7), with two-letter answer runs between them. The cells between those anchors are answer letters, not clue cells. Therefore (0,2) does not need a downward answer.
 
-That forces the entire second column below the top edge — (1,2) through (11,2) — to be letters. But the top clue at (0,2) can only point down: its left and right neighbours are also top-row clues, and up is outside the board. Its answer therefore has to occupy all eleven cells and end at the bottom boundary.
+The left-edge answers can still start at (r,0) and travel right. Their letters occupy the second and third columns as required. Interior question cells and vertical runs are generated dynamically and create crossings between those horizontal answers.
 
-The only specified 11-letter boundary exception is at (0,1), not (0,2). Consequently, clue (0,2) has no legal answer. This remains true even if the left-border clues in rows 1 and 2 are separately allowed to end at the right edge.
+## Optional eleven-letter answer
 
-## Additional consequence for the optional 11-letter mechanic
+The special 11-letter answer remains available from (0,1) down through (11,1) to the lower boundary. Because it is optional, the generator enables this slot for only a seed-selected subset of puzzles. The ordinary top-row horizontal slot from (0,1) remains available when the special answer is absent.
 
-The left-border rule also forces cells (1,1)..(11,1) to be letters. Thus clue (0,1) must also use the 11-letter bottom-boundary answer in every complete puzzle. A rule that permits it only about 25% of the time is incompatible with the mandatory full left border.
+The geometry and the CSP must agree on whether that special slot is present. It must never be inserted as an unassigned placeholder.
 
-## Why a partial fix is not enough
+## Current engineering rules
 
-An opt-in prototype can describe two horizontal edge slots from (1,0) and (2,0), each seven letters long. These slots are geometrically valid in isolation, but they do not solve the forced 11-letter path in column 2 and do not create a valid complete board. The option remains disabled in the production generator, and the full topology preflight still rejects the specification.
+- Keep the exact 8×12 dimensions and all 96 cell roles.
+- Preserve the single reserved corner at (0,0).
+- Preserve the left-border question/end cells and top-left anchor at (0,1).
+- Permit letters on the top row only when a derived answer slot covers them.
+- Derive horizontal and vertical slots from actual consecutive question cells.
+- Reject any question cell without a valid incoming or outgoing answer slot.
+- Reject any letter not covered by at least one slot.
+- Allow terminal-only question cells: the renderer displays the incoming answer's clue there, while actual clue records remain linked to their start cell.
+- Keep the 11-letter boundary answer optional at approximately 25% frequency.
+- Run the independent full-board validator before a puzzle can enter gameplay.
 
-A complete solution requires an explicit rule change to at least one of the underlying constraints: the mandatory left border, minimum answer length, top clue directions, allowed boundary answers, or the frequency/number of 11-letter boundary answers. No such rule change is silently applied.
-
-## Engineering policy
-
-- Do not fabricate answers or letters.
-- Do not reclassify ordinary letters as clue cells to conceal a broken path.
-- Do not add one-letter filler answers.
-- Do not call a partial board a complete scanword.
-- Do not connect the experimental engine to live gameplay while this blocker remains.
-
-The independent topology preflight returns `TOP_BORDER_SECOND_COLUMN_CONFLICT` before CSP search. This is an explicit refusal to produce an invalid puzzle, not a successful generation result.
+The previous strict-full-top-row feasibility check is obsolete and has been replaced by a dynamic top-row anchor/coverage check.

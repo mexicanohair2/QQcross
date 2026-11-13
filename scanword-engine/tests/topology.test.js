@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeRequiredBorderFeasibility, deriveWordSlots, getAnswerCoordinates, validateTopology } from '../src/topology.js';
+import { generateTopology } from '../src/topology-builder.js';
 
 function makeGrid(defaultType = 'letter') {
   return Array.from({ length: 12 }, (_, row) => Array.from({ length: 8 }, (_, col) => ({
@@ -123,94 +124,91 @@ test('coordinate helper obeys the canonical four-direction table', () => {
   assert.equal(getAnswerCoordinates({ row: 0, col: 0 }, 'up', 1), null);
 });
 
-test('documents the border-anchor contradiction under strict terminal-question rules', () => {
+test('supports dynamic top-row clue omissions while covering all 96 cells', () => {
+  const rows = [
+    '.#..#..#',
+    '#..#.##.',
+    '#..#....',
+    '#......#',
+    '#...#..#',
+    '#...#.##',
+    '#..#..#.',
+    '#....##.',
+    '#..#...#',
+    '#....#..',
+    '#..#..#.',
+    '#......#'
+  ];
   const grid = makeGrid('letter');
-  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (row === 0 && col === 0) {
+        grid[row][col] = { row, col, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+      } else if (rows[row][col] === '#') {
+        setQuestion(grid, row, col);
+      }
+    }
+  }
 
-  for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
-  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
-  // The top-row clues need at least two letters before a terminal question.
-  for (let col = 1; col < 8; col++) setQuestion(grid, 3, col);
-
-  const result = validateTopology(grid, { allowSpecialElevenBoundary: false });
-  const missingRowOne = result.errors.some(item =>
-    item.type === 'QUESTION_WITHOUT_SLOT' && item.row === 1 && item.col === 0
-  );
-  const missingRowTwo = result.errors.some(item =>
-    item.type === 'QUESTION_WITHOUT_SLOT' && item.row === 2 && item.col === 0
-  );
-
-  assert.equal(missingRowOne, true);
-  assert.equal(missingRowTwo, true);
+  const result = validateTopology(grid, { requireConnected: true });
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
+  assert.equal(result.metrics.totalCells, 96);
+  assert.equal(result.metrics.questionCells, 34);
+  assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 25);
+  assert.ok(result.slots.some(slot => slot.axis === 'horizontal' && slot.endpoints[0].row === 0));
+  assert.ok(result.errors.length === 0);
 });
 
-test('preflight proves the mandatory 8×12 border conflicts with in-board answer terminals', () => {
-  const result = analyzeRequiredBorderFeasibility();
+test('requires the top-left anchor and complete left border, but not every top-row cell', () => {
+  const grid = makeGrid('letter');
+  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+  setQuestion(grid, 0, 1);
+  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
-  assert.equal(result.feasible, false);
-  assert.equal(result.reason, 'TOP_BORDER_SECOND_COLUMN_CONFLICT');
+  const result = validateTopology(grid);
+  assert.ok(result.errors.some(item => item.type === 'QUESTION_WITHOUT_SLOT'));
+  assert.ok(!result.errors.some(item => item.type === 'TOP_ROW_NOT_QUESTION'));
+
+  grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
+  const missingAnchor = validateTopology(grid);
+  assert.ok(missingAnchor.errors.some(item => item.type === 'TOP_LEFT_BORDER_ANCHOR_MISSING'));
+});
+
+test('the 8x12 preflight permits the dynamically generated top border', () => {
+  const result = analyzeRequiredBorderFeasibility();
+  assert.equal(result.feasible, true);
+  assert.equal(result.reason, 'DYNAMIC_TOP_BORDER_SUPPORTED');
   assert.equal(result.width, 8);
   assert.equal(result.height, 12);
-  assert.equal(result.forcedLetterCells.length, 32);
-  assert.deepEqual(result.conflicts.map(item => item.clueCell), [
-    { row: 0, col: 2 }
-  ]);
-  assert.equal(result.conflicts[0].forcedVerticalPath.length, 11);
-  assert.ok(result.conflicts[0].blockedDirections.up === 'граница поля');
+  assert.deepEqual(result.requiredTopAnchor, { row: 0, col: 1 });
+  assert.deepEqual(result.requiredLeftBorderRows, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+
+  const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });
+  assert.equal(unsupported.feasible, null);
+  assert.equal(unsupported.reason, 'UNSUPPORTED_DIMENSIONS');
 });
 
-test('preflight does not silently claim feasibility for unsupported dimensions', () => {
-  const result = analyzeRequiredBorderFeasibility({ width: 1, height: 12 });
-  assert.equal(result.feasible, null);
-  assert.equal(result.reason, 'UNSUPPORTED_DIMENSIONS');
+test('generates varied, connected topologies rather than one fixed board layout', () => {
+  const patterns = new Set();
+  for (let seed = 1; seed <= 24; seed++) {
+    const result = generateTopology({ seed, includeSpecialEleven: false, maxAttempts: 128 });
+    assert.equal(result.ok, true, 'seed=' + seed + ' ' + JSON.stringify(result));
+    assert.equal(result.topology.validation.valid, true);
+    assert.equal(result.topology.metrics.totalCells, 96);
+    assert.equal(result.topology.pattern.length, 12);
+    assert.ok(result.topology.slots.length >= 18);
+    patterns.add(result.topology.pattern.join('/'));
+  }
+  assert.ok(patterns.size >= 8, 'expected multiple distinct topologies, got ' + patterns.size);
 });
 
-
-test('left-edge exceptions for rows 1 and 2 do not solve the second top-column contradiction', () => {
-  const approved = analyzeRequiredBorderFeasibility({
-    allowLeftBorderRightBoundaryRows: [1, 2]
-  });
-  assert.equal(approved.feasible, false);
-  assert.equal(approved.reason, 'TOP_BORDER_SECOND_COLUMN_CONFLICT');
-  assert.deepEqual(approved.allowedLeftBoundaryRows, [1, 2]);
-  assert.deepEqual(approved.conflicts.map(item => item.clueCell), [{ row: 0, col: 2 }]);
-  assert.equal(approved.conflicts[0].forcedVerticalPath.length, 11);
-
-  const partial = analyzeRequiredBorderFeasibility({
-    allowLeftBorderRightBoundaryRows: [1]
-  });
-  assert.equal(partial.feasible, false);
-  assert.deepEqual(partial.conflicts.map(item => item.clueCell), [
-    { row: 0, col: 2 }
-  ]);
-
-  const invalid = analyzeRequiredBorderFeasibility({
-    allowLeftBorderRightBoundaryRows: [1, 3]
-  });
-  assert.equal(invalid.feasible, false);
-  assert.equal(invalid.reason, 'INVALID_LEFT_BOUNDARY_EXCEPTION');
-});
-
-test('derives exactly two opt-in left-border boundary slots and none by default', () => {
-  const grid = makeGrid('letter');
-  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
-  for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
-  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
-
-  const withoutException = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  assert.equal(withoutException.slots.some(item => item.special === 'LEFT_BORDER_RIGHT_BOUNDARY'), false);
-
-  const withException = deriveWordSlots(grid, {
-    allowSpecialElevenBoundary: false,
-    allowLeftBorderRightBoundary: true
-  });
-  const boundarySlots = withException.slots.filter(item => item.special === 'LEFT_BORDER_RIGHT_BOUNDARY');
-  assert.equal(boundarySlots.length, 2);
-  assert.deepEqual(boundarySlots.map(item => item.endpoints[0]), [
-    { row: 1, col: 0 },
-    { row: 2, col: 0 }
-  ]);
-  assert.ok(boundarySlots.every(item => item.length === 7));
-  assert.ok(boundarySlots.every(item => item.directionOptions.length === 1 && item.directionOptions[0].direction === 'right'));
-  assert.deepEqual(boundarySlots[0].coordinates[6], { row: 1, col: 7 });
+test('offers the exact optional eleven-letter vertical boundary slot', () => {
+  const result = generateTopology({ seed: 123, includeSpecialEleven: true, maxAttempts: 128 });
+  assert.equal(result.ok, true);
+  const special = result.topology.slots.find(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
+  assert.ok(special);
+  assert.equal(special.length, 11);
+  assert.deepEqual(special.directionOptions.map(item => item.direction), ['down']);
+  assert.deepEqual(special.coordinates[0], { row: 1, col: 1 });
+  assert.deepEqual(special.coordinates[10], { row: 11, col: 1 });
 });
