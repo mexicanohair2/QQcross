@@ -1276,12 +1276,8 @@ function buildScanword(entries){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
     incomingFinal.add((last[0]+dir.dy)+","+(last[1]+dir.dx));
   }
-  for(const [key,list] of [...best.clueAt.entries()]){
-    if(!list.length&&!incomingFinal.has(key)){
-      best.clueAt.delete(key);
-      best.reservedKeys.add(key);
-    }
-  }
+  // Keep the reserved set limited to the single top-left corner.
+  // Empty/dangling clue cells are a generation failure, never dark filler.
   const clueKeys=new Set(best.clueAt.keys()),occupied=best.occupied,reservedKeys=new Set(best.reservedKeys);
   for(const word of best.words){
     const dir=dirs.find(item=>item.name===word.dir),last=word.cells[word.cells.length-1];
