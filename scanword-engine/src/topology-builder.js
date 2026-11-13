@@ -110,56 +110,6 @@ function countTopQuestions(matrix) {
   return matrix[0].slice(1).filter(value => value === '#').length;
 }
 
-function toRoleGrid(matrix) {
-  const grid = createEmptyGrid();
-  for (let row = 0; row < CONFIG.HEIGHT; row++) {
-    for (let col = 0; col < CONFIG.WIDTH; col++) {
-      if (row === 0 && col === 0) continue;
-      const cell = grid[row][col];
-      cell.type = matrix[row][col] === '#' ? 'question' : 'letter';
-      cell.letter = cell.type === 'letter' ? 'А' : null;
-    }
-  }
-  return grid;
-}
-
-function inspectCandidate(matrix, includeSpecialEleven) {
-  if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
-  if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 3) return null;
-  for (let row = 1; row < CONFIG.HEIGHT; row++) {
-    if (matrix[row][0] !== '#') return null;
-    if (matrix[row][1] !== '.' || matrix[row][2] !== '.') return null;
-  }
-
-  const grid = toRoleGrid(matrix);
-  const topologyOptions = {
-    requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
-  };
-  const validation = validateTopology(grid, topologyOptions);
-  if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
-  if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
-
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
-  if (derived.errors.length || derived.slots.length < 18) return null;
-  return {
-    grid,
-    slots: derived.slots,
-    validation,
-    pattern: matrix.map(row => row.join('')),
-    metrics: {
-      totalCells: CONFIG.TOTAL_CELLS,
-      questionCells: validation.metrics.questionCells,
-      letterCells: validation.metrics.letterCells,
-      slotCount: derived.slots.length,
-      horizontalSlots: validation.metrics.horizontalSlots,
-      verticalSlots: validation.metrics.verticalSlots,
-      crossingsPotential: validation.metrics.coveredLetters
-    }
-  };
-}
-
 /**
  * Builds a varied role topology before the dictionary is consulted.
  * Top-row omissions are intentional: all those cells must still be covered
