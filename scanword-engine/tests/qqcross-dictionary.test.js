@@ -52,6 +52,18 @@ test('deduplicates answers by selecting the stronger clue and retains all valid 
   assert.equal(prepared.stats.duplicateAnswerRecords, 1);
 });
 
+test('rejects pronoun, preposition and interjection filler clues', () => {
+  const prepared = prepareDictionary([
+    { answer: 'ОН', clue: 'Местоимение, которым заменяют имя мужчины.' },
+    { answer: 'НА', clue: 'Предлог, указывающий на расположение.' },
+    { answer: 'АХ', clue: 'Междометие, выражающее удивление.' },
+    { answer: 'КОТ', clue: 'Домашнее животное из семейства кошачьих.' }
+  ]);
+  assert.deepEqual(prepared.entries.map(item => item.answer), ['КОТ']);
+  assert.equal(prepared.stats.rejected, 3);
+  assert.ok(prepared.errors.every(item => item.codes.includes('FUNCTION_WORD_CLUE')));
+});
+
 test('preserves image and logic metadata from QQCross entries', () => {
   const prepared = prepareDictionary([
     { answer: 'КОТ', clue: 'Домашнее животное.', imageKey: 'cat', logic: true }
