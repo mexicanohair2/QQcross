@@ -11,9 +11,9 @@ async function main() {
   const timings = [];
   let specialElevenCount = 0;
   const generationOptions = {
-    maxTopologyAttempts: 12,
-    maxNodes: 12000,
-    maxCspTimeMs: 120,
+    maxTopologyAttempts: 16,
+    maxNodes: 100000,
+    maxCspTimeMs: 1200,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3
