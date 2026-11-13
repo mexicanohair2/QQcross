@@ -15,8 +15,8 @@ Source: `data/scanword-dictionary.json` on `feature/qqcross-scanword-engine`.
 - Image records: **46**
 - Unique image keys: **46**
 - Logic-tagged raw records: **710**
-- Unique accepted answers carrying an image after answer deduplication: **17**
-- Unique accepted logic answers after answer deduplication: **496**
+- Unique accepted answers carrying an image after quality-based deduplication: **46**
+- Unique accepted logic answers after quality-based deduplication: **610**
 
 ## Question text collisions
 
@@ -28,8 +28,8 @@ The 45 apparent cross-answer collisions are the intentional shared picture promp
 
 1. The dictionary is materially smaller than the long-term 25,000/50,000-word target. Current measured source size is 2,287 records, not tens of thousands.
 2. The 2,034 accepted unique answers are the realistic upper bound for the current dictionary before topology/placement constraints and content quotas are applied.
-3. Only 17 unique accepted answers carry image metadata after answer deduplication. This is enough to select five distinct image answers in principle, but the actual slot lengths and intersections may make a given board unsatisfiable.
-4. The 11-letter pool contains 83 raw records before duplicate/quality filtering. The exact usable unique count must be taken from `prepareDictionary` at runtime.
+3. The quality-based duplicate-answer selection retains image metadata on 46 unique accepted answers. This is enough to select five distinct image answers in principle, but the actual slot lengths and intersections may make a given board unsatisfiable.
+4. The 11-letter pool contains 83 raw records and 79 unique accepted answers before topology/placement constraints.
 5. Automatic text checks cannot certify that every clue is factually correct, unambiguous, or age-appropriate. Human review remains necessary for semantic quality.
 
 ## Engineering action
