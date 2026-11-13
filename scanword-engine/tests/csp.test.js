@@ -331,3 +331,31 @@ test('history penalizes recently used answers and avoids an exact recent structu
   assert.equal(repeated.ok, true, repeated.message);
   assert.equal(exactHistory.hasStructure(repeated.words), false);
 });
+
+test('allows the shared picture prompt only for distinct image keys', () => {
+  const slots = Array.from({ length: 5 }, (_, index) => {
+    const row = index * 2 + 1;
+    return slot('picture-' + index, { row, col: 0 }, { row, col: 4 }, [
+      { row, col: 1 }, { row, col: 2 }, { row, col: 3 }
+    ], 'right', 'left');
+  });
+  const dictionary = [
+    { id: 'cat', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
+    { id: 'dog', answer: 'ПЁС', clue: 'Что изображено на картинке?', imageKey: 'dog' },
+    { id: 'home', answer: 'ДОМ', clue: 'Что изображено на картинке?', imageKey: 'home' },
+    { id: 'nose', answer: 'НОС', clue: 'Что изображено на картинке?', imageKey: 'nose' },
+    { id: 'forest', answer: 'ЛЕС', clue: 'Что изображено на картинке?', imageKey: 'forest' }
+  ];
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 17,
+    requiredImageCount: 5,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 500,
+    maxTimeMs: 1000
+  });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.metrics.distinctImages, 5);
+  assert.equal(new Set(result.words.map(word => word.question)).size, 1);
+  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 5);
+});
