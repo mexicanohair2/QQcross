@@ -78,3 +78,12 @@ test('audits the real production dictionary without losing valid content', () =>
   assert.ok(prepared.stats.rejected > 0);
   assert.ok(prepared.stats.duplicateAnswerRecords > 0);
 });
+
+test('prioritizes a real picture variant when duplicate answers exist', () => {
+  const prepared = prepareDictionary([
+    { answer: 'ЖИРАФ', clue: 'Самое высокое животное.' },
+    { answer: 'ЖИРАФ', clue: 'Что изображено на картинке?', imageKey: 'giraffe' }
+  ]);
+  assert.equal(prepared.entries.length, 1);
+  assert.equal(prepared.entries[0].imageKey, 'giraffe');
+});
