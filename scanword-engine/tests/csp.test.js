@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { solveSlotsCsp } from '../src/csp.js';
+import { GenerationHistory } from '../src/history.js';
 
 function entry(id, answer, question) {
   return { id, answer, clue: question };
@@ -280,4 +281,53 @@ test('CSP respects an already-aborted cancellation signal', () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.reason, 'CANCELLED');
+});
+
+test('history penalizes recently used answers and avoids an exact recent structure', () => {
+  const history = new GenerationHistory(10);
+  const slotPlan = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+    { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+  ], 'right', 'left')];
+  const dictionary = [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.'),
+    entry('home', 'ДОМ', 'Место, где живут люди.')
+  ];
+
+  history.add({ words: [{ entryId: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' }] });
+  history.add({ words: [{ entryId: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' }] });
+  const varied = solveSlotsCsp(slotPlan, dictionary, {
+    seed: 4,
+    history,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(varied.ok, true, varied.message);
+  assert.equal(varied.words[0].answer, 'ДОМ');
+
+  const onlyOne = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
+  const first = solveSlotsCsp(slotPlan, onlyOne, {
+    seed: 19,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(first.ok, true, first.message);
+  const exactHistory = new GenerationHistory(10);
+  exactHistory.add({ words: first.words });
+  const repeated = solveSlotsCsp(slotPlan, onlyOne, {
+    seed: 19,
+    history: exactHistory,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(repeated.ok, false);
+  assert.equal(repeated.lastDeadEnd.reason, 'RECENT_STRUCTURE_REPEAT');
 });
