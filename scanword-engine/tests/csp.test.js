@@ -455,3 +455,39 @@ test('keeps image and logic variants for the same answer available to CSP', () =
   assert.equal(result.words[0].imageKey, null);
   assert.equal(result.metrics.uniqueAnswers, 1);
 });
+
+
+test('CSP cannot place ЕЖ and ЁЖ as two answers in one puzzle', () => {
+  const slots = [
+    slot(
+      'first',
+      { row: 1, col: 0 },
+      { row: 1, col: 3 },
+      [{ row: 1, col: 1 }, { row: 1, col: 2 }],
+      'right',
+      'left'
+    ),
+    slot(
+      'second',
+      { row: 5, col: 0 },
+      { row: 5, col: 3 },
+      [{ row: 5, col: 1 }, { row: 5, col: 2 }],
+      'right',
+      'left'
+    )
+  ];
+  const dictionary = [
+    entry('yo', 'ЁЖ', 'Небольшое животное с колючими иглами.'),
+    entry('e', 'ЕЖ', 'Сочетание двух букв.')
+  ];
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 52,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'NO_CSP_SOLUTION');
+});
