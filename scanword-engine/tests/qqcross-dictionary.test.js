@@ -120,3 +120,18 @@ test('allows the same picture prompt when each answer has a distinct image asset
   assert.equal(prepared.entries.length, 2);
   assert.equal(prepared.stats.duplicateQuestionWarnings, 0);
 });
+
+
+test('content availability statistics count distinct answers across all valid variants', () => {
+  const prepared = prepareDictionary([
+    { id: 'shared-image', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
+    { id: 'shared-logic', answer: 'КОТ', clue: 'Кто ловит мышей и живёт рядом с человеком?', logic: true },
+    { id: 'other-logic', answer: 'ПЁС', clue: 'Кто охраняет дом и подаёт голос лаем?', logic: true },
+    { id: 'other-image', answer: 'ЛЕС', clue: 'Что изображено на картинке?', imageKey: 'forest' }
+  ]);
+
+  assert.equal(prepared.entries.length, 3);
+  assert.equal(prepared.variants.length, 4);
+  assert.equal(prepared.stats.withImages, 2);
+  assert.equal(prepared.stats.logicEntries, 2);
+});
