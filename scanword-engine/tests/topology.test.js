@@ -165,3 +165,50 @@ test('preflight does not silently claim feasibility for unsupported dimensions',
   assert.equal(result.feasible, null);
   assert.equal(result.reason, 'UNSUPPORTED_DIMENSIONS');
 });
+
+
+test('explicitly permits only the two top-forced left answers to end at the right edge', () => {
+  const approved = analyzeRequiredBorderFeasibility({
+    allowLeftBorderRightBoundaryRows: [1, 2]
+  });
+  assert.equal(approved.feasible, true);
+  assert.equal(approved.reason, 'EXPLICIT_LEFT_BOUNDARY_EXCEPTION');
+  assert.deepEqual(approved.allowedLeftBoundaryRows, [1, 2]);
+  assert.deepEqual(approved.conflicts, []);
+
+  const partial = analyzeRequiredBorderFeasibility({
+    allowLeftBorderRightBoundaryRows: [1]
+  });
+  assert.equal(partial.feasible, false);
+  assert.deepEqual(partial.conflicts.map(item => item.clueCell), [{ row: 2, col: 0 }]);
+
+  const invalid = analyzeRequiredBorderFeasibility({
+    allowLeftBorderRightBoundaryRows: [1, 3]
+  });
+  assert.equal(invalid.feasible, false);
+  assert.equal(invalid.reason, 'INVALID_LEFT_BOUNDARY_EXCEPTION');
+});
+
+test('derives exactly two opt-in left-border boundary slots and none by default', () => {
+  const grid = makeGrid('letter');
+  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+  for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
+  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
+
+  const withoutException = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
+  assert.equal(withoutException.slots.some(item => item.special === 'LEFT_BORDER_RIGHT_BOUNDARY'), false);
+
+  const withException = deriveWordSlots(grid, {
+    allowSpecialElevenBoundary: false,
+    allowLeftBorderRightBoundary: true
+  });
+  const boundarySlots = withException.slots.filter(item => item.special === 'LEFT_BORDER_RIGHT_BOUNDARY');
+  assert.equal(boundarySlots.length, 2);
+  assert.deepEqual(boundarySlots.map(item => item.clueCell), [
+    { row: 1, col: 0 },
+    { row: 2, col: 0 }
+  ]);
+  assert.ok(boundarySlots.every(item => item.length === 7));
+  assert.ok(boundarySlots.every(item => item.directionOptions.length === 1 && item.directionOptions[0].direction === 'right'));
+  assert.deepEqual(boundarySlots[0].coordinates[6], { row: 1, col: 7 });
+});
