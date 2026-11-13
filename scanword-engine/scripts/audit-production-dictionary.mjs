@@ -57,8 +57,19 @@ const duplicateAnswers = [...answerGroups.entries()]
   .map(([answer, items]) => ({ answer, count: items.length, clues: items.slice(0, 3).map(item => item.clue) }))
   .sort((a, b) => b.count - a.count);
 const duplicateQuestions = [...questionGroups.entries()]
-  .filter(([, answers]) => new Set(answers).size > 1)
-  .map(([question, answers]) => ({ question, answers: [...new Set(answers)] }));
+  .filter(([, items]) => new Set(items.map(item => normalizeAnswer(item.answer))).size > 1)
+  .map(([question, items]) => ({
+    question,
+    answers: [...new Set(items.map(item => normalizeAnswer(item.answer)))],
+    imageKeys: [...new Set(items.map(item => item.imageKey).filter(Boolean))]
+  }));
+const safeImagePromptGroups = duplicateQuestions.filter(group =>
+  /изображено на картинке|показано на картинке/u.test(group.question)
+  && group.imageKeys.length === group.answers.length
+);
+const suspiciousDuplicateQuestionGroups = duplicateQuestions.filter(group =>
+  !safeImagePromptGroups.includes(group)
+);
 
 const report = {
   source: 'data/scanword-dictionary.json',
@@ -70,6 +81,8 @@ const report = {
   duplicateAnswerGroups: duplicateAnswers.length,
   duplicateAnswerRecords: raw.length - new Set(raw.map(item => normalizeAnswer(item?.answer))).size,
   duplicateQuestionGroupsAcrossAnswers: duplicateQuestions.length,
+  safeSharedImagePromptGroups: safeImagePromptGroups.length,
+  suspiciousDuplicateQuestionGroups: suspiciousDuplicateQuestionGroups.length,
   rawAnswerLengths: lengthCounts,
   entriesWithImages: imageRecords,
   entriesMarkedLogic: logicRecords,
