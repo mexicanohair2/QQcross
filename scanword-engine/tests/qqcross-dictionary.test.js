@@ -123,14 +123,17 @@ test('uses positional indexes to narrow candidates by every crossing letter', ()
   assert.deepEqual(findCandidates(indexes, 3, [{ position: 0, letter: 'Я' }]), []);
 });
 
-test('candidate lookup preserves Ё and does not mutate index buckets', () => {
+test('preserves Ё spelling in variants while deduplicating Е/Ё lexical identity', () => {
   const prepared = prepareDictionary([
-    { id: 'a', answer: 'ЁЖ', clue: 'Небольшое животное с иголками.' },
-    { id: 'b', answer: 'ЕЖ', clue: 'Сочетание двух букв.' }
+    { id: 'yo', answer: 'ЁЖ', clue: 'Небольшое животное с иголками.' },
+    { id: 'e', answer: 'ЕЖ', clue: 'Сочетание двух букв.' }
   ]);
-  const indexes = buildIndexes(prepared.entries);
+  assert.equal(prepared.variants.length, 2);
+  assert.equal(prepared.entries.length, 1);
+  const indexes = buildIndexes(prepared.variants);
   const before = indexes.byLength.get(2).map(item => item.id);
   assert.equal(findCandidates(indexes, 2, [{ position: 0, letter: 'Ё' }])[0].answer, 'ЁЖ');
+  assert.equal(findCandidates(indexes, 2, [{ position: 0, letter: 'Е' }]).length, 1);
   assert.deepEqual(indexes.byLength.get(2).map(item => item.id), before);
 });
 
@@ -164,3 +167,14 @@ test('picture-only clues are not incorrectly counted as logical questions', () =
   assert.ok(catPicture);
   assert.notEqual(catPicture.logic, true);
 });
+
+test('production answer identity treats ЕЖ and ЁЖ as one unique lexical answer', () => {
+  const prepared = prepareDictionary([
+    { id: 'yo', answer: 'ЁЖ', clue: 'Небольшое животное с колючими иглами.' },
+    { id: 'e', answer: 'ЕЖ', clue: 'Сочетание двух букв.' }
+  ]);
+  assert.equal(prepared.stats.accepted, 1);
+  assert.equal(prepared.stats.duplicateAnswerRecords, 1);
+  assert.equal(prepared.entries[0].answer, 'ЁЖ');
+});
+
