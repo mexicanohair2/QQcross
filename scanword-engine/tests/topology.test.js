@@ -122,3 +122,24 @@ test('coordinate helper obeys the canonical four-direction table', () => {
   ]);
   assert.equal(getAnswerCoordinates({ row: 0, col: 0 }, 'up', 1), null);
 });
+
+test('documents the border-anchor contradiction under strict terminal-question rules', () => {
+  const grid = makeGrid('letter');
+  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+
+  for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
+  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
+  // The top-row clues need at least two letters before a terminal question.
+  for (let col = 1; col < 8; col++) setQuestion(grid, 3, col);
+
+  const result = validateTopology(grid, { allowSpecialElevenBoundary: false });
+  const missingRowOne = result.errors.some(item =>
+    item.type === 'QUESTION_WITHOUT_SLOT' && item.row === 1 && item.col === 0
+  );
+  const missingRowTwo = result.errors.some(item =>
+    item.type === 'QUESTION_WITHOUT_SLOT' && item.row === 2 && item.col === 0
+  );
+
+  assert.equal(missingRowOne, true);
+  assert.equal(missingRowTwo, true);
+});
