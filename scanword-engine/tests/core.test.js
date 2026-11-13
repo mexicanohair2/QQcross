@@ -9,6 +9,7 @@ import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
 import { assembleScanword } from '../src/assembler.js';
+import { analyzeRequiredBorderFeasibility } from '../src/topology.js';
 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
@@ -44,9 +45,20 @@ test('seeded random generator is reproducible', () => {
   const a = createRng(123), b = createRng(123);
   assert.deepEqual([a(),a(),a()], [b(),b(),b()]);
 });
-test('small dictionary fails safely instead of returning a fake puzzle', () => {
-  const result = generateScanword([{id:'a',answer:'КОТ',question:'Домашнее животное'}], {seed:1, specialElevenLetterChance:0, maxNodes:100});
-  assert.equal(result.ok, false); assert.ok(result.reason);
+test('generator fails fast on the proven mandatory-border contradiction', () => {
+  const dictionary = [
+    { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
+    { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
+    { id: 'forest', answer: 'ЛЕС', question: 'Большая территория, покрытая деревьями.' }
+  ];
+  const result = generateScanword(dictionary, { seed: 1, specialElevenLetterChance: 0 });
+
+  assert.equal(analyzeRequiredBorderFeasibility().feasible, false);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'TOPOLOGY_CONSTRAINT_CONFLICT');
+  assert.equal(result.nodes, 0);
+  assert.equal(result.topology.conflicts.length, 2);
+  assert.equal(result.dictionaryStats.accepted, 3);
 });
 test('validator rejects an ordinary answer ending at the board boundary', () => {
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
@@ -234,7 +246,7 @@ test('assembler rejects crossing letter conflicts and invalid answer paths', () 
   assert.ok(assembled.errors.some(item => item.type === 'CROSSING_LETTER_CONFLICT'));
 });
 
-test('missing optional eleven-letter entry falls back instead of aborting immediately', () => {
+test('optional eleven-letter mode is not attempted while the required topology is impossible', () => {
   const result = generateScanword([
     { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
     { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
@@ -246,7 +258,8 @@ test('missing optional eleven-letter entry falls back instead of aborting immedi
     maxTimeMs: 100
   });
   assert.equal(result.ok, false);
-  assert.notEqual(result.reason, 'NO_ELEVEN_LETTER_ENTRY');
+  assert.equal(result.reason, 'TOPOLOGY_CONSTRAINT_CONFLICT');
+  assert.equal(result.nodes, 0);
 });
 
 test('independent validator reports malformed word records without throwing', () => {
