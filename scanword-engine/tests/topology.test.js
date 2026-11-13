@@ -204,7 +204,7 @@ test('derives exactly two opt-in left-border boundary slots and none by default'
   });
   const boundarySlots = withException.slots.filter(item => item.special === 'LEFT_BORDER_RIGHT_BOUNDARY');
   assert.equal(boundarySlots.length, 2);
-  assert.deepEqual(boundarySlots.map(item => item.clueCell), [
+  assert.deepEqual(boundarySlots.map(item => item.endpoints[0]), [
     { row: 1, col: 0 },
     { row: 2, col: 0 }
   ]);
