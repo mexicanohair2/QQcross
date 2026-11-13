@@ -40,6 +40,8 @@ function makeError(type, message, extra = {}) {
 export function validateScanword(scanword, dictionary = [], options = {}) {
   const errors = [];
   const warnings = [];
+  const requiredImageCount = options.requiredImageCount ?? 5;
+  const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
 
   if (!scanword || typeof scanword !== 'object') {
@@ -605,20 +607,20 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
   const imageWords = words.filter(word => word.imageKey);
   const imageKeys = imageWords.map(word => word.imageKey);
-  if (options.requiredImageCount !== undefined && imageWords.length !== options.requiredImageCount) {
+  if (imageWords.length !== requiredImageCount) {
     add('IMAGE_COUNT_MISMATCH', 'Количество картинок не совпадает с обязательным значением.', {
-      expected: options.requiredImageCount, actual: imageWords.length
+      expected: requiredImageCount, actual: imageWords.length
     });
   }
   if (new Set(imageKeys).size !== imageKeys.length) {
     add('DUPLICATE_IMAGE_KEY', 'Одно изображение использовано более одного раза.', { imageKeys });
   }
 
-  if (options.minimumLogicClueCells !== undefined) {
+  {
     const count = new Set(words.filter(word => word.logic).map(word => pointKey(word.clue))).size;
-    if (count < options.minimumLogicClueCells) {
+    if (count < minimumLogicClueCells) {
       add('INSUFFICIENT_LOGIC_CLUES', 'Недостаточно отдельных логических вопросных клеток.', {
-        expected: options.minimumLogicClueCells, actual: count
+        expected: minimumLogicClueCells, actual: count
       });
     }
   }
