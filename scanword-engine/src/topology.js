@@ -11,6 +11,7 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   const width = options.width ?? CONFIG.WIDTH;
   const height = options.height ?? CONFIG.HEIGHT;
   const minimumLength = options.minimumAnswerLength ?? MIN_ANSWER_LENGTH;
+  const allowedRows = options.allowLeftBorderRightBoundaryRows ?? [];
 
   if (!Number.isInteger(width) || !Number.isInteger(height)
     || !Number.isInteger(minimumLength) || width < 2
@@ -26,8 +27,23 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     };
   }
 
-  // The seven top clues can only point down. Their minimum-length answers
-  // force every cell in these rows, columns 1..width-1, to be a letter.
+  if (!Array.isArray(allowedRows)
+    || new Set(allowedRows).size !== allowedRows.length
+    || allowedRows.some(row => !Number.isInteger(row) || ![1, 2].includes(row))
+    || (allowedRows.length > 0 && (width !== 8 || height !== 12 || minimumLength !== 2))) {
+    return {
+      feasible: false,
+      reason: 'INVALID_LEFT_BOUNDARY_EXCEPTION',
+      width,
+      height,
+      minimumAnswerLength: minimumLength,
+      allowedLeftBoundaryRows: [],
+      conflicts: [],
+      message: 'Исключение правой границы разрешено только для строк 1 и 2 на поле 8×12.'
+    };
+  }
+
+  // Top clues force the first two cells below them to be letters.
   const forcedLetterCells = [];
   for (let row = 1; row <= minimumLength; row++) {
     for (let col = 1; col < width; col++) {
@@ -35,11 +51,10 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     }
   }
 
-  // Each left clue in those rows is blocked vertically by mandatory left
-  // border clues (or by the reserved corner at row 1), and horizontally by
-  // the forced letters through the right edge.
+  const allowed = new Set(allowedRows);
   const conflicts = [];
   for (let row = 1; row <= minimumLength; row++) {
+    if (allowed.has(row)) continue;
     conflicts.push({
       clueCell: { row, col: 0 },
       blockedDirections: {
@@ -55,17 +70,23 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     });
   }
 
+  const completeException = allowed.has(1) && allowed.has(2);
   return {
     feasible: conflicts.length === 0,
-    reason: conflicts.length ? 'BORDER_TERMINAL_CONFLICT' : 'NO_BORDER_CONFLICT_FOUND',
+    reason: conflicts.length === 0 && completeException
+      ? 'EXPLICIT_LEFT_BOUNDARY_EXCEPTION'
+      : conflicts.length ? 'BORDER_TERMINAL_CONFLICT' : 'NO_BORDER_CONFLICT_FOUND',
     width,
     height,
     minimumAnswerLength: minimumLength,
     forcedLetterCells,
+    allowedLeftBoundaryRows: [...allowed].sort((a, b) => a - b),
     conflicts,
     message: conflicts.length
-      ? 'Обязательные верхняя и левая рамки несовместимы с правилом завершения каждого обычного ответа во внутренней вопросной клетке.'
-      : 'Предварительная проверка не обнаружила противоречия обязательных рамок.'
+      ? 'Обязательные рамки конфликтуют: для первых двух левых вопросов требуется разрешённое завершение у правой границы.'
+      : completeException
+        ? 'Топологическое противоречие первых двух левых вопросов снято только явным исключением для строк 1 и 2.'
+        : 'Предварительная проверка не обнаружила противоречия обязательных рамок.'
   };
 }
 
@@ -256,6 +277,37 @@ export function deriveWordSlots(grid, options = {}) {
         }],
         special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
       });
+    }
+  }
+
+  // Opt-in exception for the two forced horizontal answers from the left edge.
+  // It is disabled by default and is accepted only for rows 1 and 2.
+  if (options.allowLeftBorderRightBoundary === true) {
+    for (const row of [1, 2]) {
+      const clue = grid[row][0];
+      const coordinates = Array.from({ length: CONFIG.WIDTH - 1 }, (_, index) => point(row, index + 1));
+      const uninterrupted = clue.type === 'question'
+        && coordinates.every(item => grid[item.row][item.col].type === 'letter');
+
+      if (uninterrupted) {
+        slots.push({
+          id: 'special-left-right:' + row + ',0>right-boundary',
+          axis: 'horizontal',
+          length: CONFIG.WIDTH - 1,
+          endpoints: [
+            point(row, 0),
+            { row, col: CONFIG.WIDTH, boundary: true }
+          ],
+          coordinates,
+          directionOptions: [{
+            clueCell: point(row, 0),
+            terminalCell: { row, col: CONFIG.WIDTH, boundary: true },
+            direction: 'right',
+            coordinates: coordinates.map(item => ({ ...item }))
+          }],
+          special: 'LEFT_BORDER_RIGHT_BOUNDARY'
+        });
+      }
     }
   }
 
