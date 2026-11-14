@@ -498,6 +498,78 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     state.assignments.delete(placement.slotId);
   }
 
+  function completeSpecialShortSlots(remainingShortSlots) {
+    if (options.signal?.aborted) {
+      cancelled = true;
+      return false;
+    }
+    if (nodes >= maxNodes || Date.now() - started > maxTimeMs) {
+      budgetExceeded = true;
+      return false;
+    }
+    nodes++;
+    deepest = Math.max(deepest, state.assignments.size);
+
+    if (remainingShortSlots.length === 0) return search();
+
+    let chosenSlot = null;
+    let chosenCandidates = null;
+    let chosenDegree = -1;
+
+    // The special 11-letter answer intersects six short slots. Assign those
+    // constrained two-letter words as one matching phase before the longer
+    // fill words, instead of leaving their combinatorial permutations to the
+    // tail of ordinary MRV backtracking.
+    for (const slot of remainingShortSlots) {
+      const candidates = makePlacementCandidates(slot, state, indexes, {
+        requiredImageCount,
+        minimumLogicClueCells,
+        history: options.history,
+        allowedDirections,
+        repeatWordPenalty: options.repeatWordPenalty,
+        repeatQuestionPenalty: options.repeatQuestionPenalty,
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
+      }, random);
+
+      if (candidates.length === 0) {
+        recordDeadEnd({
+          reason: 'SPECIAL_SHORT_SLOT_EMPTY_DOMAIN',
+          slotId: slot.id,
+          slotLength: slot.length
+        });
+        return false;
+      }
+
+      const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
+      if (
+        chosenCandidates === null
+        || candidates.length < chosenCandidates.length
+        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+      ) {
+        chosenSlot = slot;
+        chosenCandidates = candidates;
+        chosenDegree = slotDegree;
+      }
+    }
+
+    recordSearchChoice(chosenSlot, chosenCandidates);
+    const nextShortSlots = remainingShortSlots.filter(slot => slot.id !== chosenSlot.id);
+    for (const candidate of chosenCandidates) {
+      addPlacement(candidate);
+      if (completeSpecialShortSlots(nextShortSlots)) return true;
+      undoPlacement(candidate);
+      if (cancelled || budgetExceeded) return false;
+    }
+
+    recordDeadEnd({
+      reason: 'SPECIAL_SHORT_SLOT_MATCHING_EXHAUSTED',
+      slotId: chosenSlot?.id ?? null,
+      slotLength: chosenSlot?.length ?? null,
+      candidateCount: chosenCandidates?.length ?? 0
+    });
+    return false;
+  }
+
   function search() {
     if (options.signal?.aborted) {
       cancelled = true;
@@ -549,6 +621,14 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (requireEveryClueStarts && !hasUnassignedOutgoingOption(questionKeys, unassigned, state.directionUse)) {
       recordDeadEnd({ reason: 'CLUE_WITHOUT_OUTGOING_SLOT' });
       return false;
+    }
+
+    const specialAlreadyAssigned = slots.some(slot =>
+      slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && state.assignments.has(slot.id)
+    );
+    if (specialAlreadyAssigned) {
+      const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
+      if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
     }
 
     let chosenSlot = null;
