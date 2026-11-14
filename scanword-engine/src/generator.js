@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { buildIndexes, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
@@ -11,39 +11,138 @@ function now() {
   return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
 }
 
-function chooseSpecialElevenPlan(entries, random, foldYo = false) {
-  const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
-  const starts = length => new Set(entries
-    .filter(entry => entry.answer.length === length)
-    .map(entry => normalizeInitial(entry.answer[0])));
-  const threeLetterStarts = starts(3);
-  const sixLetterStarts = starts(6);
-  const plans = [];
+const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
+  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+].map(answer => canonicalAnswerKey(answer)));
 
-  // The top clue at row 0 and the three internal clue rows must be at least
-  // three rows apart; otherwise the vertical clue chain creates a forbidden
-  // one-letter gap. Build only geometrically valid triples.
-  for (const entry of entries) {
-    if (entry.answer.length !== 11) continue;
-    const letters = [...entry.answer].map(normalizeInitial);
-    for (let first = 3; first <= 11; first++) {
-      for (let second = first + 3; second <= 11; second++) {
-        for (let third = second + 3; third <= 11; third++) {
-          const rows = [first, second, third];
-          const compatible = letters.every((letter, index) => {
-            const answerRow = index + 1;
-            return rows.includes(answerRow)
-              ? threeLetterStarts.has(letter)
-              : sixLetterStarts.has(letter);
-          });
-          if (compatible) plans.push({ answer: entry.answer, rows });
-        }
+function canAssignDistinctShortAnswers(domains) {
+  const ordered = domains
+    .map(domain => [...domain].sort())
+    .sort((a, b) => a.length - b.length);
+  const used = new Set();
+
+  function assign(index) {
+    if (index === ordered.length) return true;
+    for (const answer of ordered[index]) {
+      if (used.has(answer)) continue;
+      used.add(answer);
+      if (assign(index + 1)) return true;
+      used.delete(answer);
+    }
+    return false;
+  }
+
+  return assign(0);
+}
+
+function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
+  if (!indexes) return null;
+  const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
+  const requiredImageCount = requirements.requiredImageCount ?? 5;
+  const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
+  const rowPatterns = [];
+
+  for (let first = 3; first <= 5; first++) {
+    for (let second = first + 3; second <= 8; second++) {
+      for (let third = second + 3; third <= 11; third++) {
+        rowPatterns.push([first, second, third]);
       }
     }
   }
 
+  const topologies = rowPatterns.map(rows => ({
+    rows,
+    result: generateTopology({
+      seed: 1,
+      includeSpecialEleven: true,
+      specialSplitRows: rows,
+      maxAttempts: 1
+    })
+  })).filter(item => item.result.ok);
+
+  const plans = [];
+  const uniqueAnswers = new Set();
+
+  for (const entry of entries) {
+    if (entry.answer.length !== 11) continue;
+    const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
+    if (uniqueAnswers.has(answerKey)) continue;
+    uniqueAnswers.add(answerKey);
+
+    const letters = [...entry.answer].map(normalizeInitial);
+    const imposedLetters = new Map(letters.map((letter, index) => [
+      (index + 1) + ',1',
+      letter
+    ]));
+
+    for (const topology of topologies) {
+      const shortDomains = [];
+      const imageKeys = new Set();
+      let logicSlots = 0;
+      let minimumDomain = Infinity;
+      let totalDomain = 0;
+      let valid = true;
+
+      for (const slot of topology.result.topology.slots) {
+        if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') continue;
+
+        const candidatesById = new Map();
+        for (const orientation of slot.directionOptions) {
+          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+          const constraints = [];
+          orientation.coordinates.forEach((point, position) => {
+            const imposed = imposedLetters.get(point.row + ',' + point.col);
+            if (imposed !== undefined) constraints.push({ position, letter: imposed });
+          });
+
+          const candidates = findCandidates(indexes, slot.length, constraints);
+          for (const candidate of candidates) {
+            if (slot.length === 2
+              && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
+              continue;
+            }
+            candidatesById.set(candidate.id, candidate);
+          }
+        }
+
+        const candidates = [...candidatesById.values()];
+        if (!candidates.length) {
+          valid = false;
+          break;
+        }
+
+        const answerCount = new Set(candidates.map(candidate =>
+          canonicalAnswerKey(candidate.answer, { foldYo })
+        )).size;
+        minimumDomain = Math.min(minimumDomain, answerCount);
+        totalDomain += Math.min(answerCount, 40);
+
+        if (slot.length === 2) {
+          shortDomains.push(new Set(candidates.map(candidate =>
+            canonicalAnswerKey(candidate.answer, { foldYo })
+          )));
+        }
+        for (const candidate of candidates) {
+          if (candidate.imageKey) imageKeys.add(candidate.imageKey);
+        }
+        if (candidates.some(candidate => candidate.logic === true)) logicSlots++;
+      }
+
+      if (!valid || !canAssignDistinctShortAnswers(shortDomains)) continue;
+      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) continue;
+
+      plans.push({
+        answer: entry.answer,
+        rows: topology.rows,
+        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots,
+        tie: random()
+      });
+    }
+  }
+
   if (!plans.length) return null;
-  return plans[Math.floor(random() * plans.length)];
+  plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
+  return { answer: plans[0].answer, rows: plans[0].rows };
 }
 
 function countFailure(target, reason) {
@@ -108,7 +207,7 @@ export function generateScanword(inputDictionary, options = {}) {
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
     const specialPlan = useSpecial
-      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true)
+      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, options)
       : null;
     const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
