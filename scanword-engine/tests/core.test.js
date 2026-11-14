@@ -436,13 +436,35 @@ test('connects answers that terminate at the same shared question cell', () => {
   );
 });
 
-test('independent validator rejects a two-letter answer without an approved picture', () => {
+test('independent validator accepts a curated two-letter answer without requiring a picture', () => {
   const assembled = assembleScanword({
     seed: 72,
     words: [{
       id: 'w-short',
       answer: 'ЯД',
       question: 'Вещество, способное вызвать отравление.',
+      clue: { row: 1, col: 0 },
+      direction: 'right',
+      coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }]
+    }]
+  });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  const validation = validateScanword(assembled.scanword, [], {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(validation.errors.some(item => item.type === 'UNAPPROVED_SHORT_ANSWER'), false);
+});
+
+test('independent validator rejects a two-letter answer outside the curated list', () => {
+  const assembled = assembleScanword({
+    seed: 73,
+    words: [{
+      id: 'w-short-unapproved',
+      answer: 'БЫ',
+      question: 'Служебная форма русского языка.',
       clue: { row: 1, col: 0 },
       direction: 'right',
       coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }]
