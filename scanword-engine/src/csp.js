@@ -185,7 +185,7 @@ function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, r
   return true;
 }
 
-function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, indexes) {
+function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, indexes, allowedDirections = null) {
   const specialKeys = new Set(specialSlot.coordinates.map(pointKey));
   const crossingSlots = allSlots.filter(slot =>
     slot.id !== specialSlot.id
@@ -205,6 +205,7 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
       let bestVariants = 0;
       let bestAnswers = 0;
       for (const orientation of slot.directionOptions) {
+        if (allowedDirections instanceof Set && !allowedDirections.has(orientation.direction)) continue;
         const constraints = crossingConstraints(orientation, imposedLetters);
         if (!constraints.length) continue;
         const matches = findCandidates(indexes, slot.length, constraints)
@@ -550,7 +551,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       }
       chosenSlot = specialElevenSlot;
       chosenCandidates = prioritizeSpecialElevenCandidates(
-        candidates, specialElevenSlot, slots, indexes
+        candidates, specialElevenSlot, slots, indexes, allowedDirections
       );
     } else {
       const selectionOrder = shuffle(unassigned, random);
