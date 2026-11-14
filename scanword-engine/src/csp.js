@@ -240,8 +240,9 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
 
 function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
-  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ'])
-    .map(canonicalAnswerKey));
+  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
+    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ', 'АС', 'УС'
+  ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
@@ -251,10 +252,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
-      if (slot.length === 2 && (
-        !entry.imageKey
-        || !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))
-      )) continue;
+      if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
       const previousQuestionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
