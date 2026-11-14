@@ -37,7 +37,8 @@ async function main() {
         topologyMutationAttempts: 96,
         requiredImageCount: 5,
         minimumLogicClueCells: 3,
-        captureTrace: true
+        captureTrace: true,
+        capturePlanDiagnostics: true
       };
 
       const result = generateScanword(constrainedDictionary, options);
@@ -54,6 +55,7 @@ async function main() {
         generatedSpecial: special.length === 1,
         elapsedMs: result.stats?.elapsedMs ?? result.elapsedMs,
         nodes: result.stats?.nodes ?? result.nodes,
+        planDiagnostics: result.stats?.specialElevenPlanDiagnostics ?? null,
         failure: result.ok ? null : {
           reason: result.reason,
           attempts: result.attempts,
