@@ -326,6 +326,34 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       } else {
         leftBoundaryRows.add(clue.row);
       }
+    } else if (word.special === 'OUTER_BOUNDARY') {
+      const exactCoordinates = word.coordinates.every((coordinate, index) => {
+        if (word.direction === 'right') {
+          return coordinate.row === clue.row && coordinate.col === clue.col + index + 1;
+        }
+        if (word.direction === 'down') {
+          return coordinate.row === clue.row + index + 1 && coordinate.col === clue.col;
+        }
+        return false;
+      });
+      const validException = answer.length >= 2
+        && answer.length <= CONFIG.MAX_WORD_LENGTH
+        && exactCoordinates
+        && (
+          (word.direction === 'right'
+            && clue.row >= 0 && clue.row < CONFIG.HEIGHT
+            && clue.col >= 0 && clue.col < CONFIG.WIDTH - 1
+            && terminal.row === clue.row && terminal.col === CONFIG.WIDTH)
+          || (word.direction === 'down'
+            && clue.row >= 0 && clue.row < CONFIG.HEIGHT - 1
+            && clue.col >= 0 && clue.col < CONFIG.WIDTH
+            && terminal.row === CONFIG.HEIGHT && terminal.col === clue.col)
+        );
+      if (!validException) {
+        add('INVALID_OUTER_BOUNDARY_WORD', 'Ответ на открытом краю должен идти вправо или вниз до границы поля.', {
+          wordId: word.id, answer, clue, direction: word.direction, terminal
+        });
+      }
     } else {
       if (word.special != null) {
         add('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
@@ -503,6 +531,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || !word.clue
           || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
+          || word.special === 'OUTER_BOUNDARY'
         ) return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
@@ -534,7 +563,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
   for (const word of words) {
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-      || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') continue;
+      || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
+      || word.special === 'OUTER_BOUNDARY') continue;
     const vector = DIRECTIONS[word.direction];
     if (!vector || !word.clue) continue;
     const terminal = {
