@@ -2412,3 +2412,14 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   max-height:calc(100dvh - 170px)!important;
   aspect-ratio:4/5!important;
 }
+
+
+/* Final viewport contract: preserve the true 8×12 board proportions. */
+.game-screen .scanword-board{
+  width:min(calc(100vw - 6px),calc((100dvh - 170px)*.666667),660px)!important;
+  max-width:calc(100vw - 6px)!important;
+  max-height:calc(100dvh - 170px)!important;
+  aspect-ratio:2/3!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+}
