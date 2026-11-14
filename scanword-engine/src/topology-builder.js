@@ -30,7 +30,6 @@ function createScaffold(extraRows) {
       for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
     } else {
       cells[0] = '#';
-      for (const col of rowAnchorColumns[row - 1]) cells[col] = '#';
       if (col3Rows.has(row)) cells[3] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
@@ -47,7 +46,6 @@ function createSpecialScaffold(extraRows) {
   // answer; other interior columns still create multiple crossing chains.
   const col5Rows = new Set([3, 7, 10]);
   const col6Rows = new Set([4, 8]);
-  const rowAnchorColumns = [[], [], [6], [4, 5], [5, 6], [], [], [4], [6], [], [6]];
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
@@ -55,7 +53,6 @@ function createSpecialScaffold(extraRows) {
       for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
     } else {
       cells[0] = '#';
-      for (const col of rowAnchorColumns[row - 1]) cells[col] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
       if (col6Rows.has(row)) cells[6] = '#';
