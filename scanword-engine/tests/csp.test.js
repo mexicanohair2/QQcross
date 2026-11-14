@@ -238,6 +238,48 @@ test('does not reuse the same normalized clue text for different answers', () =>
   assert.equal(result.reason, 'NO_CSP_SOLUTION');
 });
 
+test('MRV counts distinct answers instead of duplicate clue variants', () => {
+  const slots = [
+    slot('duplicate-heavy', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+      { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+    ], 'right', 'left'),
+    slot('unique-domain', { row: 5, col: 0 }, { row: 5, col: 4 }, [
+      { row: 5, col: 1 }, { row: 5, col: 2 }, { row: 5, col: 3 }
+    ], 'right', 'left')
+  ];
+  const dictionary = [
+    entry('cat-plain-a', 'КОТ', 'Домашнее животное семейства кошачьих.'),
+    entry('cat-plain-b', 'КОТ', 'Питомец с мягкими лапами.'),
+    { ...entry('cat-image', 'КОТ', 'Что изображено на картинке?'), imageKey: 'cat' },
+    entry('home', 'ДОМ', 'Место для жизни людей.'),
+    entry('nose', 'НОС', 'Орган обоняния и дыхания.'),
+    entry('forest', 'ЛЕС', 'Место, где растут деревья.'),
+    entry('garden', 'САД', 'Участок с посаженными деревьями.')
+  ];
+
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 29,
+    requiredImageCount: 1,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right'],
+    allowedEntryIdsBySlot: new Map([
+      ['duplicate-heavy', new Set(['cat-plain-a', 'cat-plain-b', 'cat-image', 'home'])],
+      ['unique-domain', new Set(['nose', 'forest', 'garden'])]
+    ]),
+    captureTrace: true,
+    maxNodes: 1000,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.searchTrace[0].slotId, 'duplicate-heavy');
+  assert.equal(result.searchTrace[0].candidateCount, 2);
+  assert.equal(result.searchTrace[0].variantCount, 4);
+  assert.equal(result.words.find(word => word.id === 'w1').imageKey, 'cat');
+  assert.equal(new Set(result.words.map(word => word.answer)).size, 2);
+});
+
 test('CSP result is deterministic for an identical seed and input', () => {
   const slots = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
