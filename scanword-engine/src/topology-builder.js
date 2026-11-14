@@ -110,14 +110,14 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   const topologyOptions = {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
-    minimumOuterBoundaryLength: 3
+    allowOuterBoundarySlots: !includeSpecialEleven,
+    minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: 3 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: 2 });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
