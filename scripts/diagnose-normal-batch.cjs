@@ -101,8 +101,11 @@ async function main() {
   if (specialElevenCount < 15 || specialElevenCount > 35) {
     throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
   }
-  if (report.p95Ms > 8000) {
-    throw new Error("Generation p95 exceeded the 8-second mobile safety budget: " + report.p95Ms + "ms.");
+  if (report.p95Ms > 4000) {
+    throw new Error("Generation p95 exceeded the 4-second mobile safety budget: " + report.p95Ms + "ms.");
+  }
+  if (specialElevenMisses.some(item => item.attemptedSpecialTopologies > 1)) {
+    throw new Error("A missed long-answer request repeated more than one special topology attempt.");
   }
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
