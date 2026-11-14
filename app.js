@@ -1320,7 +1320,7 @@ function buildScanword(entries){
       return order.every(route=>assign(route,new Set()));
     };
     const topColumnHasCandidate= (column,requireCross=false)=>{
-      for(let length=2;length<=H-1;length++){
+      for(let length=column===2?H-1:2;length<=H-1;length++){
         const positions=byLength.get(length),pool=entriesByLength.get(length);
         if(!positions||!pool?.length)continue;
         let possible=null,clear=true,crosses=0;
@@ -1404,6 +1404,7 @@ function buildScanword(entries){
         const options=[];
         for(const entry of candidates){
           if(outOfTime())return false;
+          if(column===2&&entry.answer.length!==11)continue;
           if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5)))continue;
           let fits=true;
           for(let step=1;step<=entry.answer.length;step++){
