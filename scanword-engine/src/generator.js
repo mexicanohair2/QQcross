@@ -146,11 +146,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     includeSpecialEleven: true,
     specialPattern: lowShortPattern,
     maxAttempts: 1,
-    maxTwoLetterSlots: 8
+    maxTwoLetterSlots: 4
   });
   if (lowShortTopology.ok) {
     topologies.push({
-      rows: [3, 7, 11],
+      rows: [4, 8, 10],
       patternKey: 'low-short',
       specialPattern: lowShortPattern,
       result: lowShortTopology
@@ -407,16 +407,15 @@ export function generateScanword(inputDictionary, options = {}) {
       }) ?? [])
     : [];
 
-  // Prefer the balanced special topology when its dictionary/CSP domain is
+  // Prefer the low-short special topology when its dictionary/CSP domain is
   // compatible, then retain the other validated layouts as fallbacks.
-  const firstBalancedSpecialPlan = specialPlanPool.find(plan => plan.patternKey === 'balanced-special');
-  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'balanced-special');
-  const specialPlanSequence = firstBalancedSpecialPlan
-    ? [firstBalancedSpecialPlan, ...conventionalSpecialPlans]
+  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
+  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
+  const specialPlanSequence = firstLowShortPlan
+    ? [firstLowShortPlan, ...conventionalSpecialPlans]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
-    specialPlanDiagnostics.balancedSpecialViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'balanced-special').length;
-    specialPlanDiagnostics.lowShortViablePlans = specialPlanDiagnostics.balancedSpecialViablePlans;
+    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
   }
 
   // In the 100-seed production batch, four retries still left 11/33
