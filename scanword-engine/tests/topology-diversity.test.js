@@ -30,6 +30,7 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.slots.every(slot => slot.length >= 2));
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
+    assert.ok(result.topology.metrics.interiorQuestionCells >= 4, 'ordinary boards need at least four interior question cells; seed=' + seed);
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
@@ -94,6 +95,7 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
 
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.topology.validation.valid, true);
+  assert.ok(result.topology.metrics.interiorQuestionCells >= 3);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
   assert.ok(result.topology.pattern.every(row => row.length === 8));
