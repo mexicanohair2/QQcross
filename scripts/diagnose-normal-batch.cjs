@@ -64,6 +64,7 @@ async function main() {
       specialElevenRequested: result.stats.specialElevenRequested,
       specialElevenGenerated: result.scanword.metadata.specialElevenLetterQuestion,
       specialAttemptsUsed: result.stats.specialElevenAttempted,
+      generationAttempts: result.stats.attempts,
       score: result.scanword.metadata.score,
       answers: words.length,
       questionCells: validation.metrics.questionCells,
