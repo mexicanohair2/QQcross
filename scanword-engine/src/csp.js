@@ -255,10 +255,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
-      if (slot.length === 2 && (
-        !entry.imageKey
-        || !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))
-      )) continue;
+      if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
       const previousQuestionUses = state.usedQuestions.get(normalizedQuestion) ?? [];
