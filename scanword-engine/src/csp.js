@@ -240,8 +240,12 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
 
 function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
-  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ'])
-    .map(canonicalAnswerKey));
+  // Only a curated set of real, familiar Russian two-letter words is allowed.
+  // Pronouns and other filler entries are intentionally excluded.
+  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
+    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС',
+    'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+  ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
