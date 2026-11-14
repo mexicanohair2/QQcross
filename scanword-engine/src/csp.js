@@ -270,6 +270,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
 
       if (entry.imageKey) {
         if (state.usedImages.has(entry.imageKey)) continue;
+        if (state.usedImageClueCells.has(clueKey)) continue;
         if (state.usedImages.size >= options.requiredImageCount) continue;
       }
 
@@ -387,6 +388,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     usedQuestions: new Map(),
     usedEntryIds: new Set(),
     usedImages: new Set(),
+    usedImageClueCells: new Set(),
     usedLogicClues: new Set(),
     assignments: new Map()
   };
@@ -418,7 +420,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (!state.usedQuestions.has(normalizedQuestion)) state.usedQuestions.set(normalizedQuestion, []);
     state.usedQuestions.get(normalizedQuestion).push({ entryId: entry.id, imageKey: entry.imageKey ?? null });
     state.usedEntryIds.add(entry.id);
-    if (entry.imageKey) state.usedImages.add(entry.imageKey);
+    if (entry.imageKey) {
+      state.usedImages.add(entry.imageKey);
+      state.usedImageClueCells.add(clueKey);
+    }
     if (entry.logic) state.usedLogicClues.add(clueKey);
     state.assignments.set(placement.slotId, {
       ...placement,
@@ -446,7 +451,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (remainingQuestionUses.length) state.usedQuestions.set(normalizedQuestion, remainingQuestionUses);
     else state.usedQuestions.delete(normalizedQuestion);
     state.usedEntryIds.delete(saved.entry.id);
-    if (saved.entry.imageKey) state.usedImages.delete(saved.entry.imageKey);
+    if (saved.entry.imageKey) {
+      state.usedImages.delete(saved.entry.imageKey);
+      state.usedImageClueCells.delete(saved.clueKey);
+    }
     if (saved.entry.logic) {
       const stillUsedAtClue = [...state.assignments.values()].some(item =>
         item.slotId !== placement.slotId
@@ -474,6 +482,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (state.assignments.size === slots.length) {
       const contentValid = (!requireEveryClueStarts || questionKeys.every(key => (state.directionUse.get(key)?.size ?? 0) > 0))
         && state.usedImages.size === requiredImageCount
+        && state.usedImageClueCells.size === requiredImageCount
         && state.usedLogicClues.size >= minimumLogicClueCells;
       if (!contentValid) return false;
 
@@ -662,6 +671,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return count > 1;
       }).length,
       distinctImages: state.usedImages.size,
+      distinctImageClueCells: state.usedImageClueCells.size,
       logicClueCells: state.usedLogicClues.size
     },
     seed,
