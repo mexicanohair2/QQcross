@@ -457,3 +457,38 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
   });
   assert.ok(validation.errors.some(item => item.type === 'UNAPPROVED_SHORT_ANSWER'));
 });
+
+
+test('assembler and independent validator reject left/up scanword answers', () => {
+  const leftWord = {
+    id: 'left-word', entryId: 'cat', answer: 'КОТ',
+    question: 'Домашнее животное из семейства кошачьих.',
+    clue: { row: 1, col: 4 }, direction: 'left',
+    coordinates: [
+      { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
+    ]
+  };
+  const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  grid[1][4] = { row: 1, col: 4, type: 'question', letter: null, questionIds: ['q-left'], wordIds: [] };
+  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
+  leftWord.coordinates.forEach((point, index) => {
+    grid[point.row][point.col] = {
+      ...grid[point.row][point.col], type: 'letter',
+      letter: leftWord.answer[index], questionIds: [], wordIds: [leftWord.id]
+    };
+  });
+  const validation = validateScanword({
+    width: 8, height: 12, grid,
+    words: [leftWord],
+    questions: [{
+      id: 'q-left', wordId: leftWord.id, text: leftWord.question,
+      clue: leftWord.clue, direction: 'left', length: 3
+    }]
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+});
