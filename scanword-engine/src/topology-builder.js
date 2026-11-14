@@ -113,7 +113,9 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   // Special layouts have eleven mandatory crossings. Allow exactly one
   // controlled internal clue split: this adds useful variety/content capacity
   // without the combinatorial growth caused by several random splits.
-  const targetMutations = includeSpecialEleven ? 1 : 2 + Math.floor(random() * 5);
+  // Special boards keep their dictionary-compatible crossing rows intact.
+  // Their seeded row selection already provides topology variety.
+  const targetMutations = includeSpecialEleven ? 0 : 2 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
@@ -160,9 +162,16 @@ export function generateTopology(options = {}) {
   let fallback = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
+    const specialRows = Array.isArray(options.specialSplitRows)
+      && options.specialSplitRows.length === 3
+      && new Set(options.specialSplitRows).size === 3
+      && options.specialSplitRows.every(row => Number.isInteger(row) && row >= 1 && row < CONFIG.HEIGHT)
+      ? [...options.specialSplitRows].sort((a, b) => a - b)
+      : [3, 7, 9];
+    const scaffoldIndex = includeSpecialEleven ? -1 : Math.floor(random() * SCAFFOLDS.length);
+    const scaffold = includeSpecialEleven ? createScaffold(specialRows) : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
-      SCAFFOLDS[scaffoldIndex],
+      scaffold,
       includeSpecialEleven,
       random,
       mutationBudget
