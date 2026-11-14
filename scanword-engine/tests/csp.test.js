@@ -567,11 +567,13 @@ test('CSP never places answers to the left or upward even when reverse orientati
   for (let seed = 1; seed <= 64; seed++) {
     const h = solveSlotsCsp([horizontal], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, maxNodes: 100, maxTimeMs: 500
+      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
+      maxNodes: 100, maxTimeMs: 500
     });
     const v = solveSlotsCsp([vertical], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, maxNodes: 100, maxTimeMs: 500
+      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
+      maxNodes: 100, maxTimeMs: 500
     });
     assert.equal(h.ok, true, h.message);
     assert.equal(v.ok, true, v.message);
