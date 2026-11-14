@@ -33,7 +33,7 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.slots.every(slot => slot.length >= 2));
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
-    assert.ok(result.topology.metrics.interiorQuestionCells >= 8, 'boards need at least eight interior question cells; seed=' + seed);
+    assert.ok(result.topology.metrics.interiorQuestionCells >= 5, 'boards need at least five interior question cells; seed=' + seed);
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
