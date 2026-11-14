@@ -20,27 +20,26 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false) {
   const sixLetterStarts = starts(6);
   const plans = [];
 
+  // The top clue at row 0 and the three internal clue rows must be at least
+  // three rows apart; otherwise the vertical clue chain creates a forbidden
+  // one-letter gap. Build only geometrically valid triples.
   for (const entry of entries) {
     if (entry.answer.length !== 11) continue;
     const letters = [...entry.answer].map(normalizeInitial);
-    const mandatoryRows = [];
-    const optionalRows = [];
-    for (let index = 0; index < letters.length; index++) {
-      const letter = letters[index];
-      if (!sixLetterStarts.has(letter)) mandatoryRows.push(index);
-      else if (threeLetterStarts.has(letter)) optionalRows.push(index);
+    for (let first = 3; first <= 11; first++) {
+      for (let second = first + 3; second <= 11; second++) {
+        for (let third = second + 3; third <= 11; third++) {
+          const rows = [first, second, third];
+          const compatible = letters.every((letter, index) => {
+            const answerRow = index + 1;
+            return rows.includes(answerRow)
+              ? threeLetterStarts.has(letter)
+              : sixLetterStarts.has(letter);
+          });
+          if (compatible) plans.push({ answer: entry.answer, rows });
+        }
+      }
     }
-    const extraNeeded = 3 - mandatoryRows.length;
-    if (extraNeeded < 0 || optionalRows.length < extraNeeded) continue;
-
-    for (let index = optionalRows.length - 1; index > 0; index--) {
-      const swap = Math.floor(random() * (index + 1));
-      [optionalRows[index], optionalRows[swap]] = [optionalRows[swap], optionalRows[index]];
-    }
-    const splitRows = [...mandatoryRows, ...optionalRows.slice(0, extraNeeded)]
-      .map(index => index + 1)
-      .sort((a, b) => a - b);
-    plans.push({ answer: entry.answer, rows: splitRows });
   }
 
   if (!plans.length) return null;
