@@ -109,6 +109,118 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
   return domains.every(domain => domain.options.length > 0);
 }
 
+function prepareTopologyDomains(slots, indexes, options = {}) {
+  const foldYo = options.foldYo === true;
+  const requiredImageCount = options.requiredImageCount ?? 5;
+  const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
+  const domains = [];
+  let availableVariants = 0;
+
+  // Reuse the positional index's length buckets. Each production slot has one
+  // forward orientation (right/down); the CSP will make the final direction
+  // and clue-cell decision after crossings have been propagated.
+  for (const slot of slots) {
+    const candidates = indexes.byLength.get(slot.length) ?? [];
+    const domainOptions = [];
+    for (const orientation of slot.directionOptions ?? []) {
+      if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+      for (const entry of candidates) {
+        if (slot.length === 2
+          && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(entry.answer, { foldYo }))) {
+          continue;
+        }
+        domainOptions.push({
+          entry,
+          coordinates: orientation.coordinates,
+          clueCell: orientation.clueCell,
+          direction: orientation.direction
+        });
+      }
+    }
+    if (!domainOptions.length) {
+      return {
+        ok: false,
+        reason: 'EMPTY_DICTIONARY_DOMAIN',
+        slotId: slot.id,
+        slotLength: slot.length,
+        domains: domains.length
+      };
+    }
+    availableVariants += domainOptions.length;
+    domains.push({ slot, options: domainOptions });
+  }
+
+  const arcDiagnostics = {};
+  if (!enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics)) {
+    return {
+      ok: false,
+      reason: 'CROSSING_ARC_CONSISTENCY_FAILED',
+      ...arcDiagnostics,
+      domains: domains.length,
+      availableVariants
+    };
+  }
+
+  const shortDomains = domains
+    .filter(domain => domain.slot.length === 2)
+    .map(domain => new Set(domain.options.map(option =>
+      canonicalAnswerKey(option.entry.answer, { foldYo })
+    )));
+  if (!canAssignDistinctShortAnswers(shortDomains)) {
+    return {
+      ok: false,
+      reason: 'SHORT_ANSWER_MATCHING_FAILED',
+      domains: domains.length,
+      shortDomainSizes: shortDomains.map(domain => domain.size)
+    };
+  }
+
+  const imageKeys = new Set();
+  const imageClueKeys = new Set();
+  const logicClueKeys = new Set();
+  for (const domain of domains) {
+    for (const option of domain.options) {
+      const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+      if (option.entry.imageKey) {
+        imageKeys.add(option.entry.imageKey);
+        imageClueKeys.add(clueKey);
+      }
+      if (option.entry.logic) logicClueKeys.add(clueKey);
+    }
+  }
+  if (imageKeys.size < requiredImageCount || imageClueKeys.size < requiredImageCount
+    || logicClueKeys.size < minimumLogicClueCells) {
+    return {
+      ok: false,
+      reason: 'CONTENT_DOMAINS_INSUFFICIENT',
+      domains: domains.length,
+      imageKeys: imageKeys.size,
+      imageClueCells: imageClueKeys.size,
+      logicClueCells: logicClueKeys.size,
+      requiredImageCount,
+      minimumLogicClueCells
+    };
+  }
+
+  return {
+    ok: true,
+    allowedEntryIdsBySlot: new Map(domains.map(domain => [
+      domain.slot.id,
+      new Set(domain.options.map(option => option.entry.id))
+    ])),
+    diagnostics: {
+      domains: domains.length,
+      availableVariants,
+      remainingVariants: domains.reduce((count, domain) => count + domain.options.length, 0),
+      shortDomainSizes: shortDomains.map(domain => domain.size),
+      imageKeys: imageKeys.size,
+      imageClueCells: imageClueKeys.size,
+      logicClueCells: logicClueKeys.size,
+      arcRemovedOptions: arcDiagnostics.removedOptions ?? 0
+    }
+  };
+}
+
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
@@ -465,6 +577,25 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
+    const domainPlan = useSpecialTopology
+      ? { ok: true, allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot }
+      : prepareTopologyDomains(topology.slots, indexes, {
+          foldYo: options.foldYo === true,
+          requiredImageCount,
+          minimumLogicClueCells
+        });
+    if (!domainPlan.ok) {
+      countFailure(rejectedReasons, domainPlan.reason);
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: domainPlan.reason,
+        ...(options.capturePlanDiagnostics ? { domainDiagnostics: domainPlan } : {})
+      });
+      bestDiagnostic = domainPlan;
+      continue;
+    }
+
     const cspSeed = (seed ^ Math.imul(attempt + 1, 104729)) >>> 0;
     const solved = solveSlotsCsp(topology.slots, inputDictionary, {
       seed: cspSeed,
@@ -482,7 +613,7 @@ export function generateScanword(inputDictionary, options = {}) {
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
-      allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      allowedEntryIdsBySlot: domainPlan.allowedEntryIdsBySlot,
       captureTrace: options.captureTrace === true
     });
 
