@@ -99,7 +99,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = incl
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production caps ordinary boards at two short answers. Geometry-only
+  // Production caps ordinary boards at three short answers. Geometry-only
   // topology diagnostics may request a broader range to measure diversity.
   if (twoLetterSlots < (includeSpecialEleven ? 2 : 1) || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
