@@ -98,7 +98,7 @@ function render(){clearInterval(state.interval);const root=$("#app");if(state.pr
 function renderDaily(root){
  const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
  const done=d.completed||{},stats=p?.get?.().daily||{};
- root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 13 × 13</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
+ root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 8 × 12</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
@@ -109,9 +109,9 @@ async function startDailyScanword(d){
  try{
   if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length)await preloadScanwordDictionary();
   if(scanwordPreparePromise)await scanwordPreparePromise;
-  const original=Math.random;
-  try{Math.random=window.QQProgression.randomFor(d.scanwordSeed);preparedScanword=buildScanword(getScanwordDictionary())}
-  finally{Math.random=original}
+  const rawSeed=Number(d?.scanwordSeed);
+  const seed=Number.isFinite(rawSeed)?rawSeed>>>0:Number(String(d?.date||"").replace(/-/g,""))>>>0;
+  preparedScanword=await buildScanwordInWorker(getScanwordDictionary(),{seed});
   if(!preparedScanword)throw new Error("Не удалось подготовить ежедневное поле");
   state.screen="";
   await begin(1,false,{date:d.date,completed:!!d.completed?.scanword});
@@ -864,14 +864,17 @@ function refreshPracticeButton(){
   button.disabled=scanwordPreparing;
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
-function buildScanwordInWorker(entries){
-  const seed=(Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;
+function buildScanwordInWorker(entries, overrides={}){
+  const seed=Number.isFinite(Number(overrides.seed))
+    ? Number(overrides.seed)>>>0
+    : (Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;
   const generationOptions={
     seed,
-    maxTopologyAttempts:16,
-    maxNodes:24000,
-    maxCspTimeMs:180,
-    topologyMutationAttempts:96
+    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
+    maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
+    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:450,
+    topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
+    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js");
@@ -886,7 +889,6 @@ function buildScanwordInWorker(entries){
     }
     return adapt(result.scanword);
   };
-
   if(typeof Worker!=="function")return runOnMainThread();
   return new Promise((resolve,reject)=>{
     let worker=null,timer=null,settled=false;
