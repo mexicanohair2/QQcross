@@ -102,6 +102,9 @@ async function main() {
   };
   console.log(JSON.stringify(report,null,2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
+  if (report.maximumTwoLetterAnswers > 6) {
+    throw new Error("A scanword contains more than six two-letter answers.");
+  }
   if (specialElevenCount < 15 || specialElevenCount > 35) {
     throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
   }
