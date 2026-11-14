@@ -259,6 +259,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
+      const plannedDomain = options.allowedEntryIdsBySlot?.get(slot.id);
+      if (plannedDomain && !plannedDomain.has(entry.id)) continue;
       if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
@@ -567,7 +569,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         history: options.history,
         allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
-        repeatQuestionPenalty: options.repeatQuestionPenalty
+        repeatQuestionPenalty: options.repeatQuestionPenalty,
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
       }, random);
       if (candidates.length === 0) {
         recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id, slotLength: specialElevenSlot.length });
@@ -577,10 +580,26 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const rankedSpecialCandidates = prioritizeSpecialElevenCandidates(
         candidates, specialElevenSlot, slots, indexes, allowedDirections, options.preferredSpecialAnswer
       );
+      const preferredKey = options.preferredSpecialAnswer
+        ? canonicalAnswerKey(options.preferredSpecialAnswer, { foldYo: options.foldYo === true })
+        : null;
+      const selectedPlanCandidates = preferredKey
+        ? rankedSpecialCandidates.filter(candidate =>
+            canonicalAnswerKey(candidate.entry.answer, { foldYo: options.foldYo === true }) === preferredKey
+          )
+        : rankedSpecialCandidates;
+      if (preferredKey && selectedPlanCandidates.length === 0) {
+        recordDeadEnd({
+          reason: 'PREFERRED_SPECIAL_ANSWER_UNAVAILABLE',
+          slotId: specialElevenSlot.id,
+          preferredAnswer: options.preferredSpecialAnswer
+        });
+        return false;
+      }
       // A candidate with an empty domain at any mandatory crossing can never
-      // be completed. Remove it before backtracking instead of wasting the
-      // full CSP budget on a provably impossible eleven-letter answer.
-      chosenCandidates = rankedSpecialCandidates.filter(candidate =>
+      // be completed. Use the exact selected plan answer and prune all crossing
+      // candidates that the planner's arc-consistency pass already removed.
+      chosenCandidates = selectedPlanCandidates.filter(candidate =>
         candidate.specialSupport.unsupported === 0
       );
       recordSearchChoice(chosenSlot, chosenCandidates);
@@ -601,7 +620,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           history: options.history,
           allowedDirections,
           repeatWordPenalty: options.repeatWordPenalty,
-          repeatQuestionPenalty: options.repeatQuestionPenalty
+          repeatQuestionPenalty: options.repeatQuestionPenalty,
+          allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
         }, random);
 
         if (candidates.length === 0) {
