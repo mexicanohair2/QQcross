@@ -110,10 +110,10 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // The special 11-letter layout already has 11 mandatory horizontal
-  // crossings. Keep its validated scaffold stable instead of adding random
-  // clue splits that multiply the constrained CSP search space.
-  const targetMutations = includeSpecialEleven ? 0 : 2 + Math.floor(random() * 5);
+  // Special layouts have eleven mandatory crossings. Allow exactly one
+  // controlled internal clue split: this adds useful variety/content capacity
+  // without the combinatorial growth caused by several random splits.
+  const targetMutations = includeSpecialEleven ? 1 : 2 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
