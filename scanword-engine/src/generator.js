@@ -114,32 +114,10 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
-
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
-      includeSpecialEleven: true,
-      specialSplitRows: rows,
-      maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
-    })
-  })).filter(item => item.result.ok);
-
-  // The independently audited two-short-slot layout is valid only when its
-  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
-  // candidate instead of trying to use it for ordinary disconnected boards.
+  // Special 11-letter boards use the dedicated sparse-edge scaffold.
+  // The general open-edge topology has additional boundary slots that are
+  // useful for ordinary boards but make the long-answer CSP unnecessarily
+  // constrained. Keep this special template isolated and independently checked.
   const lowShortPattern = getTopologyScaffolds()[3];
   const lowShortTopology = generateTopology({
     seed: 1,
@@ -148,14 +126,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxAttempts: 1,
     maxTwoLetterSlots: 4
   });
-  if (lowShortTopology.ok) {
-    topologies.push({
-      rows: [3, 7, 11],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
-      result: lowShortTopology
-    });
-  }
+  const topologies = lowShortTopology.ok
+    ? [{
+        rows: [3, 7, 10],
+        patternKey: 'low-short',
+        specialPattern: lowShortPattern,
+        result: lowShortTopology
+      }]
+    : [];
 
   const plans = [];
   const uniqueAnswers = new Set();
@@ -400,16 +378,15 @@ export function generateScanword(inputDictionary, options = {}) {
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
-  // Prefer exactly one low-short topology attempt when it has a compatible
-  // dictionary/CSP domain, then retain the best conventional topology as the
-  // bounded fallback. Do not spend both retries on near-identical templates.
+  // Prefer the low-short special topology when its dictionary/CSP domain is
+  // compatible, then retain the other validated layouts as fallbacks.
   const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
   const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
   const specialPlanSequence = firstLowShortPlan
@@ -459,8 +436,8 @@ export function generateScanword(inputDictionary, options = {}) {
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 6)
-        : (options.maxTwoLetterSlots ?? 6)
+        ? (specialPlan?.patternKey === 'low-short' ? 1 : options.specialMaxTwoLetterSlots ?? 8)
+        : (options.maxTwoLetterSlots ?? 1)
     });
 
     if (!topologyResult.ok) {
