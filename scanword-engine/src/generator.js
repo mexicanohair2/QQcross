@@ -130,7 +130,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       seed: 1,
       includeSpecialEleven: true,
       specialSplitRows: rows,
-      maxAttempts: 1
+      maxAttempts: 1,
+      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
     })
   })).filter(item => item.result.ok);
 
@@ -399,7 +400,8 @@ export function generateScanword(inputDictionary, options = {}) {
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
       specialSplitRows: specialPlan?.rows,
-      maxAttempts: options.topologyMutationAttempts ?? 96
+      maxAttempts: options.topologyMutationAttempts ?? 96,
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 6
     });
 
     if (!topologyResult.ok) {
