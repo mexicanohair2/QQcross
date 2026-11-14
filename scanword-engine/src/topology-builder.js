@@ -78,7 +78,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = incl
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) !== (includeSpecialEleven ? 4 : 5)) return null;
-  if (countRightEdgeQuestions(matrix) !== (includeSpecialEleven ? 4 : 3)) return null;
+  if (countRightEdgeQuestions(matrix) !== 3) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
