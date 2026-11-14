@@ -11,7 +11,7 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8],
   [3, 7],
-  [4, 8]
+  [5, 9]
 ]);
 
 function createScaffold(extraRows) {
@@ -22,7 +22,7 @@ function createScaffold(extraRows) {
   const col3Rows = new Set([1, 5]);
   const col5Rows = new Set([3, 7]);
   const col6Rows = new Set([4, 8]);
-  const rightEdgeRows = new Set([3, 6, 9]);
+  const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -43,9 +43,9 @@ function createSpecialScaffold(extraRows) {
   // Column 1 is reserved for the optional eleven-letter answer. Column 3
   // remains letter-only so every left-border clue keeps a valid horizontal
   // answer; other interior columns still create multiple crossing chains.
-  const col5Rows = new Set([3, 7]);
+  const col5Rows = new Set([3, 7, 10]);
   const col6Rows = new Set([4, 8]);
-  const rightEdgeRows = new Set([3, 6, 9]);
+  const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -291,7 +291,8 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const grid = toRoleGrid(matrix);
   const validation = validateTopology(grid, {
     requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowOuterBoundarySlots: true
   });
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true });
   return {
