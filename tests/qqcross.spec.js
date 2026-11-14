@@ -615,11 +615,6 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   const rightEdgeClues = await board.locator('.scan-clue[data-clue-cell$=",7"]').count();
   expect(interiorClues).toBeGreaterThanOrEqual(4);
   expect(rightEdgeClues).toBeLessThanOrEqual(5);
-  const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
-    const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    return row > 0 && col > 0 && col < 7;
-  }).length);
-  expect(interiorClues).toBeGreaterThanOrEqual(3);
   const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
   expect(rightBoundaries.length).toBeGreaterThan(0);
   expect(rightBoundaries.every(key => key.endsWith(",7"))).toBeTruthy();
