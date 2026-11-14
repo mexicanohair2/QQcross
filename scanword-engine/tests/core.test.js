@@ -514,3 +514,61 @@ test('assembler and independent validator reject left/up scanword answers', () =
   }, [], { requireBorderClues: false, requireConnected: false });
   assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
 });
+
+
+test('assembler and independent validator accept all four answer directions', () => {
+  const cases = [
+    {
+      direction: 'right',
+      clue: { row: 2, col: 0 },
+      coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
+    },
+    {
+      direction: 'left',
+      clue: { row: 2, col: 4 },
+      coordinates: [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
+    },
+    {
+      direction: 'down',
+      clue: { row: 0, col: 2 },
+      coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
+    },
+    {
+      direction: 'up',
+      clue: { row: 4, col: 2 },
+      coordinates: [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
+    }
+  ];
+
+  for (const item of cases) {
+    const assembled = assembleScanword({
+      seed: 17,
+      words: [{
+        id: 'word-' + item.direction,
+        entryId: 'test-entry',
+        answer: 'КОТ',
+        question: 'Тестовая подсказка для слова.',
+        clue: item.clue,
+        direction: item.direction,
+        coordinates: item.coordinates
+      }]
+    });
+
+    assert.equal(assembled.ok, true, item.direction + ': ' + JSON.stringify(assembled.errors));
+    assert.equal(assembled.scanword.words[0].direction, item.direction);
+
+    const checked = validateScanword(assembled.scanword, [], {
+      requireBorderClues: false,
+      requireLeftBorderClues: false,
+      requireTopAnchor: false,
+      requireConnected: false,
+      requiredImageCount: 0,
+      minimumLogicClueCells: 0
+    });
+    assert.equal(
+      checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
+      false,
+      item.direction + ' must be accepted by the independent validator'
+    );
+  }
+});
