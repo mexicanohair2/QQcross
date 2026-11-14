@@ -2369,3 +2369,21 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   background:linear-gradient(145deg,#171017,#100b10)!important;
   border-color:#251820!important;box-shadow:none!important;pointer-events:none!important;
 }
+
+/* Distributed non-clue endpoints: occupied, quiet, and visually distinct. */
+.game-screen .scanword-board>.scan-cell.scan-boundary{
+  position:relative!important;
+  background:linear-gradient(145deg,#21151d,#160f15)!important;
+  border-color:#34212b!important;
+  box-shadow:inset 0 0 0 1px #ffffff08!important;
+  pointer-events:none!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow{
+  display:grid!important;position:absolute!important;z-index:4!important;place-items:center!important;
+  width:22%!important;height:20%!important;min-width:0!important;min-height:0!important;
+  padding:0!important;font-size:clamp(7px,1.5vw,10px)!important;line-height:1!important;
+  font-weight:900!important;color:#e4f0ff!important;background:#234f7c80!important;
+  border-radius:2px!important;pointer-events:none!important;opacity:.6!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-right{right:1px;bottom:1px}
+.game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-down{right:1px;top:1px}
