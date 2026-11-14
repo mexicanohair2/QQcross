@@ -279,17 +279,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
-  const excluded = requirements.excludedPlanKeys instanceof Set
-    ? requirements.excludedPlanKeys
-    : new Set();
-  const selected = plans.find(plan =>
-    !excluded.has(canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(','))
-  );
-  return selected ? {
-    answer: selected.answer,
-    rows: selected.rows,
-    planKey: canonicalAnswerKey(selected.answer, { foldYo }) + '|' + selected.rows.join(',')
-  } : null;
+  const rankedPlans = plans.map(plan => ({
+    answer: plan.answer,
+    rows: plan.rows,
+    score: plan.score,
+    planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',')
+  }));
+  if (requirements.returnAllPlans === true) return rankedPlans;
+  return rankedPlans[0] ?? null;
 }
 
 function countFailure(target, reason) {
@@ -355,22 +352,26 @@ export function generateScanword(inputDictionary, options = {}) {
   const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
   const wantsEleven = hasElevenLetterAnswers
     && random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
-  const specialAttempts = wantsEleven ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8) : 0;
+  // Build and rank the compatible special plan pool once per puzzle. Re-running
+  // the full dictionary/topology arc-consistency pass for every retry was
+  // unnecessary work and could consume most of the worker's 16-second limit.
+  const specialPlanDiagnostics = {};
+  const specialPlanPool = wantsEleven
+    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+        ...options,
+        returnAllPlans: true,
+        planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
+      })
+    : [];
+  const specialAttempts = wantsEleven
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 4, specialPlanPool.length)
+    : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
-  const attemptedSpecialPlanKeys = new Set();
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
-    const planDiagnostics = {};
-    const specialPlan = useSpecial
-      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
-          ...options,
-          excludedPlanKeys: attemptedSpecialPlanKeys,
-          planDiagnostics: options.capturePlanDiagnostics ? planDiagnostics : null
-        })
-      : null;
-    if (specialPlan?.planKey) attemptedSpecialPlanKeys.add(specialPlan.planKey);
+    const specialPlan = useSpecial ? specialPlanPool[attempt] ?? null : null;
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
@@ -378,8 +379,9 @@ export function generateScanword(inputDictionary, options = {}) {
         selectedAnswer: specialPlan?.answer ?? null,
         selectedRows: specialPlan?.rows ?? null,
         selectedPlanKey: specialPlan?.planKey ?? null,
-        excludedPlanCount: attemptedSpecialPlanKeys.size,
-        ...planDiagnostics
+        excludedPlanCount: attempt + 1,
+        viablePlans: specialPlanPool.length,
+        ...(attempt === 0 ? specialPlanDiagnostics : {})
       });
     }
     const useSpecialTopology = Boolean(specialPlan);
