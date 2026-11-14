@@ -550,9 +550,23 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return false;
       }
       chosenSlot = specialElevenSlot;
-      chosenCandidates = prioritizeSpecialElevenCandidates(
+      const rankedSpecialCandidates = prioritizeSpecialElevenCandidates(
         candidates, specialElevenSlot, slots, indexes, allowedDirections
       );
+      // A candidate with an empty domain at any mandatory crossing can never
+      // be completed. Remove it before backtracking instead of wasting the
+      // full CSP budget on a provably impossible eleven-letter answer.
+      chosenCandidates = rankedSpecialCandidates.filter(candidate =>
+        candidate.specialSupport.unsupported === 0
+      );
+      if (chosenCandidates.length === 0) {
+        lastDeadEnd = {
+          reason: 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS',
+          slotId: specialElevenSlot.id,
+          candidates: candidates.length
+        };
+        return false;
+      }
     } else {
       const selectionOrder = shuffle(unassigned, random);
       for (const slot of selectionOrder) {
