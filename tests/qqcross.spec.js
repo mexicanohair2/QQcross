@@ -53,11 +53,11 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
     const countTracks = value => {
       const text = String(value || "").trim();
-      const repeated = text.match(/^repeat\\((\\d+)\\s*,/);
+      const repeated = text.match(/^repeat\((\d+)\s*,/);
       if (repeated) return Number(repeated[1]);
       let depth = 0, tokens = 0, inToken = false;
       for (const char of text) {
-        if (/\\s/.test(char) && depth === 0) {
+        if (/\s/.test(char) && depth === 0) {
           if (inToken) tokens++;
           inToken = false;
           continue;
@@ -89,7 +89,10 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   });
   expect(geometry.cellCount).toBe(96);
   expect(geometry.columns).toBe(8);
-  expect(geometry.rows).toBe(12);\n  expect(geometry.explicitColumns).toBe(8);\n  expect(geometry.explicitRows).toBe(12);\n  expect(geometry.positiveCells).toBe(96);
+  expect(geometry.rows).toBe(12);
+  expect(geometry.explicitColumns).toBe(8);
+  expect(geometry.explicitRows).toBe(12);
+  expect(geometry.positiveCells).toBe(96);
   expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
   expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 270) * (2 / 3)));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
