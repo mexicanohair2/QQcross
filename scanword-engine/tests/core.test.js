@@ -436,13 +436,13 @@ test('connects answers that terminate at the same shared question cell', () => {
   );
 });
 
-test('independent validator rejects a two-letter answer without an approved picture', () => {
+test('independent validator rejects a two-letter pronoun filler answer', () => {
   const assembled = assembleScanword({
     seed: 72,
     words: [{
       id: 'w-short',
-      answer: 'ЯД',
-      question: 'Вещество, способное вызвать отравление.',
+      answer: 'МЫ',
+      question: 'Местоимение для обозначения группы людей.',
       clue: { row: 1, col: 0 },
       direction: 'right',
       coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }]
