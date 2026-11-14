@@ -34,7 +34,7 @@ function createScaffold(extraRows) {
   // interior chain at column 3 and a third at column 4 form vertical answers
   // that cross those horizontals, so the extra clue cells remain one connected
   // playable board. The right edge is only an answer boundary, not a clue wall.
-  const innerColumnThreeRows = new Set([1, 5, 9]);
+  const innerColumnThreeRows = new Set([1, 5]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
