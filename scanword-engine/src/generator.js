@@ -151,7 +151,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   if (lowShortTopology.ok) {
     topologies.push({
       rows: [3, 7, 11],
-      patternKey: 'balanced-special',
+      patternKey: 'low-short',
       specialPattern: lowShortPattern,
       result: lowShortTopology
     });
