@@ -523,3 +523,33 @@ test('allows only an approved picture-backed two-letter scanword answer', () => 
   assert.equal(result.words[0].answer, 'ЁЖ');
   assert.equal(result.words[0].imageKey, 'hedgehog');
 });
+
+
+test('allows curated two-letter Russian words and rejects pronoun filler', () => {
+  const clueA = { row: 1, col: 1 };
+  const clueB = { row: 1, col: 4 };
+  const shortSlot = slot('short-word', clueA, clueB, [
+    { row: 1, col: 2 }, { row: 1, col: 3 }
+  ], 'right', 'left');
+  const options = {
+    seed: 71,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false
+  };
+
+  const meaningful = solveSlotsCsp(
+    [shortSlot],
+    [entry('short-um', 'УМ', 'Способность думать и рассуждать.')],
+    options
+  );
+  assert.equal(meaningful.ok, true, meaningful.message);
+  assert.equal(meaningful.words[0].answer, 'УМ');
+
+  const filler = solveSlotsCsp(
+    [shortSlot],
+    [entry('short-my', 'МЫ', 'Местоимение для обозначения группы людей.')],
+    options
+  );
+  assert.equal(filler.ok, false, 'A two-letter pronoun must not fill a scanword slot.');
+});
