@@ -58,7 +58,12 @@ async function main() {
           reason: result.reason,
           attempts: result.attempts,
           rejectedReasons: result.rejectedReasons,
-          lastDiagnostic: result.lastDiagnostic
+          lastDiagnostic: result.lastDiagnostic ? {
+            attempts: result.lastDiagnostic.attempts,
+            lastDeadEnd: result.lastDiagnostic.lastDeadEnd,
+            deepestDeadEnd: result.lastDiagnostic.deepestDeadEnd,
+            searchTrace: result.lastDiagnostic.attempts?.[0]?.searchTrace?.slice(0, 30)
+          } : null
         }
       });
 
