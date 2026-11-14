@@ -114,32 +114,10 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
-
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
-      includeSpecialEleven: true,
-      specialSplitRows: rows,
-      maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 8
-    })
-  })).filter(item => item.result.ok);
-
-  // The independently audited two-short-slot layout is valid only when its
-  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
-  // candidate instead of trying to use it for ordinary disconnected boards.
+  // Special 11-letter boards use the dedicated sparse-edge scaffold.
+  // The general open-edge topology has additional boundary slots that are
+  // useful for ordinary boards but make the long-answer CSP unnecessarily
+  // constrained. Keep this special template isolated and independently checked.
   const lowShortPattern = getTopologyScaffolds()[3];
   const lowShortTopology = generateTopology({
     seed: 1,
@@ -148,14 +126,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxAttempts: 1,
     maxTwoLetterSlots: 4
   });
-  if (lowShortTopology.ok) {
-    topologies.push({
-      rows: [4, 8, 10],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
-      result: lowShortTopology
-    });
-  }
+  const topologies = lowShortTopology.ok
+    ? [{
+        rows: [3, 7, 10],
+        patternKey: 'low-short',
+        specialPattern: lowShortPattern,
+        result: lowShortTopology
+      }]
+    : [];
 
   const plans = [];
   const uniqueAnswers = new Set();
