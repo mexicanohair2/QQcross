@@ -58,6 +58,7 @@ async function main() {
     runs.push({
       index,
       seed,
+      scaffoldIndex: result.topology.scaffoldIndex,
       ok: validation.valid,
       elapsedMs,
       answerCount: words.length,
