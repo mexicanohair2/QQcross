@@ -367,8 +367,12 @@ export function generateScanword(inputDictionary, options = {}) {
   // requested special puzzles unsolved and pushed p95 generation beyond 6s.
   // The first ranked plan is the useful attempt; failed later plans only
   // multiplied the wait before the already-working standard fallback.
+  const specialPlanOffset = Math.max(0, Math.min(
+    specialPlanPool.length,
+    Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 1
+  ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 1, specialPlanPool.length)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 1, specialPlanPool.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
