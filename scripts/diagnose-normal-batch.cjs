@@ -83,6 +83,7 @@ async function main() {
   }
   const successful = runs.filter(run => run.ok);
   const times = runs.map(run => run.elapsedMs).sort((a,b)=>a-b);
+  const twoLetterCounts = successful.map(run => run.twoLetterAnswers.length).sort((a,b)=>a-b);
   const report = {
     requested: runs.length,
     successful: successful.length,
