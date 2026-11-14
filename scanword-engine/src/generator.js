@@ -123,9 +123,19 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   const plans = [];
   const uniqueAnswers = new Set();
+  const planDiagnostics = {
+    elevenLetterAnswers: 0,
+    topologiesConsidered: topologies.length,
+    missingSlotDomains: 0,
+    arcConsistencyRejected: 0,
+    shortAnswerMatchingRejected: 0,
+    contentRequirementsRejected: 0,
+    viablePlans: 0
+  };
 
   for (const entry of entries) {
     if (entry.answer.length !== 11) continue;
+    planDiagnostics.elevenLetterAnswers++;
     const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
     if (uniqueAnswers.has(answerKey)) continue;
     uniqueAnswers.add(answerKey);
@@ -176,14 +186,24 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       // Independent word domains can all look valid while their crossing
       // letters are mutually impossible. Enforce arc consistency across the
       // complete slot graph before ranking a special 11-letter plan.
-      if (!valid || !enforceCrossingArcConsistency(domains, foldYo)) continue;
+      if (!valid) {
+        planDiagnostics.missingSlotDomains++;
+        continue;
+      }
+      if (!enforceCrossingArcConsistency(domains, foldYo)) {
+        planDiagnostics.arcConsistencyRejected++;
+        continue;
+      }
 
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
         .map(domain => new Set(domain.options.map(option =>
           canonicalAnswerKey(option.entry.answer, { foldYo })
         )));
-      if (!canAssignDistinctShortAnswers(shortDomains)) continue;
+      if (!canAssignDistinctShortAnswers(shortDomains)) {
+        planDiagnostics.shortAnswerMatchingRejected++;
+        continue;
+      }
 
       const imageKeys = new Set();
       let logicSlots = 0;
@@ -203,7 +223,10 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         if (domain.options.some(option => option.entry.logic === true)) logicSlots++;
       }
 
-      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) continue;
+      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) {
+        planDiagnostics.contentRequirementsRejected++;
+        continue;
+      }
 
       plans.push({
         answer: entry.answer,
@@ -214,6 +237,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     }
   }
 
+  planDiagnostics.viablePlans = plans.length;
+  if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
   return { answer: plans[0].answer, rows: plans[0].rows };
@@ -277,12 +302,26 @@ export function generateScanword(inputDictionary, options = {}) {
     && random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
   const specialAttempts = wantsEleven ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8) : 0;
   let bestDiagnostic = null;
+  const specialElevenPlanDiagnostics = [];
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
+    const planDiagnostics = {};
     const specialPlan = useSpecial
-      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, options)
+      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+          ...options,
+          planDiagnostics: options.capturePlanDiagnostics ? planDiagnostics : null
+        })
       : null;
+    if (useSpecial && options.capturePlanDiagnostics) {
+      specialElevenPlanDiagnostics.push({
+        attempt: attempt + 1,
+        selected: Boolean(specialPlan),
+        selectedAnswer: specialPlan?.answer ?? null,
+        selectedRows: specialPlan?.rows ?? null,
+        ...planDiagnostics
+      });
+    }
     const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
     const topologyResult = generateTopology({
@@ -453,6 +492,7 @@ export function generateScanword(inputDictionary, options = {}) {
         specialElevenMissed: wantsEleven && !scanword.metadata.specialElevenLetterQuestion,
         specialElevenAttempted: specialAttempts,
         specialElevenFailureDiagnostics: specialElevenAttemptDiagnostics,
+        ...(options.capturePlanDiagnostics ? { specialElevenPlanDiagnostics } : {}),
         dictionary: prepared.stats,
         rejectedReasons: { ...rejectedReasons }
       }
