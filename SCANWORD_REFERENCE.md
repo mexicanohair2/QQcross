@@ -10,7 +10,7 @@ Reference asset (Dropbox): `/Screenshot_20261105_010300_app_kryds_android_Messag
 - Left-edge clue cells occupy rows 1–11, column 0. They point right.
 - Interior clue-cell coordinates (row, column), zero-based: **(2,4), (3,2), (4,3), (5,6), (5,7), (6,4), (6,5), (8,2), (8,3), (10,4), (11,4)**.
 - Five interior/edge cells in the screenshot split two prompts inside one tile: **(2,4), (3,2), (4,3), (6,5), (8,3)**. Both prompts must remain visible in the cell, stacked, with their own direction marks.
-- Seven illustrated clue cells are visible in the reference: top edge at (0,2) and (0,3), and left edge at (1,0), (5,0), (6,0), (9,0), and (11,0).
+- Five illustrated clue cells are visible in the reference: top edge at (0,2) and (0,3), and left edge at (1,0), (5,0), (6,0), (9,0), and (11,0).
 - This reference is the baseline; QQCross should improve central density to 29 clue tiles and 36–38 visible prompts. Keep 7–9 split prompts overall, with 2–4 additional prompts created by split clue tiles in the central area (rows 3–8, columns 2–5). The clue wording and answer content must be QQCross's own, not copied from the reference game.
 - The reference uses small, unobtrusive direction triangles near the clue-cell edge; they must not cover the clue text.
 - The generator should create 2–4 additional prompts in the central area, spread across shared clue tiles; retain 7–9 split prompts overall. Their exact positions must depend on selected words and crossings, never fixed coordinates.
