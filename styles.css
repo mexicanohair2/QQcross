@@ -2387,3 +2387,19 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 .game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-right{right:1px;bottom:1px}
 .game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-down{right:1px;top:1px}
+
+
+/* Compact-phone fit: keep the 8×12 board as large as the viewport allows. */
+@media(max-width:420px){
+  .game-screen .scanword-board{
+    width:min(calc(100vw - 6px),calc((100dvh - 170px)*.666667))!important;
+    max-width:calc(100vw - 6px)!important;
+    max-height:calc(100dvh - 170px)!important;
+  }
+}
+@media(max-height:700px){
+  .game-screen .scanword-board{
+    width:min(calc(100vw - 6px),calc((100dvh - 170px)*.666667))!important;
+    max-height:calc(100dvh - 170px)!important;
+  }
+}
