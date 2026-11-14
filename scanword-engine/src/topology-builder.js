@@ -14,7 +14,7 @@ const SCAFFOLD_ROWS = Object.freeze([
   { col4Rows: [4, 8], col5Rows: [3, 7, 11], rightEdgeRows: [3, 7] },
   { col4Rows: [3, 7], col5Rows: [4, 8], rightEdgeRows: [4, 8] },
   { col4Rows: [4, 8], col5Rows: [4, 8], col6Rows: [4], rightEdgeRows: [4, 8] },
-  { col4Rows: [4, 8], col5Rows: [5, 9], col6Rows: [5, 9, 10], rightEdgeRows: [3, 9] }
+  { col4Rows: [4, 8], col5Rows: [5, 9], col6Rows: [5, 9, 10], rightEdgeRows: [3, 10] }
 ]);
 
 function createScaffold(layout = SCAFFOLD_ROWS[0]) {
