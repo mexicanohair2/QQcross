@@ -29,7 +29,7 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#'
 ]);
 
-function createScaffold(extraRows, includeInteriorSpine = true) {
+function createScaffold(extraRows) {
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -38,7 +38,6 @@ function createScaffold(extraRows, includeInteriorSpine = true) {
     } else {
       cells[0] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
-      if (includeInteriorSpine && [3, 7, 11].includes(row)) cells[3] = '#';
     }
     cells[7] = '#';
     return cells.join('');
@@ -159,7 +158,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
     const previous = matrix[row][col];
     matrix[row][col] = previous === '#' ? '.' : '#';
-    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, includeSpecialEleven ? 3 : 4);
+    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, 3);
 
     if (next) {
       candidate = next;
@@ -169,7 +168,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
-  const requiredInterior = includeSpecialEleven ? 3 : 4;
+  const requiredInterior = 3;
   if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
     return { candidate: null, accepted, tried };
   }
@@ -207,7 +206,7 @@ export function generateTopology(options = {}) {
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
     const scaffold = includeSpecialEleven
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows, false))
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
