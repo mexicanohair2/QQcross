@@ -189,6 +189,38 @@ export function deriveWordSlots(grid, options = {}) {
 
       slots.push(makeSlot(axis, first, last, coordinates));
     }
+
+    // A clue may also point to a word that finishes at the outer board edge.
+    // This lets the right side stay open instead of forcing a full clue column.
+    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
+      && !(axis === 'vertical' && fixedIndex === 1)) {
+      const from = questionPositions[questionPositions.length - 1];
+      const length = lineLength - from - 1;
+      if (length >= MIN_ANSWER_LENGTH && length <= CONFIG.MAX_WORD_LENGTH) {
+        const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+        const terminal = horizontal
+          ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
+          : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true };
+        const coordinates = Array.from({ length }, (_, index) => horizontal
+          ? point(fixedIndex, from + index + 1)
+          : point(from + index + 1, fixedIndex));
+        const direction = horizontal ? 'right' : 'down';
+        slots.push({
+          id: 'outer-boundary:' + axis + ':' + keyOf(clue),
+          axis,
+          length,
+          endpoints: [{ ...clue }, terminal],
+          coordinates,
+          directionOptions: [{
+            clueCell: { ...clue },
+            terminalCell: { ...terminal },
+            direction,
+            coordinates: coordinates.map(item => ({ ...item }))
+          }],
+          special: 'OUTER_BOUNDARY'
+        });
+      }
+    }
   }
 
   for (let row = 0; row < CONFIG.HEIGHT; row++) scanLine('horizontal', row);
