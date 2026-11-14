@@ -63,6 +63,10 @@ test('solves a cyclic four-clue topology and assigns all clue cells an outgoing 
   assert.equal(result.ok, true, result.message);
   assert.equal(result.words.length, 4);
   assert.equal(new Set(result.words.map(word => word.answer)).size, 4);
+  assert.deepEqual(
+    [...new Set(result.words.map(word => word.direction))].sort(),
+    ['down', 'left', 'right', 'up']
+  );
   for (const key of ['1,1', '1,5', '5,1', '5,5']) {
     assert.ok(result.clueDirections.get(key)?.size > 0, 'missing outgoing clue at ' + key);
   }
