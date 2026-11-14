@@ -35,7 +35,7 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
-export function enforceCrossingArcConsistency(domains, foldYo = false) {
+export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
   const positions = domains.map(domain => new Map(
     domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
   ));
@@ -80,8 +80,20 @@ export function enforceCrossingArcConsistency(domains, foldYo = false) {
     );
     if (revised.length === ownDomain.options.length) continue;
 
+    const removedCount = ownDomain.options.length - revised.length;
+    if (diagnostics) diagnostics.removedOptions = (diagnostics.removedOptions ?? 0) + removedCount;
     ownDomain.options = revised;
-    if (!revised.length) return false;
+    if (!revised.length) {
+      if (diagnostics) {
+        diagnostics.failure = {
+          slotId: ownDomain.slot.id,
+          againstSlotId: otherDomain.slot.id,
+          sharedPositions: arc.pairs.map(([ownPosition, otherPosition]) => ({ ownPosition, otherPosition })),
+          survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
+        };
+      }
+      return false;
+    }
 
     for (const relation of neighbors[arc.self]) {
       if (relation.other === arc.other) continue;
@@ -191,8 +203,16 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         planDiagnostics.missingSlotDomains++;
         continue;
       }
-      if (!enforceCrossingArcConsistency(domains, foldYo)) {
+      const arcDiagnostics = {};
+      if (!enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics)) {
         planDiagnostics.arcConsistencyRejected++;
+        if (!planDiagnostics.firstArcFailure) {
+          planDiagnostics.firstArcFailure = {
+            answer: entry.answer,
+            rows: topology.rows,
+            ...arcDiagnostics
+          };
+        }
         continue;
       }
 
