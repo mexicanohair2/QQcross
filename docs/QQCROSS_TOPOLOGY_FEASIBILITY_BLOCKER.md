@@ -1,38 +1,47 @@
-# QQCross topology feasibility — previous blocker resolved
+# QQCross 8×12 border constraints and the optional eleven-letter answer
 
-Status: **the former contradiction was caused by an over-restrictive top-row rule**, not by the 8×12 geometry itself.
+Status: **three requested geometry rules cannot all be satisfied at the same time.** The production topology keeps the full left question border, right/down-only answers, and an optional 11-letter boundary answer. To preserve those three rules, it uses selected question anchors rather than making every cell in the top row a question.
 
-## Correct rule interpretation
+## Fixed board rules
 
-The board remains exactly 8 columns × 12 rows. The (0,0) corner remains the only reserved blank cell. The left border (rows 1–11, column 0) remains question/end cells. Cell (0,1) remains the top-left question anchor.
+- Exactly 8 columns × 12 rows (96 cells).
+- (0,0) is the reserved blank corner.
+- (0,1) is a question cell.
+- The left border in rows 1–11 consists of question cells.
+- Every answer uses real dictionary entries and runs right or down.
+- Every letter cell belongs to one or more registered words, and every question cell is active.
+- A special 11-letter answer may run down from (0,1) to the bottom boundary.
 
-The top row is not required to consist entirely of question cells. It may contain letters when those letters are part of a horizontal answer run bounded by two question cells. Answers can point in all four orthogonal directions.
+## The geometric conflict
 
-## Why the prior proof was incomplete
+Assume every top-row cell from (0,1) through (0,7) is a question cell, every cell in the left border from (1,0) through (11,0) is a question cell, ordinary answers must have at least two letters, and answers may only run right or down.
 
-The former proof assumed that (0,2) must be a question cell and therefore could only point downward. That assumption was incorrect under the agreed allowance for strategic top-row omissions.
+The question at (0,1) cannot run right because (0,2) is another question cell. It therefore must start downward. It cannot terminate at an interior question cell (r,1): that would leave the left-border question (r,0) unable to start a two-letter answer, because its right neighbour would be a question and its next downward neighbour in column 0 would also be a question. Therefore the answer from (0,1) must continue to the bottom boundary and contains all eleven cells (1,1) through (11,1).
 
-In the new geometry, the upper row may be arranged as a horizontal chain such as question cells at (0,1), (0,4) and (0,7), with two-letter answer runs between them. The cells between those anchors are answer letters, not clue cells. Therefore (0,2) does not need a downward answer.
+Consequently, under the exact full-top-row rule, the 11-letter answer is mandatory on every board. That conflicts with the separate requirement that it appear in only about one quarter of boards.
 
-The left-edge answers can still start at (r,0) and travel right. Their letters occupy the second and third columns as required. Interior question cells and vertical runs are generated dynamically and create crossings between those horizontal answers.
+This is a geometric constraint, not a search-budget or dictionary issue.
 
-## Optional eleven-letter answer
+## Current production compromise
 
-The special 11-letter answer remains available from (0,1) down through (11,1) to the lower boundary. Because it is optional, the generator enables this slot for only a seed-selected subset of puzzles. The ordinary top-row horizontal slot from (0,1) remains available when the special answer is absent.
+The current generator preserves:
+- the 8×12 board and all 96 cell roles;
+- the blank upper-left corner;
+- the complete left question border;
+- the (0,1) top-left question anchor;
+- right/down answer directions only;
+- real dictionary answers, independent validation, and an optional 11-letter answer targeted at roughly 25%.
 
-The geometry and the CSP must agree on whether that special slot is present. It must never be inserted as an unassigned placeholder.
+To make the long answer optional, additional top-row cells are allowed to be letters where they belong to a valid horizontal answer. The top row therefore contains multiple question anchors, not seven question cells in every board.
 
-## Current engineering rules
+This is a deliberate, documented deviation from the strict full-top-row requirement. It must not be described as satisfying that rule.
 
-- Keep the exact 8×12 dimensions and all 96 cell roles.
-- Preserve the single reserved corner at (0,0).
-- Preserve the left-border question/end cells and top-left anchor at (0,1).
-- Permit letters on the top row only when a derived answer slot covers them.
-- Derive horizontal and vertical slots from actual consecutive question cells.
-- Reject any question cell without a valid incoming or outgoing answer slot.
-- Reject any letter not covered by at least one slot.
-- Allow terminal-only question cells: the renderer displays the incoming answer's clue there, while actual clue records remain linked to their start cell.
-- Keep the 11-letter boundary answer optional at approximately 25% frequency.
-- Run the independent full-board validator before a puzzle can enter gameplay.
+## Validation requirements
 
-The previous strict-full-top-row feasibility check is obsolete and has been replaced by a dynamic top-row anchor/coverage check.
+- Derive answer slots from the actual question/letter role grid.
+- Reject question cells without a valid clue/answer relationship.
+- Reject any letter not covered by a valid word.
+- Reconstruct every ordinary horizontal and vertical slot independently.
+- Verify direction, answer spelling, crossings, duplicate answers, question links, image and logic constraints.
+- Validate the complete board before it enters gameplay.
+- Measure actual 11-letter frequency across deterministic seed batches; do not infer it from the configured random probability.
