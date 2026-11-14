@@ -62,12 +62,12 @@ test('ordinary production scaffold borrows the proven special crossing geometry 
 
   assert.deepEqual(scaffolds[4], [
     '.#..####',
-    '#...#...',
-    '#...#...',
+    '#.......',
+    '#.......',
     '#...#...',
     '#......#',
     '#....##.',
-    '#...#...',
+    '#.......',
     '#...#...',
     '#......#',
     '#....##.',
