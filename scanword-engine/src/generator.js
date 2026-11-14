@@ -230,7 +230,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   // The general open-edge topology has additional boundary slots that are
   // useful for ordinary boards but make the long-answer CSP unnecessarily
   // constrained. Keep this special template isolated and independently checked.
-  const lowShortPattern = getTopologyScaffolds()[4];
+  const lowShortPattern = getTopologyScaffolds()[5];
   const lowShortTopology = generateTopology({
     seed: 1,
     includeSpecialEleven: true,
@@ -544,6 +544,7 @@ export function generateScanword(inputDictionary, options = {}) {
     const topologyResult = generateTopology({
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
+      scaffoldIndex: useSpecialTopology ? undefined : (options.normalScaffoldIndex ?? 4),
       specialSplitRows: specialPlan?.rows,
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
