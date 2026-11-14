@@ -185,7 +185,7 @@ function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, r
   return true;
 }
 
-function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, indexes, allowedDirections = null) {
+function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, indexes, allowedDirections = null, preferredAnswer = null) {
   const specialKeys = new Set(specialSlot.coordinates.map(pointKey));
   const crossingSlots = allSlots.filter(slot =>
     slot.id !== specialSlot.id
@@ -231,7 +231,8 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
       }
     };
   }).sort((a, b) =>
-    a.specialSupport.unsupported - b.specialSupport.unsupported
+    Number(b.entry.answer === preferredAnswer) - Number(a.entry.answer === preferredAnswer)
+    || a.specialSupport.unsupported - b.specialSupport.unsupported
     || b.specialSupport.supportedSlots - a.specialSupport.supportedSlots
     || b.specialSupport.answers - a.specialSupport.answers
     || b.priority - a.priority
@@ -551,7 +552,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       }
       chosenSlot = specialElevenSlot;
       const rankedSpecialCandidates = prioritizeSpecialElevenCandidates(
-        candidates, specialElevenSlot, slots, indexes, allowedDirections
+        candidates, specialElevenSlot, slots, indexes, allowedDirections, options.preferredSpecialAnswer
       );
       // A candidate with an empty domain at any mandatory crossing can never
       // be completed. Remove it before backtracking instead of wasting the
