@@ -555,6 +555,44 @@ test('allows curated two-letter Russian words and rejects pronoun filler', () =>
 });
 
 
+test('rejects eleven-letter candidates with an impossible mandatory crossing before backtracking', () => {
+  const special = {
+    id: 'special-eleven',
+    special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY',
+    length: 11,
+    endpoints: [
+      { row: 0, col: 1 },
+      { row: 12, col: 1, boundary: true }
+    ],
+    coordinates: Array.from({ length: 11 }, (_, index) => ({ row: index + 1, col: 1 })),
+    directionOptions: [{
+      clueCell: { row: 0, col: 1 },
+      terminalCell: { row: 12, col: 1, boundary: true },
+      direction: 'down',
+      coordinates: Array.from({ length: 11 }, (_, index) => ({ row: index + 1, col: 1 }))
+    }]
+  };
+  const horizontal = slot('crossing', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+    { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+  ], 'right', 'left');
+  const result = solveSlotsCsp([special, horizontal], [
+    entry('long', 'АБВГДЕЖЗИЙК', 'Длинный тестовый ответ из одиннадцати букв.'),
+    entry('wrong-prefix', 'КОТ', 'Домашнее животное из семейства кошачьих.')
+  ], {
+    seed: 99,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right', 'down'],
+    maxNodes: 100,
+    maxTimeMs: 500
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'NO_CSP_SOLUTION');
+  assert.equal(result.lastDeadEnd.reason, 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS');
+});
+
 test('CSP never places answers to the left or upward even when reverse orientations are available', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
