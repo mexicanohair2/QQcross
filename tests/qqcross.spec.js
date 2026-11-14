@@ -1,10 +1,4 @@
 const { test, expect } = require("@playwright/test");
-function cssGridTrackCount(template) {
-  const repeated = String(template || "").match(/^repeat\(\s*(\d+)\s*,/);
-  if (repeated) return Number(repeated[1]);
-  return String(template || "").trim().split(/\s+/).filter(Boolean).length;
-}
-
 async function startGuestGame(page) {
   const pageErrors = [];
   const consoleErrors = [];
@@ -55,15 +49,24 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(3);
   await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
-  const gridStyles = await scanBoard.evaluate(board => {
-    const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns, rows: style.gridTemplateRows, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+  const geometry = await scanBoard.evaluate(board => {
+    const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
+    const rects = cells.map(cell => cell.getBoundingClientRect());
+    const snap = value => Math.round(value * 2) / 2;
+    const columns = new Set(rects.map(rect => snap(rect.left)));
+    const rows = new Set(rects.map(rect => snap(rect.top)));
+    const boardRect = board.getBoundingClientRect();
+    return {
+      cellCount: cells.length,
+      columns: columns.size,
+      rows: rows.size,
+      ratio: boardRect.width / boardRect.height,
+      width: boardRect.width,
+      viewport: document.documentElement.clientWidth,
+      viewportHeight: document.documentElement.clientHeight
+    };
   });
-  const geometry = {
-    ...gridStyles,
-    columns: cssGridTrackCount(gridStyles.columns),
-    rows: cssGridTrackCount(gridStyles.rows)
-  };
+  expect(geometry.cellCount).toBe(96);
   expect(geometry.columns).toBe(8);
   expect(geometry.rows).toBe(12);
   expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
@@ -403,7 +406,7 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
 });
 
 
-test("both available themes apply globally and persist across games", async ({ page }) => {
+test("all four themes apply globally and persist across games", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
