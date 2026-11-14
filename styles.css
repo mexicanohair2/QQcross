@@ -362,7 +362,7 @@ html[data-qq-theme="burgundy"]{
 }
 html[data-qq-theme="dark"] body{background:radial-gradient(ellipse at 50% -15%,#292e39 0%,#151922 45%,#090b10 100%)!important}
 html[data-qq-theme="burgundy"] body{background:radial-gradient(ellipse at 50% -15%,#3a1b2a 0%,#1d0e16 45%,#0b060a 100%)!important}
-.theme-swatch-gray{background:linear-gradient(145deg,#596273,#252a34 58%,#090b10)!important}
+.theme-swatch-gray,.theme-swatch-dark{background:linear-gradient(145deg,#596273,#252a34 58%,#090b10)!important}
 .theme-swatch-burgundy{background:linear-gradient(145deg,#85445e,#351b29 58%,#10070d)!important}
 
 
