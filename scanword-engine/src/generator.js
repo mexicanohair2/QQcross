@@ -274,7 +274,9 @@ export function generateScanword(inputDictionary, options = {}) {
         nodes: solved.nodes,
         deepest: solved.deepest,
         elapsedMs: solved.elapsedMs,
-        lastDeadEnd: solved.lastDeadEnd
+        lastDeadEnd: solved.lastDeadEnd,
+        deepestDeadEnd: solved.deepestDeadEnd,
+        ...(options.captureTrace && solved.searchTrace ? { searchTrace: solved.searchTrace } : {})
       });
       bestDiagnostic = solved;
       continue;
