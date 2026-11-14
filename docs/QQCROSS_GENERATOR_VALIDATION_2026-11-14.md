@@ -57,9 +57,10 @@ The batch does not provide a human semantic review of all 2,289 dictionary recor
 
 ## Reference comparison status
 
-- **Kryss Maker:** `https://kryss.app/maker` is confirmed in the project's reference specification. Its page states defaults of 8 Across × 12 Down, supports text/picture clue authoring, and embeds a canvas whose visible text says “Drag to create your grid”. This is a confirmed size and editor-workflow reference, but not yet a verified automatic-placement benchmark.
+- **Kryss Maker:** `https://kryss.app/maker` is the visual/editor reference. Its page states defaults of 8 Across × 12 Down, supports text/picture clue authoring, and embeds a canvas whose visible text says “Drag to create your grid”. This is a confirmed size and editor-workflow reference, but not an automatic-placement benchmark.
+- **Automatic scanword quality reference:** `https://mytoolkit.ru/scanword` describes automatic placement of user-entered answer/clue pairs with intersections, clue cells in the grid, direction arrows, and a separate report of words that could not be placed. This is the better structural comparison for generator quality. Its advertised behavior was inspected, but an interactive sample output and internal algorithm were not run or inspected.
 - **Kryss screenshot:** the Dropbox asset is the visual guide for cells, clue styling, directions and screen composition. Its captured board is 13×13; QQCross remains 8×12. Exact interior clue-coordinate mapping has not yet been measured.
-- Automatic placement and crossing validation inside the embedded canvas were not directly observed. Do not claim equivalence to its generator algorithm until those behaviors are inspected.
+- Do not claim algorithmic equivalence to either reference. MyToolkit's page-level behavior is the quality target; dynamic output-level comparison remains unverified.
 
 ## Remaining release gates
 
