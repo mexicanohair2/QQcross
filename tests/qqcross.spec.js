@@ -413,11 +413,11 @@ test("both available themes apply globally and persist across games", async ({ p
   await expect(page.locator('.nav [data-tab="Настройки"]')).toHaveCount(0);
   await page.locator("#qqSettingsGear").click();
   await expect(page.getByRole("heading", { name: "Настройки" })).toBeVisible();
-  await expect(page.locator("[data-theme-choice]")).toHaveCount(2);
+  await expect(page.locator("[data-theme-choice]")).toHaveCount(4);
   await expect(page.locator("[data-mode-choice]")).toHaveCount(0);
 
   const root = page.locator("html");
-  for (const theme of ["burgundy", "purple"]) {
+  for (const theme of ["burgundy", "purple", "dark", "light"]) {
     await page.locator('[data-theme-choice="' + theme + '"]').click();
     await expect(root).toHaveAttribute("data-qq-theme", theme);
     await expect(page.locator('[data-theme-choice="' + theme + '"]')).toHaveClass(/selected/);
@@ -432,11 +432,11 @@ test("both available themes apply globally and persist across games", async ({ p
     expect(tokens.page).not.toBe("");
     expect(tokens.card).not.toBe("");
     expect(tokens.text).not.toBe("");
-    expect(tokens.scheme).toBe("dark");
+    expect(tokens.scheme).toBe(theme === "light" ? "light" : "dark");
   }
 
   const saved = await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"));
-  expect(saved).toBe("purple");
+  expect(saved).toBe("light");
 
   await page.locator('[data-theme-choice="purple"]').click();
   await page.locator('[data-tab="Главная"]').click();
