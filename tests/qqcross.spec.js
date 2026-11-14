@@ -10,6 +10,7 @@ async function startGuestGame(page) {
   await expect(page.locator("#play-toggle")).toBeVisible();
   await page.locator("#play-toggle").click();
   await expect(page.locator("#practice")).toBeVisible();
+  await expect(page.locator("#practice")).toBeEnabled({ timeout: 15_000 });
   await page.evaluate(() => { window.__qqStartTap = performance.now(); });
   await page.locator("#practice").click();
   await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
@@ -17,42 +18,52 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12-column by 8-row scanword with five distinct picture clues", async ({ page }) => {
+test("loads an 8-column by 12-row scanword with seven distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
-  await expect(page.locator(".scan-empty")).toHaveCount(1);
-  await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
+  expect(await page.locator(".scan-empty").count()).toBeLessThanOrEqual(20);
+  await expect(page.locator('.scan-empty[data-reserved-cell="0,0"]')).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
+  await expect(page.locator(".scan-clue[data-clue-start-count='0']")).toHaveCount(0);
+  await expect(page.locator('.scan-clue[data-terminal-only="true"]')).toHaveCount(0);
+  const visibleClues = await page.locator(".scan-clue:not(.scan-clue-picture) .scan-clue-text").allTextContents();
+  const normalizedVisibleClues = visibleClues.map(clue => clue.normalize("NFKC").toLocaleLowerCase("ru-RU").replace(/ё/g, "е").replace(/[^\p{L}\p{N}]+/gu, " ").trim());
+  expect(new Set(normalizedVisibleClues).size).toBe(normalizedVisibleClues.length);
+  expect(await page.locator(".scan-clue-logic").count()).toBeGreaterThanOrEqual(3);
   const scanBoard = page.locator(".scanword-board");
-  await expect(page.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(11);
-  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(7);
+  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBe(7);
+  expect(await page.locator('.scan-clue[data-clue-cell$=",0"]').count()).toBe(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+    return { columns: (style.gridTemplateColumns.match(/^repeat\((\d+),/) || [])[1] ? Number(style.gridTemplateColumns.match(/^repeat\((\d+),/)[1]) : style.gridTemplateColumns.trim().split(/\s+/).length, rows: (style.gridTemplateRows.match(/^repeat\((\d+),/) || [])[1] ? Number(style.gridTemplateRows.match(/^repeat\((\d+),/)[1]) : style.gridTemplateRows.trim().split(/\s+/).length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
-  expect(geometry.columns).toBe(12);
-  expect(geometry.rows).toBe(8);
-  expect(Math.abs(geometry.ratio - 1.5)).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.9, (geometry.viewportHeight - 270) * 1.5));
+  expect(geometry.columns).toBe(8);
+  expect(geometry.rows).toBe(12);
+  expect(Math.abs(geometry.ratio - 2/3)).toBeLessThan(0.03);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.84, (geometry.viewportHeight - 205) * 2 / 3));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
-  expect(terminalAnswerCount).toBe(answerCount);
+  expect(terminalAnswerCount).toBeGreaterThan(0);
+  expect(terminalAnswerCount).toBeLessThanOrEqual(answerCount);
+  expect(answerCount).toBe(34);
+  await expect(page.locator(".scan-clue")).toHaveCount(29);
+  await expect(page.locator(".scan-clue-multi")).toHaveCount(5);
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue")).toHaveCount(95);
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
+  await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
+  await expect(page.locator(".scan-clue-picture")).toHaveCount(7);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(7);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(5);
+  expect(new Set(pictureSources).size).toBe(pictureSources.length);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -105,8 +116,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
-  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.9);
-  expect(Math.abs(layout.board.width / layout.board.height - 1.5)).toBeLessThan(0.03);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.84);
+  expect(Math.abs(layout.board.width / layout.board.height - 2/3)).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -159,6 +170,10 @@ test("opens the Russian Wordle from the bottom of the home page and supports a f
   expect(dictionary.valid).toContain("ТУНЕЦ");
   expect(dictionary.answers).toContain("ТУНЕЦ");
   expect(dictionary.answers.length).toBeGreaterThanOrEqual(1700);
+  expect(dictionary.valid).not.toContain("МРАЗЬ");
+  expect(dictionary.answers).not.toContain("МРАЗЬ");
+  expect(dictionary.valid.every(word => new Set(word).size >= 3 && !/(.)\1\1/.test(word))).toBeTruthy();
+  expect(dictionary.answers.every(word => new Set(word).size >= 3 && !/(.)\1\1/.test(word))).toBeTruthy();
   let greyKeyCount = 0;
   const guesses = ["ТУНЕЦ", "БЛЮДО"];
   for (const guess of guesses) {
@@ -499,14 +514,14 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 });
 
 
-test("scanword clue cells follow the top-left reference anchors and show direction arrows", async ({ page }) => {
+test("scanword clue cells follow the 8×12 top-left reference anchors and show direction arrows", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
   const grid = await board.evaluate(node => ({
-    columns: getComputedStyle(node).gridTemplateColumns.split(" ").length,
-    rows: getComputedStyle(node).gridTemplateRows.split(" ").length,
+    columns: (() => { const value = getComputedStyle(node).gridTemplateColumns, match = value.match(/^repeat\((\d+),/); return match ? Number(match[1]) : value.trim().split(/\s+/).length; })(),
+    rows: (() => { const value = getComputedStyle(node).gridTemplateRows, match = value.match(/^repeat\((\d+),/); return match ? Number(match[1]) : value.trim().split(/\s+/).length; })(),
     width: node.getBoundingClientRect().width,
     height: node.getBoundingClientRect().height,
     viewportWidth: document.documentElement.clientWidth,
@@ -514,36 +529,46 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   }));
   expect(grid.columns).toBe(8);
   expect(grid.rows).toBe(12);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.8 + 1);
+  expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.84);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.96 + 1);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
-  await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
-  await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
+  expect(await board.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(2);
+  expect(await board.locator('.scan-clue[data-clue-cell$=",0"]').count()).toBeGreaterThanOrEqual(2);
+  await expect(board.locator('.scan-clue[data-clue-cell="0,2"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="1,0"]')).toHaveCount(1);
-  await expect(board.locator(".scan-empty")).toHaveCount(1);
-  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
+  expect(await board.locator(".scan-empty").count()).toBeLessThanOrEqual(20);
+  await expect(board.locator('.scan-empty[data-reserved-cell="0,0"]')).toHaveCount(1);
   await expect(board.locator(".scan-clue").first()).not.toHaveAttribute("data-clue-cell", "0,0");
   await expect(board.locator(".scan-clue-count")).toHaveCount(0);
   const arrows = board.locator(".scan-arrow");
   await expect(arrows).not.toHaveCount(0);
-  const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => ({
-    direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
-    visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
-  })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => {
+    const clue = node.closest(".scan-clue");
+    const [row, col] = (clue?.dataset.clueCell || "-1,-1").split(",").map(Number);
+    return {
+      direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
+      row, col,
+      visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
+    };
+  }));
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => item.row !== 0 || item.direction === "scan-arrow-down")).toBeTruthy();
+  expect(arrowDetails.every(item => item.col !== 0 || item.row === 0 || item.direction === "scan-arrow-right")).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0 && col > 0) counts.top++;
     if (col === 0 && row > 0) counts.left++;
     return counts;
   }, { top: 0, left: 0 }));
-  expect(edgeCounts.top).toBeGreaterThanOrEqual(3);
-  expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
+  expect(edgeCounts.top).toBeGreaterThanOrEqual(2);
+  expect(edgeCounts.left).toBeGreaterThanOrEqual(2);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
-    return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
+    return { starts: Number(node.dataset.clueStartCount || 0), terminalOnly: node.dataset.terminalOnly === "true", hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
-  expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  expect(clueCells.every(cell => cell.starts > 0 || cell.terminalOnly)).toBeTruthy();
+  expect(clueCells.some(cell => cell.hasText && cell.visible)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
     height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
@@ -582,11 +607,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes seven pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(3);
+  await expect(images).toHaveCount(7);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
