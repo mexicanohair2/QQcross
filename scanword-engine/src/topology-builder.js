@@ -294,8 +294,8 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const validation = validateTopology(grid, {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: !includeSpecialEleven,
-    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+    allowOuterBoundarySlots: true,
+    minimumOuterBoundaryLength: 3
   });
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3 });
   return {
