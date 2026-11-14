@@ -33,6 +33,35 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
 });
 
+test('AC-3 uses candidate-specific coordinates for reversed directions', () => {
+  const domains = [
+    {
+      slot: { coordinates: [{ row: 0, col: 0 }, { row: 0, col: 1 }] },
+      options: [
+        {
+          entry: { answer: 'AB' },
+          coordinates: [{ row: 0, col: 1 }, { row: 0, col: 0 }]
+        },
+        {
+          entry: { answer: 'AB' },
+          coordinates: [{ row: 0, col: 0 }, { row: 0, col: 1 }]
+        }
+      ]
+    },
+    {
+      slot: { coordinates: [{ row: 0, col: 1 }] },
+      options: [{ entry: { answer: 'B' } }]
+    }
+  ];
+
+  assert.equal(enforceCrossingArcConsistency(domains), true);
+  assert.equal(domains[0].options.length, 1);
+  assert.deepEqual(domains[0].options[0].coordinates, [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 }
+  ]);
+});
+
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
   assert.equal(CONFIG.TOTAL_CELLS, 96); assert.equal(grid.length, 12); assert.ok(grid.every(r => r.length === 8)); assert.ok(assertGridDimensions(grid));
