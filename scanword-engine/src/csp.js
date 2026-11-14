@@ -247,6 +247,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
+    // QQCross answers may start only to the right or downward.
+    if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
     if (usedDirections?.has(orientation.direction)) continue;
