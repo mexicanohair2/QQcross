@@ -46,7 +46,7 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
-  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(3);
+  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(5);
   await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
@@ -560,7 +560,7 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 
 
 test("scanword clue cells follow the top-left reference anchors and show direction arrows", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setViewportSize({ width: 390, height: 693 });
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
