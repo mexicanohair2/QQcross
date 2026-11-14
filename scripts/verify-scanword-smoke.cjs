@@ -21,6 +21,7 @@ async function main() {
   const fingerprints = new Set();
   let specialRequested = 0;
   let specialGenerated = 0;
+  const directionCoverage = new Set();
 
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
@@ -43,6 +44,7 @@ async function main() {
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
     const shortAnswers = words.filter(word => word.length === 2);
+    for (const word of words) directionCoverage.add(word.direction);
     const special = result.scanword.metadata.specialElevenLetterQuestion === true;
     if (result.stats.specialElevenRequested) specialRequested++;
     if (special) specialGenerated++;
@@ -64,6 +66,7 @@ async function main() {
       fillPercent: Math.round((validation.metrics.questionCells + validation.metrics.letters) / 95 * 10000) / 100,
       crossings: validation.metrics.crossings,
       shortAnswers: shortAnswers.map(word => word.answer),
+      directions: [...new Set(words.map(word => word.direction))].sort(),
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
@@ -89,6 +92,7 @@ async function main() {
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
     distinctPuzzles: fingerprints.size,
+    directionCoverage: [...directionCoverage].sort(),
     averageAnswers: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.answerCount, 0) / successful.length * 100) / 100 : 0,
     averageQuestionCells: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.questionCells, 0) / successful.length * 100) / 100 : 0,
     averageFillPercent: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.fillPercent, 0) / successful.length * 100) / 100 : 0,
@@ -102,6 +106,7 @@ async function main() {
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
   assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
   assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
+  assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
   assert.ok(report.maxTwoLetterAnswers <= options.maxTwoLetterSlots, "Production puzzles must stay within the configured two-letter answer limit.");
