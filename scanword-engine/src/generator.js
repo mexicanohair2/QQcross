@@ -324,6 +324,13 @@ export function generateScanword(inputDictionary, options = {}) {
   const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
   const maxNodes = Math.max(500, options.maxNodes ?? 120000);
   const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 450);
+  // Special 11-letter puzzles need a little more CSP time: the full word
+  // constrains every left-to-right crossing. Keep ordinary puzzles on the
+  // normal interactive budget; cap special retries so the worker stays bounded.
+  const specialMaxCspTimeMs = Math.max(
+    maxCspTimeMs,
+    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
+  );
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
