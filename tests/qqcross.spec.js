@@ -57,7 +57,7 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+    return { columns: cssGridTrackCount(style.gridTemplateColumns), rows: cssGridTrackCount(style.gridTemplateRows), ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
   });
   expect(geometry.columns).toBe(8);
   expect(geometry.rows).toBe(12);
