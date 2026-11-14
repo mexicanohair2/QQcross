@@ -379,7 +379,7 @@ export function generateScanword(inputDictionary, options = {}) {
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
-    const specialPlan = useSpecial ? specialPlanPool[attempt] ?? null : null;
+    const specialPlan = useSpecial ? specialPlanPool[specialPlanOffset + attempt] ?? null : null;
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
