@@ -1,164 +1,158 @@
+const assert = require("node:assert/strict");
 const fs = require("node:fs");
-const vm = require("node:vm");
 const { performance } = require("node:perf_hooks");
 
-const app = fs.readFileSync("app.js", "utf8");
-const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
-const start = app.indexOf("function getScanwordDictionary(){");
-const end = app.indexOf("function clonePreparedScanword", start);
-if (start < 0 || end < 0) throw new Error("Scanword engine section not found");
-
-function seededRandom(seed) {
-  let state = seed >>> 0;
-  return () => {
-    state = (state * 1664525 + 1013904223) >>> 0;
-    return state / 4294967296;
+async function main() {
+  const { generateScanword } = await import("../scanword-engine/src/generator.js");
+  const { validateScanword } = await import("../scanword-engine/src/validator.js");
+  const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
+  const summaries = [];
+  const failures = [];
+  const timings = [];
+  let specialElevenCount = 0;
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const generationOptions = {
+    maxTopologyAttempts: 16,
+    maxNodes: 100000,
+    maxCspTimeMs: 1200,
+    specialTopologyAttempts: 2,
+    maxTwoLetterSlots: 6,
+    topologyMutationAttempts: 96,
+    requiredImageCount: 5,
+    minimumLogicClueCells: 3
   };
-}
 
-function validate(puzzle, run) {
-  if (!puzzle || puzzle.w !== 12 || puzzle.h !== 8) throw new Error("Run " + run + ": grid is not 12 columns × 8 rows");
-  const total = puzzle.w * puzzle.h;
-  if (puzzle.coverage !== 1 || puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0) !== total) {
-    throw new Error("Run " + run + ": incomplete coverage " + (puzzle.used.size + puzzle.clueKeys.size + (puzzle.reservedKeys?.size || 0)) + "/" + total);
-  }
-  if (!(puzzle.reservedKeys instanceof Set) || puzzle.reservedKeys.size !== 1 || !puzzle.reservedKeys.has("0,0")) {
-    throw new Error("Run " + run + ": top-left corner must be the only reserved blank tile");
-  }
-  if (puzzle.used.has("0,0") || puzzle.clueKeys.has("0,0")) throw new Error("Run " + run + ": top-left corner is not blank");
-  for (const key of puzzle.clueKeys) {
-    if (puzzle.used.has(key)) throw new Error("Run " + run + ": clue/letter overlap at " + key);
+  function stablePuzzle(scanword) {
+    return JSON.stringify({
+      dimensions: [scanword.width, scanword.height],
+      grid: scanword.grid.map(row => row.map(cell => [cell.type, cell.letter ?? null])),
+      words: scanword.words.map(word => ({
+        id: word.id,
+        entryId: word.entryId,
+        answer: word.answer,
+        question: word.question,
+        clue: word.clue,
+        direction: word.direction,
+        coordinates: word.coordinates,
+        imageKey: word.imageKey ?? null,
+        logic: word.logic === true,
+        special: word.special ?? null
+      }))
+    });
   }
 
-  const letters = new Map();
-  const owners = new Map();
-  const answers = new Set();
-  for (let i = 0; i < puzzle.words.length; i++) {
-    const word = puzzle.words[i];
-    if (!word.clue || !word.answer || word.answer.length !== word.cells.length) throw new Error("Run " + run + ": malformed word " + word.id);
-    if (answers.has(word.answer)) throw new Error("Run " + run + ": duplicate answer " + word.answer);
-    answers.add(word.answer);
-    const [cy, cx] = word.clueCell;
-    const directions = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
-    const delta = directions[word.dir];
-    if (!delta) throw new Error("Run " + run + ": invalid direction " + word.dir + " for " + word.id);
-    for (let k = 0; k < word.cells.length; k++) {
-      const expectedY = cy + delta[0] * (k + 1), expectedX = cx + delta[1] * (k + 1);
-      if (word.cells[k][0] !== expectedY || word.cells[k][1] !== expectedX) {
-        throw new Error("Run " + run + ": non-contiguous or misdirected cells in " + word.id);
-      }
-      if (word.answer[k] < "А" || word.answer[k] > "Я") throw new Error("Run " + run + ": invalid answer character in " + word.id);
-    }
-    if (cy < 0 || cx < 0 || cy >= puzzle.h || cx >= puzzle.w || !puzzle.clueKeys.has(cy + "," + cx)) throw new Error("Run " + run + ": invalid clue cell");
-    for (let k = 0; k < word.cells.length; k++) {
-      const [y, x] = word.cells[k];
-      if (y < 0 || x < 0 || y >= puzzle.h || x >= puzzle.w) throw new Error("Run " + run + ": out-of-bounds letter");
-      const key = y + "," + x;
-      if (puzzle.reservedKeys.has(key)) throw new Error("Run " + run + ": answer crosses the reserved blank corner");
-      if (puzzle.clueKeys.has(key)) throw new Error("Run " + run + ": answer crosses a clue cell");
-      if (letters.has(key) && letters.get(key) !== word.answer[k]) throw new Error("Run " + run + ": conflicting letter at " + key);
-      letters.set(key, word.answer[k]);
-      if (!owners.has(key)) owners.set(key, new Set());
-      owners.get(key).add(i);
-    }
-    const terminalY=cy+delta[0]*(word.answer.length+1),terminalX=cx+delta[1]*(word.answer.length+1),terminalKey=terminalY+","+terminalX;
-    if(terminalY<0||terminalX<0||terminalY>=puzzle.h||terminalX>=puzzle.w||!puzzle.clueKeys.has(terminalKey))throw new Error("Run "+run+": answer "+word.answer+" does not end at a question cell");
-  }
-  if (letters.size !== puzzle.used.size) throw new Error("Run " + run + ": unused occupied cells");
-  for (const key of puzzle.used) if (!letters.has(key)) throw new Error("Run " + run + ": orphan letter cell");
+  for (let run = 1; run <= 100; run++) {
+    const seed = 10000 + run * 7919;
+    const started = performance.now();
+    const result = generateScanword(dictionary, {
+      ...generationOptions,
+      seed,
+      sequenceIndex: run
+    });
+    const elapsedMs = Math.round(performance.now() - started);
+    timings.push(elapsedMs);
 
-  const graph = puzzle.words.map(() => new Set());
-  for (const set of owners.values()) {
-    const ids = [...set];
-    for (let i = 0; i < ids.length; i++) for (let j = i + 1; j < ids.length; j++) {
-      graph[ids[i]].add(ids[j]);
-      graph[ids[j]].add(ids[i]);
+    if (!result.ok) {
+      failures.push({
+        run,
+        seed,
+        reason: result.reason,
+        elapsedMs,
+        attempts: result.attempts,
+        rejectedReasons: result.rejectedReasons,
+        lastDiagnostic: result.lastDiagnostic?.errors?.slice?.(0, 5) ?? null
+      });
+      summaries.push({ run, seed, ok: false, reason: result.reason, elapsedMs });
+      continue;
     }
-  }
-  for (let i = 0; i < puzzle.words.length; i++) {
-    const a = puzzle.words[i], aKey = a.clueCell.join(",");
-    for (let j = i + 1; j < puzzle.words.length; j++) {
-      const b = puzzle.words[j], bKey = b.clueCell.join(",");
-      const [ay, ax] = a.clueCell, [by, bx] = b.clueCell;
-      const sharedClue = aKey === bKey;
-      const adjacentClueToAnswer = b.cells.some(([y,x]) => Math.abs(y-ay)+Math.abs(x-ax)===1) ||
-        a.cells.some(([y,x]) => Math.abs(y-by)+Math.abs(x-bx)===1);
-      const adjacentClueCells = Math.abs(ay-by)+Math.abs(ax-bx)===1;
-      if (sharedClue || adjacentClueToAnswer || adjacentClueCells) { graph[i].add(j); graph[j].add(i); }
-    }
-  }
-  const seen = new Set([0]);
-  const stack = [0];
-  while (stack.length) {
-    const i = stack.pop();
-    for (const j of graph[i]) if (!seen.has(j)) { seen.add(j); stack.push(j); }
-  }
-  if (seen.size !== puzzle.words.length) {
-    const disconnected = puzzle.words.map((word, index) => ({ index, answer: word.answer, clue: word.clue, clueCell: word.clueCell, dir: word.dir, cells: word.cells }))
-      .filter(word => !seen.has(word.index));
-    throw new Error("Run " + run + ": words are not connected by matching letters (" + seen.size + "/" + puzzle.words.length + "); disconnected=" + JSON.stringify(disconnected));
-  }
-  if (puzzle.words.length < 10) throw new Error("Run " + run + ": suspiciously few questions");
-  const startKeys = new Set(puzzle.words.map(word => word.clueCell.join(",")));
-  if (!startKeys.has("4,0") || !startKeys.has("0,1") || !startKeys.has("1,0")) throw new Error("Run " + run + ": missing fixed left/top clue anchors");
-  const topEdgeClues = [...puzzle.clueKeys].filter(key => key.startsWith("0,") && key !== "0,0").length;
-  const leftEdgeClues = [...puzzle.clueKeys].filter(key => key.endsWith(",0") && key !== "0,0").length;
-  const delta = { right: [0, 1], left: [0, -1], down: [1, 0], up: [-1, 0] };
-  const terminalKeys = new Set(puzzle.words.map(word => {
-    const [dy, dx] = delta[word.dir], last = word.cells[word.cells.length - 1];
-    return (last[0] + dy) + "," + (last[1] + dx);
-  }));
-  const playableClues = new Set([...startKeys, ...terminalKeys]);
-  for (const key of puzzle.clueKeys) if (!playableClues.has(key)) throw new Error("Run " + run + ": dangling question cell " + key);
-  if (topEdgeClues !== puzzle.w - 1 || leftEdgeClues !== puzzle.h - 1) throw new Error("Run " + run + ": incomplete reference borders (top=" + topEdgeClues + "/" + (puzzle.w - 1) + ", left=" + leftEdgeClues + "/" + (puzzle.h - 1) + ")");
-  const pictureWords = puzzle.words.filter(word => word.imageKey);
-  const pictureKeys = pictureWords.map(word => word.imageKey);
-  if (pictureKeys.length !== 5 || new Set(pictureKeys).size !== 5) {
-    throw new Error("Run " + run + ": expected five distinct picture clues, found " + pictureKeys.join(","));
-  }
-  const logicClueCells = new Set(puzzle.words.filter(word => word.logic).map(word => word.clueCell.join(",")));
-  if (logicClueCells.size < 3) {
-    throw new Error("Run " + run + ": expected at least three distinct logical clue cells, found " + logicClueCells.size);
-  }
-  const pictureAnswers = new Map([["airplane","САМОЛЕТ"],["apple","ЯБЛОКО"],["ball","МЯЧ"],["banana","БАНАН"],["bear","МЕДВЕДЬ"],["bee","ПЧЕЛА"],["bicycle","ВЕЛОСИПЕД"],["boat","ЛОДКА"],["book","КНИГА"],["bus","АВТОБУС"],["butterfly","БАБОЧКА"],["car","МАШИНА"],["carrot","МОРКОВЬ"],["cat","КОТ"],["clock","ЧАСЫ"],["cloud","ОБЛАКО"],["crocodile","КРОКОДИЛ"],["cucumber","ОГУРЕЦ"],["cup","ЧАШКА"],["dog","СОБАКА"],["dolphin","ДЕЛЬФИН"],["fish","РЫБА"],["fox","ЛИСА"],["giraffe","ЖИРАФ"],["grapes","ВИНОГРАД"],["guitar","ГИТАРА"],["hedgehog","ЕЖ"],["house","ДОМ"],["kangaroo","КЕНГУРУ"],["key","КЛЮЧ"],["lemon","ЛИМОН"],["lion","ЛЕВ"],["octopus","ОСЬМИНОГ"],["orange","АПЕЛЬСИН"],["owl","СОВА"],["parrot","ПОПУГАЙ"],["penguin","ПИНГВИН"],["snail","УЛИТКА"],["spider","ПАУК"],["strawberry","КЛУБНИКА"],["sun","СОЛНЦЕ"],["sunflower","ПОДСОЛНУХ"],["tiger","ТИГР"],["tomato","ПОМИДОР"],["whale","КИТ"],["zebra","ЗЕБРА"]]);
-  for (const word of pictureWords) {
-    if (pictureAnswers.get(word.imageKey) !== word.answer) {
-      throw new Error("Run " + run + ": picture " + word.imageKey + " does not match answer " + word.answer);
-    }
-  }
-  return { words: puzzle.words.length, clueCells: puzzle.clueKeys.size, letters: puzzle.used.size, topEdgeClues, leftEdgeClues, pictureKeys, logicalClueCells: logicClueCells.size };
-}
 
-const timings = [];
-const summaries = [];
-for (let run = 1; run <= 20; run++) {
-  const math = Object.create(Math);
-  math.random = seededRandom(run * 7919);
-  const context = {
-    window: { QQCROSS_DICTIONARY: dictionary },
-    localStorage: { getItem: () => "[]" },
-    Math: math,
-    Date,
-    Set,
-    Map,
-    console
+    const scanword = result.scanword;
+    const validation = validateScanword(scanword, dictionary, {
+      requiredImageCount: 5,
+      minimumLogicClueCells: 3,
+      requireLeftBorderClues: true,
+      requireTopAnchor: true,
+      requireConnected: true
+    });
+    assert.equal(validation.valid, true, "Independent validator rejected seed " + seed + ": " + JSON.stringify(validation.errors.slice(0, 8)));
+    assert.equal(scanword.width, 8);
+    assert.equal(scanword.height, 12);
+    assert.equal(scanword.grid.length, 12);
+    assert.ok(scanword.grid.every(row => row.length === 8));
+    assert.equal(scanword.grid.flat().length, 96);
+    assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
+    assert.equal(scanword.grid[0][0].type, "corner");
+    assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
+    assert.ok(scanword.words.filter(word => word.length === 2).length <= 6, "too many short answers on seed " + seed);
+    assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
+    assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
+    assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
+    for (const word of scanword.words) {
+      if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+    }
+    const imageWords = scanword.words.filter(word => word.imageKey);
+    assert.equal(imageWords.length, 5);
+    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
+    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, 5,
+      'five picture answers must occupy five visible clue cells on seed ' + seed);
+    assert.ok(new Set(scanword.words.filter(word => word.logic).map(word => word.clue.row + "," + word.clue.col)).size >= 3);
+    assert.ok(scanword.metadata.valid);
+    assert.ok(scanword.metadata.score >= 0 && scanword.metadata.score <= 100);
+
+    if (scanword.metadata.specialElevenLetterQuestion) specialElevenCount++;
+
+    if (run <= 3) {
+      const repeated = generateScanword(dictionary, {
+        ...generationOptions,
+        seed,
+        sequenceIndex: run
+      });
+      assert.equal(repeated.ok, true, "same-seed replay failed for " + seed);
+      assert.equal(stablePuzzle(repeated.scanword), stablePuzzle(scanword), "same seed must produce identical puzzle content: " + seed);
+    }
+
+    summaries.push({
+      run,
+      seed,
+      ok: true,
+      answers: scanword.words.length,
+      clueCells: validation.metrics.questionCells,
+      letterCells: validation.metrics.letters,
+      crossings: validation.metrics.crossings,
+      pictures: validation.metrics.imageCount,
+      logicCells: validation.metrics.logicClueCells,
+      specialEleven: scanword.metadata.specialElevenLetterQuestion,
+      score: scanword.metadata.score,
+      nodes: result.stats.nodes,
+      topologyAttempts: result.stats.topologyAttempts,
+      elapsedMs,
+      cspElapsedMs: result.stats.cspElapsedMs
+    });
+  }
+
+  const sorted = [...timings].sort((a, b) => a - b);
+  const report = {
+    dictionaryEntries: dictionary.length,
+    requestedRuns: 100,
+    successfulRuns: summaries.filter(item => item.ok).length,
+    failedRuns: failures.length,
+    specialElevenRuns: specialElevenCount,
+    directionCounts,
+    medianMs: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
+    p95Ms: sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : null,
+    maxMs: sorted.length ? sorted[sorted.length - 1] : null,
+    failures,
+    runs: summaries
   };
-  vm.createContext(context);
-  vm.runInContext(app.slice(start, end) + "\nglobalThis.__buildScanword = buildScanword;", context);
-  const t0 = performance.now();
-  let puzzle;
-  try { puzzle = context.__buildScanword(dictionary); }
-  catch (error) { throw new Error("Seed " + run + " (" + (run * 7919) + ") failed: " + error.message); }
-  const elapsed = performance.now() - t0;
-  timings.push(elapsed);
-  summaries.push({ run, ...validate(puzzle, run), ms: Math.round(elapsed) });
+  console.log(JSON.stringify(report, null, 2));
+
+  if (failures.length) {
+    throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
+  }
+  assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
 }
-timings.sort((a, b) => a - b);
-console.log(JSON.stringify({
-  dictionaryEntries: dictionary.length,
-  validRuns: summaries.length,
-  seedsChecked: 20,
-  medianMs: Math.round((timings[3] + timings[4]) / 2),
-  p95Ms: Math.round(timings[timings.length - 1]),
-  runs: summaries
-}, null, 2));
+
+main().catch(error => {
+  console.error(error);
+  process.exitCode = 1;
+});

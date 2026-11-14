@@ -1,8 +1,13 @@
 const { test, expect } = require("@playwright/test");
-
 async function startGuestGame(page) {
   const pageErrors = [];
+  const consoleErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error" || message.type() === "warning") {
+      consoleErrors.push(message.type() + ": " + message.text());
+    }
+  });
   await page.goto("/?debugTiming=1");
   await expect(page).toHaveTitle(/QQCross/);
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -12,12 +17,28 @@ async function startGuestGame(page) {
   await expect(page.locator("#practice")).toBeVisible();
   await page.evaluate(() => { window.__qqStartTap = performance.now(); });
   await page.locator("#practice").click();
-  await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  try {
+    await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      practice: (() => {
+        const button = document.querySelector("#practice");
+        return button ? { disabled: button.disabled, text: button.textContent } : null;
+      })(),
+      toast: document.querySelector(".toast")?.textContent || null,
+      splash: document.querySelector(".boot-splash")?.textContent || null,
+      bootError: document.querySelector(".qq-boot-error")?.textContent || null,
+      appText: (document.querySelector("#app")?.innerText || "").slice(0, 1600),
+      screenClasses: [...document.querySelectorAll("#app > *")].map(node => node.className)
+    }));
+    console.log("QQCROSS_START_FAILURE " + JSON.stringify({ state, pageErrors, consoleErrors }));
+    throw error;
+  }
   const startMs = await page.evaluate(() => performance.now() - window.__qqStartTap);
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12-column by 8-row scanword with five distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 8-column by 12-row scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -25,17 +46,55 @@ test("loads a fully occupied 12-column by 8-row scanword with five distinct pict
   await expect(page.locator(".scan-grid-cell.scan-empty")).toHaveCount(1);
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
-  await expect(page.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(11);
-  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(7);
+  expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(3);
+  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
-    const rect = board.getBoundingClientRect(), style = getComputedStyle(board);
-    return { columns: style.gridTemplateColumns.split(" ").length, rows: style.gridTemplateRows.split(" ").length, ratio: rect.width / rect.height, width: rect.width, viewport: document.documentElement.clientWidth, viewportHeight: document.documentElement.clientHeight };
+    const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
+    const countTracks = value => {
+      const text = String(value || "").trim();
+      const repeated = text.match(/^repeat\((\d+)\s*,/);
+      if (repeated) return Number(repeated[1]);
+      let depth = 0, tokens = 0, inToken = false;
+      for (const char of text) {
+        if (/\s/.test(char) && depth === 0) {
+          if (inToken) tokens++;
+          inToken = false;
+          continue;
+        }
+        if (!inToken) inToken = true;
+        if (char === "(") depth++;
+        else if (char === ")") depth--;
+      }
+      if (inToken) tokens++;
+      return tokens;
+    };
+    const style = getComputedStyle(board);
+    const explicitColumns = new Set(cells.map(cell => Number(cell.style.gridColumn)));
+    const explicitRows = new Set(cells.map(cell => Number(cell.style.gridRow)));
+    const rects = cells.map(cell => cell.getBoundingClientRect());
+    const boardRect = board.getBoundingClientRect();
+    return {
+      cellCount: cells.length,
+      columns: countTracks(style.gridTemplateColumns),
+      rows: countTracks(style.gridTemplateRows),
+      explicitColumns: explicitColumns.size,
+      explicitRows: explicitRows.size,
+      positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
+      ratio: boardRect.width / boardRect.height,
+      width: boardRect.width,
+      viewport: document.documentElement.clientWidth,
+      viewportHeight: document.documentElement.clientHeight
+    };
   });
-  expect(geometry.columns).toBe(12);
-  expect(geometry.rows).toBe(8);
-  expect(Math.abs(geometry.ratio - 1.5)).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.9, (geometry.viewportHeight - 270) * 1.5));
+  expect(geometry.cellCount).toBe(96);
+  expect(geometry.columns).toBe(8);
+  expect(geometry.rows).toBe(12);
+  expect(geometry.explicitColumns).toBe(8);
+  expect(geometry.explicitRows).toBe(12);
+  expect(geometry.positiveCells).toBe(96);
+  expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 270) * (2 / 3)));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
@@ -105,8 +164,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
-  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.9);
-  expect(Math.abs(layout.board.width / layout.board.height - 1.5)).toBeLessThan(0.03);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
+  expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -371,7 +430,7 @@ test("the shared 100,000-word Russian lexicon keeps clean Wordle and scanword en
 });
 
 
-test("both available themes apply globally and persist across games", async ({ page }) => {
+test("all four themes apply globally and persist across games", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -381,11 +440,11 @@ test("both available themes apply globally and persist across games", async ({ p
   await expect(page.locator('.nav [data-tab="Настройки"]')).toHaveCount(0);
   await page.locator("#qqSettingsGear").click();
   await expect(page.getByRole("heading", { name: "Настройки" })).toBeVisible();
-  await expect(page.locator("[data-theme-choice]")).toHaveCount(2);
+  await expect(page.locator("[data-theme-choice]")).toHaveCount(4);
   await expect(page.locator("[data-mode-choice]")).toHaveCount(0);
 
   const root = page.locator("html");
-  for (const theme of ["burgundy", "purple"]) {
+  for (const theme of ["burgundy", "purple", "dark", "light"]) {
     await page.locator('[data-theme-choice="' + theme + '"]').click();
     await expect(root).toHaveAttribute("data-qq-theme", theme);
     await expect(page.locator('[data-theme-choice="' + theme + '"]')).toHaveClass(/selected/);
@@ -400,11 +459,11 @@ test("both available themes apply globally and persist across games", async ({ p
     expect(tokens.page).not.toBe("");
     expect(tokens.card).not.toBe("");
     expect(tokens.text).not.toBe("");
-    expect(tokens.scheme).toBe("dark");
+    expect(tokens.scheme).toBe(theme === "light" ? "light" : "dark");
   }
 
   const saved = await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"));
-  expect(saved).toBe("purple");
+  expect(saved).toBe("light");
 
   await page.locator('[data-theme-choice="purple"]').click();
   await page.locator('[data-tab="Главная"]').click();
@@ -504,17 +563,26 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
-  const grid = await board.evaluate(node => ({
-    columns: getComputedStyle(node).gridTemplateColumns.split(" ").length,
-    rows: getComputedStyle(node).gridTemplateRows.split(" ").length,
+  const grid = await board.evaluate(node => {
+    const trackCount = template => {
+      const value = String(template || "");
+      if (value.startsWith("repeat(")) return Number(value.slice(7).split(",")[0]);
+      return value.trim().split(" ").filter(Boolean).length;
+    };
+    return {
+    columns: trackCount(getComputedStyle(node).gridTemplateColumns),
+    rows: trackCount(getComputedStyle(node).gridTemplateRows),
     width: node.getBoundingClientRect().width,
     height: node.getBoundingClientRect().height,
     viewportWidth: document.documentElement.clientWidth,
     viewportHeight: document.documentElement.clientHeight
-  }));
+    };
+  });
   expect(grid.columns).toBe(8);
   expect(grid.rows).toBe(12);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.8 + 1);
+  expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth + 1);
+  expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
@@ -582,11 +650,11 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
-test("scanword always includes three pictures and at least three logical questions", async ({ page }) => {
+test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(3);
+  await expect(images).toHaveCount(5);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);

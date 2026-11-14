@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main]
+    branches: [main, feature/qqcross-scanword-engine]
   pull_request:
     branches: [main]
 jobs:
@@ -29,3 +29,16 @@ jobs:
           python -m py_compile scripts/scanword_audit.py
       - name: Validate scanword data
         run: node scripts/validate-scanwords.js
+
+      - name: Verify GitHub Pages package includes runtime assets
+        run: |
+          rm -rf dist
+          mkdir -p dist
+          cp index.html app.js new-games.js progression.js encyclopedia.js audio.js wordle.js styles.css violet.css sw.js manifest.json icon.svg dist/
+          cp -R data assets wall-kickers scanword-engine dist/
+          test -f dist/scanword-engine/worker.js
+          test -f dist/scanword-engine/src/generator.js
+          test -f dist/scanword-engine/src/legacy-adapter.js
+          test -f dist/data/scanword-dictionary.json
+          test -f dist/assets/scanword/apple.svg
+          test -f dist/wall-kickers/index.html
