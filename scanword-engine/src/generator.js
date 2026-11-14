@@ -545,6 +545,7 @@ export function generateScanword(inputDictionary, options = {}) {
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
       scaffoldIndex: useSpecialTopology ? undefined : (options.normalScaffoldIndex ?? 4),
+      preserveScaffold: !useSpecialTopology && attempt === 0,
       specialSplitRows: specialPlan?.rows,
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
