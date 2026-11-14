@@ -95,6 +95,8 @@ async function main() {
     expectedSpecialElevenRange: [15, 35],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
+    medianTwoLetterAnswers: twoLetterCounts[Math.floor(twoLetterCounts.length/2)],
+    maximumTwoLetterAnswers: twoLetterCounts.at(-1),
     options,
     runs
   };
