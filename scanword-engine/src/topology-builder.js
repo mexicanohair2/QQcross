@@ -11,59 +11,52 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8],
   [3, 7],
-  [4, 7]
-]);
-
-const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
-  '#...#...',
-  '#...#...',
-  '#...#...',
-  '#......#',
-  '#....##.',
-  '#...#...',
-  '#...#...',
-  '#......#',
-  '#....##.',
-  '#.....#.',
-  '#......#'
+  [4, 8]
 ]);
 
 function createScaffold(extraRows) {
-  // Every row has a usable horizontal answer from the left border. A second
-  // interior chain at column 3 and a third at column 4 form vertical answers
-  // that cross those horizontals, so the extra clue cells remain one connected
-  // playable board. The right edge is only an answer boundary, not a clue wall.
-  const innerColumnThreeRows = new Set([1, 5]);
+  // Keep the left clue border and several top anchors. The two cells between
+  // the top-left anchor and the first upper interior anchor remain letters:
+  // making them clues would force a second unavoidable 11-letter down answer.
+  // Interior columns 3–6 carry staggered crossings; the right edge is open.
+  const col3Rows = new Set([1, 5]);
+  const col5Rows = new Set([3, 7]);
+  const col6Rows = new Set([4, 8]);
+  const rightEdgeRows = new Set([3, 6, 9]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
-      cells[1] = '#';
-      cells[4] = '#';
-      cells[7] = '#';
+      for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
     } else {
       cells[0] = '#';
-      if (innerColumnThreeRows.has(row)) cells[3] = '#';
+      if (col3Rows.has(row)) cells[3] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
-      cells[7] = '#';
+      if (col5Rows.has(row)) cells[5] = '#';
+      if (col6Rows.has(row)) cells[6] = '#';
+      if (rightEdgeRows.has(row)) cells[7] = '#';
     }
     return cells.join('');
   });
 }
 
 function createSpecialScaffold(extraRows) {
-  // The optional eleven-letter answer needs column 3 clear and its own
-  // separately validated boundary layout.
+  // Column 1 is reserved for the optional eleven-letter answer. Column 3
+  // remains letter-only so every left-border clue keeps a valid horizontal
+  // answer; other interior columns still create multiple crossing chains.
+  const col5Rows = new Set([3, 7]);
+  const col6Rows = new Set([4, 8]);
+  const rightEdgeRows = new Set([3, 6, 9]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
-      cells[1] = '#';
-      cells[4] = '#';
+      for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
     } else {
       cells[0] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
+      if (col5Rows.has(row)) cells[5] = '#';
+      if (col6Rows.has(row)) cells[6] = '#';
+      if (rightEdgeRows.has(row)) cells[7] = '#';
     }
-    cells[7] = '#';
     return cells.join('');
   });
 }
@@ -93,9 +86,9 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 2) return null;
+  if (countTopQuestions(matrix) < 5) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
+  if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -108,13 +101,14 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowOuterBoundarySlots: true
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
@@ -192,7 +186,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
-  const requiredInterior = 3;
+  const requiredInterior = 8;
   if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
     return { candidate: null, accepted, tried };
   }
@@ -299,7 +293,7 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven
   });
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true });
   return {
     pattern: rows,
     valid: validation.valid,
