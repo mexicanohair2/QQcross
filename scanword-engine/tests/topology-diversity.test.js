@@ -73,8 +73,8 @@ test('ordinary production scaffold borrows the proven special crossing geometry 
     '#.......',
     '#.......',
     '#...#...',
-    '#....###',
-    '#.....#.',
+    '#....##.',
+    '#.....##',
     '#.......'
   ]);
   assert.equal(result.ok, true, JSON.stringify(result));
