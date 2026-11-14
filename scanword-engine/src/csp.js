@@ -80,6 +80,58 @@ function validateSlotGeometry(slot) {
     );
   }
 
+  if (slot.special === 'OUTER_BOUNDARY') {
+    if (
+      slot.directionOptions.length !== 1
+      || slot.endpoints[0]?.boundary
+      || !slot.endpoints[1]?.boundary
+      || !Number.isInteger(slot.length)
+      || slot.length < 2
+      || slot.length > CONFIG.MAX_WORD_LENGTH
+    ) return false;
+    const clue = slot.endpoints[0];
+    const terminal = slot.endpoints[1];
+    const option = slot.directionOptions[0];
+    if (
+      pointKey(option.clueCell) !== pointKey(clue)
+      || !option.terminalCell?.boundary
+      || pointKey(option.terminalCell) !== pointKey(terminal)
+      || !Array.isArray(option.coordinates)
+      || option.coordinates.length !== slot.length
+    ) return false;
+    if (option.direction === 'right') {
+      if (
+        clue.row < 0 || clue.row >= CONFIG.HEIGHT
+        || clue.col < 0 || clue.col >= CONFIG.WIDTH - 1
+        || terminal.row !== clue.row
+        || terminal.col !== CONFIG.WIDTH
+        || slot.length !== CONFIG.WIDTH - clue.col - 1
+      ) return false;
+      return option.coordinates.every((coordinate, index) =>
+        coordinate.row === clue.row
+        && coordinate.col === clue.col + index + 1
+        && slot.coordinates[index]?.row === coordinate.row
+        && slot.coordinates[index]?.col === coordinate.col
+      );
+    }
+    if (option.direction === 'down') {
+      if (
+        clue.row < 0 || clue.row >= CONFIG.HEIGHT - 1
+        || clue.col < 0 || clue.col >= CONFIG.WIDTH
+        || terminal.row !== CONFIG.HEIGHT
+        || terminal.col !== clue.col
+        || slot.length !== CONFIG.HEIGHT - clue.row - 1
+      ) return false;
+      return option.coordinates.every((coordinate, index) =>
+        coordinate.row === clue.row + index + 1
+        && coordinate.col === clue.col
+        && slot.coordinates[index]?.row === coordinate.row
+        && slot.coordinates[index]?.col === coordinate.col
+      );
+    }
+    return false;
+  }
+
   if (
     slot.endpoints.some(endpoint =>
       endpoint.boundary
@@ -238,6 +290,10 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
     || b.priority - a.priority
     || a.tie - b.tie
   );
+}
+
+function countDistinctCandidateAnswers(candidates) {
+  return new Set(candidates.map(candidate => canonicalAnswerKey(candidate.entry.answer))).size;
 }
 
 function makePlacementCandidates(slot, state, indexes, options, random) {
@@ -422,12 +478,16 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
 
   function recordSearchChoice(slot, candidates) {
     if (!options.captureTrace || searchTrace.length >= 120) return;
+    const distinctAnswers = [...new Set(candidates.map(candidate =>
+      canonicalAnswerKey(candidate.entry.answer)
+    ))];
     searchTrace.push({
       depth: state.assignments.size,
       slotId: slot.id,
       length: slot.length,
-      candidateCount: candidates.length,
-      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer)
+      candidateCount: distinctAnswers.length,
+      variantCount: candidates.length,
+      firstAnswers: distinctAnswers.slice(0, 5)
     });
   }
 
@@ -542,8 +602,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
       if (
         chosenCandidates === null
-        || candidates.length < chosenCandidates.length
-        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+        || countDistinctCandidateAnswers(candidates) < countDistinctCandidateAnswers(chosenCandidates)
+        || (countDistinctCandidateAnswers(candidates) === countDistinctCandidateAnswers(chosenCandidates) && slotDegree > chosenDegree)
       ) {
         chosenSlot = slot;
         chosenCandidates = candidates;
@@ -711,8 +771,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
-          || candidates.length < chosenCandidates.length
-          || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+          || countDistinctCandidateAnswers(candidates) < countDistinctCandidateAnswers(chosenCandidates)
+          || (countDistinctCandidateAnswers(candidates) === countDistinctCandidateAnswers(chosenCandidates) && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
           chosenCandidates = candidates;
@@ -827,6 +887,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     nodes,
     deepest,
     elapsedMs,
+    ...(options.captureTrace ? { searchTrace } : {}),
     dictionaryStats: prepared.stats
   };
 }

@@ -33,6 +33,35 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
 });
 
+test('AC-3 uses candidate-specific coordinates for reversed directions', () => {
+  const domains = [
+    {
+      slot: { coordinates: [{ row: 0, col: 0 }, { row: 0, col: 1 }] },
+      options: [
+        {
+          entry: { answer: 'AB' },
+          coordinates: [{ row: 0, col: 1 }, { row: 0, col: 0 }]
+        },
+        {
+          entry: { answer: 'AB' },
+          coordinates: [{ row: 0, col: 0 }, { row: 0, col: 1 }]
+        }
+      ]
+    },
+    {
+      slot: { coordinates: [{ row: 0, col: 1 }] },
+      options: [{ entry: { answer: 'B' } }]
+    }
+  ];
+
+  assert.equal(enforceCrossingArcConsistency(domains), true);
+  assert.equal(domains[0].options.length, 1);
+  assert.deepEqual(domains[0].options[0].coordinates, [
+    { row: 0, col: 0 },
+    { row: 0, col: 1 }
+  ]);
+});
+
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
   assert.equal(CONFIG.TOTAL_CELLS, 96); assert.equal(grid.length, 12); assert.ok(grid.every(r => r.length === 8)); assert.ok(assertGridDimensions(grid));
@@ -481,36 +510,59 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator reject left/up scanword answers', () => {
-  const leftWord = {
-    id: 'left-word', entryId: 'cat', answer: 'КОТ',
-    question: 'Домашнее животное из семейства кошачьих.',
-    clue: { row: 1, col: 4 }, direction: 'left',
-    coordinates: [
-      { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
-    ]
-  };
-  const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
-  assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+test('assembler and independent validator accept all four answer directions', () => {
+  const cases = [
+    {
+      direction: 'right',
+      clue: { row: 2, col: 0 },
+      coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
+    },
+    {
+      direction: 'left',
+      clue: { row: 2, col: 4 },
+      coordinates: [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
+    },
+    {
+      direction: 'down',
+      clue: { row: 0, col: 2 },
+      coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
+    },
+    {
+      direction: 'up',
+      clue: { row: 4, col: 2 },
+      coordinates: [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
+    }
+  ];
 
-  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
-  grid[0][0].type = 'corner';
-  grid[1][4] = { row: 1, col: 4, type: 'question', letter: null, questionIds: ['q-left'], wordIds: [] };
-  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
-  leftWord.coordinates.forEach((point, index) => {
-    grid[point.row][point.col] = {
-      ...grid[point.row][point.col], type: 'letter',
-      letter: leftWord.answer[index], questionIds: [], wordIds: [leftWord.id]
-    };
-  });
-  const validation = validateScanword({
-    width: 8, height: 12, grid,
-    words: [leftWord],
-    questions: [{
-      id: 'q-left', wordId: leftWord.id, text: leftWord.question,
-      clue: leftWord.clue, direction: 'left', length: 3
-    }]
-  }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  for (const item of cases) {
+    const assembled = assembleScanword({
+      seed: 17,
+      words: [{
+        id: 'word-' + item.direction,
+        entryId: 'test-entry',
+        answer: 'КОТ',
+        question: 'Тестовая подсказка для слова.',
+        clue: item.clue,
+        direction: item.direction,
+        coordinates: item.coordinates
+      }]
+    });
+
+    assert.equal(assembled.ok, true, item.direction + ': ' + JSON.stringify(assembled.errors));
+    assert.equal(assembled.scanword.words[0].direction, item.direction);
+
+    const checked = validateScanword(assembled.scanword, [], {
+      requireBorderClues: false,
+      requireLeftBorderClues: false,
+      requireTopAnchor: false,
+      requireConnected: false,
+      requiredImageCount: 0,
+      minimumLogicClueCells: 0
+    });
+    assert.equal(
+      checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
+      false,
+      item.direction + ' must be accepted by the independent validator'
+    );
+  }
 });

@@ -36,48 +36,60 @@ function canAssignDistinctShortAnswers(domains) {
 }
 
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
-  const positions = domains.map(domain => new Map(
-    domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
+  // Slot coordinates describe physical cells; each candidate's coordinates
+  // describe the order in which its answer letters are written. These orders
+  // differ for left/up orientations and must never be mixed.
+  const slotKeys = domains.map(domain => new Set(
+    domain.slot.coordinates.map(point => point.row + ',' + point.col)
   ));
   const neighbors = domains.map(() => []);
 
   for (let left = 0; left < domains.length; left++) {
     for (let right = left + 1; right < domains.length; right++) {
-      const shared = [];
-      for (const [key, leftPosition] of positions[left]) {
-        const rightPosition = positions[right].get(key);
-        if (rightPosition !== undefined) shared.push([leftPosition, rightPosition]);
-      }
-      if (!shared.length) continue;
-      neighbors[left].push({ other: right, pairs: shared });
-      neighbors[right].push({
-        other: left,
-        pairs: shared.map(([leftPosition, rightPosition]) => [rightPosition, leftPosition])
-      });
+      const sharedKeys = [...slotKeys[left]].filter(key => slotKeys[right].has(key));
+      if (!sharedKeys.length) continue;
+      neighbors[left].push({ other: right, sharedKeys });
+      neighbors[right].push({ other: left, sharedKeys });
     }
   }
 
   const queue = [];
   for (let self = 0; self < neighbors.length; self++) {
     for (const relation of neighbors[self]) {
-      queue.push({ self, other: relation.other, pairs: relation.pairs });
+      queue.push({ self, other: relation.other, sharedKeys: relation.sharedKeys });
     }
   }
 
   const letterKey = value => foldYo && value === 'Ё' ? 'Е' : value;
+  const signatureFor = (domain, option, sharedKeys) => {
+    const coordinates = Array.isArray(option.coordinates) && option.coordinates.length
+      ? option.coordinates
+      : domain.slot.coordinates;
+    const positions = new Map(coordinates.map((point, index) => [
+      point.row + ',' + point.col,
+      index
+    ]));
+    const letters = [];
+    for (const key of sharedKeys) {
+      const position = positions.get(key);
+      if (position === undefined || typeof option.entry?.answer?.[position] !== 'string') return null;
+      letters.push(letterKey(option.entry.answer[position]));
+    }
+    return letters.join('');
+  };
+
   while (queue.length) {
     const arc = queue.shift();
     const ownDomain = domains[arc.self];
     const otherDomain = domains[arc.other];
-    const supportedSignatures = new Set(otherDomain.options.map(option =>
-      arc.pairs.map(([, otherPosition]) => letterKey(option.entry.answer[otherPosition])).join('')
-    ));
+    const supportedSignatures = new Set(otherDomain.options
+      .map(option => signatureFor(otherDomain, option, arc.sharedKeys))
+      .filter(signature => signature !== null));
 
-    const revised = ownDomain.options.filter(option =>
-      supportedSignatures.has(
-        arc.pairs.map(([ownPosition]) => letterKey(option.entry.answer[ownPosition])).join('')
-      )
-    );
+    const revised = ownDomain.options.filter(option => {
+      const signature = signatureFor(ownDomain, option, arc.sharedKeys);
+      return signature !== null && supportedSignatures.has(signature);
+    });
     if (revised.length === ownDomain.options.length) continue;
 
     const removedCount = ownDomain.options.length - revised.length;
@@ -88,7 +100,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
         diagnostics.failure = {
           slotId: ownDomain.slot.id,
           againstSlotId: otherDomain.slot.id,
-          sharedPositions: arc.pairs.map(([ownPosition, otherPosition]) => ({ ownPosition, otherPosition })),
+          sharedCells: arc.sharedKeys,
           survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
         };
       }
@@ -100,8 +112,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
       queue.push({
         self: relation.other,
         other: arc.self,
-        // Reversing arc direction also reverses each shared-cell index pair.
-        pairs: relation.pairs.map(([selfPosition, otherPosition]) => [otherPosition, selfPosition])
+        sharedKeys: relation.sharedKeys
       });
     }
   }
@@ -109,38 +120,126 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
   return domains.every(domain => domain.options.length > 0);
 }
 
+function prepareTopologyDomains(slots, indexes, options = {}) {
+  const foldYo = options.foldYo === true;
+  const requiredImageCount = options.requiredImageCount ?? 5;
+  const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
+  const domains = [];
+  let availableVariants = 0;
+
+  // Every slot has two endpoints, and either endpoint may host the clue.
+  // Preserve both orientations so production can use right/left/down/up.
+  for (const slot of slots) {
+    const candidates = indexes.byLength.get(slot.length) ?? [];
+    const domainOptions = [];
+    for (const orientation of slot.directionOptions ?? []) {
+      for (const entry of candidates) {
+        if (slot.length === 2
+          && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(entry.answer, { foldYo }))) {
+          continue;
+        }
+        domainOptions.push({
+          entry,
+          coordinates: orientation.coordinates,
+          clueCell: orientation.clueCell,
+          direction: orientation.direction
+        });
+      }
+    }
+    if (!domainOptions.length) {
+      return {
+        ok: false,
+        reason: 'EMPTY_DICTIONARY_DOMAIN',
+        slotId: slot.id,
+        slotLength: slot.length,
+        domains: domains.length
+      };
+    }
+    availableVariants += domainOptions.length;
+    domains.push({ slot, options: domainOptions });
+  }
+
+  const arcDiagnostics = {};
+  if (!enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics)) {
+    return {
+      ok: false,
+      reason: 'CROSSING_ARC_CONSISTENCY_FAILED',
+      ...arcDiagnostics,
+      domains: domains.length,
+      availableVariants
+    };
+  }
+
+  const shortDomains = domains
+    .filter(domain => domain.slot.length === 2)
+    .map(domain => new Set(domain.options.map(option =>
+      canonicalAnswerKey(option.entry.answer, { foldYo })
+    )));
+  if (!canAssignDistinctShortAnswers(shortDomains)) {
+    return {
+      ok: false,
+      reason: 'SHORT_ANSWER_MATCHING_FAILED',
+      domains: domains.length,
+      shortDomainSizes: shortDomains.map(domain => domain.size)
+    };
+  }
+
+  const imageKeys = new Set();
+  const imageClueKeys = new Set();
+  const logicClueKeys = new Set();
+  for (const domain of domains) {
+    for (const option of domain.options) {
+      const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+      if (option.entry.imageKey) {
+        imageKeys.add(option.entry.imageKey);
+        imageClueKeys.add(clueKey);
+      }
+      if (option.entry.logic) logicClueKeys.add(clueKey);
+    }
+  }
+  if (imageKeys.size < requiredImageCount || imageClueKeys.size < requiredImageCount
+    || logicClueKeys.size < minimumLogicClueCells) {
+    return {
+      ok: false,
+      reason: 'CONTENT_DOMAINS_INSUFFICIENT',
+      domains: domains.length,
+      imageKeys: imageKeys.size,
+      imageClueCells: imageClueKeys.size,
+      logicClueCells: logicClueKeys.size,
+      requiredImageCount,
+      minimumLogicClueCells
+    };
+  }
+
+  return {
+    ok: true,
+    allowedEntryIdsBySlot: new Map(domains.map(domain => [
+      domain.slot.id,
+      new Set(domain.options.map(option => option.entry.id))
+    ])),
+    diagnostics: {
+      domains: domains.length,
+      availableVariants,
+      remainingVariants: domains.reduce((count, domain) => count + domain.options.length, 0),
+      shortDomainSizes: shortDomains.map(domain => domain.size),
+      imageKeys: imageKeys.size,
+      imageClueCells: imageClueKeys.size,
+      logicClueCells: logicClueKeys.size,
+      arcRemovedOptions: arcDiagnostics.removedOptions ?? 0
+    }
+  };
+}
+
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
-
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
-      includeSpecialEleven: true,
-      specialSplitRows: rows,
-      maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
-    })
-  })).filter(item => item.result.ok);
-
-  // The independently audited two-short-slot layout is valid only when its
-  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
-  // candidate instead of trying to use it for ordinary disconnected boards.
-  const lowShortPattern = getTopologyScaffolds()[3];
+  // Special 11-letter boards use the dedicated sparse-edge scaffold.
+  // The general open-edge topology has additional boundary slots that are
+  // useful for ordinary boards but make the long-answer CSP unnecessarily
+  // constrained. Keep this special template isolated and independently checked.
+  const lowShortPattern = getTopologyScaffolds()[5];
   const lowShortTopology = generateTopology({
     seed: 1,
     includeSpecialEleven: true,
@@ -148,14 +247,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxAttempts: 1,
     maxTwoLetterSlots: 4
   });
-  if (lowShortTopology.ok) {
-    topologies.push({
-      rows: [3, 7, 11],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
-      result: lowShortTopology
-    });
-  }
+  const topologies = lowShortTopology.ok
+    ? [{
+        rows: [3, 7, 10],
+        patternKey: 'low-short',
+        specialPattern: lowShortPattern,
+        result: lowShortTopology
+      }]
+    : [];
 
   const plans = [];
   const uniqueAnswers = new Set();
@@ -191,7 +290,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -204,7 +302,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id, {
+            candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
               coordinates: orientation.coordinates
             });
@@ -400,16 +498,15 @@ export function generateScanword(inputDictionary, options = {}) {
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
-  // Prefer exactly one low-short topology attempt when it has a compatible
-  // dictionary/CSP domain, then retain the best conventional topology as the
-  // bounded fallback. Do not spend both retries on near-identical templates.
+  // Prefer the low-short special topology when its dictionary/CSP domain is
+  // compatible, then retain the other validated layouts as fallbacks.
   const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
   const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
   const specialPlanSequence = firstLowShortPlan
@@ -430,6 +527,14 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
+  // Only ordinary scaffolds 3 and 4 satisfy both the production
+  // short-answer cap and the minimum interior-clue count. Scaffold 2 is
+  // geometrically valid in isolation but has too few interior clue cells.
+  const normalScaffoldSequence = [4, 3];
+  const requestedScaffold = Number.isInteger(options.normalScaffoldIndex)
+    ? options.normalScaffoldIndex
+    : 4;
+  const requestedScaffoldOffset = Math.max(0, normalScaffoldSequence.indexOf(requestedScaffold));
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -455,12 +560,16 @@ export function generateScanword(inputDictionary, options = {}) {
     const topologyResult = generateTopology({
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
+      scaffoldIndex: useSpecialTopology
+        ? undefined
+        : normalScaffoldSequence[(requestedScaffoldOffset + attempt - specialAttempts + normalScaffoldSequence.length) % normalScaffoldSequence.length],
+      preserveScaffold: !useSpecialTopology && attempt === 0,
       specialSplitRows: specialPlan?.rows,
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 6)
-        : (options.maxTwoLetterSlots ?? 6)
+        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 8)
+        : (options.maxTwoLetterSlots ?? 3)
     });
 
     if (!topologyResult.ok) {
@@ -488,6 +597,25 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
+    const domainPlan = useSpecialTopology
+      ? { ok: true, allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot }
+      : prepareTopologyDomains(topology.slots, indexes, {
+          foldYo: options.foldYo === true,
+          requiredImageCount,
+          minimumLogicClueCells
+        });
+    if (!domainPlan.ok) {
+      countFailure(rejectedReasons, domainPlan.reason);
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: domainPlan.reason,
+        ...(options.capturePlanDiagnostics ? { domainDiagnostics: domainPlan } : {})
+      });
+      bestDiagnostic = domainPlan;
+      continue;
+    }
+
     const cspSeed = (seed ^ Math.imul(attempt + 1, 104729)) >>> 0;
     const solved = solveSlotsCsp(topology.slots, inputDictionary, {
       seed: cspSeed,
@@ -499,13 +627,13 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
-      allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      allowedEntryIdsBySlot: domainPlan.allowedEntryIdsBySlot,
       captureTrace: options.captureTrace === true
     });
 

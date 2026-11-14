@@ -13,7 +13,7 @@ async function main() {
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
-    maxTwoLetterSlots: 6,
+    maxTwoLetterSlots: 3,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
   };
@@ -21,15 +21,16 @@ async function main() {
   const fingerprints = new Set();
   let specialRequested = 0;
   let specialGenerated = 0;
+  const directionCoverage = new Set();
 
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
+    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 1 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
-      runs.push({ index, seed, ok: false, elapsedMs, reason: result.reason, rejectedReasons: result.rejectedReasons });
+      runs.push({ index, seed, ok: false, elapsedMs, reason: result.reason, rejectedReasons: result.rejectedReasons, lastDiagnostic: result.lastDiagnostic ?? null, attempts: (result.attempts ?? []).map(item => ({ attempt: item.attempt, reason: item.reason, nodes: item.nodes, deepest: item.deepest, elapsedMs: item.elapsedMs, lastDeadEnd: item.lastDeadEnd, deepestDeadEnd: item.deepestDeadEnd, searchTrace: item.searchTrace ?? null })) });
       continue;
     }
 
@@ -43,6 +44,7 @@ async function main() {
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
     const shortAnswers = words.filter(word => word.length === 2);
+    for (const word of words) directionCoverage.add(word.direction);
     const special = result.scanword.metadata.specialElevenLetterQuestion === true;
     if (result.stats.specialElevenRequested) specialRequested++;
     if (special) specialGenerated++;
@@ -56,6 +58,7 @@ async function main() {
     runs.push({
       index,
       seed,
+      scaffoldIndex: result.topology.scaffoldIndex,
       ok: validation.valid,
       elapsedMs,
       answerCount: words.length,
@@ -64,6 +67,7 @@ async function main() {
       fillPercent: Math.round((validation.metrics.questionCells + validation.metrics.letters) / 95 * 10000) / 100,
       crossings: validation.metrics.crossings,
       shortAnswers: shortAnswers.map(word => word.answer),
+      directions: [...new Set(words.map(word => word.direction))].sort(),
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
@@ -89,6 +93,8 @@ async function main() {
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
     distinctPuzzles: fingerprints.size,
+    directionCoverage: [...directionCoverage].sort(),
+    ordinaryScaffoldsUsed: [...new Set(successful.filter(run => Number.isInteger(run.scaffoldIndex) && run.scaffoldIndex >= 0).map(run => run.scaffoldIndex))].sort((a, b) => a - b),
     averageAnswers: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.answerCount, 0) / successful.length * 100) / 100 : 0,
     averageQuestionCells: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.questionCells, 0) / successful.length * 100) / 100 : 0,
     averageFillPercent: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.fillPercent, 0) / successful.length * 100) / 100 : 0,
@@ -102,9 +108,11 @@ async function main() {
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
   assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
   assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
+  assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
+  assert.ok(report.ordinaryScaffoldsUsed.length >= 3, 'Production must use at least three independently validated ordinary topologies across the batch.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
-  assert.ok(report.maxTwoLetterAnswers <= 6, "Production puzzles must contain at most six two-letter answers.");
+  assert.ok(report.maxTwoLetterAnswers <= options.maxTwoLetterSlots, "Production puzzles must stay within the configured two-letter answer limit.");
   assert.ok(report.p95Ms <= 4000, "20-puzzle p95 exceeds the 4-second performance budget.");
   assert.ok(report.distinctPuzzles >= 18, "The 20 seeds did not produce enough distinct puzzles.");
 }
