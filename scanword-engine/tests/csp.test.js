@@ -553,3 +553,29 @@ test('allows curated two-letter Russian words and rejects pronoun filler', () =>
   );
   assert.equal(filler.ok, false, 'A two-letter pronoun must not fill a scanword slot.');
 });
+
+
+test('CSP never places answers to the left or upward even when reverse orientations are available', () => {
+  const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
+    { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
+  ], 'right', 'left');
+  const vertical = slot('vertical-forward', { row: 0, col: 6 }, { row: 4, col: 6 }, [
+    { row: 1, col: 6 }, { row: 2, col: 6 }, { row: 3, col: 6 }
+  ], 'down', 'up');
+  const dictionary = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
+
+  for (let seed = 1; seed <= 64; seed++) {
+    const h = solveSlotsCsp([horizontal], dictionary, {
+      seed, requiredImageCount: 0, minimumLogicClueCells: 0,
+      requireEveryClueStarts: false, maxNodes: 100, maxTimeMs: 500
+    });
+    const v = solveSlotsCsp([vertical], dictionary, {
+      seed, requiredImageCount: 0, minimumLogicClueCells: 0,
+      requireEveryClueStarts: false, maxNodes: 100, maxTimeMs: 500
+    });
+    assert.equal(h.ok, true, h.message);
+    assert.equal(v.ok, true, v.message);
+    assert.equal(h.words[0].direction, 'right', 'seed=' + seed);
+    assert.equal(v.words[0].direction, 'down', 'seed=' + seed);
+  }
+});
