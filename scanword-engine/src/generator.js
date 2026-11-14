@@ -124,7 +124,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     includeSpecialEleven: true,
     specialPattern: lowShortPattern,
     maxAttempts: 1,
-    maxTwoLetterSlots: 4
+    maxTwoLetterSlots: 1
   });
   const topologies = lowShortTopology.ok
     ? [{
@@ -436,8 +436,8 @@ export function generateScanword(inputDictionary, options = {}) {
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 8)
-        : (options.maxTwoLetterSlots ?? 8)
+        ? (specialPlan?.patternKey === 'low-short' ? 1 : options.specialMaxTwoLetterSlots ?? 8)
+        : (options.maxTwoLetterSlots ?? 1)
     });
 
     if (!topologyResult.ok) {
