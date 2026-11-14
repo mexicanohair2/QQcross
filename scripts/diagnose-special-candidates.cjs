@@ -21,11 +21,8 @@ async function main() {
   for (let candidateIndex = 0; candidateIndex < candidates.length && !successful; candidateIndex++) {
     const answer = candidates[candidateIndex];
     const constrainedDictionary = dictionary.filter(entry =>
-      String(entry.answer ?? "").toLocaleUpperCase("ru-RU").replace(/Ё/gu, "Е") !== "ПРИКЛЮЧЕНИЕ"
-      || answer === "ПРИКЛЮЧЕНИЕ"
-    ).filter(entry =>
       String(entry.answer ?? "").length !== 11
-      || String(entry.answer ?? "").toLocaleUpperCase("ru-RU").replace(/Ё/gu, "Е") === answer.replace(/Ё/gu, "Е")
+      || String(entry.answer ?? "").toLocaleUpperCase("ru-RU").replace(/Ё/gu, "Е') === answer.replace(/Ё/gu, "Е')
     );
 
     for (let trial = 0; trial < trialsPerAnswer; trial++) {
