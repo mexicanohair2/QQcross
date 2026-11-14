@@ -31,3 +31,5 @@ jobs:
         run: node scripts/diagnose-border-compatible-topology.cjs
       - name: Stress-test normal full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs
+      - name: Verify 100 deterministic boards, distinct picture cells, and optional eleven-letter frequency
+        run: node scripts/verify-scanword.cjs
