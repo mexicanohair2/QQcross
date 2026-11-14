@@ -493,7 +493,7 @@ test('CSP cannot place ЕЖ and ЁЖ as two answers in one puzzle', () => {
 });
 
 
-test('allows only an approved picture-backed two-letter scanword answer', () => {
+test('prefers a picture-backed answer among the curated two-letter candidates', () => {
   const slots = [slot(
     'short-picture',
     { row: 0, col: 1 },
@@ -522,4 +522,30 @@ test('allows only an approved picture-backed two-letter scanword answer', () => 
   assert.equal(result.ok, true, result.message);
   assert.equal(result.words[0].answer, 'ЁЖ');
   assert.equal(result.words[0].imageKey, 'hedgehog');
+});
+
+
+test('CSP can assign a curated two-letter answer without image metadata', () => {
+  const slots = [slot(
+    'short-text',
+    { row: 0, col: 1 },
+    { row: 0, col: 4 },
+    [{ row: 0, col: 2 }, { row: 0, col: 3 }],
+    'right',
+    'left'
+  )];
+  const dictionary = [
+    { id: 'poison', answer: 'ЯД', question: 'Вещество, способное вызвать отравление.' }
+  ];
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 92,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ЯД');
+  assert.equal(result.words[0].imageKey, null);
 });
