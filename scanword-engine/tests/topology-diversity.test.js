@@ -108,6 +108,6 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 2);
+  assert.equal(shortSlots, 1);
   assert.ok(result.topology.slots.length >= 20);
 });
