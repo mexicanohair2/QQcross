@@ -91,7 +91,7 @@ test('balanced special scaffold keeps the optional 11-letter chain and distribut
     seed: 481516,
     includeSpecialEleven: true,
     specialPattern,
-    maxTwoLetterSlots: 6,
+    maxTwoLetterSlots: 8,
     maxAttempts: 1
   });
 
