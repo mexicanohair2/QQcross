@@ -33,3 +33,11 @@ jobs:
         run: node scripts/verify-scanword-smoke.cjs
       - name: Stress-test 100 consecutive full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs
+      - name: Preserve seeded scanword validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qqcross-scanword-validation-${{ github.run_number }}
+          path: artifacts/*.json
+          if-no-files-found: warn
+          retention-days: 30

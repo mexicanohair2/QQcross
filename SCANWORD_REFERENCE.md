@@ -3,10 +3,17 @@
 ## Official interactive generator reference
 
 - **Kryss Crossword Maker:** https://kryss.app/maker
-- This is the reference generator to inspect when evaluating the grid-building workflow and the way text/picture clues are authored.
+- This is the project-approved maker/editor reference for grid setup and text/picture clue authoring. The public page describes choosing grid size, language and difficulty, then writing text or picture clues and playing/sharing/printing the result.
 - The live maker reports a default grid of **8 across × 12 down** and a maximum of 40 × 40. Its visible workflow is Grid → Clues → Play, Share, Print.
-- The maker's default 8×12 size agrees with QQCross's fixed production contract. QQCross must remain **8 columns × 12 rows = 96 cells**; never import the maker's configurable size or maximum into QQCross.
+- The maker's default 8×12 size agrees with QQCross's fixed production contract. QQCross must remain **8 columns × 12 rows = 96 cells**; never import the maker's configurable size or maximum into QQCross. Its page also reports a configurable maximum of 40 × 40, which is not relevant to QQCross.
 - Use the maker as a behavioral/structural reference only. QQCross must keep its own Russian dictionary, questions, answers, artwork, scoring, and implementation.
+
+## Observed maker behavior and verification limits
+
+- The public maker page embeds its canvas from `https://crosswordtool-canvas.vercel.app/`.
+- The extracted canvas text says **“Drag to create your grid”**. Its metadata describes a drag-and-drop crossword editor.
+- This supports using the page as a grid-editor and clue-authoring reference. It does **not** establish that the embedded tool automatically arranges answers or validates crossings for the user.
+- A live browser interaction with the canvas could not be completed in this session. Do not claim that its automatic placement, clue-validation, or crossing-validation behavior has been inspected. Until those dynamic controls are directly observed, it is not a verified algorithm-quality benchmark.
 
 ## Visual reference asset
 
@@ -34,4 +41,4 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 
 ## Verification note
 
-The official maker's public page was inspected and confirms the default 8×12 size and the Grid → Clues → Play/Share/Print workflow. The screenshot's overall grid/screen structure was previously inspected in a browser. Exact pixel coordinates for every interior clue cell have not yet been transcribed into a fixed coordinate template. Do not claim an exact cell-by-cell placement match until that map has been measured against the screenshot.
+The official maker page and its embedded canvas were inspected through rendered-page extraction. The maker confirms the default 8×12 size and Grid → Clues → Play/Share/Print workflow; the canvas advertises drag-to-create grid editing. Dynamic editor behavior (automatic word placement, crossing validation and clue validation) has not been directly observed. The screenshot's overall grid/screen structure was previously inspected in a browser. Exact pixel coordinates for every interior clue cell have not yet been transcribed into a fixed coordinate template. Do not claim an exact cell-by-cell placement match until that map has been measured against the screenshot.

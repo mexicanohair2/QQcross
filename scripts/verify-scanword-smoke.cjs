@@ -96,6 +96,8 @@ async function main() {
     runs
   };
   console.log(JSON.stringify(report, null, 2));
+  fs.mkdirSync("artifacts", { recursive: true });
+  fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
   assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");

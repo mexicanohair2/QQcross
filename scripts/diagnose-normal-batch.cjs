@@ -101,6 +101,8 @@ async function main() {
     runs
   };
   console.log(JSON.stringify(report,null,2));
+  fs.mkdirSync("artifacts", { recursive: true });
+  fs.writeFileSync("artifacts/scanword-100-report.json", JSON.stringify(report, null, 2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
   if (successful.some(run => run.musicNoteAnswers.length > 0)) {
     throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
