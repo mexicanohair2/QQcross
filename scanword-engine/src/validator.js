@@ -196,6 +196,12 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
+    if (word.direction !== 'right' && word.direction !== 'down') {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
+        wordId: word.id, direction: word.direction
+      });
+      continue;
+    }
 
     const clue = word.clue;
     if (!inBounds(clue?.row, clue?.col)) {
