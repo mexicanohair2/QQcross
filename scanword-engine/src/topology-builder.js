@@ -66,10 +66,12 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
+  const interiorQuestionCells = countInteriorQuestions(matrix);
+  if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -105,6 +107,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
     metrics: {
       totalCells: CONFIG.TOTAL_CELLS,
       questionCells: validation.metrics.questionCells,
+      interiorQuestionCells,
       letterCells: validation.metrics.letterCells,
       slotCount: derived.slots.length,
       horizontalSlots: validation.metrics.horizontalSlots,
@@ -116,6 +119,13 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
 
 function countTopQuestions(matrix) {
   return matrix[0].slice(1).filter(value => value === '#').length;
+}
+
+function countInteriorQuestions(matrix) {
+  return matrix.slice(1).reduce(
+    (total, row) => total + row.slice(1, CONFIG.WIDTH - 1).filter(value => value === '#').length,
+    0
+  );
 }
 
 /**
@@ -148,7 +158,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
     const previous = matrix[row][col];
     matrix[row][col] = previous === '#' ? '.' : '#';
-    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
+    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, 3);
 
     if (next) {
       candidate = next;
@@ -158,6 +168,10 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
+  const requiredInterior = 3;
+  if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
+    return { candidate: null, accepted, tried };
+  }
   return { candidate, accepted, tried };
 }
 

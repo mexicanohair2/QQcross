@@ -608,6 +608,14 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   }, { top: 0, left: 0 }));
   expect(edgeCounts.top).toBeGreaterThanOrEqual(3);
   expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
+  const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    return row > 0 && col > 0 && col < 7;
+  }).length);
+  expect(interiorClues).toBeGreaterThanOrEqual(3);
+  const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
+  expect(rightBoundaries.length).toBeGreaterThan(0);
+  expect(rightBoundaries.every(key => key.endsWith(",7"))).toBeTruthy();
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
