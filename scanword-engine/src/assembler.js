@@ -58,6 +58,12 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
+    if (sourceWord.direction !== 'right' && sourceWord.direction !== 'down') {
+      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
+        wordId: sourceWord.id, direction: sourceWord.direction
+      });
+      continue;
+    }
     if (!Array.isArray(sourceWord.coordinates) || sourceWord.coordinates.length !== answer.length) {
       fail('INVALID_WORD_COORDINATES', 'Количество координат не совпадает с длиной ответа.', {
         wordId: sourceWord.id
