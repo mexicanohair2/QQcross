@@ -22,6 +22,8 @@ test('seeded topology generation produces broad geometric variety while preservi
     const rows = result.topology.pattern;
     assert.equal(rows[0][0], '.', 'the upper-left corner must remain the only blank corner');
     assert.equal(rows[0][1], '#', 'the required top anchor must remain a question cell');
+    assert.equal(rows[0].slice(1).filter(value => value === '#').length, 5, 'top clue anchors must remain present');
+    assert.equal(rows.filter(row => row[7] === '#').length, 3, 'right edge must not become a full clue column');
     for (let row = 1; row < 12; row++) {
       assert.equal(rows[row][0], '#', 'left border question missing at row ' + row + ', seed=' + seed);
     }
@@ -30,7 +32,7 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.slots.every(slot => slot.length >= 2));
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
-    assert.ok(result.topology.metrics.interiorQuestionCells >= 3, 'boards need at least three interior question cells; seed=' + seed);
+    assert.ok(result.topology.metrics.interiorQuestionCells >= 8, 'boards need at least eight interior question cells; seed=' + seed);
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
