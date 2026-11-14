@@ -51,15 +51,36 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
+    const countTracks = value => {
+      const text = String(value || "").trim();
+      const repeated = text.match(/^repeat\\((\\d+)\\s*,/);
+      if (repeated) return Number(repeated[1]);
+      let depth = 0, tokens = 0, inToken = false;
+      for (const char of text) {
+        if (/\\s/.test(char) && depth === 0) {
+          if (inToken) tokens++;
+          inToken = false;
+          continue;
+        }
+        if (!inToken) inToken = true;
+        if (char === "(") depth++;
+        else if (char === ")") depth--;
+      }
+      if (inToken) tokens++;
+      return tokens;
+    };
+    const style = getComputedStyle(board);
+    const explicitColumns = new Set(cells.map(cell => Number(cell.style.gridColumn)));
+    const explicitRows = new Set(cells.map(cell => Number(cell.style.gridRow)));
     const rects = cells.map(cell => cell.getBoundingClientRect());
-    const snap = value => Math.round(value * 2) / 2;
-    const columns = new Set(rects.map(rect => snap(rect.left)));
-    const rows = new Set(rects.map(rect => snap(rect.top)));
     const boardRect = board.getBoundingClientRect();
     return {
       cellCount: cells.length,
-      columns: columns.size,
-      rows: rows.size,
+      columns: countTracks(style.gridTemplateColumns),
+      rows: countTracks(style.gridTemplateRows),
+      explicitColumns: explicitColumns.size,
+      explicitRows: explicitRows.size,
+      positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
       ratio: boardRect.width / boardRect.height,
       width: boardRect.width,
       viewport: document.documentElement.clientWidth,
@@ -68,7 +89,7 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   });
   expect(geometry.cellCount).toBe(96);
   expect(geometry.columns).toBe(8);
-  expect(geometry.rows).toBe(12);
+  expect(geometry.rows).toBe(12);\n  expect(geometry.explicitColumns).toBe(8);\n  expect(geometry.explicitRows).toBe(12);\n  expect(geometry.positiveCells).toBe(96);
   expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
   expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 270) * (2 / 3)));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
