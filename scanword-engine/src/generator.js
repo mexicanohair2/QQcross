@@ -246,6 +246,23 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
       if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) {
         planDiagnostics.contentRequirementsRejected++;
+        if (!planDiagnostics.firstContentFailure) {
+          planDiagnostics.firstContentFailure = {
+            answer: entry.answer,
+            rows: topology.rows,
+            availableImageKeys: imageKeys.size,
+            requiredImageCount,
+            logicSlots,
+            minimumLogicClueCells,
+            domains: domains.map(domain => ({
+              slotId: domain.slot.id,
+              length: domain.slot.length,
+              candidateCount: domain.options.length,
+              imageKeys: [...new Set(domain.options.map(option => option.entry.imageKey).filter(Boolean))],
+              logicCandidateCount: domain.options.filter(option => option.entry.logic === true).length
+            }))
+          };
+        }
         continue;
       }
 
