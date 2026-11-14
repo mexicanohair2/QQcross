@@ -41,7 +41,11 @@ def main() -> None:
     lexicon = set(words)
     wordle = json.loads((ROOT / "data/wordle-words.json").read_text(encoding="utf-8"))
     scanword = json.loads((ROOT / "data/scanword-dictionary.json").read_text(encoding="utf-8"))
-    required_wordle = {norm(w) for w in wordle.get("valid", []) if norm(w) and norm(w) not in BAD and not TRIPLE.search(norm(w))}
+    raw_wordle_words = wordle.get("valid", []) + wordle.get("answers", [])
+    invalid_wordle = sorted({norm(w) for w in raw_wordle_words if len(norm(w)) != 5 or norm(w) in BAD or len(set(norm(w))) < 3 or TRIPLE.search(norm(w))})
+    if invalid_wordle:
+        raise SystemExit(f"В словаре Wordle остались неподходящие слова: {invalid_wordle[:20]}")
+    required_wordle = {norm(w) for w in wordle.get("valid", []) if norm(w)}
     required_scanword = {norm(x.get("answer")) for x in scanword if isinstance(x, dict) and WORD.fullmatch(norm(x.get("answer"))) and norm(x.get("answer")) not in BAD and not TRIPLE.search(norm(x.get("answer")))}
     missing = (required_wordle | required_scanword) - lexicon
     if missing:
