@@ -16,7 +16,7 @@ async function main() {
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
-    specialElevenLetterChance: 0.5
+    specialElevenLetterChance: 0.4
   };
   const runs = [];
   let specialElevenCount = 0;
