@@ -29,7 +29,7 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#'
 ]);
 
-function createScaffold(extraRows) {
+function createScaffold(extraRows, includeInteriorSpine = true) {
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -38,6 +38,7 @@ function createScaffold(extraRows) {
     } else {
       cells[0] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
+      if (includeInteriorSpine && [3, 7, 11].includes(row)) cells[3] = '#';
     }
     cells[7] = '#';
     return cells.join('');
@@ -206,7 +207,7 @@ export function generateTopology(options = {}) {
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
     const scaffold = includeSpecialEleven
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows, false))
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
