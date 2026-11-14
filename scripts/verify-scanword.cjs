@@ -80,8 +80,11 @@ async function main() {
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
-    assert.equal(scanword.words.filter(word => word.imageKey).length, 5);
-    assert.equal(new Set(scanword.words.filter(word => word.imageKey).map(word => word.imageKey)).size, 5);
+    const imageWords = scanword.words.filter(word => word.imageKey);
+    assert.equal(imageWords.length, 5);
+    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
+    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, 5,
+      'five picture answers must occupy five visible clue cells on seed ' + seed);
     assert.ok(new Set(scanword.words.filter(word => word.logic).map(word => word.clue.row + "," + word.clue.col)).size >= 3);
     assert.ok(scanword.metadata.valid);
     assert.ok(scanword.metadata.score >= 0 && scanword.metadata.score <= 100);
