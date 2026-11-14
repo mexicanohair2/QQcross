@@ -292,6 +292,10 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
   );
 }
 
+function countDistinctCandidateAnswers(candidates) {
+  return new Set(candidates.map(candidate => canonicalAnswerKey(candidate.entry.answer))).size;
+}
+
 function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
   // Only a curated set of real, familiar Russian two-letter words is allowed.
@@ -474,12 +478,16 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
 
   function recordSearchChoice(slot, candidates) {
     if (!options.captureTrace || searchTrace.length >= 120) return;
+    const distinctAnswers = [...new Set(candidates.map(candidate =>
+      canonicalAnswerKey(candidate.entry.answer)
+    ))];
     searchTrace.push({
       depth: state.assignments.size,
       slotId: slot.id,
       length: slot.length,
-      candidateCount: candidates.length,
-      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer)
+      candidateCount: distinctAnswers.length,
+      variantCount: candidates.length,
+      firstAnswers: distinctAnswers.slice(0, 5)
     });
   }
 
@@ -594,8 +602,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
       if (
         chosenCandidates === null
-        || candidates.length < chosenCandidates.length
-        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+        || countDistinctCandidateAnswers(candidates) < countDistinctCandidateAnswers(chosenCandidates)
+        || (countDistinctCandidateAnswers(candidates) === countDistinctCandidateAnswers(chosenCandidates) && slotDegree > chosenDegree)
       ) {
         chosenSlot = slot;
         chosenCandidates = candidates;
@@ -763,8 +771,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
-          || candidates.length < chosenCandidates.length
-          || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+          || countDistinctCandidateAnswers(candidates) < countDistinctCandidateAnswers(chosenCandidates)
+          || (countDistinctCandidateAnswers(candidates) === countDistinctCandidateAnswers(chosenCandidates) && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
           chosenCandidates = candidates;
