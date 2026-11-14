@@ -31,10 +31,11 @@ jobs:
         run: |
           mkdir -p dist
           cp index.html app.js new-games.js progression.js encyclopedia.js audio.js wordle.js styles.css violet.css sw.js manifest.json icon.svg dist/
-          cp -R data assets scanword-engine dist/
+          cp -R data assets wall-kickers scanword-engine dist/
           test -f dist/scanword-engine/worker.js
           test -f dist/scanword-engine/src/generator.js
           test -f dist/scanword-engine/src/legacy-adapter.js
+          test -f dist/wall-kickers/index.html
           touch dist/.nojekyll
 
       - name: Upload Pages artifact
