@@ -527,10 +527,10 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // Only the three ordinary scaffolds that satisfy the production
-  // short-answer cap are eligible. Scaffolds 0 and 1 contain too many
-  // two-letter slots and waste entire retries before CSP can even start.
-  const normalScaffoldSequence = [4, 2, 3];
+  // Only ordinary scaffolds 3 and 4 satisfy both the production
+  // short-answer cap and the minimum interior-clue count. Scaffold 2 is
+  // geometrically valid in isolation but has too few interior clue cells.
+  const normalScaffoldSequence = [4, 3];
   const requestedScaffold = Number.isInteger(options.normalScaffoldIndex)
     ? options.normalScaffoldIndex
     : 4;
