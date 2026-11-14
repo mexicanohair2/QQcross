@@ -34,10 +34,15 @@ function createScaffold(extraRows) {
   });
 }
 
-function createSpecialScaffold(_extraRows) {
-  // Keep the audited eleven-letter layout: it reserves column 1 for the
-  // eleven-letter answer and has a sparse right edge rather than a full wall.
-  return LOW_SHORT_SCAFFOLD.slice();
+function createSpecialScaffold(extraRows) {
+  // Sparse-edge special layout: top/left anchors remain, while three interior
+  // split clues vary between rows. Other rows terminate at the quiet right edge.
+  const cellsByRow = Array.from({ length: CONFIG.HEIGHT }, () => Array(CONFIG.WIDTH).fill('.'));
+  for (const col of [1, 4, 7]) cellsByRow[0][col] = '#';
+  for (let row = 1; row < CONFIG.HEIGHT; row++) cellsByRow[row][0] = '#';
+  for (const row of extraRows) cellsByRow[row][4] = '#';
+  for (const row of [4, 8, 11]) cellsByRow[row][7] = '#';
+  return cellsByRow.map(row => row.join(''));
 }
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
@@ -77,10 +82,10 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = includeSpecialEleven ? 4 : 1, minimumInteriorQuestionCells = 8) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) !== (includeSpecialEleven ? 4 : 5)) return null;
+  if (countTopQuestions(matrix) < (includeSpecialEleven ? 3 : 5)) return null;
   if (countRightEdgeQuestions(matrix) !== (includeSpecialEleven ? 4 : 3)) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
+  if (interiorQuestionCells < Math.max(includeSpecialEleven ? 3 : 8, minimumInteriorQuestionCells)) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -94,14 +99,14 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = incl
   const topologyOptions = {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: !includeSpecialEleven,
-    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+    allowOuterBoundarySlots: true,
+    minimumOuterBoundaryLength: 3
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: 3 });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
@@ -308,6 +313,15 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
     longSlots: derived.slots.filter(slot => slot.length >= 3).length,
     slotCount: derived.slots.length
   };
+}
+
+/** Returns a fresh sparse-edge split scaffold for a selected 11-letter layout. */
+export function getSpecialTopologyScaffold(rows = [3, 7, 10]) {
+  if (!Array.isArray(rows) || rows.length !== 3 || new Set(rows).size !== 3
+    || !rows.every(row => Number.isInteger(row) && row >= 1 && row < CONFIG.HEIGHT)) {
+    throw new TypeError('Special split rows must contain three distinct rows from 1 to 11.');
+  }
+  return createSpecialScaffold([...rows].sort((a, b) => a - b));
 }
 
 export function getTopologyScaffolds() {
