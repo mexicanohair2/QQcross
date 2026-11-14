@@ -26,7 +26,7 @@ async function main() {
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed });
+    const result = generateScanword(dictionary, { ...options, seed, capturePlanDiagnostics: seed === 589190, captureTrace: seed === 589190 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
@@ -70,7 +70,8 @@ async function main() {
       logicCells: validation.metrics.logicClueCells,
       specialRequested: result.stats.specialElevenRequested,
       specialGenerated: special,
-      validationErrors: validation.errors.slice(0, 5)
+      validationErrors: validation.errors.slice(0, 5),
+      ...(seed === 589190 ? { specialPlanDiagnostics: result.stats.specialElevenPlanDiagnostics ?? null, specialFailureDiagnostics: result.stats.specialElevenFailureDiagnostics ?? null } : {})
     });
   }
 
