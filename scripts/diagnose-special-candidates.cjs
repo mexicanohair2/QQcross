@@ -8,7 +8,7 @@ async function main() {
   const options = {
     seed: 17919,
     specialElevenLetterChance: 1,
-    maxTopologyAttempts: 1,
+    maxTopologyAttempts: 16,
     maxNodes: 120000,
     maxCspTimeMs: 450,
     topologyMutationAttempts: 96,
