@@ -516,6 +516,13 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
+  // Do not spend every ordinary retry mutating the same base grid. Keep
+  // scaffold 4 as the first reference attempt, then rotate through every
+  // validated ordinary scaffold before revisiting one with a new seed.
+  const normalScaffoldCount = getTopologyScaffolds().length - 1;
+  const baseNormalScaffoldIndex = Number.isInteger(options.normalScaffoldIndex)
+    ? ((options.normalScaffoldIndex % normalScaffoldCount) + normalScaffoldCount) % normalScaffoldCount
+    : Math.min(4, normalScaffoldCount - 1);
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -541,7 +548,9 @@ export function generateScanword(inputDictionary, options = {}) {
     const topologyResult = generateTopology({
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
-      scaffoldIndex: useSpecialTopology ? undefined : (options.normalScaffoldIndex ?? 4),
+      scaffoldIndex: useSpecialTopology
+        ? undefined
+        : (baseNormalScaffoldIndex + attempt) % normalScaffoldCount,
       preserveScaffold: !useSpecialTopology && attempt === 0,
       specialSplitRows: specialPlan?.rows,
       specialPattern: specialPlan?.specialPattern,
