@@ -1173,7 +1173,7 @@ function renderGame(root){
       const arrowGlyph={right:"→",left:"←",down:"↓",up:"↑"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
-      if(terminalOnly.has(key)){
+      if(terminalOnly.has(key)&&!key.startsWith("0,")){
         const endArrows=(wordTerminals.get(key)||[]).map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"")+'</span>').join("");
         cells.push('<div class="scan-cell scan-grid-cell scan-boundary cell scan-terminal-cell" data-boundary-cell="'+key+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" aria-hidden="true"'+position+'>'+endArrows+'</div>');
       }else{
