@@ -35,7 +35,7 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
-function enforceCrossingArcConsistency(domains, foldYo = false) {
+export function enforceCrossingArcConsistency(domains, foldYo = false) {
   const positions = domains.map(domain => new Map(
     domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
   ));
