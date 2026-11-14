@@ -10,13 +10,14 @@ async function main() {
     specialElevenLetterChance: 1,
     maxTopologyAttempts: 16,
     maxNodes: 120000,
-    maxCspTimeMs: 450,
+    maxCspTimeMs: 1200,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3
   };
 
   const result = generateScanword(dictionary, options);
+  console.log("QQCROSS_SPECIAL_DIAGNOSTICS " + JSON.stringify(result.stats ?? result));
   assert.equal(result.ok, true, "The optional 11-letter scanword could not be generated: " + JSON.stringify(result));
   const special = result.scanword.words.filter(word =>
     word.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY"
