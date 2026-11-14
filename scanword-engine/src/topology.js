@@ -190,16 +190,21 @@ export function deriveWordSlots(grid, options = {}) {
       slots.push(makeSlot(axis, first, last, coordinates));
     }
 
-    // Horizontal answers may finish at the right board edge. Vertical answers
-    // still require a clue below, except for the dedicated 11-letter chain.
-    if (options.allowOuterBoundarySlots === true && horizontal && questionPositions.length > 0) {
+    // A clue may point to a word that finishes at the outer board edge.
+    // This keeps the side and lower boundaries usable without extra clue tiles.
+    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
+      && !(axis === 'vertical' && fixedIndex === 1)) {
       const from = questionPositions[questionPositions.length - 1];
       const length = lineLength - from - 1;
       if (length >= MIN_ANSWER_LENGTH && length <= CONFIG.MAX_WORD_LENGTH) {
         const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
-        const terminal = { row: fixedIndex, col: CONFIG.WIDTH, boundary: true };
-        const coordinates = Array.from({ length }, (_, index) => point(fixedIndex, from + index + 1));
-        const direction = 'right';
+        const terminal = horizontal
+          ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
+          : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true };
+        const coordinates = Array.from({ length }, (_, index) => horizontal
+          ? point(fixedIndex, from + index + 1)
+          : point(from + index + 1, fixedIndex));
+        const direction = horizontal ? 'right' : 'down';
         slots.push({
           id: 'outer-boundary:' + axis + ':' + keyOf(clue),
           axis,
