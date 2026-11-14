@@ -259,7 +259,8 @@ export function generateScanword(inputDictionary, options = {}) {
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
-      preferredSpecialAnswer: specialPlan?.answer
+      preferredSpecialAnswer: specialPlan?.answer,
+      captureTrace: options.captureTrace === true
     });
 
     if (!solved.ok) {
