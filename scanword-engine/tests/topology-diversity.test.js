@@ -89,14 +89,14 @@ test('balanced special scaffold keeps the optional 11-letter chain and distribut
     seed: 481516,
     includeSpecialEleven: true,
     specialPattern,
-    maxTwoLetterSlots: 6,
+    maxTwoLetterSlots: 8,
     maxAttempts: 1
   });
 
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.topology.validation.valid, true);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 8);
-  assert.equal(result.topology.metrics.questionCells, 26);
+  assert.ok(result.topology.metrics.interiorQuestionCells >= 16);
+  assert.ok(result.topology.metrics.questionCells >= 34);
   assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
