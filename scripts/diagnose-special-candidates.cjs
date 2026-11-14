@@ -36,7 +36,8 @@ async function main() {
         maxCspTimeMs: 1200,
         topologyMutationAttempts: 96,
         requiredImageCount: 5,
-        minimumLogicClueCells: 3
+        minimumLogicClueCells: 3,
+        captureTrace: true
       };
 
       const result = generateScanword(constrainedDictionary, options);
