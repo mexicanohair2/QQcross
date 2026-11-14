@@ -30,11 +30,11 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
 ]);
 
 function createScaffold(extraRows) {
-  // Keep three top anchors and the full left clue edge, but stagger horizontal
-  // answer endpoints across columns 4–7. Repeated columns create genuine
-  // vertical slots, moving active clues into the interior instead of placing
-  // a decorative question tile in every cell of the rightmost column.
-  const rowEndColumns = [null, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7];
+  // Every row has a usable horizontal answer from the left border. A second
+  // interior chain at column 3 and a third at column 4 form vertical answers
+  // that cross those horizontals, so the extra clue cells remain one connected
+  // playable board. The right edge is only an answer boundary, not a clue wall.
+  const innerColumnThreeRows = new Set([1, 5, 9]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -43,9 +43,27 @@ function createScaffold(extraRows) {
       cells[7] = '#';
     } else {
       cells[0] = '#';
-      cells[rowEndColumns[row]] = '#';
+      if (innerColumnThreeRows.has(row)) cells[3] = '#';
+      if (extraRows.includes(row)) cells[4] = '#';
+      else cells[7] = '#';
+    }
+    return cells.join('');
+  });
+}
+
+function createSpecialScaffold(extraRows) {
+  // The optional eleven-letter answer needs column 3 clear and its own
+  // separately validated boundary layout.
+  return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
+    const cells = Array(CONFIG.WIDTH).fill('.');
+    if (row === 0) {
+      cells[1] = '#';
+      cells[4] = '#';
+    } else {
+      cells[0] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
     }
+    cells[7] = '#';
     return cells.join('');
   });
 }
@@ -212,7 +230,7 @@ export function generateTopology(options = {}) {
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
     const scaffold = includeSpecialEleven
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createSpecialScaffold(specialRows))
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
