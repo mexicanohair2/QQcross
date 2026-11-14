@@ -41,11 +41,11 @@ function createScaffold(extraRows) {
 }
 
 function createSpecialScaffold(extraRows) {
-  // Column 1 is reserved for the optional eleven-letter answer. Column 3
-  // remains letter-only so every left-border clue keeps a valid horizontal
-  // answer; other interior columns still create multiple crossing chains.
-  const col5Rows = new Set([3, 7, 10]);
-  const col6Rows = new Set([4, 8]);
+  // Preserve the eleven-letter vertical chain in column 1. Five top anchors
+  // and a staggered center-right band create crossings without a solid right
+  // clue column. The two sparse right-edge anchors are at rows 4 and 8.
+  const col5Rows = new Set([4, 8]);
+  const col6Rows = new Set([4, 8, 9]);
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
@@ -61,20 +61,19 @@ function createSpecialScaffold(extraRows) {
     return cells.join('');
   });
 }
-
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#..####',
   '#.......',
   '#.......',
-  '#....##.',
-  '#...#.##',
+  '#.......',
+  '#...####',
   '#.......',
   '#.......',
-  '#....##.',
-  '#......#',
   '#.......',
+  '#...####',
+  '#.....#.',
   '#...#...',
-  '#...#...'
+  '#.......'
 ]);
 
 const SCAFFOLDS = Object.freeze([
