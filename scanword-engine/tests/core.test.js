@@ -4,12 +4,34 @@ import { CONFIG } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
-import { generateScanword } from '../src/generator.js';
+import { generateScanword, enforceCrossingArcConsistency } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
 import { assembleScanword } from '../src/assembler.js';
 import { analyzeRequiredBorderFeasibility } from '../src/topology.js';
+
+test('AC-3 preserves a candidate when a reversed crossing arc has matching letters', () => {
+  const domains = [
+    {
+      slot: { coordinates: [{ row: 0, col: 0 }] },
+      options: [{ entry: { answer: 'A' } }]
+    },
+    {
+      slot: { coordinates: [{ row: 0, col: 0 }, { row: 1, col: 0 }] },
+      options: [{ entry: { answer: 'AX' } }, { entry: { answer: 'BY' } }]
+    },
+    {
+      slot: { coordinates: [{ row: 1, col: 0 }] },
+      options: [{ entry: { answer: 'X' } }]
+    }
+  ];
+
+  assert.equal(enforceCrossingArcConsistency(domains), true);
+  assert.deepEqual(domains[0].options.map(option => option.entry.answer), ['A']);
+  assert.deepEqual(domains[1].options.map(option => option.entry.answer), ['AX']);
+  assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
+});
 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
