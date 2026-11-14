@@ -10,18 +10,13 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8],
-  [3, 7],
+  [3, 8],
   [5, 9]
 ]);
 
 function createScaffold(extraRows) {
-  // Keep the left clue border and several top anchors. The two cells between
-  // the top-left anchor and the first upper interior anchor remain letters:
-  // making them clues would force a second unavoidable 11-letter down answer.
-  // Interior columns 3–6 carry staggered crossings; the right edge is open.
-  const col3Rows = new Set([1, 5]);
-  const rowAnchorColumns = [[], [], [6], [4, 5], [], [], [4], [4], [6], [5], [4]];
-  const col5Rows = new Set([3, 7, 10]);
+  const col4Rows = new Set([...extraRows, 10, 11]);
+  const col5Rows = new Set([3, 4, 8]);
   const col6Rows = new Set([4, 8]);
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
@@ -30,8 +25,7 @@ function createScaffold(extraRows) {
       for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
     } else {
       cells[0] = '#';
-      if (col3Rows.has(row)) cells[3] = '#';
-      if (extraRows.includes(row)) cells[4] = '#';
+      if (col4Rows.has(row)) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
       if (col6Rows.has(row)) cells[6] = '#';
       if (rightEdgeRows.has(row)) cells[7] = '#';
@@ -41,11 +35,9 @@ function createScaffold(extraRows) {
 }
 
 function createSpecialScaffold(extraRows) {
-  // Preserve the eleven-letter vertical chain in column 1. Five top anchors
-  // and a staggered center-right band create crossings without a solid right
-  // clue column. The two sparse right-edge anchors are at rows 4 and 8.
-  const col5Rows = new Set([4, 8]);
-  const col6Rows = new Set([4, 8, 9]);
+  const col4Rows = new Set([...extraRows, 10, 11]);
+  const col5Rows = new Set([3, 4, 8]);
+  const col6Rows = new Set([4, 8]);
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
@@ -54,6 +46,7 @@ function createSpecialScaffold(extraRows) {
     } else {
       cells[0] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
+      if (row === 10 || row === 11) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
       if (col6Rows.has(row)) cells[6] = '#';
       if (rightEdgeRows.has(row)) cells[7] = '#';
@@ -61,26 +54,26 @@ function createSpecialScaffold(extraRows) {
     return cells.join('');
   });
 }
+
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#..####',
   '#.......',
   '#.......',
-  '#.......',
+  '#....#..',
   '#...####',
   '#.......',
   '#.......',
   '#.......',
   '#...####',
-  '#.....#.',
+  '#.......',
   '#...#...',
-  '#.......'
+  '#...#...'
 ]);
 
 const SCAFFOLDS = Object.freeze([
   ...SCAFFOLD_ROWS.map(createScaffold),
   LOW_SHORT_SCAFFOLD
 ]);
-
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
@@ -118,13 +111,13 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    minimumOuterBoundaryLength: includeSpecialEleven ? 3 : 2
+    minimumOuterBoundaryLength: 3
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: includeSpecialEleven ? 3 : 2 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: 3 });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
@@ -308,9 +301,10 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const validation = validateTopology(grid, {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true
+    allowOuterBoundarySlots: true,
+    minimumOuterBoundaryLength: 3
   });
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: 3 });
   return {
     pattern: rows,
     valid: validation.valid,
