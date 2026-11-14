@@ -27,7 +27,7 @@ export function scoreScanword(scanword, validation) {
     ? clueWordCounts.reduce((sum, count) => sum + count, 0) / clueWordCounts.length
     : 0;
   const lengthVariety = uniqueCount(lengths);
-  const imageCount = words.filter(word => word.imageKey).length;
+  const imageCount = new Set(words.filter(word => word.imageKey).map(word => word.clue.row + ',' + word.clue.col)).size;
   const logicCount = uniqueCount(words.filter(word => word.logic).map(word => word.clue.row + ',' + word.clue.col));
   const crossingRatio = crossings / Math.max(1, letters.length);
   const cellCompleteness = cells.length === 96 && cells.every(cell => ['corner', 'question', 'letter'].includes(cell.type));
