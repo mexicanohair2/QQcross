@@ -22,6 +22,7 @@ test('seeded topology generation produces broad geometric variety while preservi
     const rows = result.topology.pattern;
     assert.equal(rows[0][0], '.', 'the upper-left corner must remain the only blank corner');
     assert.equal(rows[0][1], '#', 'the required top anchor must remain a question cell');
+    // Topology rows are eight-character strings, not arrays of cells.
     assert.equal(rows[0].slice(1).split('').filter(value => value === '#').length, 5, 'top clue anchors must remain present');
     assert.equal(rows.filter(row => row[7] === '#').length, 3, 'right edge must not become a full clue column');
     for (let row = 1; row < 12; row++) {
