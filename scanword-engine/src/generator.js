@@ -397,23 +397,36 @@ export function generateScanword(inputDictionary, options = {}) {
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
     : [];
+
+  // Prefer exactly one low-short topology attempt when it has a compatible
+  // dictionary/CSP domain, then retain the best conventional topology as the
+  // bounded fallback. Do not spend both retries on near-identical templates.
+  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
+  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
+  const specialPlanSequence = firstLowShortPlan
+    ? [firstLowShortPlan, ...conventionalSpecialPlans]
+    : specialPlanPool;
+  if (options.capturePlanDiagnostics) {
+    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
+  }
+
   // In the 100-seed production batch, four retries still left 11/33
   // requested special puzzles unsolved and pushed p95 generation beyond 6s.
   // The first ranked plan is the useful attempt; failed later plans only
   // multiplied the wait before the already-working standard fallback.
   const specialPlanOffset = Math.max(0, Math.min(
-    specialPlanPool.length,
+    specialPlanSequence.length,
     Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanPool.length - specialPlanOffset)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
-    const specialPlan = useSpecial ? specialPlanPool[specialPlanOffset + attempt] ?? null : null;
+    const specialPlan = useSpecial ? specialPlanSequence[specialPlanOffset + attempt] ?? null : null;
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
@@ -424,6 +437,7 @@ export function generateScanword(inputDictionary, options = {}) {
         selectedPlanIndex: specialPlanOffset + attempt,
         excludedPlanCount: specialPlanOffset + attempt + 1,
         viablePlans: specialPlanPool.length,
+        lowShortViablePlans: specialPlanDiagnostics.lowShortViablePlans ?? null,
         ...(attempt === 0 ? specialPlanDiagnostics : {})
       });
     }
