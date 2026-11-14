@@ -12,10 +12,11 @@ async function main() {
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
-    specialElevenLetterChance: 0
+    specialElevenLetterChance: 0.25
   };
   const runs = [];
-  for (let index = 1; index <= 12; index++) {
+  let specialElevenCount = 0;
+  for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
     const result = generateScanword(dictionary, { ...options, seed });
@@ -37,6 +38,13 @@ async function main() {
       requireConnected: true
     });
     const words = result.scanword.words;
+    const imageWords = words.filter(word => word.imageKey);
+    const distinctImageClueCells = new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size;
+    if (distinctImageClueCells !== 5) {
+      runs.push({ seed, ok: false, reason: 'IMAGE_CLUE_CELL_COLLISION', elapsedMs, distinctImageClueCells });
+      continue;
+    }
+    if (result.scanword.metadata.specialElevenLetterQuestion) specialElevenCount++;
     runs.push({
       seed, ok: validation.valid, elapsedMs,
       score: result.scanword.metadata.score,
@@ -46,6 +54,7 @@ async function main() {
       twoLetterAnswers: words.filter(word => word.length === 2).map(word => word.answer),
       weakPronouns: words.filter(word => ["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ"].includes(word.answer)).map(word => word.answer),
       images: validation.metrics.imageCount,
+      distinctImageClueCells,
       logicCells: validation.metrics.logicClueCells,
       crossings: validation.metrics.crossings,
       nodes: result.stats.nodes,
@@ -59,12 +68,17 @@ async function main() {
     requested: runs.length,
     successful: successful.length,
     failed: runs.length - successful.length,
+    specialElevenCount,
+    expectedSpecialElevenRange: [15, 35],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
     options,
     runs
   };
   console.log(JSON.stringify(report,null,2));
-  if (!successful.length) throw new Error("No normal 8x12 scanword could be generated.");
+  if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
+  if (specialElevenCount < 15 || specialElevenCount > 35) {
+    throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
+  }
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
