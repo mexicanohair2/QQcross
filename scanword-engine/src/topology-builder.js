@@ -309,6 +309,39 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   };
 }
 
+/** Returns detailed independent diagnostics for a hand-authored 8x12 role mask. */
+export function diagnoseTopologyPattern(rows, options = {}) {
+  if (!Array.isArray(rows) || rows.length !== CONFIG.HEIGHT
+    || rows.some(row => typeof row !== 'string' || row.length !== CONFIG.WIDTH)) {
+    return { valid: false, errors: [{ type: 'INVALID_PATTERN_SHAPE' }] };
+  }
+  const includeSpecialEleven = options.includeSpecialEleven === true;
+  const matrix = cloneRows(rows);
+  const grid = toRoleGrid(matrix);
+  const topologyOptions = {
+    requireConnected: true,
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowOuterBoundarySlots: !includeSpecialEleven,
+    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+  };
+  const validation = validateTopology(grid, topologyOptions);
+  const derived = deriveWordSlots(grid, topologyOptions);
+  return {
+    valid: validation.valid && derived.errors.length === 0,
+    errors: validation.errors,
+    slotErrors: derived.errors,
+    warnings: derived.warnings,
+    metrics: validation.metrics,
+    slotCount: derived.slots.length,
+    slotLengths: derived.slots.map(slot => slot.length),
+    shortSlots: derived.slots.filter(slot => slot.length === 2).length,
+    longSlots: derived.slots.filter(slot => slot.length >= 3).length,
+    interiorQuestionCells: countInteriorQuestions(matrix),
+    topQuestions: countTopQuestions(matrix),
+    rightEdgeQuestions: countRightEdgeQuestions(matrix)
+  };
+}
+
 export function getTopologyScaffolds() {
   return SCAFFOLDS.map(rows => [...rows]);
 }
