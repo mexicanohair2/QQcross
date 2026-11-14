@@ -1,0 +1,157 @@
+import { CONFIG } from './config.js';
+import { createEmptyGrid } from './grid.js';
+import { createRng } from './rng.js';
+import { deriveWordSlots, validateTopology } from './topology.js';
+
+/*
+ * Connected 8x12 geometry with one vertical clue chain in column 4.
+ * The chain starts at the top border and reaches the bottom border; every
+ * horizontal answer crosses it, so all 12 rows belong to one word graph.
+ * Its four clue cells split only four rows and create six controlled
+ * two-letter answers in total.
+ */
+const SCAFFOLD_ROWS = Object.freeze([
+  [4, 8, 11],
+  [3, 7, 11],
+  [4, 7, 11]
+]);
+
+function createScaffold(extraRows) {
+  return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
+    const cells = Array(CONFIG.WIDTH).fill('.');
+    if (row === 0) {
+      cells[1] = '#';
+      cells[4] = '#';
+    } else {
+      cells[0] = '#';
+      if (extraRows.includes(row)) cells[4] = '#';
+    }
+    cells[7] = '#';
+    return cells.join('');
+  });
+}
+
+const SCAFFOLDS = Object.freeze(SCAFFOLD_ROWS.map(createScaffold));
+
+function cloneRows(rows) {
+  return rows.map(row => row.split(''));
+}
+
+function toRoleGrid(matrix) {
+  const grid = createEmptyGrid();
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    for (let col = 0; col < CONFIG.WIDTH; col++) {
+      if (row === 0 && col === 0) continue;
+      const cell = grid[row][col];
+      cell.type = matrix[row][col] === '#' ? 'question' : 'letter';
+      cell.letter = cell.type === 'letter' ? 'А' : null;
+    }
+  }
+  return grid;
+}
+
+function inspectCandidate(matrix, includeSpecialEleven) {
+  if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
+  if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
+  if (countTopQuestions(matrix) < 2) return null;
+
+  for (let row = 1; row < CONFIG.HEIGHT; row++) {
+    if (matrix[row][0] !== '#') return null;
+    if (matrix[row][1] !== '.' || matrix[row][2] !== '.') return null;
+  }
+
+  const grid = toRoleGrid(matrix);
+  const topologyOptions = {
+    requireConnected: true,
+    allowSpecialElevenBoundary: includeSpecialEleven
+  };
+  const validation = validateTopology(grid, topologyOptions);
+  if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
+  if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
+
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  const expectedSlots = 18 + (includeSpecialEleven ? 1 : 0);
+  if (derived.errors.length || derived.slots.length !== 19 + (includeSpecialEleven ? 1 : 0)) return null;
+  if (derived.slots.filter(slot => slot.length === 2).length !== 6) return null;
+
+  return {
+    grid,
+    slots: derived.slots,
+    validation,
+    pattern: matrix.map(row => row.join('')),
+    metrics: {
+      totalCells: CONFIG.TOTAL_CELLS,
+      questionCells: validation.metrics.questionCells,
+      letterCells: validation.metrics.letterCells,
+      slotCount: derived.slots.length,
+      horizontalSlots: validation.metrics.horizontalSlots,
+      verticalSlots: validation.metrics.verticalSlots,
+      crossingsPotential: validation.metrics.coveredLetters
+    }
+  };
+}
+
+function countTopQuestions(matrix) {
+  return matrix[0].slice(1).filter(value => value === '#').length;
+}
+
+/**
+ * Selects a seeded, fully validated role mask. Geometry is always checked
+ * before the dictionary solver is called; the masks contain no stored words.
+ */
+export function generateTopology(options = {}) {
+  const seed = options.seed ?? 1;
+  const random = createRng(seed);
+  const includeSpecialEleven = options.includeSpecialEleven === true;
+  const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
+  const history = [];
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
+    const matrix = cloneRows(SCAFFOLDS[scaffoldIndex]);
+    const candidate = inspectCandidate(matrix, includeSpecialEleven);
+    if (!candidate) {
+      history.push('TOPOLOGY_REJECTED');
+      continue;
+    }
+
+    return {
+      ok: true,
+      seed,
+      attempts: attempt,
+      scaffoldIndex,
+      topology: candidate,
+      rejectedAttempts: attempt - 1,
+      diagnostics: history.slice(-8)
+    };
+  }
+
+  for (let scaffoldIndex = 0; scaffoldIndex < SCAFFOLDS.length; scaffoldIndex++) {
+    const candidate = inspectCandidate(cloneRows(SCAFFOLDS[scaffoldIndex]), includeSpecialEleven);
+    if (candidate) {
+      return {
+        ok: true,
+        seed,
+        attempts: maxAttempts + 1,
+        scaffoldIndex,
+        topology: candidate,
+        rejectedAttempts: maxAttempts,
+        diagnostics: ['SEEDED_TOPOLOGY_RETRIES_EXHAUSTED', 'VALIDATED_SCAFFOLD_FALLBACK']
+      };
+    }
+  }
+
+  return {
+    ok: false,
+    reason: 'NO_VALID_TOPOLOGY',
+    seed,
+    attempts: maxAttempts,
+    rejectedAttempts: maxAttempts,
+    diagnostics: history.slice(-12),
+    message: 'Не удалось построить геометрически корректную топологию 8×12.'
+  };
+}
+
+export function getTopologyScaffolds() {
+  return SCAFFOLDS.map(rows => [...rows]);
+}

@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main]
+    branches: [main, feature/qqcross-scanword-engine]
   pull_request:
     branches: [main]
 jobs:
@@ -19,5 +19,16 @@ jobs:
           node-version: 20
       - name: Check JavaScript syntax
         run: node --check app.js
-      - name: Verify dictionary and generated grids
-        run: node scripts/verify-scanword.cjs
+      - name: Diagnose one constrained production generation with an extended search budget
+        run: node scripts/diagnose-scanword.cjs
+      - name: Search compatible eleven-letter answers and their crossing words
+        run: node scripts/diagnose-special-candidates.cjs
+      - name: Audit topology slot lengths before dictionary assignment
+        run: node scripts/diagnose-topologies.mjs
+      - name: Validate redesigned low-short-slot 8x12 topology
+        run: node scripts/diagnose-custom-topology.mjs
+      - name: Generate ten distinct zero-short-slot 8x12 diagnostic puzzles
+        run: node scripts/diagnose-border-compatible-topology.cjs
+      - name: Stress-test normal full 8x12 scanwords with a production search budget
+        run: node scripts/diagnose-normal-batch.cjs
+      # Restore the 100-seed stress test after the CSP blocker is resolved.
