@@ -22,7 +22,7 @@ async function main() {
     const answer = candidates[candidateIndex];
     const constrainedDictionary = dictionary.filter(entry =>
       String(entry.answer ?? "").length !== 11
-      || String(entry.answer ?? "").toLocaleUpperCase("ru-RU").replace(/Ё/gu, "Е') === answer.replace(/Ё/gu, "Е')
+      || String(entry.answer ?? "").toLocaleUpperCase("ru-RU").replace(/Ё/gu, "Е") === answer.replace(/Ё/gu, "Е")
     );
 
     for (let trial = 0; trial < trialsPerAnswer; trial++) {
