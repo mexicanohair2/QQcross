@@ -279,7 +279,17 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
-  return { answer: plans[0].answer, rows: plans[0].rows };
+  const excluded = requirements.excludedPlanKeys instanceof Set
+    ? requirements.excludedPlanKeys
+    : new Set();
+  const selected = plans.find(plan =>
+    !excluded.has(canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(','))
+  );
+  return selected ? {
+    answer: selected.answer,
+    rows: selected.rows,
+    planKey: canonicalAnswerKey(selected.answer, { foldYo }) + '|' + selected.rows.join(',')
+  } : null;
 }
 
 function countFailure(target, reason) {
@@ -341,6 +351,7 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8) : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
+  const attemptedSpecialPlanKeys = new Set();
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
@@ -348,15 +359,19 @@ export function generateScanword(inputDictionary, options = {}) {
     const specialPlan = useSpecial
       ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
           ...options,
+          excludedPlanKeys: attemptedSpecialPlanKeys,
           planDiagnostics: options.capturePlanDiagnostics ? planDiagnostics : null
         })
       : null;
+    if (specialPlan?.planKey) attemptedSpecialPlanKeys.add(specialPlan.planKey);
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
         selected: Boolean(specialPlan),
         selectedAnswer: specialPlan?.answer ?? null,
         selectedRows: specialPlan?.rows ?? null,
+        selectedPlanKey: specialPlan?.planKey ?? null,
+        excludedPlanCount: attemptedSpecialPlanKeys.size,
         ...planDiagnostics
       });
     }
