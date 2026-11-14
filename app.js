@@ -940,7 +940,7 @@ function assertValidScanwordLayout(result,W,H,TOTAL){
     fail("обнаружены несвязанные слова: "+JSON.stringify(disconnected));
   }
   const pictures=result.words.filter(word=>word.imageKey).map(word=>word.imageKey);
-  if(pictures.length!==7||new Set(pictures).size!==7)fail("нужно ровно семь разных картинок, как в эталоне");
+  if(pictures.length!==5||new Set(pictures).size!==5)fail("нужно ровно семь разных картинок, как в эталоне");
   if(new Set(result.words.filter(word=>word.logic).map(word=>word.clueCell.join(","))).size<3)fail("нужно не менее трёх отдельных логических вопросов");
   return true;
 }
@@ -1056,7 +1056,7 @@ function buildScanword(entries){
       const dir=dirs[dirIndex],key=y+","+x,at=clueAt.get(key)||[];
       const borderDirection=y===0&&x>0?"down":x===0&&y>0?"right":null;
       if(borderDirection&&dir.name!==borderDirection)return false;
-      if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
+      if(y<0||x<0||y>=H||x>=W||reservedKeys.has(key)||!entry||(!allowSingleFallback&&entry.answer.length===1)||used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))||at.length>=4||at.some(w=>w.dir===dir.name)||((entry.imageKey)&&at.length>0)||occupied.has(key))return false;
       const cells=[];
       const endY=y+dir.dy*(entry.answer.length+1),endX=x+dir.dx*(entry.answer.length+1);
       const terminalInside=endY>=0&&endX>=0&&endY<H&&endX<W;
@@ -1281,7 +1281,7 @@ function buildScanword(entries){
           if(length===2&&!(routeY===0&&routeX>0)&&!(routeY>0&&routeX>=5&&terminalKeys.has(startKey)))continue;
           const pool=entriesByLength.get(length)||[];
           const matching=pool.filter(candidate=>{
-            if(used.has(candidate.key)||(candidate.imageKey&&(usedImages.has(candidate.imageKey)||usedImages.size>=7)))return false;
+            if(used.has(candidate.key)||(candidate.imageKey&&(usedImages.has(candidate.imageKey)||usedImages.size>=5)))return false;
             for(let step=1;step<=length;step++){
               const y=routeY+dir.dy*step,x=routeX+dir.dx*step,key=y+","+x;
               if(clueAt.has(key)||reservedKeys.has(key))return false;
@@ -1340,7 +1340,7 @@ function buildScanword(entries){
         const terminalInside=terminalY>=0&&terminalY<H;
         if(terminalInside&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)))continue;
         const candidates=possible===null?pool:[...possible];
-        if(candidates.some(entry=>!used.has(entry.key)&&(!entry.imageKey||usedImages.size<7)))return true;
+        if(candidates.some(entry=>!used.has(entry.key)&&(!entry.imageKey||usedImages.size<5)))return true;
       }
       return false;
     };
@@ -1352,9 +1352,37 @@ function buildScanword(entries){
       }
       return true;
     };
+    // Forward-check the unplaced left-edge answers after each top-down choice.
+    // This prevents the search from spending thousands of nodes on a top row
+    // whose crossing letters already make a later row impossible.
+    const unplacedBorderRowsHavePotential=()=>{
+      for(let row=4;row<H;row++){
+        const startKey=row+",0";
+        if((clueAt.get(startKey)||[]).length)continue;
+        const firstLetter=occupied.get(row+",1");
+        if(firstLetter===undefined)return false;
+        const pool=firstLetterPools.get(firstLetter)||[];
+        const viable=pool.some(entry=>{
+          if(used.has(entry.key)||entry.answer.length>W-1)return false;
+          if(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5))return false;
+          for(let position=1;position<=entry.answer.length;position++){
+            const cellKey=row+","+position;
+            if(clueAt.has(cellKey)||reservedKeys.has(cellKey))return false;
+            const existing=occupied.get(cellKey);
+            if(existing!==undefined&&existing!==entry.answer[position-1])return false;
+          }
+          const terminalX=entry.answer.length+1;
+          const terminalKey=row+","+terminalX;
+          if(terminalX<W&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)))return false;
+          return true;
+        });
+        if(!viable)return false;
+      }
+      return true;
+    };
     let seedSearchNodes=0;
     const placeTopBorderClues=(remainingColumns=Array.from({length:W-2},(_,index)=>index+2),continuation=()=>true)=>{
-      if(++seedSearchNodes>12000)return false;
+      if(++seedSearchNodes>6000)return false;
       if(!remainingColumns.length)return borderTerminalsHaveDistinctAnswers()&&continuation();
       // The seven top answers do not cross one another, but their prefixes
       // have very different dictionary sizes. Pick the tightest column first
@@ -1370,7 +1398,7 @@ function buildScanword(entries){
           :(topPrefixPools.get(initial+second)||[]);
         const options=[];
         for(const entry of candidates){
-          if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7)))continue;
+          if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5)))continue;
           let fits=true;
           for(let step=1;step<=entry.answer.length;step++){
             const cellKey=step+","+column;
@@ -1396,13 +1424,13 @@ function buildScanword(entries){
       const nextColumns=remainingColumns.filter(column=>column!==selectedColumn);
       for(const entry of selectedOptions.slice(0,48)){
         const snapshot=saveSeedState();
-        if(addWord(entry,0,selectedColumn,1,"w"+words.length,"border-seed")&&placeTopBorderClues(nextColumns,continuation))return true;
+        if(addWord(entry,0,selectedColumn,1,"w"+words.length,"border-seed")&&unplacedBorderRowsHavePotential()&&placeTopBorderClues(nextColumns,continuation))return true;
         restoreSeedState(snapshot);
       }
       return false;
     };
     const placeBorderRows=(row,topDone=false,chosenRows=[])=>{
-      if(++seedSearchNodes>30000)return false;
+      if(++seedSearchNodes>12000)return false;
       if(row>=H)return borderTerminalsHaveDistinctAnswers();
 
       let candidates;
@@ -1447,7 +1475,7 @@ function buildScanword(entries){
         const snapshot=saveSeedState();
         lastSeedReject=null;
         const nextRows=[...chosenRows,entry];
-        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&placeBorderRows(row+1,topDone,nextRows))return true;
+        if(addWord(entry,row,0,0,"w"+words.length,"border-seed")&&(!topDone||unplacedBorderRowsHavePotential())&&placeBorderRows(row+1,topDone,nextRows))return true;
         if(!lastSeedReject&&rejectedSeedSamples.length<8)lastSeedReject={answer:entry.answer,start:row+",0",reason:"placement or later border route conflict"};
         if(rejectedSeedSamples.length<8)rejectedSeedSamples.push({row,answer:entry.answer,reason:lastSeedReject});
         restoreSeedState(snapshot);
@@ -1492,7 +1520,7 @@ function buildScanword(entries){
           if(terminalInside&&(occupied.has(terminalY+","+terminalX)||reservedKeys.has(terminalY+","+terminalX)||(terminalY===H-1&&terminalX===W-1)))continue;
           if(!terminalInside&&!terminalAtEdge)continue;
           const candidates=possible===null?pool:[...possible];
-          const viable=candidates.filter(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7)));
+          const viable=candidates.filter(entry=>!used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<5)));
           if(viable.length){
             borderRouteAudit.push({key:startKey,dir:nextDir.name,length,pattern:Array.from({length},(_,index)=>occupied.get((routeY+nextDir.dy*(index+1))+","+(routeX+nextDir.dx*(index+1)))||".").join(""),answers:viable.slice(0,8).map(entry=>entry.answer)});
             return true;
@@ -1533,7 +1561,7 @@ function buildScanword(entries){
             if(!availableCrosses){
               if(!terminalKeys.has(clueKey))continue;
               for(const entry of entriesByLength.get(length)||[]){
-                if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7||at.length>0)))continue;
+                if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5||at.length>0)))continue;
                 let valid=true;
                 for(let p=0;p<length;p++){
                   const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx;
@@ -1548,7 +1576,7 @@ function buildScanword(entries){
               continue;
             }
             for(const entry of possible){
-              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=7||at.length>0)))continue;
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5||at.length>0)))continue;
               let valid=true,newCells=0,crosses=0;
               for(let p=0;p<length;p++){
                 const yy=y+dir.dy*(p+1),xx=x+dir.dx*(p+1),cellKey=yy+","+xx,old=occupied.get(cellKey);
@@ -1661,7 +1689,7 @@ function buildScanword(entries){
               normalized.filter(entry=>entry.answer.length===length).forEach(entry=>possible.add(entry));
             }
             const pool=[...possible].filter(entry=>!used.has(entry.key)&&
-              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7&&anchor.list.length===0))&&
+              (!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<5&&anchor.list.length===0))&&
               cells.every((cell,k)=>{
                 const old=occupied.get(cell.join(","));
                 return old===undefined||old===entry.answer[k];
@@ -1715,7 +1743,7 @@ function buildScanword(entries){
           const terminalKey=ty+","+tx;
           if(terminalInside&&(occupied.has(terminalKey)||reservedKeys.has(terminalKey)||(ty===H-1&&tx===W-1)))continue;
           const pool=(entriesByLength.get(length)||[]).filter(entry=>
-            !used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<7&&at.length===0))&&
+            !used.has(entry.key)&&(!entry.imageKey||(!usedImages.has(entry.imageKey)&&usedImages.size<5&&at.length===0))&&
             cells.every(([cy,cx],index)=>{const old=occupied.get(cy+","+cx);return old===undefined||old===entry.answer[index];})
           );
           pool.sort((a,b)=>Number(!!b.imageKey)-Number(!!a.imageKey)||quality(b)-quality(a));
@@ -1741,11 +1769,12 @@ function buildScanword(entries){
     const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
     return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit,closureRejectSamples:closureRejectSamples.slice(-24)};
   };
-  // Randomized restarts avoid the dead ends of a single greedy fill.
-  // Retry substantially more often, but stop immediately once a fully valid
-  // grid is found with at most one unavoidable single-letter fallback.
-  // The previous fixed eight greedy restarts reproducibly left a one-cell hole.
-  for(let attempt=0;attempt<192;attempt++){
+  // Bounded generation: never let an unlucky dictionary seed freeze the phone UI.
+  const generationStarted=globalThis.performance?.now?globalThis.performance.now():Date.now();
+  const generationNow=()=>globalThis.performance?.now?globalThis.performance.now():Date.now();
+  const generationBudgetMs=2200;
+  for(let attempt=0;attempt<96;attempt++){
+    if(generationNow()-generationStarted>generationBudgetMs)break;
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
     const logicCount=new Set((result?.words||[]).filter(w=>w.logic).map(w=>w.clueCell.join(","))).size;
@@ -1791,7 +1820,7 @@ function buildScanword(entries){
     const rank=[-orphanCount,result?.coverage||0,borderScore,imageCount,-Math.abs(centerSplitCount-3),-Math.abs(splitPromptCount-8),-Math.abs(promptCount-37),-Math.abs(startTileCount-29),logicCount,promptCount,spreadScore,-singleCount];
     const better=!!result&&(!bestRank||rank.some((value,index)=>value!==bestRank[index]&&rank.slice(0,index).every((prior,j)=>prior===bestRank[j])&&value>bestRank[index]));
     if(better){bestRank=rank;bestImageCount=imageCount;bestLogicCount=logicCount;bestSplitCount=splitPromptCount;bestCoverage=result.coverage;bestDangling=result.dangling;bestSingleCount=singleCount;bestBorderScore=borderScore;bestTopCount=topCount;bestLeftCount=leftCount;bestRowSpread=rowSpread;bestColumnSpread=columnSpread;bestOrphanCount=orphanCount;bestCenterSplitCount=centerSplitCount;bestPromptCount=promptCount;bestStartTileCount=startTileCount;best=result;}
-    if(bestCoverage===TOTAL&&bestImageCount===7&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&bestCenterSplitCount>=2&&bestCenterSplitCount<=4&&bestPromptCount>=36&&bestPromptCount<=38&&bestStartTileCount===29)break;
+    if(bestCoverage===TOTAL&&bestImageCount===5&&bestSingleCount===0&&bestTopCount===7&&bestLeftCount===11&&bestOrphanCount===0&&bestLogicCount>=3&&bestSplitCount>=7&&bestSplitCount<=9&&bestCenterSplitCount>=2&&bestCenterSplitCount<=4&&bestPromptCount>=36&&bestPromptCount<=38&&bestStartTileCount===29)break;
   }
   if(best){
     // Remove only unlinked placeholders; every real answer terminal must
@@ -1816,7 +1845,7 @@ function buildScanword(entries){
     }
     best.coverage=best.occupied.size+best.clueAt.size+best.reservedKeys.size;
   }
-  if(!best||best.coverage!==TOTAL||bestImageCount!==7||bestOrphanCount!==0||bestTopCount!==7||bestLeftCount!==11||bestSingleCount!==0||bestLogicCount<3||bestSplitCount<7||bestSplitCount>9||bestCenterSplitCount<2||bestCenterSplitCount>4||bestPromptCount<36||bestPromptCount>38||bestStartTileCount!==29){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");
+  if(!best||best.coverage!==TOTAL||bestImageCount!==5||bestOrphanCount!==0||bestTopCount!==7||bestLeftCount!==11||bestSingleCount!==0||bestLogicCount<3||bestSplitCount<7||bestSplitCount>9||bestCenterSplitCount<2||bestCenterSplitCount>4||bestPromptCount<36||bestPromptCount>38||bestStartTileCount!==29){const holes=[];for(let y=0;y<H;y++)for(let x=0;x<W;x++){const key=y+","+x;if(!best?.reservedKeys.has(key)&&!best?.occupied.has(key)&&!best?.clueAt.has(key))holes.push(key)}const openEnds=[...(best?.clueAt||new Map())].filter(([,list])=>!list.length).map(([key])=>key);const overlaps=[...(best?.occupied.keys()||[])].filter(key=>best?.clueAt.has(key));const outside=[...(best?.occupied.keys()||[]),...(best?.clueAt.keys()||[])].filter(key=>{const [y,x]=key.split(",").map(Number);return y<0||x<0||y>=H||x>=W});const debugGrid=Array.from({length:H},(_,y)=>Array.from({length:W},(_,x)=>{const key=y+","+x;return best?.clueAt.has(key)?"?":best?.occupied.get(key)||"."}).join("")).join("/");
     const orphanDetails=openEnds.map(key=>{
       const [oy,ox]=key.split(",").map(Number);
       const incoming=(best?.words||[]).filter(word=>{
