@@ -11,6 +11,42 @@ function now() {
   return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
 }
 
+function chooseSpecialElevenPlan(entries, random, foldYo = false) {
+  const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
+  const starts = length => new Set(entries
+    .filter(entry => entry.answer.length === length)
+    .map(entry => normalizeInitial(entry.answer[0])));
+  const threeLetterStarts = starts(3);
+  const sixLetterStarts = starts(6);
+  const plans = [];
+
+  for (const entry of entries) {
+    if (entry.answer.length !== 11) continue;
+    const letters = [...entry.answer].map(normalizeInitial);
+    const mandatoryRows = [];
+    const optionalRows = [];
+    for (let index = 0; index < letters.length; index++) {
+      const letter = letters[index];
+      if (!sixLetterStarts.has(letter)) mandatoryRows.push(index);
+      else if (threeLetterStarts.has(letter)) optionalRows.push(index);
+    }
+    const extraNeeded = 3 - mandatoryRows.length;
+    if (extraNeeded < 0 || optionalRows.length < extraNeeded) continue;
+
+    for (let index = optionalRows.length - 1; index > 0; index--) {
+      const swap = Math.floor(random() * (index + 1));
+      [optionalRows[index], optionalRows[swap]] = [optionalRows[swap], optionalRows[index]];
+    }
+    const splitRows = [...mandatoryRows, ...optionalRows.slice(0, extraNeeded)]
+      .map(index => index + 1)
+      .sort((a, b) => a - b);
+    plans.push({ answer: entry.answer, rows: splitRows });
+  }
+
+  if (!plans.length) return null;
+  return plans[Math.floor(random() * plans.length)];
+}
+
 function countFailure(target, reason) {
   target[reason] = (target[reason] ?? 0) + 1;
 }
@@ -64,7 +100,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // Build them once, not again inside every CSP retry.
   const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
 
-  const hasElevenLetterAnswers = prepared.variants.some(entry => entry.answer.length === 11);
+  const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
   const wantsEleven = hasElevenLetterAnswers
     && random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
   const specialAttempts = wantsEleven ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8) : 0;
@@ -72,10 +108,15 @@ export function generateScanword(inputDictionary, options = {}) {
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
     const useSpecial = wantsEleven && attempt < specialAttempts;
+    const specialPlan = useSpecial
+      ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true)
+      : null;
+    const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
     const topologyResult = generateTopology({
       seed: topologySeed,
-      includeSpecialEleven: useSpecial,
+      includeSpecialEleven: useSpecialTopology,
+      specialSplitRows: specialPlan?.rows,
       maxAttempts: options.topologyMutationAttempts ?? 96
     });
 
@@ -119,7 +160,8 @@ export function generateScanword(inputDictionary, options = {}) {
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
-      repeatQuestionPenalty: options.repeatQuestionPenalty
+      repeatQuestionPenalty: options.repeatQuestionPenalty,
+      preferredSpecialAnswer: specialPlan?.answer
     });
 
     if (!solved.ok) {
@@ -128,6 +170,8 @@ export function generateScanword(inputDictionary, options = {}) {
         attempt: attempt + 1,
         seed: topologySeed,
         reason: solved.reason,
+        specialAnswer: specialPlan?.answer ?? null,
+        specialSplitRows: specialPlan?.rows ?? null,
         nodes: solved.nodes,
         deepest: solved.deepest,
         elapsedMs: solved.elapsedMs,
