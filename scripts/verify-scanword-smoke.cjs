@@ -93,6 +93,7 @@ async function main() {
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
     distinctPuzzles: fingerprints.size,
     directionCoverage: [...directionCoverage].sort(),
+    ordinaryScaffoldsUsed: [...new Set(successful.filter(run => Number.isInteger(run.scaffoldIndex) && run.scaffoldIndex >= 0).map(run => run.scaffoldIndex))].sort((a, b) => a - b),
     averageAnswers: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.answerCount, 0) / successful.length * 100) / 100 : 0,
     averageQuestionCells: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.questionCells, 0) / successful.length * 100) / 100 : 0,
     averageFillPercent: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.fillPercent, 0) / successful.length * 100) / 100 : 0,
@@ -107,6 +108,7 @@ async function main() {
   assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
   assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
   assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
+  assert.ok(report.ordinaryScaffoldsUsed.length >= 3, 'Production must use at least three independently validated ordinary topologies across the batch.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
   assert.ok(report.maxTwoLetterAnswers <= options.maxTwoLetterSlots, "Production puzzles must stay within the configured two-letter answer limit.");
