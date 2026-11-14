@@ -21,7 +21,7 @@ function createScaffold(extraRows) {
   // Interior columns 3–6 carry staggered crossings; the right edge is open.
   const col3Rows = new Set([1, 5]);
   const rowAnchorColumns = [[], [], [6], [4, 5], [], [], [4], [4], [6], [5], [4]];
-  const col5Rows = new Set([3, 7]);
+  const col5Rows = new Set([3, 7, 10]);
   const col6Rows = new Set([4, 8]);
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
@@ -66,15 +66,15 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#..####',
   '#.......',
   '#.......',
-  '#....#..',
+  '#....##.',
   '#...#.##',
   '#.......',
   '#.......',
-  '#....#..',
-  '#...#.##',
+  '#....##.',
+  '#......#',
   '#.......',
-  '#...##..',
-  '#.......'
+  '#...#...',
+  '#...#...'
 ]);
 
 const SCAFFOLDS = Object.freeze([
