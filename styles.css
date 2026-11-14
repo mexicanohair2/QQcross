@@ -2369,3 +2369,13 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   background:linear-gradient(145deg,#171017,#100b10)!important;
   border-color:#251820!important;box-shadow:none!important;pointer-events:none!important;
 }
+
+/* Boundary markers remain occupied cells but are not interactive clue tiles. */
+.game-screen .scanword-board>.scan-cell.scan-boundary{
+  background:linear-gradient(145deg,#21151d,#160f15)!important;
+  border-color:#34212b!important;box-shadow:inset 0 0 0 1px #ffffff08!important;
+  pointer-events:none!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow{
+  display:grid!important;opacity:.55!important;
+}
