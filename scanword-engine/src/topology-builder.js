@@ -34,21 +34,10 @@ function createScaffold(extraRows) {
   });
 }
 
-function createSpecialScaffold(extraRows) {
-  // The optional 11-letter answer uses its separately validated legacy
-  // topology; terminal-only cells on the right edge are rendered quietly.
-  return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
-    const cells = Array(CONFIG.WIDTH).fill('.');
-    if (row === 0) {
-      cells[1] = '#';
-      cells[4] = '#';
-    } else {
-      cells[0] = '#';
-      if (extraRows.includes(row)) cells[4] = '#';
-    }
-    cells[7] = '#';
-    return cells.join('');
-  });
+function createSpecialScaffold(_extraRows) {
+  // Keep the audited eleven-letter layout: it reserves column 1 for the
+  // eleven-letter answer and has a sparse right edge rather than a full wall.
+  return LOW_SHORT_SCAFFOLD.slice();
 }
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
