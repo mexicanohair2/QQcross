@@ -71,18 +71,18 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#..####',
-    '#.......',
-    '#.......',
-    '#....#..',
-    '#...####',
-    '#.......',
-    '#.......',
-    '#.......',
-    '#...####',
-    '#.......',
+    '.#...###',
     '#...#...',
-    '#...#...'
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#.....#.',
+    '#......#'
   ]);
 
   const diagnostics = diagnoseTopologyScaffold([4, 8, 10], { includeSpecialEleven: true });
@@ -97,8 +97,8 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
 
   assert.equal(result.ok, true, JSON.stringify({ result, diagnostics }));
   assert.equal(result.topology.validation.valid, true);
-  assert.equal(result.topology.metrics.interiorQuestionCells, 9);
-  assert.equal(result.topology.metrics.questionCells, 27);
+  assert.equal(result.topology.metrics.interiorQuestionCells, 10);
+  assert.equal(result.topology.metrics.questionCells, 28);
   assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
