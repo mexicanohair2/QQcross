@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
+import { diagnoseTopologyScaffold, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -22,6 +22,9 @@ test('seeded topology generation produces broad geometric variety while preservi
     const rows = result.topology.pattern;
     assert.equal(rows[0][0], '.', 'the upper-left corner must remain the only blank corner');
     assert.equal(rows[0][1], '#', 'the required top anchor must remain a question cell');
+    // Topology rows are eight-character strings, not arrays of cells.
+    assert.equal(rows[0].slice(1).split('').filter(value => value === '#').length, 5, 'top clue anchors must remain present');
+    assert.equal(rows.filter(row => row[7] === '#').length, 3, 'right edge must not become a full clue column');
     for (let row = 1; row < 12; row++) {
       assert.equal(rows[row][0], '#', 'left border question missing at row ' + row + ', seed=' + seed);
     }
@@ -30,7 +33,7 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.slots.every(slot => slot.length >= 2));
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
-    assert.ok(result.topology.metrics.interiorQuestionCells >= 3, 'boards need at least three interior question cells; seed=' + seed);
+    assert.ok(result.topology.metrics.interiorQuestionCells >= 8, 'boards need at least eight interior question cells; seed=' + seed);
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
@@ -66,7 +69,7 @@ test('topology generation is deterministic for a fixed seed', () => {
 });
 
 
-test('low-short scaffold is accepted only with its mandatory 11-letter crossing chain', () => {
+test('low-short special scaffold keeps the optional 11-letter chain and sparse right edge', () => {
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
@@ -85,6 +88,8 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
     '#......#'
   ]);
 
+  const diagnostics = diagnoseTopologyScaffold([4, 8, 10], { includeSpecialEleven: true });
+  assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
   const result = generateTopology({
     seed: 481516,
     includeSpecialEleven: true,
@@ -93,9 +98,11 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
     maxAttempts: 1
   });
 
-  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.ok, true, JSON.stringify({ result, diagnostics }));
   assert.equal(result.topology.validation.valid, true);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 3);
+  assert.equal(result.topology.metrics.interiorQuestionCells, 10);
+  assert.equal(result.topology.metrics.questionCells, 28);
+  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 4);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
   assert.ok(result.topology.pattern.every(row => row.length === 8));

@@ -47,7 +47,7 @@ async function main() {
       generatedSpecial: special.length === 1,
       elapsedMs: result.stats?.elapsedMs ?? result.elapsedMs,
       nodes: result.stats?.nodes ?? result.nodes,
-      planDiagnostics: result.stats?.specialElevenPlanDiagnostics ?? null,
+      planDiagnostics: result.specialPlanDiagnostics ?? result.stats?.specialElevenPlanDiagnostics ?? null,
       attempts: result.stats?.specialElevenFailureDiagnostics ?? result.attempts,
       failure: result.ok ? null : {
         reason: result.reason,

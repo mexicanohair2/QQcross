@@ -23,10 +23,13 @@ async function main() {
     });
     assert.equal(generated.ok, true, "Topology generation failed for seed " + seed);
     const grid = generated.topology.grid;
-    const validation = validateTopology(grid, {
+    const topologyOptions = {
       requireConnected: true,
-      allowSpecialElevenBoundary: special
-    });
+      allowSpecialElevenBoundary: special,
+      allowOuterBoundarySlots: true,
+      minimumOuterBoundaryLength: 3
+    };
+    const validation = validateTopology(grid, topologyOptions);
     assert.equal(validation.valid, true, "Independent topology check failed for seed " + seed + ": " + JSON.stringify(validation.errors));
     assert.equal(validation.metrics.totalCells, CONFIG.TOTAL_CELLS);
     assert.equal(grid.length, 12);
@@ -35,7 +38,7 @@ async function main() {
     assert.equal(grid[0][0].type, "corner");
     assert.equal(grid[0][1].type, "question");
     for (let row = 1; row < 12; row++) assert.equal(grid[row][0].type, "question");
-    const slots = deriveWordSlots(grid, { allowSpecialElevenBoundary: special });
+    const slots = deriveWordSlots(grid, topologyOptions);
     assert.equal(slots.errors.length, 0);
     if (special) {
       assert.equal(slots.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length, 1);
