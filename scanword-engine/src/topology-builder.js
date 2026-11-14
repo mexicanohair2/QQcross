@@ -4,19 +4,22 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * The original three scaffolds remain available for broad topology exploration.
- * The fourth, low-short-answer scaffold is reserved for the optional 11-letter
- * layout. It is not connected when that boundary answer is omitted.
+ * Three original scaffolds remain available for broad topology exploration.
+ * A fourth ordinary scaffold is designed for low-short-answer production boards.
+ * The fifth, low-short scaffold is reserved for the optional 11-letter layout.
+ * It is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
   { col4Rows: [3, 7, 11], col5Rows: [4, 8], rightEdgeRows: [3, 7] },
   { col4Rows: [4, 8], col5Rows: [3, 7, 11], rightEdgeRows: [3, 7] },
-  { col4Rows: [3, 7], col5Rows: [4, 8], rightEdgeRows: [4, 8] }
+  { col4Rows: [3, 7], col5Rows: [4, 8], rightEdgeRows: [4, 8] },
+  { col4Rows: [4, 8], col5Rows: [4, 8], col6Rows: [4], rightEdgeRows: [4, 8] }
 ]);
 
 function createScaffold(layout = SCAFFOLD_ROWS[0]) {
   const col4Rows = new Set(layout.col4Rows);
   const col5Rows = new Set(layout.col5Rows);
+  const col6Rows = new Set(layout.col6Rows ?? []);
   const rightEdgeRows = new Set(layout.rightEdgeRows);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
@@ -26,6 +29,7 @@ function createScaffold(layout = SCAFFOLD_ROWS[0]) {
       cells[0] = '#';
       if (col4Rows.has(row)) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
+      if (col6Rows.has(row)) cells[6] = '#';
       if (rightEdgeRows.has(row)) cells[7] = '#';
     }
     return cells.join('');
