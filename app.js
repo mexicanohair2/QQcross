@@ -872,7 +872,7 @@ function buildScanwordInWorker(entries, overrides={}){
     seed,
     maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
-    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:450,
+    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
@@ -923,7 +923,7 @@ function buildScanwordInWorker(entries, overrides={}){
       };
       timer=setTimeout(()=>{
         finish(reject,new Error("Новый генератор превысил лимит времени. Попробуй подготовить сканворд ещё раз."));
-      },12000);
+      },16000);
       worker.postMessage({entries,options:generationOptions});
     }catch(error){
       finish(reject,error);
