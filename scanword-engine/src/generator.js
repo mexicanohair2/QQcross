@@ -380,7 +380,7 @@ export function generateScanword(inputDictionary, options = {}) {
     Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 1, specialPlanPool.length - specialPlanOffset)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanPool.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
@@ -408,7 +408,7 @@ export function generateScanword(inputDictionary, options = {}) {
       includeSpecialEleven: useSpecialTopology,
       specialSplitRows: specialPlan?.rows,
       maxAttempts: options.topologyMutationAttempts ?? 96,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 6
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 4
     });
 
     if (!topologyResult.ok) {

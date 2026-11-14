@@ -15,6 +15,8 @@ async function main() {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
     maxCspTimeMs: 1200,
+    specialTopologyAttempts: 2,
+    maxTwoLetterSlots: 4,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3
@@ -80,6 +82,7 @@ async function main() {
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
+    assert.ok(scanword.words.filter(word => word.length === 2).length <= 4, "too many short answers on seed " + seed);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;

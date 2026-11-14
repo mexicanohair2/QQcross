@@ -4,16 +4,29 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * Connected 8x12 geometry with one vertical clue chain in column 4.
- * The chain starts at the top border and reaches the bottom border; every
- * horizontal answer crosses it, so all 12 rows belong to one word graph.
- * Its four clue cells split only four rows and create six controlled
- * two-letter answers in total.
+ * The original three scaffolds remain available for broad topology exploration.
+ * Production prefers the fourth, low-short-answer scaffold: it keeps the 8x12
+ * border contract while reducing forced two-letter answers from six to two.
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8, 11],
   [3, 7, 11],
   [4, 7, 11]
+]);
+
+const LOW_SHORT_SCAFFOLD = Object.freeze([
+  '.#...###',
+  '#...#...',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....##.',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....##.',
+  '#.....#.',
+  '#......#'
 ]);
 
 function createScaffold(extraRows) {
@@ -31,7 +44,10 @@ function createScaffold(extraRows) {
   });
 }
 
-const SCAFFOLDS = Object.freeze(SCAFFOLD_ROWS.map(createScaffold));
+const SCAFFOLDS = Object.freeze([
+  ...SCAFFOLD_ROWS.map(createScaffold),
+  LOW_SHORT_SCAFFOLD
+]);
 
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
@@ -55,7 +71,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
-  // crossing can become a two-letter slot dictated by the eleven-letter word.
+  // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
@@ -77,10 +93,9 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production passes a stricter cap (six); generic topology exploration
-  // retains its wider validated range so seeded diversity tests and tools can
-  // still inspect the full family of legal 8×12 role masks.
-  if (twoLetterSlots < 4 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
+  // Production uses a cap of four short answers; the low-short scaffold starts
+  // at two and allows seeded, validator-approved mutations for variety.
+  if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
@@ -113,11 +128,8 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // Special layouts have eleven mandatory crossings. Allow exactly one
-  // controlled internal clue split: this adds useful variety/content capacity
-  // without the combinatorial growth caused by several random splits.
-  // Special boards keep their dictionary-compatible crossing rows intact.
-  // Their seeded row selection already provides topology variety.
+  // The special 11-letter layout keeps its crossing rows intact. Ordinary
+  // layouts receive a bounded number of seeded mutations.
   const targetMutations = includeSpecialEleven ? 0 : 2 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
@@ -125,8 +137,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
-    // Columns 1 and 2 stay letters. Special boards also keep column 3
-    // clear so the eleven-letter answer never forces an unapproved short crossing.
+    // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
     const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
@@ -161,7 +172,16 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(4, Math.min(8, options.maxTwoLetterSlots ?? 8));
+  const maxTwoLetterSlots = Math.max(2, Math.min(8, options.maxTwoLetterSlots ?? 8));
+  const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
+    && options.scaffoldIndex >= 0
+    && options.scaffoldIndex < SCAFFOLDS.length
+    ? options.scaffoldIndex
+    : null;
+  // When production asks for at most four short answers, prefer the scaffold
+  // that has already been independently audited at two. The three historical
+  // templates remain available for diagnostics and broader topology sampling.
+  const preferLowShort = !includeSpecialEleven && maxTwoLetterSlots <= 4;
   const history = [];
   let fallback = null;
 
@@ -172,7 +192,9 @@ export function generateTopology(options = {}) {
       && options.specialSplitRows.every(row => Number.isInteger(row) && row >= 1 && row < CONFIG.HEIGHT)
       ? [...options.specialSplitRows].sort((a, b) => a - b)
       : [3, 7, 10];
-    const scaffoldIndex = includeSpecialEleven ? -1 : Math.floor(random() * SCAFFOLDS.length);
+    const scaffoldIndex = includeSpecialEleven
+      ? -1
+      : requestedScaffoldIndex ?? (preferLowShort ? SCAFFOLDS.length - 1 : Math.floor(random() * SCAFFOLDS.length));
     const scaffold = includeSpecialEleven ? createScaffold(specialRows) : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,

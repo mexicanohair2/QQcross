@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateTopology } from '../src/topology-builder.js';
+import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -62,4 +62,45 @@ test('topology generation is deterministic for a fixed seed', () => {
       directionOptions: slot.directionOptions.map(option => option.direction)
     }))
   );
+});
+
+
+test('production low-short scaffold keeps the 8x12 border and caps short answers at four', () => {
+  const scaffolds = getTopologyScaffolds();
+  assert.equal(scaffolds.length, 4);
+  assert.deepEqual(scaffolds[3], [
+    '.#...###',
+    '#...#...',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#.....#.',
+    '#......#'
+  ]);
+
+  const result = generateTopology({
+    seed: 481516,
+    includeSpecialEleven: false,
+    scaffoldIndex: 3,
+    maxTwoLetterSlots: 4,
+    maxAttempts: 192
+  });
+
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.scaffoldIndex, 3);
+  assert.equal(result.topology.validation.valid, true);
+  assert.equal(result.topology.metrics.totalCells, 96);
+  assert.equal(result.topology.pattern.length, 12);
+  assert.ok(result.topology.pattern.every(row => row.length === 8));
+  assert.equal(result.topology.pattern[0][0], '.');
+  assert.equal(result.topology.pattern[0][1], '#');
+  for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
+  const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
+  assert.ok(shortSlots >= 2 && shortSlots <= 4, 'short slots=' + shortSlots);
+  assert.ok(result.topology.slots.length >= 19);
 });

@@ -29,5 +29,7 @@ jobs:
         run: node scripts/diagnose-custom-topology.mjs
       - name: Validate seeded 8x12 topology sampling
         run: node scripts/diagnose-border-compatible-topology.cjs
-      - name: Stress-test normal full 8x12 scanwords with a production search budget
+      - name: First gate — 20 seeded puzzles with independent validation
+        run: node scripts/verify-scanword-smoke.cjs
+      - name: Stress-test 100 consecutive full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs

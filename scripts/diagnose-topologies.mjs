@@ -51,6 +51,7 @@ const targetPattern = [
 ];
 const targetMetrics = metrics(targetPattern);
 const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows)}));
+if (!scaffoldResults.some(item => item.valid && item.shortSlots <= 2)) throw new Error("Missing independently validated low-short scaffold.");
 const randomResults = [];
 for(let seed=1;seed<=48;seed++){
   const result=generateTopology({seed,includeSpecialEleven:false,maxAttempts:128});

@@ -11,8 +11,9 @@ async function main() {
     // Match the real worker's bounded search budgets.
     maxCspTimeMs: 1200,
     specialMaxCspTimeMs: 1500,
-    specialTopologyAttempts: 1,
+    specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
+    maxTwoLetterSlots: 4,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
     specialElevenLetterChance: 0.25
@@ -101,8 +102,11 @@ async function main() {
   };
   console.log(JSON.stringify(report,null,2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
-  if (report.maximumTwoLetterAnswers > 6) {
-    throw new Error("A scanword contains more than six two-letter answers.");
+  if (report.maximumTwoLetterAnswers > 4) {
+    throw new Error("A production scanword contains more than four two-letter answers.");
+  }
+  if (specialElevenMisses.length > 0) {
+    throw new Error("A requested eleven-letter scanword fell back to a normal puzzle: " + specialElevenMisses.length + " misses.");
   }
   if (specialElevenCount < 15 || specialElevenCount > 35) {
     throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
