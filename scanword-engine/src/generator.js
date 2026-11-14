@@ -516,13 +516,14 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // Do not spend every ordinary retry mutating the same base grid. Keep
-  // scaffold 4 as the first reference attempt, then rotate through every
-  // validated ordinary scaffold before revisiting one with a new seed.
-  const normalScaffoldCount = getTopologyScaffolds().length - 1;
-  const baseNormalScaffoldIndex = Number.isInteger(options.normalScaffoldIndex)
-    ? ((options.normalScaffoldIndex % normalScaffoldCount) + normalScaffoldCount) % normalScaffoldCount
-    : Math.min(4, normalScaffoldCount - 1);
+  // Only the three ordinary scaffolds that satisfy the production
+  // short-answer cap are eligible. Scaffolds 0 and 1 contain too many
+  // two-letter slots and waste entire retries before CSP can even start.
+  const normalScaffoldSequence = [4, 2, 3];
+  const requestedScaffold = Number.isInteger(options.normalScaffoldIndex)
+    ? options.normalScaffoldIndex
+    : 4;
+  const requestedScaffoldOffset = Math.max(0, normalScaffoldSequence.indexOf(requestedScaffold));
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -550,7 +551,7 @@ export function generateScanword(inputDictionary, options = {}) {
       includeSpecialEleven: useSpecialTopology,
       scaffoldIndex: useSpecialTopology
         ? undefined
-        : (baseNormalScaffoldIndex + attempt) % normalScaffoldCount,
+        : normalScaffoldSequence[(requestedScaffoldOffset + attempt - specialAttempts + normalScaffoldSequence.length) % normalScaffoldSequence.length],
       preserveScaffold: !useSpecialTopology && attempt === 0,
       specialSplitRows: specialPlan?.rows,
       specialPattern: specialPlan?.specialPattern,
