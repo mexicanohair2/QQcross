@@ -165,13 +165,15 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, length: answer.length
       });
     }
-    const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ'])
-      .map(canonicalAnswerKey));
-    if (answer.length === 2 && (
-      !word.imageKey
-      || !allowedShortAnswers.has(canonicalAnswerKey(answer))
-    )) {
-      add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ разрешён только из утверждённого списка и при наличии картинки.', {
+    // The 8×12 topology currently contains six two-letter slots.
+    // Permit only real, clue-backed Russian words/notes; function-word
+    // filler is rejected earlier by dictionary validation. Pictures are
+    // not required for every short answer (the board has a separate image quota).
+    const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
+      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ', 'АС', 'УС'
+    ]).map(canonicalAnswerKey));
+    if (answer.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(answer))) {
+      add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ отсутствует в утверждённом списке содержательных слов.', {
         wordId: word.id,
         answer,
         imageKey: word.imageKey ?? null
