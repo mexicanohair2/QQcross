@@ -16,6 +16,8 @@ async function main() {
   };
   const runs = [];
   let specialElevenCount = 0;
+  let specialElevenRequestedCount = 0;
+  const specialElevenMisses = [];
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
@@ -44,9 +46,20 @@ async function main() {
       runs.push({ seed, ok: false, reason: 'IMAGE_CLUE_CELL_COLLISION', elapsedMs, distinctImageClueCells });
       continue;
     }
+    if (result.stats.specialElevenRequested) specialElevenRequestedCount++;
     if (result.scanword.metadata.specialElevenLetterQuestion) specialElevenCount++;
+    else if (result.stats.specialElevenRequested) specialElevenMisses.push({
+      seed,
+      elapsedMs,
+      attempts: result.stats.attempts,
+      attemptedSpecialTopologies: result.stats.specialElevenAttempted,
+      diagnostics: result.stats.specialElevenFailureDiagnostics,
+      rejectedReasons: result.stats.rejectedReasons
+    });
     runs.push({
       seed, ok: validation.valid, elapsedMs,
+      specialElevenRequested: result.stats.specialElevenRequested,
+      specialElevenGenerated: result.scanword.metadata.specialElevenLetterQuestion,
       score: result.scanword.metadata.score,
       answers: words.length,
       questionCells: validation.metrics.questionCells,
@@ -68,7 +81,10 @@ async function main() {
     requested: runs.length,
     successful: successful.length,
     failed: runs.length - successful.length,
+    specialElevenRequestedCount,
     specialElevenCount,
+    specialElevenMissedCount: specialElevenMisses.length,
+    specialElevenMisses,
     expectedSpecialElevenRange: [15, 35],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
