@@ -146,7 +146,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     includeSpecialEleven: true,
     specialPattern: lowShortPattern,
     maxAttempts: 1,
-    maxTwoLetterSlots: 6
+    maxTwoLetterSlots: 8
   });
   if (lowShortTopology.ok) {
     topologies.push({
@@ -400,23 +400,23 @@ export function generateScanword(inputDictionary, options = {}) {
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
-  // Prefer exactly one low-short topology attempt when it has a compatible
-  // dictionary/CSP domain, then retain the best conventional topology as the
-  // bounded fallback. Do not spend both retries on near-identical templates.
-  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
-  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
-  const specialPlanSequence = firstLowShortPlan
-    ? [firstLowShortPlan, ...conventionalSpecialPlans]
+  // Prefer the balanced special topology when its dictionary/CSP domain is
+  // compatible, then retain the other validated layouts as fallbacks.
+  const firstBalancedSpecialPlan = specialPlanPool.find(plan => plan.patternKey === 'balanced-special');
+  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'balanced-special');
+  const specialPlanSequence = firstBalancedSpecialPlan
+    ? [firstBalancedSpecialPlan, ...conventionalSpecialPlans]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
-    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
+    specialPlanDiagnostics.balancedSpecialViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'balanced-special').length;
+    specialPlanDiagnostics.lowShortViablePlans = specialPlanDiagnostics.balancedSpecialViablePlans;
   }
 
   // In the 100-seed production batch, four retries still left 11/33
