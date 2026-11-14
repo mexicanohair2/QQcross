@@ -54,6 +54,9 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
+  // Keep column 3 letter-only for special puzzles: otherwise a left-border
+  // crossing can become a two-letter slot dictated by the eleven-letter word.
+  if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (matrix[row][0] !== '#') return null;
@@ -114,9 +117,11 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
-    // Columns 1 and 2 stay letters so every left-border question has room
-    // for a meaningful answer; the outer border is never mutated.
-    const col = 3 + Math.floor(random() * (CONFIG.WIDTH - 4));
+    // Columns 1 and 2 stay letters. Special boards also keep column 3
+    // clear so the eleven-letter answer never forces an unapproved short crossing.
+    const minMutationColumn = includeSpecialEleven ? 4 : 3;
+    const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
+    const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
     const key = row + ',' + col;
     if (touched.has(key)) continue;
     touched.add(key);
