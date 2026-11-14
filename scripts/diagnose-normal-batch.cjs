@@ -11,6 +11,7 @@ async function main() {
     // Match the real worker's bounded search budgets.
     maxCspTimeMs: 1200,
     specialMaxCspTimeMs: 1500,
+    specialTopologyAttempts: 4,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
@@ -62,6 +63,7 @@ async function main() {
       seed, ok: validation.valid, elapsedMs,
       specialElevenRequested: result.stats.specialElevenRequested,
       specialElevenGenerated: result.scanword.metadata.specialElevenLetterQuestion,
+      specialAttemptsUsed: result.stats.specialElevenAttempted,
       score: result.scanword.metadata.score,
       answers: words.length,
       questionCells: validation.metrics.questionCells,
@@ -97,6 +99,9 @@ async function main() {
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
   if (specialElevenCount < 15 || specialElevenCount > 35) {
     throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
+  }
+  if (report.p95Ms > 8000) {
+    throw new Error("Generation p95 exceeded the 8-second mobile safety budget: " + report.p95Ms + "ms.");
   }
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
