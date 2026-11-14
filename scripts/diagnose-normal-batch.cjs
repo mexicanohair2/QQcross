@@ -12,6 +12,7 @@ async function main() {
     maxCspTimeMs: 1200,
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 1,
+    specialPlanOffset: 1,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
