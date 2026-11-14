@@ -7,7 +7,13 @@ function cssGridTrackCount(template) {
 
 async function startGuestGame(page) {
   const pageErrors = [];
+  const consoleErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("console", message => {
+    if (message.type() === "error" || message.type() === "warning") {
+      consoleErrors.push(message.type() + ": " + message.text());
+    }
+  });
   await page.goto("/?debugTiming=1");
   await expect(page).toHaveTitle(/QQCross/);
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -17,7 +23,23 @@ async function startGuestGame(page) {
   await expect(page.locator("#practice")).toBeVisible();
   await page.evaluate(() => { window.__qqStartTap = performance.now(); });
   await page.locator("#practice").click();
-  await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  try {
+    await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      practice: (() => {
+        const button = document.querySelector("#practice");
+        return button ? { disabled: button.disabled, text: button.textContent } : null;
+      })(),
+      toast: document.querySelector(".toast")?.textContent || null,
+      splash: document.querySelector(".boot-splash")?.textContent || null,
+      bootError: document.querySelector(".qq-boot-error")?.textContent || null,
+      appText: (document.querySelector("#app")?.innerText || "").slice(0, 1600),
+      screenClasses: [...document.querySelectorAll("#app > *")].map(node => node.className)
+    }));
+    console.log("QQCROSS_START_FAILURE " + JSON.stringify({ state, pageErrors, consoleErrors }));
+    throw error;
+  }
   const startMs = await page.evaluate(() => performance.now() - window.__qqStartTap);
   return { pageErrors, startMs };
 }
