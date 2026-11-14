@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyzeRequiredBorderFeasibility, deriveWordSlots, getAnswerCoordinates, validateTopology } from '../src/topology.js';
-import { generateTopology } from '../src/topology-builder.js';
+import { diagnoseTopologyScaffold, generateTopology } from '../src/topology-builder.js';
 
 function makeGrid(defaultType = 'letter') {
   return Array.from({ length: 12 }, (_, row) => Array.from({ length: 8 }, (_, col) => ({
@@ -186,6 +186,18 @@ test('the 8x12 preflight permits the dynamically generated top border', () => {
   const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });
   assert.equal(unsupported.feasible, null);
   assert.equal(unsupported.reason, 'UNSUPPORTED_DIMENSIONS');
+});
+
+
+test('production interior-clue scaffold is a connected, fully covered 8x12 topology', () => {
+  const diagnostics = diagnoseTopologyScaffold([4, 8]);
+  assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
+  assert.equal(diagnostics.questionCells, 26);
+  assert.equal(diagnostics.interiorQuestionCells, 8);
+  assert.equal(diagnostics.pattern.filter(row => row[7] === '#').length, 3);
+  assert.ok(diagnostics.slotCount >= 19);
+  assert.ok(diagnostics.twoLetterSlots <= 8);
+  assert.ok(diagnostics.longSlots >= 12);
 });
 
 test('generates varied, connected topologies rather than one fixed board layout', () => {
