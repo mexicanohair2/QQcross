@@ -1,0 +1,45 @@
+name: Deploy playable QQCross preview
+
+on:
+  push:
+    branches:
+      - playable/qqcross-preview-20261114
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: qqcross-pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out playable preview
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Prepare static app
+        run: |
+          mkdir -p dist
+          cp index.html app.js new-games.js progression.js encyclopedia.js audio.js wordle.js styles.css violet.css sw.js manifest.json icon.svg dist/
+          cp -R data assets dist/
+          if [ -d wall-kickers ]; then cp -R wall-kickers dist/wall-kickers; fi
+          touch dist/.nojekyll
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+      - name: Deploy playable preview to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
