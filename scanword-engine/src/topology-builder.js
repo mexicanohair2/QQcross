@@ -62,7 +62,20 @@ function createSpecialScaffold(extraRows) {
   });
 }
 
-const LOW_SHORT_SCAFFOLD = Object.freeze(createSpecialScaffold([3, 7, 10]));
+const LOW_SHORT_SCAFFOLD = Object.freeze([
+  '.#...###',
+  '#...#...',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....##.',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....##.',
+  '#.....#.',
+  '#......#'
+]);
 
 const SCAFFOLDS = Object.freeze([
   ...SCAFFOLD_ROWS.map(createScaffold),
