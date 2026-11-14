@@ -196,7 +196,7 @@ export function deriveWordSlots(grid, options = {}) {
       && !(axis === 'vertical' && fixedIndex === 1)) {
       const from = questionPositions[questionPositions.length - 1];
       const length = lineLength - from - 1;
-      if (length >= MIN_ANSWER_LENGTH && length <= CONFIG.MAX_WORD_LENGTH) {
+      if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
         const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
         const terminal = horizontal
           ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
