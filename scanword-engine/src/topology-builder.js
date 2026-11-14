@@ -93,13 +93,13 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = incl
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: !includeSpecialEleven,
-    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 2
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 2 });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
@@ -289,9 +289,9 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: !includeSpecialEleven,
-    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 2
   });
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 2 });
   return {
     pattern: rows,
     valid: validation.valid,
@@ -322,7 +322,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: !includeSpecialEleven,
-    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
+    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 2
   };
   const validation = validateTopology(grid, topologyOptions);
   const derived = deriveWordSlots(grid, topologyOptions);
