@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { diagnoseTopologyScaffold, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
+import { diagnoseTopologyScaffold, diagnoseTopologyPattern, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -50,6 +50,9 @@ test('seeded topology generation produces broad geometric variety while preservi
 
 test('ordinary production scaffold borrows the proven special crossing geometry without the 11-letter answer', () => {
   const scaffolds = getTopologyScaffolds();
+  const diagnostics = diagnoseTopologyPattern(scaffolds[4]);
+  assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
+
   const result = generateTopology({
     seed: 481517,
     includeSpecialEleven: false,
