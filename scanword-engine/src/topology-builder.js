@@ -110,7 +110,10 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  const targetMutations = 2 + Math.floor(random() * 5);
+  // The special 11-letter layout already has 11 mandatory horizontal
+  // crossings. Keep its validated scaffold stable instead of adding random
+  // clue splits that multiply the constrained CSP search space.
+  const targetMutations = includeSpecialEleven ? 0 : 2 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
@@ -170,7 +173,7 @@ export function generateTopology(options = {}) {
     }
 
     if (!fallback) fallback = { candidate: mutated.candidate, scaffoldIndex, mutations: mutated.accepted };
-    if (mutated.accepted === 0) {
+    if (mutated.accepted === 0 && !includeSpecialEleven) {
       history.push('VALID_SCAFFOLD_WITHOUT_MUTATION');
       continue;
     }
