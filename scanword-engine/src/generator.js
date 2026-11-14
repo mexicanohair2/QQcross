@@ -88,7 +88,8 @@ function enforceCrossingArcConsistency(domains, foldYo = false) {
       queue.push({
         self: relation.other,
         other: arc.self,
-        pairs: relation.pairs
+        // Reversing arc direction also reverses each shared-cell index pair.
+        pairs: relation.pairs.map(([selfPosition, otherPosition]) => [otherPosition, selfPosition])
       });
     }
   }
