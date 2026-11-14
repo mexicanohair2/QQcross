@@ -45,7 +45,7 @@ function createScaffold(extraRows) {
       cells[0] = '#';
       if (innerColumnThreeRows.has(row)) cells[3] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
-      else cells[7] = '#';
+      cells[7] = '#';
     }
     return cells.join('');
   });
