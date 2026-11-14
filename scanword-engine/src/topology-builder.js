@@ -124,7 +124,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
   // Production uses a cap of four short answers; the low-short scaffold starts
   // at two and allows seeded, validator-approved mutations for variety.
-  if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
+  if (twoLetterSlots < (includeSpecialEleven ? 1 : 2) || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
