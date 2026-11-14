@@ -200,6 +200,16 @@ export function generateScanword(inputDictionary, options = {}) {
     scanword.metadata.score = score;
     scanword.metadata.generationTimeMs = Math.round(now() - started);
 
+    const specialElevenAttemptDiagnostics = attempts
+      .filter(item => item.attempt <= specialAttempts)
+      .map(item => ({
+        attempt: item.attempt,
+        reason: item.reason,
+        nodes: item.nodes ?? null,
+        elapsedMs: item.elapsedMs ?? null,
+        lastDeadEnd: item.lastDeadEnd ?? null
+      }));
+    scanword.metadata.specialElevenRequested = wantsEleven;
     return {
       ok: true,
       scanword,
@@ -220,6 +230,10 @@ export function generateScanword(inputDictionary, options = {}) {
         cspElapsedMs: solved.elapsedMs,
         score,
         specialElevenLetterQuestion: scanword.metadata.specialElevenLetterQuestion,
+        specialElevenRequested: wantsEleven,
+        specialElevenMissed: wantsEleven && !scanword.metadata.specialElevenLetterQuestion,
+        specialElevenAttempted: specialAttempts,
+        specialElevenFailureDiagnostics: specialElevenAttemptDiagnostics,
         dictionary: prepared.stats,
         rejectedReasons: { ...rejectedReasons }
       }
