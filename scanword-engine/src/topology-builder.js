@@ -10,13 +10,13 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8],
-  [3, 8],
+  [4, 9],
   [5, 9]
 ]);
 
 function createScaffold(extraRows) {
   const col4Rows = new Set([...extraRows, 10, 11]);
-  const col5Rows = new Set([3, 4, 8]);
+  const col5Rows = new Set([4, 8]);
   const col6Rows = new Set([4, 8]);
   const rightEdgeRows = new Set([4, 8]);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
@@ -51,18 +51,18 @@ function createSpecialScaffold(extraRows) {
   });
 }
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
+  '.#..####',
+  '#.......',
+  '#.......',
+  '#.......',
+  '#...####',
+  '#.......',
+  '#.......',
+  '#.......',
+  '#...####',
+  '#.......',
   '#...#...',
-  '#...#...',
-  '#...#...',
-  '#......#',
-  '#....##.',
-  '#...#...',
-  '#...#...',
-  '#......#',
-  '#....##.',
-  '#.....#.',
-  '#......#'
+  '#...#...'
 ]);
 const SCAFFOLDS = Object.freeze([
   ...SCAFFOLD_ROWS.map(createScaffold),
@@ -85,12 +85,13 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 1, minimumInteriorQuestionCells = 8) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < (includeSpecialEleven ? 2 : 5)) return null;
+  if (countTopQuestions(matrix) !== 5) return null;
+  if (countRightEdgeQuestions(matrix) !== 3) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < (includeSpecialEleven ? minimumInteriorQuestionCells : Math.max(8, minimumInteriorQuestionCells))) return null;
+  if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -118,7 +119,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
   // Production uses a cap of four short answers; the low-short scaffold starts
   // at two and allows seeded, validator-approved mutations for variety.
-  if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
+  if (twoLetterSlots < 1 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
@@ -158,7 +159,7 @@ function countInteriorQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 1) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
@@ -211,7 +212,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(2, Math.min(8, options.maxTwoLetterSlots ?? 8));
+  const maxTwoLetterSlots = Math.max(1, Math.min(8, options.maxTwoLetterSlots ?? 1));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
     && options.scaffoldIndex < SCAFFOLD_ROWS.length
