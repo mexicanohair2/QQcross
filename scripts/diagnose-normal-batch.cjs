@@ -82,3 +82,5 @@ async function main() {
   }
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
+
+// This production batch is intentionally run by the existing pull-request verification workflow.
