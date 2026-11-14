@@ -50,7 +50,7 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
@@ -77,10 +77,10 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Keep short answers a minority: every accepted 8×12 board has four to
-  // six two-letter slots, while the remaining answer slots have at least
-  // three letters. This prevents random clue splits from flooding the board.
-  if (twoLetterSlots < 4 || twoLetterSlots > 6 || longSlots < 12) return null;
+  // Production passes a stricter cap (six); generic topology exploration
+  // retains its wider validated range so seeded diversity tests and tools can
+  // still inspect the full family of legal 8×12 role masks.
+  if (twoLetterSlots < 4 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
@@ -108,9 +108,9 @@ function countTopQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
   const matrix = cloneRows(baseRows);
-  let candidate = inspectCandidate(matrix, includeSpecialEleven);
+  let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
   // Special layouts have eleven mandatory crossings. Allow exactly one
@@ -137,7 +137,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
     const previous = matrix[row][col];
     matrix[row][col] = previous === '#' ? '.' : '#';
-    const next = inspectCandidate(matrix, includeSpecialEleven);
+    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
 
     if (next) {
       candidate = next;
@@ -161,6 +161,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
+  const maxTwoLetterSlots = Math.max(4, Math.min(8, options.maxTwoLetterSlots ?? 8));
   const history = [];
   let fallback = null;
 
@@ -177,7 +178,8 @@ export function generateTopology(options = {}) {
       scaffold,
       includeSpecialEleven,
       random,
-      mutationBudget
+      mutationBudget,
+      maxTwoLetterSlots
     );
     if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');
