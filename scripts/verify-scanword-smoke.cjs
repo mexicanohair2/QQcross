@@ -25,11 +25,11 @@ async function main() {
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
+    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 1 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
-      runs.push({ index, seed, ok: false, elapsedMs, reason: result.reason, rejectedReasons: result.rejectedReasons });
+      runs.push({ index, seed, ok: false, elapsedMs, reason: result.reason, rejectedReasons: result.rejectedReasons, lastDiagnostic: result.lastDiagnostic ?? null, attempts: (result.attempts ?? []).map(item => ({ attempt: item.attempt, reason: item.reason, nodes: item.nodes, deepest: item.deepest, elapsedMs: item.elapsedMs, lastDeadEnd: item.lastDeadEnd, deepestDeadEnd: item.deepestDeadEnd, searchTrace: item.searchTrace ?? null })) });
       continue;
     }
 
