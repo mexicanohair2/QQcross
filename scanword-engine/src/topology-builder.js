@@ -146,14 +146,14 @@ function countInteriorQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5, preserveScaffold = false) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
   // The special 11-letter layout keeps its crossing rows intact. Ordinary
   // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven ? 0 : 1 + Math.floor(random() * 3);
+  const targetMutations = includeSpecialEleven || preserveScaffold ? 0 : 1 + Math.floor(random() * 3);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
@@ -226,7 +226,8 @@ export function generateTopology(options = {}) {
       includeSpecialEleven,
       random,
       mutationBudget,
-      maxTwoLetterSlots
+      maxTwoLetterSlots,
+      options.preserveScaffold === true
     );
     if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');
@@ -234,7 +235,7 @@ export function generateTopology(options = {}) {
     }
 
     if (!fallback) fallback = { candidate: mutated.candidate, scaffoldIndex, mutations: mutated.accepted };
-    if (mutated.accepted === 0 && !includeSpecialEleven) {
+    if (mutated.accepted === 0 && !includeSpecialEleven && options.preserveScaffold !== true) {
       history.push('VALID_SCAFFOLD_WITHOUT_MUTATION');
       continue;
     }
