@@ -165,13 +165,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, length: answer.length
       });
     }
-    const allowedShortAnswers = new Set((options.allowedShortAnswers ?? ['ЁЖ'])
-      .map(canonicalAnswerKey));
-    if (answer.length === 2 && (
-      !word.imageKey
-      || !allowedShortAnswers.has(canonicalAnswerKey(answer))
-    )) {
-      add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ разрешён только из утверждённого списка и при наличии картинки.', {
+    const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
+      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+    ]).map(canonicalAnswerKey));
+    if (answer.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(answer))) {
+      add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ входит в утверждённый список коротких русских слов.', {
         wordId: word.id,
         answer,
         imageKey: word.imageKey ?? null
