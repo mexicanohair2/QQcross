@@ -2405,10 +2405,10 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 
 
-/* Match the reference's 3px side gutters while keeping the 8×12 board in view. */
+/* Match the reference's 3px side gutters while preserving the 8×12 cell geometry. */
 .game-screen .scanword-board{
-  width:min(calc(100vw - 6px),calc((100dvh - 170px)*.8),660px)!important;
+  width:min(calc(100vw - 6px),calc((100dvh - 170px)*.666667),660px)!important;
   max-width:calc(100vw - 6px)!important;
   max-height:calc(100dvh - 170px)!important;
-  aspect-ratio:4/5!important;
+  aspect-ratio:2/3!important;
 }
