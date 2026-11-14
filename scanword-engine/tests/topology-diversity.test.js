@@ -74,15 +74,15 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
     '.#..####',
     '#.......',
     '#.......',
-    '#....#..',
+    '#....##.',
     '#...#.##',
     '#.......',
     '#.......',
-    '#....#..',
-    '#...#.##',
+    '#....##.',
+    '#......#',
     '#.......',
-    '#...##..',
-    '#.......'
+    '#...#...',
+    '#...#...'
   ]);
 
   const diagnostics = diagnoseTopologyScaffold([4, 8, 10], { includeSpecialEleven: true });
