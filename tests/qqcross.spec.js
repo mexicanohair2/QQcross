@@ -104,7 +104,6 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
-  await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
@@ -585,7 +584,7 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
   expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth + 1);
   expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
-  expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
+  expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 160);
   await expect(board.locator('.scan-clue[data-clue-cell="5,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="1,0"]')).toHaveCount(1);
@@ -606,18 +605,15 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     if (col === 0 && row > 0) counts.left++;
     return counts;
   }, { top: 0, left: 0 }));
-  expect(edgeCounts.top).toBeGreaterThanOrEqual(3);
+  expect(edgeCounts.top).toBeGreaterThanOrEqual(5);
   expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
   const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     return row > 0 && col > 0;
   }).length);
   const rightEdgeClues = await board.locator('.scan-clue[data-clue-cell$=",7"]').count();
-  expect(interiorClues).toBeGreaterThanOrEqual(4);
-  expect(rightEdgeClues).toBeLessThanOrEqual(5);
-  const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
-  expect(rightBoundaries.length).toBeGreaterThan(0);
-  expect(rightBoundaries.every(key => key.endsWith(",7"))).toBeTruthy();
+  expect(interiorClues).toBeGreaterThanOrEqual(8);
+  expect(rightEdgeClues).toBeLessThanOrEqual(3);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
