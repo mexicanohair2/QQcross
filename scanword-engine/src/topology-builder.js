@@ -142,6 +142,10 @@ function countTopQuestions(matrix) {
   return matrix[0].slice(1).filter(value => value === '#').length;
 }
 
+function countRightEdgeQuestions(matrix) {
+  return matrix.filter(row => row[CONFIG.WIDTH - 1] === '#').length;
+}
+
 function countInteriorQuestions(matrix) {
   return matrix.slice(1).reduce(
     (total, row) => total + row.slice(1, CONFIG.WIDTH - 1).filter(value => value === '#').length,
