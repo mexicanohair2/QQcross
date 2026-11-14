@@ -1352,7 +1352,28 @@ function buildScanword(entries){
       for(let column=2;column<W;column++){
         const clue=clueAt.get("0,"+column)||[];
         if(clue.length)continue;
-        if(!topColumnHasCandidate(column,requireCross))return false;
+        if(!topColumnHasCandidate(column,requireCross)){
+          const pattern=Array.from({length:Math.min(4,H-1)},(_,index)=>occupied.get((index+1)+","+column)||".").join("");
+          const lengths=column===2?[11]:Array.from({length:10},(_,index)=>index+2);
+          const candidates=lengths.map(length=>{
+            const positions=byLength.get(length),pool=entriesByLength.get(length)||[];
+            if(!positions)return {length,count:0};
+            const count=pool.filter(entry=>{
+              if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5)))return false;
+              for(let step=1;step<=length;step++){
+                const letter=occupied.get(step+","+column);
+                if(letter!==undefined&&entry.answer[step-1]!==letter)return false;
+                if(clueAt.has(step+","+column)||reservedKeys.has(step+","+column))return false;
+              }
+              const terminal=(length+1)+","+column;
+              if(length+1<H&&(occupied.has(terminal)||reservedKeys.has(terminal)))return false;
+              return true;
+            }).length;
+            return {length,count};
+          }).filter(item=>item.count);
+          lastSeedReject={answer:"TOP_BORDER",start:"0,"+column,reason:"NO_VERTICAL_CANDIDATE",pattern,candidates};
+          return false;
+        }
       }
       return true;
     };
