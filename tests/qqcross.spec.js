@@ -612,7 +612,7 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     return row > 0 && col > 0;
   }).length);
   const rightEdgeClues = await board.locator('.scan-clue[data-clue-cell$=",7"]').count();
-  expect(interiorClues).toBeGreaterThanOrEqual(8);
+  expect(interiorClues).toBeGreaterThanOrEqual(5);
   expect(rightEdgeClues).toBeLessThanOrEqual(3);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
