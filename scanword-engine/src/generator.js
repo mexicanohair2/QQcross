@@ -387,7 +387,8 @@ export function generateScanword(inputDictionary, options = {}) {
         selectedAnswer: specialPlan?.answer ?? null,
         selectedRows: specialPlan?.rows ?? null,
         selectedPlanKey: specialPlan?.planKey ?? null,
-        excludedPlanCount: attempt + 1,
+        selectedPlanIndex: specialPlanOffset + attempt,
+        excludedPlanCount: specialPlanOffset + attempt + 1,
         viablePlans: specialPlanPool.length,
         ...(attempt === 0 ? specialPlanDiagnostics : {})
       });
