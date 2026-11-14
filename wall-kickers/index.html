@@ -3,49 +3,111 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="theme-color" content="#100d11">
-<meta name="description" content="Wall Kickers — мобильная аркадная игра. Прыгай между стенами и поднимайся выше!">
-<title>Wall Kickers</title>
+<meta name="theme-color" content="#09090b">
+<title>Wall Kickers — White-Black Sakura</title>
 <style>
-:root{color-scheme:dark}*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#100d11;color:#f4ecee;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;overscroll-behavior:none;touch-action:none}#game{position:fixed;inset:0;width:100%;height:100%;display:block}.top{position:fixed;top:0;left:0;right:0;padding:calc(env(safe-area-inset-top) + 14px) 18px 12px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}.brand{font-weight:950;letter-spacing:2px;font-size:17px;text-shadow:0 2px 12px #0008}.brand span{color:#c58b96}.score{padding:8px 13px;border:1px solid #63434c;background:#21191fdd;border-radius:14px;font-weight:800;font-variant-numeric:tabular-nums}.hint{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 22px);left:50%;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px);padding:11px 16px;border:1px solid #65444d;background:#21191fe8;border-radius:16px;text-align:center;font-size:13px;color:#e8dadd;pointer-events:none;transition:opacity .25s}.overlay{position:fixed;inset:0;display:grid;place-items:center;padding:22px;background:#09080bb8;backdrop-filter:blur(7px)}.panel{width:min(360px,100%);padding:29px 23px 23px;text-align:center;background:linear-gradient(155deg,#292027,#19151b);border:1px solid #674650;border-radius:26px;box-shadow:0 22px 80px #0009}.logo{font-size:clamp(27px,8vw,37px);font-weight:1000;letter-spacing:2px;white-space:nowrap}.logo span{color:#c58b96}.sub{margin:12px 0 23px;color:#c8bbc0;font-size:14px;line-height:1.55}.btn{width:100%;border:0;border-radius:15px;padding:15px 20px;background:linear-gradient(135deg,#a65f70,#713d4d);color:#fff;font-size:15px;font-weight:900;letter-spacing:.5px;box-shadow:0 8px 24px #8a405333}.btn:active{transform:scale(.98)}.foot{margin-top:15px;color:#887b81;font-size:10px;letter-spacing:1.2px}.hidden{display:none!important}
+:root{color-scheme:dark;--bg:#09090b;--panel:#171719;--line:#424246;--ink:#f1f1ef;--muted:#aaa9a5;--accent:#e8e8e8}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);overscroll-behavior:none}
+body{position:fixed;inset:0;touch-action:none}
+#game{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;image-rendering:pixelated}
+#hud{position:absolute;inset:0;pointer-events:none;display:none}
+.hudTop{position:absolute;top:max(12px,env(safe-area-inset-top));left:0;right:0;display:flex;justify-content:center;align-items:flex-start;gap:10px}
+.scoreBox{min-width:90px;text-align:center;padding:7px 15px;background:#08080acc;border:1px solid #ffffff30;border-radius:10px;box-shadow:0 5px 18px #0006}
+.score{font-size:24px;font-weight:900;line-height:1}.best{font-size:10px;letter-spacing:1.5px;color:#bdbdbb;margin-top:3px}
+#pauseBtn{position:absolute;right:14px;top:max(13px,env(safe-area-inset-top));pointer-events:auto;width:42px;height:42px;border:1px solid #ffffff45;border-radius:9px;background:#111111d9;color:#fff;font-size:18px}
+#hint{position:absolute;bottom:max(15px,env(safe-area-inset-bottom));left:12px;right:12px;text-align:center;color:#e4e4e1a8;font-size:10px;letter-spacing:1.6px;text-shadow:0 2px 4px #000}
+.screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:22px 18px max(22px,env(safe-area-inset-bottom));background:linear-gradient(180deg,#08080a30,#08080a88);overflow:hidden}
+#menuScreen{align-items:flex-start;padding-top:max(54px,9vh)}
+.hidden{display:none!important}
+.panel{width:min(390px,100%);max-height:100%;overflow:auto;background:linear-gradient(160deg,#1d1d20f5,#101012f5);border:1px solid #77777755;border-radius:16px;padding:22px;box-shadow:0 18px 60px #000b;touch-action:pan-y}
+.logo{font-size:clamp(32px,9vw,48px);font-weight:1000;line-height:.86;letter-spacing:-2px;text-align:center;text-shadow:0 3px 0 #555,0 8px 20px #000}
+.sublogo{text-align:center;color:#d0d0ce;font-size:10px;letter-spacing:4px;margin-top:12px}
+.description{text-align:center;color:#b9b9b6;font-size:12px;line-height:1.5;margin:18px 0}
+.primary,.secondary{width:100%;border:1px solid #f0f0ed;background:#e8e8e6;color:#111;font-weight:900;letter-spacing:1px;border-radius:9px;padding:14px 16px;font-size:14px;box-shadow:0 4px 0 #888;touch-action:manipulation}
+.primary:active,.secondary:active{transform:translateY(2px);box-shadow:0 2px 0 #888}
+.secondary{background:#252528;color:#eee;border-color:#555;box-shadow:0 4px 0 #08080a}
+.menuStats{display:flex;justify-content:center;gap:22px;margin:15px 0 18px;color:#d2d2cf;font-size:11px}
+.menuStats b{display:block;text-align:center;color:#fff;font-size:18px}
+#collectionBtn{position:absolute;left:max(14px,env(safe-area-inset-left));bottom:max(14px,env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:1px solid #eee;background:#151517;color:#fff;font-size:22px;box-shadow:0 5px 18px #000a;z-index:5}
+#mapName{position:absolute;right:14px;bottom:max(24px,env(safe-area-inset-bottom));color:#eee;background:#111c;padding:7px 10px;border:1px solid #ffffff30;border-radius:8px;font-size:10px;letter-spacing:1px}
+.screenTitle{font-size:20px;font-weight:900;margin:0 0 7px;text-align:center}
+.screenText{font-size:11px;color:#b9b9b6;text-align:center;margin:0 0 18px;line-height:1.45}
+.tabs{display:flex;gap:7px;margin:0 0 14px}
+.tab{flex:1;padding:10px 6px;border-radius:8px;border:1px solid #555;background:#242427;color:#ccc;font-size:11px;font-weight:800}
+.tab.active{background:#e8e8e6;color:#111;border-color:#fff}
+.items{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.item{background:#222225;border:1px solid #555;border-radius:10px;padding:12px 10px;text-align:center;min-height:112px}
+.item.selected{border-color:#fff;box-shadow:inset 0 0 0 1px #fff}
+.itemName{font-size:12px;font-weight:900;margin:8px 0 4px}
+.itemMeta{font-size:10px;color:#aaa}
+.item button{margin-top:9px;width:100%;border-radius:7px;border:1px solid #777;background:#e6e6e3;color:#111;padding:8px 4px;font-size:10px;font-weight:900}
+.item button:disabled{background:#363639;color:#aaa}
+.previewCharacter{height:42px;display:flex;align-items:center;justify-content:center;font-size:28px;filter:grayscale(1)}
+.rowBtns{display:flex;gap:8px;margin-top:14px}
+.rowBtns button{flex:1}
+#pauseScreen .panel,#overScreen .panel{text-align:center}
+.resultBig{font-size:42px;font-weight:1000;margin:10px 0}
+.resultLabel{color:#aaa;font-size:10px;letter-spacing:2px}
+#notice{min-height:16px;text-align:center;color:#ddd;font-size:11px;margin-top:10px}
+@media(max-height:620px){#menuScreen{padding-top:38px}.panel{padding:17px}.description{margin:12px 0}.logo{font-size:34px}.menuStats{margin:10px 0}.screen{padding-top:10px}}
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Игровое поле Wall Kickers"></canvas>
-<div class="top"><div class="brand">WALL <span>KICKERS</span></div><div class="score">ЭТАЖ <span id="score">0</span></div></div>
-<div class="hint" id="hint">Коснись экрана, чтобы прыгнуть к другой стене</div>
-<div class="overlay" id="overlay"><section class="panel"><div class="logo">WALL <span>KICKERS</span></div><p class="sub" id="message">Отталкивайся от стен, перепрыгивай на другую сторону и забирайся как можно выше!</p><button class="btn" id="start">НАЧАТЬ ИГРУ</button><div class="foot">МОБИЛЬНАЯ ARCADE DEMO</div></section></div>
+<canvas id="game" aria-label="Wall Kickers"></canvas>
+<div id="hud">
+  <div class="hudTop"><div class="scoreBox"><div class="score" id="score">0</div><div class="best">ЛУЧШИЙ <span id="best">0</span></div></div></div>
+  <button id="pauseBtn" aria-label="Пауза">Ⅱ</button>
+  <div id="hint">КАСАНИЕ — ПРЫЖОК ОТ СТЕНЫ · УДЕРЖАНИЕ — ВЫШЕ</div>
+</div>
+<div id="menuScreen" class="screen">
+  <div class="panel">
+    <div class="logo">WALL<br>KICKERS</div>
+    <div class="sublogo">WHITE-BLACK SAKURA</div>
+    <p class="description">Отталкивайся от стен, проходи участки с ловушками и поднимайся выше. Одно касание — один прыжок.</p>
+    <div class="menuStats"><div><b id="menuBest">0</b>РЕКОРД</div><div><b id="menuCoins">0</b>МОНЕТЫ</div></div>
+    <button class="primary" id="startBtn">НАЧАТЬ ЗАБЕГ</button>
+  </div>
+  <button id="collectionBtn" aria-label="Персонажи и карты">◇</button>
+  <div id="mapName">WHITE-BLACK SAKURA</div>
+</div>
+<div id="collectionScreen" class="screen hidden">
+  <div class="panel">
+    <h2 class="screenTitle">КОЛЛЕКЦИЯ</h2>
+    <p class="screenText">Персонажи и карты находятся в одном меню. Монеты можно получить только в игре.</p>
+    <div class="tabs"><button class="tab active" data-tab="characters">ПЕРСОНАЖИ</button><button class="tab" data-tab="maps">КАРТЫ</button></div>
+    <div id="charactersPanel"><div class="items" id="characterItems"></div></div>
+    <div id="mapsPanel" class="hidden"><div class="items" id="mapItems"></div></div>
+    <div class="rowBtns"><button class="secondary" id="collectionBack">НАЗАД</button></div>
+    <div id="notice"></div>
+  </div>
+</div>
+<div id="pauseScreen" class="screen hidden"><div class="panel">
+  <h2 class="screenTitle">ПАУЗА</h2><p class="screenText">Забег приостановлен.</p>
+  <button class="primary" id="resumeBtn">ПРОДОЛЖИТЬ</button><div style="height:9px"></div><button class="secondary" id="menuBtn">В ГЛАВНОЕ МЕНЮ</button>
+</div></div>
+<div id="overScreen" class="screen hidden"><div class="panel">
+  <div class="resultLabel">ЗАБЕГ ОКОНЧЕН</div><div class="resultBig" id="finalScore">0</div>
+  <p class="screenText">ЛУЧШИЙ РЕЗУЛЬТАТ: <b id="finalBest">0</b><br>СОБРАНО МОНЕТ: <b id="runCoins">0</b></p>
+  <button class="primary" id="retryBtn">ЕЩЁ РАЗ</button><div style="height:9px"></div><button class="secondary" id="overMenuBtn">В ГЛАВНОЕ МЕНЮ</button>
+</div></div>
 <script>
-(()=>{'use strict';
-const canvas=document.getElementById('game'),ctx=canvas.getContext('2d'),overlay=document.getElementById('overlay'),scoreNode=document.getElementById('score'),hint=document.getElementById('hint'),message=document.getElementById('message'),startBtn=document.getElementById('start');
-let W=0,H=0,D=1,last=0,raf=0,state='menu',player=null,camera=0,score=0,particles=[],stars=[];
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-function resize(){D=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=Math.round(W*D);canvas.height=Math.round(H*D);ctx.setTransform(D,0,0,D,0,0);stars=Array.from({length:32},(_,i)=>({x:(i*83.17)%W,y:(i*137.31)%H,r:.7+(i%3)*.45,a:.12+(i%4)*.06}));if(player&&state==='playing'){player.x=clamp(player.x,30,W-30)}draw()}
-addEventListener('resize',resize,{passive:true});
-function reset(){camera=0;score=0;particles=[];scoreNode.textContent='0';player={x:W-34,y:H-100,vx:0,vy:0,r:14,side:1,attached:true,peak:H-100};state='playing';overlay.classList.add('hidden');hint.classList.remove('hidden');hint.style.opacity='1';last=performance.now();cancelAnimationFrame(raf);raf=requestAnimationFrame(loop)}
-function end(){state='over';overlay.classList.remove('hidden');hint.classList.add('hidden');message.textContent='Ты добрался до '+score+' этажа. Попробуешь подняться ещё выше?';startBtn.textContent='ИГРАТЬ ЕЩЁ'}
-function jump(){if(state!=='playing'||!player.attached)return;player.attached=false;player.vx=-player.side*Math.max(5.2,W*.012);player.vy=-Math.max(9.2,H*.014);player.side*=-1;hint.style.opacity='.42';burst(player.x,player.y-camera,player.side)}
-function burst(x,y,dir){for(let i=0;i<7;i++)particles.push({x,y,vx:dir*(Math.random()*2+1),vy:(Math.random()-.7)*3,life:24})}
-function update(dt){const p=player,steps=Math.min(2,dt/16.67);for(let n=0;n<steps;n++){if(!p.attached){p.vy+=.31;p.x+=p.vx;p.y+=p.vy;p.vx*=.998;
-const wall=p.side===-1?30:W-30;
-if((p.side===-1&&p.x<=wall)||(p.side===1&&p.x>=wall)){p.x=wall;if(p.vy>0){p.attached=true;p.vx=0;p.vy=0;burst(p.x,p.y-camera,-p.side);hint.style.opacity='1'}else{p.x=clamp(p.x,30,W-30)}}
-if(p.y<p.peak){p.peak=p.y;const next=Math.floor((H-100-p.peak)/105);if(next>score){score=next;scoreNode.textContent=String(score)}}
-}
-const target=p.y-H*.39;if(target<camera)camera=target;
-if(p.y-camera>H+45){end();return}
-}
-for(let i=particles.length-1;i>=0;i--){const q=particles[i];q.x+=q.vx*steps;q.y+=q.vy*steps;q.vy+=.08*steps;q.life-=steps;if(q.life<=0)particles.splice(i,1)}
-}
-function draw(){if(!ctx||!W||!H)return;ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#17131b');bg.addColorStop(.58,'#251a22');bg.addColorStop(1,'#120f15');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
-for(const s of stars){let y=(s.y-camera*.22)%H;if(y<0)y+=H;ctx.fillStyle='rgba(238,207,216,'+s.a+')';ctx.beginPath();ctx.arc(s.x,y,s.r,0,Math.PI*2);ctx.fill()}
-ctx.fillStyle='#38252e';ctx.fillRect(0,0,17,H);ctx.fillRect(W-17,0,17,H);ctx.fillStyle='#825563';ctx.fillRect(17,0,2,H);ctx.fillRect(W-19,0,2,H);
-const base=Math.floor(camera/105);for(let i=base-2;i<base+Math.ceil(H/105)+3;i++){const y=H-100-i*105-camera;const left=i%2===0;ctx.fillStyle='#68414c';ctx.fillRect(left?17:W-29,y,12,5);ctx.fillStyle='#b27a87';ctx.fillRect(left?17:W-29,y,12,1)}
-if(player){const x=player.x,y=player.y-camera;ctx.save();ctx.translate(x,y);ctx.shadowColor='#d18b9b';ctx.shadowBlur=18;ctx.fillStyle='#d5a0a8';ctx.beginPath();ctx.arc(0,0,player.r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#33242c';ctx.beginPath();ctx.arc(4,-3,2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#d5a0a8';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(-4,10);ctx.lineTo(-9,19);ctx.moveTo(5,10);ctx.lineTo(10,19);ctx.stroke();ctx.restore()}
-for(const q of particles){ctx.globalAlpha=clamp(q.life/24,0,1);ctx.fillStyle='#e0a2ad';ctx.beginPath();ctx.arc(q.x,q.y,2,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
-}
-function loop(now){if(state!=='playing')return;const dt=Math.min(32,now-last||16.67);last=now;update(dt);draw();if(state==='playing')raf=requestAnimationFrame(loop)}
-canvas.addEventListener('pointerdown',e=>{e.preventDefault();jump()},{passive:false});startBtn.addEventListener('click',reset);document.addEventListener('visibilitychange',()=>{if(document.hidden&&state==='playing'){state='paused';cancelAnimationFrame(raf)}else if(!document.hidden&&state==='paused'){state='playing';last=performance.now();raf=requestAnimationFrame(loop)}});
-resize();draw();
-})(); 
+(async()=>{
+  try {
+    const response=await fetch("game.js.gz.b64");
+    if(!response.ok)throw new Error("game bundle "+response.status);
+    const encoded=(await response.text()).trim();
+    const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    const source=await new Response(stream).text();
+    const script=document.createElement("script");
+    script.textContent=source;
+    document.body.appendChild(script);
+  } catch(error) {
+    console.error(error);
+    document.getElementById("hint").textContent="НЕ УДАЛОСЬ ЗАГРУЗИТЬ ИГРУ";
+  }
+})();
 </script>
-</body></html>
+</body>
+</html>
