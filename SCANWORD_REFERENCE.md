@@ -1,6 +1,6 @@
 # QQCross scanword reference specification
 
-## Official interactive generator reference
+## Official interactive maker/editor reference
 
 - **Kryss Crossword Maker:** https://kryss.app/maker
 - This is the project-approved maker/editor reference for grid setup and text/picture clue authoring. The public page describes choosing grid size, language and difficulty, then writing text or picture clues and playing/sharing/printing the result.

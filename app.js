@@ -865,13 +865,18 @@ function refreshPracticeButton(){
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
 const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v1";
+let scanwordSequenceFallback=0;
 function getNextScanwordSequenceIndex(){
+  let persisted=0;
   try{
     const stored=Number(localStorage.getItem(SCANWORD_SEQUENCE_KEY));
-    return Number.isSafeInteger(stored)&&stored>0?stored+1:1;
-  }catch{return 1}
+    if(Number.isSafeInteger(stored)&&stored>0)persisted=stored;
+  }catch{}
+  scanwordSequenceFallback=Math.max(scanwordSequenceFallback,persisted)+1;
+  return scanwordSequenceFallback;
 }
 function saveScanwordSequenceIndex(index){
+  if(Number.isSafeInteger(index)&&index>scanwordSequenceFallback)scanwordSequenceFallback=index;
   try{localStorage.setItem(SCANWORD_SEQUENCE_KEY,String(index))}catch{}
 }
 function buildScanwordInWorker(entries, overrides={}){
