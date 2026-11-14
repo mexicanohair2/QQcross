@@ -406,6 +406,29 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   let budgetExceeded = false;
   let cancelled = false;
   let lastDeadEnd = null;
+  let deepestDeadEnd = null;
+  let deepestDeadEndAt = -1;
+  const searchTrace = [];
+
+  function recordDeadEnd(info) {
+    const depth = state.assignments.size;
+    lastDeadEnd = info;
+    if (depth >= deepestDeadEndAt) {
+      deepestDeadEndAt = depth;
+      deepestDeadEnd = { ...info, depth, assignedSlots: depth, remainingSlots: slots.length - depth };
+    }
+  }
+
+  function recordSearchChoice(slot, candidates) {
+    if (!options.captureTrace || searchTrace.length >= 120) return;
+    searchTrace.push({
+      depth: state.assignments.size,
+      slotId: slot.id,
+      length: slot.length,
+      candidateCount: candidates.length,
+      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer)
+    });
+  }
 
   function addPlacement(placement) {
     const entry = placement.entry;
@@ -503,7 +526,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         };
       });
       if (options.history?.hasStructure?.(completedStructure)) {
-        lastDeadEnd = { reason: 'RECENT_STRUCTURE_REPEAT' };
+        recordDeadEnd({ reason: 'RECENT_STRUCTURE_REPEAT' });
         return false;
       }
       return true;
@@ -517,12 +540,12 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells
     )) {
-      lastDeadEnd = { reason: 'CONTENT_REQUIREMENTS_UNREACHABLE', remainingSlots: unassigned.length };
+      recordDeadEnd({ reason: 'CONTENT_REQUIREMENTS_UNREACHABLE', openSlots: unassigned.length, usedImages: state.usedImages.size, usedLogicClues: state.usedLogicClues.size });
       return false;
     }
 
     if (requireEveryClueStarts && !hasUnassignedOutgoingOption(questionKeys, unassigned, state.directionUse)) {
-      lastDeadEnd = { reason: 'CLUE_WITHOUT_OUTGOING_SLOT' };
+      recordDeadEnd({ reason: 'CLUE_WITHOUT_OUTGOING_SLOT' });
       return false;
     }
 
@@ -547,7 +570,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatQuestionPenalty: options.repeatQuestionPenalty
       }, random);
       if (candidates.length === 0) {
-        lastDeadEnd = { reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id };
+        recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id, slotLength: specialElevenSlot.length });
         return false;
       }
       chosenSlot = specialElevenSlot;
@@ -560,12 +583,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       chosenCandidates = rankedSpecialCandidates.filter(candidate =>
         candidate.specialSupport.unsupported === 0
       );
+      recordSearchChoice(chosenSlot, chosenCandidates);
       if (chosenCandidates.length === 0) {
-        lastDeadEnd = {
+        recordDeadEnd({
           reason: 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS',
           slotId: specialElevenSlot.id,
           candidates: candidates.length
-        };
+        });
         return false;
       }
     } else {
@@ -581,7 +605,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         }, random);
 
         if (candidates.length === 0) {
-          lastDeadEnd = { reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id };
+          recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id, slotLength: slot.length });
           return false;
         }
 
@@ -596,6 +620,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           chosenDegree = slotDegree;
         }
       }
+      recordSearchChoice(chosenSlot, chosenCandidates);
     }
 
     for (const candidate of chosenCandidates) {
@@ -623,7 +648,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       if (cancelled || budgetExceeded) return false;
     }
 
-    lastDeadEnd = { reason: 'BACKTRACK_EXHAUSTED', slotId: chosenSlot?.id ?? null };
+    recordDeadEnd({ reason: 'BACKTRACK_EXHAUSTED', slotId: chosenSlot?.id ?? null, slotLength: chosenSlot?.length ?? null, candidateCount: chosenCandidates?.length ?? 0 });
     return false;
   }
 
@@ -644,6 +669,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       deepest,
       elapsedMs,
       lastDeadEnd,
+      deepestDeadEnd,
+      ...(options.captureTrace ? { searchTrace } : {}),
       dictionaryStats: prepared.stats
     };
   }
