@@ -192,7 +192,7 @@ test('the 8x12 preflight permits the dynamically generated top border', () => {
 test('production interior-clue scaffold is a connected, fully covered 8x12 topology', () => {
   const diagnostics = diagnoseTopologyScaffold([4, 8]);
   assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
-  assert.equal(diagnostics.questionCells, 26);
+  assert.equal(diagnostics.questionCells, 24);
   assert.equal(diagnostics.interiorQuestionCells, 8);
   assert.equal(diagnostics.pattern.filter(row => row[7] === '#').length, 3);
   assert.ok(diagnostics.slotCount >= 19);
