@@ -3,7 +3,7 @@
 ## Tested revision
 
 - Branch: `work/qqcross-release-hardening-20261114`
-- Commit: `80aed2770b1f3a06428404d535a0d6093b029d29`
+- Commit: `f40a2faab50b470f819150c87315b2e87241d35e`
 - Pull request: #30, still draft; not merged or deployed
 - Production `main` and GitHub Pages were not modified
 
@@ -16,8 +16,8 @@
 - Requested 11-letter puzzles: **5**
 - 11-letter puzzles actually generated: **5/5**
 - Distinct puzzle fingerprints: **20/20**
-- Median generation time: **716 ms**
-- p95 generation time: **891 ms**
+- Median generation time: **709 ms**
+- p95 generation time: **980 ms**
 - Average answer count: **19.5**
 - Average question cells: **28**
 - Assigned-cell fill: **100%**
@@ -31,8 +31,8 @@
 - Requested 11-letter puzzles: **25**
 - 11-letter puzzles actually generated: **25/25**
 - Missed 11-letter requests: **0**
-- Median generation time: **697 ms**
-- p95 generation time: **730 ms**
+- Median generation time: **715 ms**
+- p95 generation time: **749 ms**
 - Median two-letter answers per puzzle: **6**
 - Maximum two-letter answers: **6**
 - Musical-note fillers: asserted absent
@@ -44,8 +44,9 @@ All timings above are measured in GitHub Actions' Node.js runner. They are not m
 
 - Isolated scanword engine unit tests: **passed**
 - QQCross dictionary/data validation: **passed**
-- Playwright desktop Chromium: **passed**
-- Playwright mobile Chromium: **passed**
+- Playwright desktop Chromium: **40/40 passed**
+- Playwright mobile Chromium: **40/40 passed**
+- GitHub Pages staging package (engine worker/modules, dictionary, picture assets, Wall Kickers): **passed**
 
 Playwright mobile is a mobile-browser viewport test; it is not a physical-device test on an Honor 400.
 
