@@ -5,8 +5,8 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * The original three scaffolds remain available for broad topology exploration.
- * Production prefers the fourth, low-short-answer scaffold: it keeps the 8x12
- * border contract while reducing forced two-letter answers from six to two.
+ * The fourth, low-short-answer scaffold is reserved for the optional 11-letter
+ * layout. It is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8, 11],
@@ -175,13 +175,9 @@ export function generateTopology(options = {}) {
   const maxTwoLetterSlots = Math.max(2, Math.min(8, options.maxTwoLetterSlots ?? 8));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
-    && options.scaffoldIndex < SCAFFOLDS.length
+    && options.scaffoldIndex < SCAFFOLD_ROWS.length
     ? options.scaffoldIndex
     : null;
-  // When production asks for at most four short answers, prefer the scaffold
-  // that has already been independently audited at two. The three historical
-  // templates remain available for diagnostics and broader topology sampling.
-  const preferLowShort = !includeSpecialEleven && maxTwoLetterSlots <= 4;
   const history = [];
   let fallback = null;
 
@@ -194,8 +190,10 @@ export function generateTopology(options = {}) {
       : [3, 7, 10];
     const scaffoldIndex = includeSpecialEleven
       ? -1
-      : requestedScaffoldIndex ?? (preferLowShort ? SCAFFOLDS.length - 1 : Math.floor(random() * SCAFFOLDS.length));
-    const scaffold = includeSpecialEleven ? createScaffold(specialRows) : SCAFFOLDS[scaffoldIndex];
+      : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
+    const scaffold = includeSpecialEleven
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
+      : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
       includeSpecialEleven,

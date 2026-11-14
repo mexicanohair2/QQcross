@@ -65,10 +65,11 @@ test('topology generation is deterministic for a fixed seed', () => {
 });
 
 
-test('production low-short scaffold keeps the 8x12 border and caps short answers at four', () => {
+test('low-short scaffold is accepted only with its mandatory 11-letter crossing chain', () => {
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
-  assert.deepEqual(scaffolds[3], [
+  const specialPattern = scaffolds[3];
+  assert.deepEqual(specialPattern, [
     '.#...###',
     '#...#...',
     '#...#...',
@@ -85,14 +86,13 @@ test('production low-short scaffold keeps the 8x12 border and caps short answers
 
   const result = generateTopology({
     seed: 481516,
-    includeSpecialEleven: false,
-    scaffoldIndex: 3,
+    includeSpecialEleven: true,
+    specialPattern,
     maxTwoLetterSlots: 4,
-    maxAttempts: 192
+    maxAttempts: 1
   });
 
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.scaffoldIndex, 3);
   assert.equal(result.topology.validation.valid, true);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
@@ -100,7 +100,8 @@ test('production low-short scaffold keeps the 8x12 border and caps short answers
   assert.equal(result.topology.pattern[0][0], '.');
   assert.equal(result.topology.pattern[0][1], '#');
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
+  assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.ok(shortSlots >= 2 && shortSlots <= 4, 'short slots=' + shortSlots);
-  assert.ok(result.topology.slots.length >= 19);
+  assert.equal(shortSlots, 2);
+  assert.ok(result.topology.slots.length >= 20);
 });

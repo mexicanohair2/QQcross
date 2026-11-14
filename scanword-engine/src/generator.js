@@ -3,7 +3,7 @@ import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } f
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
-import { generateTopology } from './topology-builder.js';
+import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
 import { scoreScanword } from './scoring.js';
 import { createRng } from './rng.js';
 
@@ -126,6 +126,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   const topologies = rowPatterns.map(rows => ({
     rows,
+    patternKey: 'split-' + rows.join('-'),
+    specialPattern: null,
     result: generateTopology({
       seed: 1,
       includeSpecialEleven: true,
@@ -134,6 +136,26 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
     })
   })).filter(item => item.result.ok);
+
+  // The independently audited two-short-slot layout is valid only when its
+  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
+  // candidate instead of trying to use it for ordinary disconnected boards.
+  const lowShortPattern = getTopologyScaffolds()[3];
+  const lowShortTopology = generateTopology({
+    seed: 1,
+    includeSpecialEleven: true,
+    specialPattern: lowShortPattern,
+    maxAttempts: 1,
+    maxTwoLetterSlots: 4
+  });
+  if (lowShortTopology.ok) {
+    topologies.push({
+      rows: [3, 7, 11],
+      patternKey: 'low-short',
+      specialPattern: lowShortPattern,
+      result: lowShortTopology
+    });
+  }
 
   const plans = [];
   const uniqueAnswers = new Set();
@@ -270,6 +292,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       plans.push({
         answer: entry.answer,
         rows: topology.rows,
+        patternKey: topology.patternKey ?? ('split-' + topology.rows.join('-')),
+        specialPattern: topology.specialPattern,
         // Preserve the AC-3-pruned dictionary domains so the production CSP
         // does not reopen candidates already proven incompatible at crossings.
         allowedEntryIdsBySlot: new Map(domains.map(domain => [
@@ -289,9 +313,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const rankedPlans = plans.map(plan => ({
     answer: plan.answer,
     rows: plan.rows,
+    patternKey: plan.patternKey,
+    specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
     score: plan.score,
-    planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',')
+    planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
   }));
   if (requirements.returnAllPlans === true) return rankedPlans;
   return rankedPlans[0] ?? null;
@@ -407,8 +433,11 @@ export function generateScanword(inputDictionary, options = {}) {
       seed: topologySeed,
       includeSpecialEleven: useSpecialTopology,
       specialSplitRows: specialPlan?.rows,
+      specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 4
+      maxTwoLetterSlots: useSpecialTopology
+        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 6)
+        : (options.maxTwoLetterSlots ?? 6)
     });
 
     if (!topologyResult.ok) {

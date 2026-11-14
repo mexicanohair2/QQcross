@@ -13,7 +13,7 @@ async function main() {
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
-    maxTwoLetterSlots: 4,
+    maxTwoLetterSlots: 6,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
     specialElevenLetterChance: 0.25
@@ -98,7 +98,7 @@ async function main() {
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
-  assert.ok(report.maxTwoLetterAnswers <= 4, "Production puzzles must contain at most four two-letter answers.");
+  assert.ok(report.maxTwoLetterAnswers <= 6, "Production puzzles must contain at most six two-letter answers.");
   assert.ok(report.p95Ms <= 4000, "20-puzzle p95 exceeds the 4-second performance budget.");
   assert.ok(report.distinctPuzzles >= 18, "The 20 seeds did not produce enough distinct puzzles.");
 }
