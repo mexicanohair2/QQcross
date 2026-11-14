@@ -66,36 +66,38 @@ test('topology generation is deterministic for a fixed seed', () => {
 });
 
 
-test('low-short scaffold is accepted only with its mandatory 11-letter crossing chain', () => {
+test('balanced special scaffold keeps the optional 11-letter chain and distributed clues', () => {
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
-    '#...#...',
-    '#...#...',
-    '#...#...',
-    '#......#',
-    '#....##.',
-    '#...#...',
-    '#...#...',
-    '#......#',
-    '#....##.',
-    '#.....#.',
-    '#......#'
+    '.#..####',
+    '#.......',
+    '#.......',
+    '#...##..',
+    '#.....##',
+    '#.......',
+    '#.......',
+    '#...##..',
+    '#.....##',
+    '#.......',
+    '#...##..',
+    '#.......'
   ]);
 
   const result = generateTopology({
     seed: 481516,
     includeSpecialEleven: true,
     specialPattern,
-    maxTwoLetterSlots: 4,
+    maxTwoLetterSlots: 6,
     maxAttempts: 1
   });
 
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.topology.validation.valid, true);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 3);
+  assert.ok(result.topology.metrics.interiorQuestionCells >= 8);
+  assert.equal(result.topology.metrics.questionCells, 26);
+  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
   assert.ok(result.topology.pattern.every(row => row.length === 8));
