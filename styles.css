@@ -2365,7 +2365,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   }
 }
 /* End-of-answer boundary markers are structural, not additional clue cells. */
-.game-screen .scanword-board>.scan-cell.scan-terminal{
+.game-screen .scanword-board>.scan-cell.scan-boundary{
   background:linear-gradient(145deg,#171017,#100b10)!important;
   border-color:#251820!important;box-shadow:none!important;pointer-events:none!important;
 }
