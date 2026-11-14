@@ -124,7 +124,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     includeSpecialEleven: true,
     specialPattern: lowShortPattern,
     maxAttempts: 1,
-    maxTwoLetterSlots: 1
+    maxTwoLetterSlots: 4
   });
   const topologies = lowShortTopology.ok
     ? [{
