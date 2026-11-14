@@ -3,7 +3,7 @@ import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } f
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
-import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
+import { generateTopology, getSpecialTopologyScaffold, getTopologyScaffolds } from './topology-builder.js';
 import { scoreScanword } from './scoring.js';
 import { createRng } from './rng.js';
 
@@ -114,10 +114,35 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  // Special 11-letter boards use the dedicated sparse-edge scaffold.
-  // The general open-edge topology has additional boundary slots that are
-  // useful for ordinary boards but make the long-answer CSP unnecessarily
-  // constrained. Keep this special template isolated and independently checked.
+  // Keep several sparse-edge split patterns so different 11-letter answers
+  // can find a compatible set of crossing words without restoring a solid
+  // right-side clue wall.
+  const rowPatterns = [];
+  for (let first = 3; first <= 5; first++) {
+    for (let second = first + 3; second <= 8; second++) {
+      for (let third = second + 3; third <= 11; third++) {
+        rowPatterns.push([first, second, third]);
+      }
+    }
+  }
+
+  const topologies = rowPatterns.map(rows => {
+    const specialPattern = getSpecialTopologyScaffold(rows);
+    return {
+      rows,
+      patternKey: 'split-' + rows.join('-'),
+      specialPattern,
+      result: generateTopology({
+        seed: 1,
+        includeSpecialEleven: true,
+        specialPattern,
+        maxAttempts: 1,
+        maxTwoLetterSlots: requirements.specialMaxTwoLetterSlots ?? 8
+      })
+    };
+  }).filter(item => item.result.ok);
+
+  // Keep the independently audited low-short layout as one additional option.
   const lowShortPattern = getTopologyScaffolds()[3];
   const lowShortTopology = generateTopology({
     seed: 1,
@@ -126,14 +151,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxAttempts: 1,
     maxTwoLetterSlots: 4
   });
-  const topologies = lowShortTopology.ok
-    ? [{
-        rows: [3, 7, 10],
-        patternKey: 'low-short',
-        specialPattern: lowShortPattern,
-        result: lowShortTopology
-      }]
-    : [];
+  if (lowShortTopology.ok) {
+    topologies.push({
+      rows: [3, 7, 10],
+      patternKey: 'low-short',
+      specialPattern: lowShortPattern,
+      result: lowShortTopology
+    });
+  }
 
   const plans = [];
   const uniqueAnswers = new Set();
