@@ -363,8 +363,12 @@ export function generateScanword(inputDictionary, options = {}) {
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
     : [];
+  // In the 100-seed production batch, four retries still left 11/33
+  // requested special puzzles unsolved and pushed p95 generation beyond 6s.
+  // The first ranked plan is the useful attempt; failed later plans only
+  // multiplied the wait before the already-working standard fallback.
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 4, specialPlanPool.length)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 1, specialPlanPool.length)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
