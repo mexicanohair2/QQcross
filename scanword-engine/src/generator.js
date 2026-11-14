@@ -35,6 +35,67 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
+function enforceCrossingArcConsistency(domains, foldYo = false) {
+  const positions = domains.map(domain => new Map(
+    domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
+  ));
+  const neighbors = domains.map(() => []);
+
+  for (let left = 0; left < domains.length; left++) {
+    for (let right = left + 1; right < domains.length; right++) {
+      const shared = [];
+      for (const [key, leftPosition] of positions[left]) {
+        const rightPosition = positions[right].get(key);
+        if (rightPosition !== undefined) shared.push([leftPosition, rightPosition]);
+      }
+      if (!shared.length) continue;
+      neighbors[left].push({ other: right, pairs: shared });
+      neighbors[right].push({
+        other: left,
+        pairs: shared.map(([leftPosition, rightPosition]) => [rightPosition, leftPosition])
+      });
+    }
+  }
+
+  const queue = [];
+  for (let self = 0; self < neighbors.length; self++) {
+    for (const relation of neighbors[self]) {
+      queue.push({ self, other: relation.other, pairs: relation.pairs });
+    }
+  }
+
+  const letterKey = value => foldYo && value === 'Ё' ? 'Е' : value;
+  while (queue.length) {
+    const arc = queue.shift();
+    const ownDomain = domains[arc.self];
+    const otherDomain = domains[arc.other];
+    const supportedSignatures = new Set(otherDomain.options.map(option =>
+      arc.pairs.map(([, otherPosition]) => letterKey(option.entry.answer[otherPosition])).join('')
+    ));
+
+    const revised = ownDomain.options.filter(option =>
+      supportedSignatures.has(
+        arc.pairs.map(([ownPosition]) => letterKey(option.entry.answer[ownPosition])).join('')
+      )
+    );
+    if (revised.length === ownDomain.options.length) continue;
+
+    ownDomain.options = revised;
+    if (!revised.length) return false;
+
+    for (const relation of neighbors[arc.self]) {
+      if (relation.other === arc.other) continue;
+      queue.push({
+        self: relation.other,
+        other: arc.self,
+        pairs: relation.pairs
+      });
+    }
+  }
+
+  return domains.every(domain => domain.options.length > 0);
+}
+
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
@@ -76,11 +137,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     ]));
 
     for (const topology of topologies) {
-      const shortDomains = [];
-      const imageKeys = new Set();
-      let logicSlots = 0;
-      let minimumDomain = Infinity;
-      let totalDomain = 0;
+      const domains = [];
       let valid = true;
 
       for (const slot of topology.result.topology.slots) {
@@ -101,7 +158,10 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id, candidate);
+            candidatesById.set(candidate.id, {
+              entry: candidate,
+              coordinates: orientation.coordinates
+            });
           }
         }
 
@@ -110,25 +170,39 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           valid = false;
           break;
         }
+        domains.push({ slot, options: candidates });
+      }
 
-        const answerCount = new Set(candidates.map(candidate =>
-          canonicalAnswerKey(candidate.answer, { foldYo })
+      // Independent word domains can all look valid while their crossing
+      // letters are mutually impossible. Enforce arc consistency across the
+      // complete slot graph before ranking a special 11-letter plan.
+      if (!valid || !enforceCrossingArcConsistency(domains, foldYo)) continue;
+
+      const shortDomains = domains
+        .filter(domain => domain.slot.length === 2)
+        .map(domain => new Set(domain.options.map(option =>
+          canonicalAnswerKey(option.entry.answer, { foldYo })
+        )));
+      if (!canAssignDistinctShortAnswers(shortDomains)) continue;
+
+      const imageKeys = new Set();
+      let logicSlots = 0;
+      let minimumDomain = Infinity;
+      let totalDomain = 0;
+      for (const domain of domains) {
+        const answerCount = new Set(domain.options.map(option =>
+          canonicalAnswerKey(option.entry.answer, { foldYo })
         )).size;
         minimumDomain = Math.min(minimumDomain, answerCount);
         totalDomain += Math.min(answerCount, 40);
-
-        if (slot.length === 2) {
-          shortDomains.push(new Set(candidates.map(candidate =>
-            canonicalAnswerKey(candidate.answer, { foldYo })
-          )));
+        if (domain.options.some(option => option.entry.imageKey)) {
+          for (const option of domain.options) {
+            if (option.entry.imageKey) imageKeys.add(option.entry.imageKey);
+          }
         }
-        for (const candidate of candidates) {
-          if (candidate.imageKey) imageKeys.add(candidate.imageKey);
-        }
-        if (candidates.some(candidate => candidate.logic === true)) logicSlots++;
+        if (domain.options.some(option => option.entry.logic === true)) logicSlots++;
       }
 
-      if (!valid || !canAssignDistinctShortAnswers(shortDomains)) continue;
       if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) continue;
 
       plans.push({
