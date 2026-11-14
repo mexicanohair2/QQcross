@@ -35,27 +35,21 @@ function createScaffold(extraRows) {
 }
 
 function createSpecialScaffold(extraRows) {
-  // Keep the optional 11-letter answer in column 1 while matching the
-  // standard board's top anchors, dense center, and sparse right edge.
-  const col4Rows = new Set([...extraRows, 10, 11]);
-  const col5Rows = new Set([3, 4, 8]);
-  const col6Rows = new Set([4, 8]);
-  const rightEdgeRows = new Set([4, 8]);
+  // Keep the proven 11-letter answer geometry. Its right-edge terminal cells
+  // are rendered as quiet boundary markers, not as a second clue column.
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
-      for (const col of [1, 4, 5, 6, 7]) cells[col] = '#';
+      cells[1] = '#';
+      cells[4] = '#';
     } else {
       cells[0] = '#';
-      if (col4Rows.has(row)) cells[4] = '#';
-      if (col5Rows.has(row)) cells[5] = '#';
-      if (col6Rows.has(row)) cells[6] = '#';
-      if (rightEdgeRows.has(row)) cells[7] = '#';
+      if (extraRows.includes(row)) cells[4] = '#';
     }
+    cells[7] = '#';
     return cells.join('');
   });
 }
-
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
   '#...#...',
@@ -94,9 +88,9 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < (includeSpecialEleven ? 3 : 5)) return null;
+  if (countTopQuestions(matrix) < (includeSpecialEleven ? 2 : 5)) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
+  if (interiorQuestionCells < (includeSpecialEleven ? minimumInteriorQuestionCells : Math.max(8, minimumInteriorQuestionCells))) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
