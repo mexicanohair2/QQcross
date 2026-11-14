@@ -146,12 +146,12 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     includeSpecialEleven: true,
     specialPattern: lowShortPattern,
     maxAttempts: 1,
-    maxTwoLetterSlots: 4
+    maxTwoLetterSlots: 6
   });
   if (lowShortTopology.ok) {
     topologies.push({
       rows: [3, 7, 11],
-      patternKey: 'low-short',
+      patternKey: 'balanced-special',
       specialPattern: lowShortPattern,
       result: lowShortTopology
     });
