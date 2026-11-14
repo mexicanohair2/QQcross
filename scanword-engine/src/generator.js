@@ -461,7 +461,7 @@ export function generateScanword(inputDictionary, options = {}) {
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 1 : options.specialMaxTwoLetterSlots ?? 8)
+        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 8)
         : (options.maxTwoLetterSlots ?? 1)
     });
 
