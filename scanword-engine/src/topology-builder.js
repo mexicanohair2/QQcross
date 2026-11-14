@@ -167,7 +167,7 @@ export function generateTopology(options = {}) {
       && new Set(options.specialSplitRows).size === 3
       && options.specialSplitRows.every(row => Number.isInteger(row) && row >= 1 && row < CONFIG.HEIGHT)
       ? [...options.specialSplitRows].sort((a, b) => a - b)
-      : [3, 7, 9];
+      : [3, 7, 10];
     const scaffoldIndex = includeSpecialEleven ? -1 : Math.floor(random() * SCAFFOLDS.length);
     const scaffold = includeSpecialEleven ? createScaffold(specialRows) : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
