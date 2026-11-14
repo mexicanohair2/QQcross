@@ -10,6 +10,7 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
   const generationOptions = {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
@@ -80,6 +81,9 @@ async function main() {
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
+    for (const word of scanword.words) {
+      if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+    }
     const imageWords = scanword.words.filter(word => word.imageKey);
     assert.equal(imageWords.length, 5);
     assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
@@ -126,6 +130,7 @@ async function main() {
     successfulRuns: summaries.filter(item => item.ok).length,
     failedRuns: failures.length,
     specialElevenRuns: specialElevenCount,
+    directionCounts,
     medianMs: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
     p95Ms: sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : null,
     maxMs: sorted.length ? sorted[sorted.length - 1] : null,
