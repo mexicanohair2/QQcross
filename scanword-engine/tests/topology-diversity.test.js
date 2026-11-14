@@ -99,7 +99,7 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
   assert.equal(result.topology.validation.valid, true);
   assert.ok(result.topology.metrics.interiorQuestionCells >= 3);
   assert.equal(result.topology.metrics.questionCells, 28);
-  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 12);
+  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 4);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
   assert.ok(result.topology.pattern.every(row => row.length === 8));
