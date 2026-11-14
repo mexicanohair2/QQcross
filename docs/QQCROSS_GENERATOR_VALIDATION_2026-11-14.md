@@ -3,7 +3,7 @@
 ## Tested revision
 
 - Branch: `work/qqcross-release-hardening-20261114`
-- Commit: `073e95a4dc3fb9611cc8277bbcf864410aa68832`
+- Commit: `80aed2770b1f3a06428404d535a0d6093b029d29`
 - Pull request: #30, still draft; not merged or deployed
 - Production `main` and GitHub Pages were not modified
 
@@ -16,8 +16,8 @@
 - Requested 11-letter puzzles: **5**
 - 11-letter puzzles actually generated: **5/5**
 - Distinct puzzle fingerprints: **20/20**
-- Median generation time: **542 ms**
-- p95 generation time: **680 ms**
+- Median generation time: **716 ms**
+- p95 generation time: **891 ms**
 - Average answer count: **19.5**
 - Average question cells: **28**
 - Assigned-cell fill: **100%**
@@ -31,8 +31,8 @@
 - Requested 11-letter puzzles: **25**
 - 11-letter puzzles actually generated: **25/25**
 - Missed 11-letter requests: **0**
-- Median generation time: **540 ms**
-- p95 generation time: **567 ms**
+- Median generation time: **697 ms**
+- p95 generation time: **730 ms**
 - Median two-letter answers per puzzle: **6**
 - Maximum two-letter answers: **6**
 - Musical-note fillers: asserted absent
@@ -61,6 +61,10 @@ The batch does not provide a human semantic review of all 2,289 dictionary recor
 - **Automatic scanword quality reference:** `https://mytoolkit.ru/scanword` describes automatic placement of user-entered answer/clue pairs with intersections, clue cells in the grid, direction arrows, and a separate report of words that could not be placed. This is the better structural comparison for generator quality. Its advertised behavior was inspected, but an interactive sample output and internal algorithm were not run or inspected.
 - **Kryss screenshot:** the Dropbox asset is the visual guide for cells, clue styling, directions and screen composition. Its captured board is 13×13; QQCross remains 8×12. Exact interior clue-coordinate mapping has not yet been measured.
 - Do not claim algorithmic equivalence to either reference. MyToolkit's page-level behavior is the quality target; dynamic output-level comparison remains unverified.
+
+## Deployment packaging correction
+
+The GitHub Pages workflow previously copied the app shell and data/assets but omitted `scanword-engine/`, even though `app.js` dynamically imports the engine and its Worker. The deployment workflow is corrected on this revision to copy the complete engine directory and assert that the Worker, generator, and legacy adapter are present in `dist/` before upload. This packaging check still needs to run on the `main` deployment after the PR is merged.
 
 ## Remaining release gates
 
