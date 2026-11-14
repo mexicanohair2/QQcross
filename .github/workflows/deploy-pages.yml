@@ -32,6 +32,7 @@ jobs:
           mkdir -p dist
           cp index.html app.js new-games.js progression.js encyclopedia.js audio.js wordle.js styles.css violet.css sw.js manifest.json icon.svg dist/
           cp -R data assets dist/
+          cp -R wall-kickers dist/wall-kickers
           touch dist/.nojekyll
 
       - name: Upload Pages artifact
