@@ -639,6 +639,11 @@ export function generateScanword(inputDictionary, options = {}) {
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
     dictionaryStats: prepared.stats,
     lastDiagnostic: bestDiagnostic,
-    requestedSpecialEleven: wantsEleven
+    requestedSpecialEleven: wantsEleven,
+    ...(wantsEleven && options.capturePlanDiagnostics ? {
+      specialPlanDiagnostics,
+      specialPlanPoolSize: specialPlanPool.length,
+      specialPlanSequenceSize: specialPlanSequence.length
+    } : {})
   });
 }
