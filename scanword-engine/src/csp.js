@@ -247,8 +247,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
-    // QQCross answers may start only to the right or downward.
-    if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+    // Production may restrict directions; generic CSP tests can retain all valid orientations.
+    if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
     if (usedDirections?.has(orientation.direction)) continue;
@@ -322,6 +322,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const requireEveryClueStarts = options.requireEveryClueStarts !== false;
+  const allowedDirections = Array.isArray(options.allowedDirections)
+    ? new Set(options.allowedDirections)
+    : null;
 
   if (!Array.isArray(inputSlots) || inputSlots.length === 0) {
     return {
@@ -537,6 +540,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         requiredImageCount,
         minimumLogicClueCells,
         history: options.history,
+        allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty
       }, random);
@@ -555,6 +559,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           requiredImageCount,
           minimumLogicClueCells,
           history: options.history,
+          allowedDirections,
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty
         }, random);
