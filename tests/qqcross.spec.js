@@ -82,6 +82,7 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
       explicitRows: explicitRows.size,
       positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
       ratio: boardRect.width / boardRect.height,
+      maxCellDelta: Math.max(...rects.map(rect => Math.abs(rect.width - rect.height))),
       width: boardRect.width,
       viewport: document.documentElement.clientWidth,
       viewportHeight: document.documentElement.clientHeight
@@ -95,8 +96,12 @@ test("loads a fully occupied 8-column by 12-row scanword with five distinct pict
   expect(geometry.positiveCells).toBe(96);
   expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
   expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 270) * (2 / 3)));
+  expect(geometry.width).toBeLessThanOrEqual(geometry.viewport * 0.86);
+  expect(geometry.maxCellDelta).toBeLessThan(1.5);
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
+  const clueTextFits = await scanBoard.locator(".scan-clue-text").evaluateAll(nodes => nodes.every(node => node.scrollWidth <= node.clientWidth + 1 && node.scrollHeight <= node.clientHeight + 1));
+  expect(clueTextFits).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
@@ -166,6 +171,7 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
+  expect(layout.board.width).toBeLessThanOrEqual(layout.viewport.width * 0.86);
   expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
