@@ -1039,6 +1039,10 @@ function buildScanword(entries){
       const bestFirst=Math.max(...firstRows.map(borderQuality));
       borderPlans.push({first:opening,rows:[firstRows],score:quality(opening)+bestFirst});
     }
+  const generationStarted=globalThis.performance?.now?globalThis.performance.now():Date.now();
+  const generationNow=()=>globalThis.performance?.now?globalThis.performance.now():Date.now();
+  const generationBudgetMs=2600;
+  const outOfTime=()=>generationNow()-generationStarted>generationBudgetMs;
   const buildAttempt=()=>{
     const reservedKeys=new Set(["0,0"]);
     const occupied=new Map(),clueAt=new Map(),used=new Set(),usedImages=new Set(),words=[],frontier=new Set(),terminalKeys=new Set();
@@ -1382,7 +1386,7 @@ function buildScanword(entries){
     };
     let seedSearchNodes=0;
     const placeTopBorderClues=(remainingColumns=Array.from({length:W-2},(_,index)=>index+2),continuation=()=>true)=>{
-      if(++seedSearchNodes>6000)return false;
+      if(++seedSearchNodes>6000||outOfTime())return false;
       if(!remainingColumns.length)return borderTerminalsHaveDistinctAnswers()&&continuation();
       // The seven top answers do not cross one another, but their prefixes
       // have very different dictionary sizes. Pick the tightest column first
@@ -1390,6 +1394,7 @@ function buildScanword(entries){
       // flexible column before discovering that a constrained one has no fit.
       let selectedColumn=-1,selectedOptions=null;
       for(const column of remainingColumns){
+        if(outOfTime())return false;
         const initial=occupied.get("1,"+column);
         if(!initial)return false;
         const second=occupied.get("2,"+column);
@@ -1398,6 +1403,7 @@ function buildScanword(entries){
           :(topPrefixPools.get(initial+second)||[]);
         const options=[];
         for(const entry of candidates){
+          if(outOfTime())return false;
           if(used.has(entry.key)||(entry.imageKey&&(usedImages.has(entry.imageKey)||usedImages.size>=5)))continue;
           let fits=true;
           for(let step=1;step<=entry.answer.length;step++){
@@ -1423,6 +1429,7 @@ function buildScanword(entries){
       selectedOptions.sort((a,b)=>topQuality(b)-topQuality(a));
       const nextColumns=remainingColumns.filter(column=>column!==selectedColumn);
       for(const entry of selectedOptions.slice(0,48)){
+        if(outOfTime())return false;
         const snapshot=saveSeedState();
         if(addWord(entry,0,selectedColumn,1,"w"+words.length,"border-seed")&&unplacedBorderRowsHavePotential()&&placeTopBorderClues(nextColumns,continuation))return true;
         restoreSeedState(snapshot);
@@ -1430,7 +1437,7 @@ function buildScanword(entries){
       return false;
     };
     const placeBorderRows=(row,topDone=false,chosenRows=[])=>{
-      if(++seedSearchNodes>12000)return false;
+      if(++seedSearchNodes>12000||outOfTime())return false;
       if(row>=H)return borderTerminalsHaveDistinctAnswers();
 
       let candidates;
@@ -1471,6 +1478,7 @@ function buildScanword(entries){
       }
 
       for(const entry of candidates){
+        if(outOfTime())return false;
         if(used.has(entry.key))continue;
         const snapshot=saveSeedState();
         lastSeedReject=null;
@@ -1531,7 +1539,7 @@ function buildScanword(entries){
     };
     for(const key of terminalKeys)if(!(clueAt.get(key)||[]).length&&!hasViableOpenRoute(key)){rejectedRoute++;return null;}
 
-    for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78);round++){
+    for(let round=0;round<160&&occupied.size+clueAt.size+reservedKeys.size<Math.floor(TOTAL*.78)&&!outOfTime();round++){
       // Keep only the best 18 candidates while scanning. Sorting the full
       // candidate array on every greedy round was the dominant CPU cost.
       const options=[];
@@ -1542,6 +1550,7 @@ function buildScanword(entries){
         if(options.length>18)options.pop();
       };
       for(const clueKey of frontier){
+        if(outOfTime())break;
         const [y,x]=clueKey.split(",").map(Number),at=clueAt.get(clueKey)||[];
         if(occupied.has(clueKey)||at.length>=4 )continue;
         for(let di=0;di<dirs.length;di++){
@@ -1611,7 +1620,7 @@ function buildScanword(entries){
     // Fill terminal question cells before opening new branches. Work newest-first
     // so each answer is immediately followed by a real playable question.
     let closing=true;
-    while(closing&&occupied.size+clueAt.size+reservedKeys.size<TOTAL){
+    while(closing&&occupied.size+clueAt.size+reservedKeys.size<TOTAL&&!outOfTime()){
       closing=false;
       const anchors=[];
       const emptyQuestions=[...clueAt.entries()].filter(([,list])=>!list.length).map(([key,list])=>{
@@ -1769,11 +1778,8 @@ function buildScanword(entries){
     const coverage=occupied.size+clueAt.size+reservedKeys.size,dangling=[...clueAt.values()].filter(list=>!list.length).length;
     return {coverage,dangling,occupied,clueAt,words,reservedKeys,borderRouteAudit,closureRejectSamples:closureRejectSamples.slice(-24)};
   };
-  // Bounded generation: never let an unlucky dictionary seed freeze the phone UI.
-  const generationStarted=globalThis.performance?.now?globalThis.performance.now():Date.now();
-  const generationNow=()=>globalThis.performance?.now?globalThis.performance.now():Date.now();
-  const generationBudgetMs=2200;
-  for(let attempt=0;attempt<96;attempt++){
+  // Bounded generation: the same deadline is checked inside recursive search and filling.
+  for(let attempt=0;attempt<96&&!outOfTime();attempt++){
     if(generationNow()-generationStarted>generationBudgetMs)break;
     const result=buildAttempt();
     const imageCount=result?.words.filter(w=>w.imageKey).length||0;
