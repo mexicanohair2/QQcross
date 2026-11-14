@@ -48,6 +48,42 @@ test('seeded topology generation produces broad geometric variety while preservi
   );
 });
 
+test('ordinary production scaffold borrows the proven special crossing geometry without the 11-letter answer', () => {
+  const scaffolds = getTopologyScaffolds();
+  const result = generateTopology({
+    seed: 481517,
+    includeSpecialEleven: false,
+    scaffoldIndex: 4,
+    maxTwoLetterSlots: 3,
+    maxAttempts: 1,
+    mutationBudget: 1
+  });
+
+  assert.deepEqual(scaffolds[4], [
+    '.#..####',
+    '#...#...',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#.....#.',
+    '#.......'
+  ]);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.topology.validation.valid, true);
+  assert.equal(result.topology.pattern[0].slice(1).split('').filter(value => value === '#').length, 5);
+  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
+  assert.ok(result.topology.metrics.interiorQuestionCells >= 5);
+  assert.ok(result.topology.slots.length >= 20);
+  assert.ok(result.topology.slots.filter(slot => slot.length === 2).length <= 3);
+  assert.ok(result.topology.slots.filter(slot => slot.length >= 3).length >= 12);
+  assert.equal(result.topology.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
+});
+
 test('ordinary low-short scaffold is fully connected and has only one short answer', () => {
   const result = generateTopology({
     seed: 481516,
@@ -93,7 +129,7 @@ test('topology generation is deterministic for a fixed seed', () => {
 
 test('low-short special scaffold keeps the optional 11-letter chain and sparse right edge', () => {
   const scaffolds = getTopologyScaffolds();
-  assert.equal(scaffolds.length, 5);
+  assert.equal(scaffolds.length, 6);
   const ordinaryLowShortPattern = scaffolds[3];
   assert.deepEqual(ordinaryLowShortPattern, [
     '.#..####',
@@ -109,7 +145,7 @@ test('low-short special scaffold keeps the optional 11-letter chain and sparse r
     '#.......',
     '#.......'
   ]);
-  const specialPattern = scaffolds[4];
+  const specialPattern = scaffolds[5];
   assert.deepEqual(specialPattern, [
     '.#...###',
     '#...#...',
