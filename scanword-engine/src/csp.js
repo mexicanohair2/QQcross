@@ -887,6 +887,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     nodes,
     deepest,
     elapsedMs,
+    ...(options.captureTrace ? { searchTrace } : {}),
     dictionaryStats: prepared.stats
   };
 }
