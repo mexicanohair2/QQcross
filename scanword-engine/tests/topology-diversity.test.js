@@ -66,7 +66,7 @@ test('topology generation is deterministic for a fixed seed', () => {
 });
 
 
-test('balanced special scaffold keeps the optional 11-letter chain and distributed clues', () => {
+test('low-short special scaffold keeps the optional 11-letter chain and sparse right edge', () => {
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
@@ -74,24 +74,24 @@ test('balanced special scaffold keeps the optional 11-letter chain and distribut
     '.#..####',
     '#.......',
     '#.......',
-    '#...##..',
-    '#.....##',
+    '#....#..',
+    '#...#.##',
     '#.......',
     '#.......',
-    '#...##..',
-    '#.....##',
+    '#....#..',
+    '#...#.##',
     '#.......',
     '#...##..',
     '#.......'
   ]);
 
-  const diagnostics = diagnoseTopologyScaffold([3, 7, 10], { includeSpecialEleven: true });
+  const diagnostics = diagnoseTopologyScaffold([4, 8, 10], { includeSpecialEleven: true });
   assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
   const result = generateTopology({
     seed: 481516,
     includeSpecialEleven: true,
     specialPattern,
-    maxTwoLetterSlots: 8,
+    maxTwoLetterSlots: 4,
     maxAttempts: 1
   });
 
@@ -108,6 +108,6 @@ test('balanced special scaffold keeps the optional 11-letter chain and distribut
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 8);
+  assert.equal(shortSlots, 3);
   assert.ok(result.topology.slots.length >= 20);
 });
