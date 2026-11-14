@@ -32,8 +32,17 @@ async function main() {
           && word.answer.length === 11
         )
       : [];
+    const selectedPlanKeys = (result.stats?.specialElevenPlanDiagnostics ?? [])
+      .map(item => item.selectedPlanKey)
+      .filter(Boolean);
+    assert.equal(
+      new Set(selectedPlanKeys).size,
+      selectedPlanKeys.length,
+      "The generator must not retry the same eleven-letter answer/topology pair."
+    );
     const report = {
       seed,
+      selectedPlanKeys,
       ok: result.ok,
       generatedSpecial: special.length === 1,
       elapsedMs: result.stats?.elapsedMs ?? result.elapsedMs,
