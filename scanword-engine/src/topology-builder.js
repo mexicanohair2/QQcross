@@ -288,6 +288,35 @@ export function generateTopology(options = {}) {
   };
 }
 
+
+/** Exposes the preflight geometry metrics for regression tests and diagnostics. */
+export function diagnoseTopologyScaffold(extraRows = [4, 8, 11], options = {}) {
+  const includeSpecialEleven = options.includeSpecialEleven === true;
+  const rows = includeSpecialEleven ? createSpecialScaffold(extraRows) : createScaffold(extraRows);
+  const matrix = cloneRows(rows);
+  const grid = toRoleGrid(matrix);
+  const validation = validateTopology(grid, {
+    requireConnected: true,
+    allowSpecialElevenBoundary: includeSpecialEleven
+  });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  return {
+    pattern: rows,
+    valid: validation.valid,
+    validationErrors: validation.errors,
+    validationMetrics: validation.metrics,
+    slotErrors: derived.errors,
+    warnings: derived.warnings,
+    slotLengths: derived.slots.map(slot => slot.length),
+    questionCells: validation.metrics.questionCells,
+    letterCells: validation.metrics.letterCells,
+    interiorQuestionCells: countInteriorQuestions(matrix),
+    twoLetterSlots: derived.slots.filter(slot => slot.length === 2).length,
+    longSlots: derived.slots.filter(slot => slot.length >= 3).length,
+    slotCount: derived.slots.length
+  };
+}
+
 export function getTopologyScaffolds() {
   return SCAFFOLDS.map(rows => [...rows]);
 }
