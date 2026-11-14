@@ -377,7 +377,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // multiplied the wait before the already-working standard fallback.
   const specialPlanOffset = Math.max(0, Math.min(
     specialPlanPool.length,
-    Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 1
+    Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 1, specialPlanPool.length - specialPlanOffset)
