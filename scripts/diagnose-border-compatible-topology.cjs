@@ -26,8 +26,8 @@ async function main() {
     const topologyOptions = {
       requireConnected: true,
       allowSpecialElevenBoundary: special,
-      allowOuterBoundarySlots: true,
-      minimumOuterBoundaryLength: 3
+      allowOuterBoundarySlots: !special,
+      minimumOuterBoundaryLength: special ? undefined : 3
     };
     const validation = validateTopology(grid, topologyOptions);
     assert.equal(validation.valid, true, "Independent topology check failed for seed " + seed + ": " + JSON.stringify(validation.errors));
