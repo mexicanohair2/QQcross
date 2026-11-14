@@ -56,7 +56,8 @@ test('ordinary production scaffold borrows the proven special crossing geometry 
     scaffoldIndex: 4,
     maxTwoLetterSlots: 3,
     maxAttempts: 1,
-    mutationBudget: 1
+    mutationBudget: 1,
+    preserveScaffold: true
   });
 
   assert.deepEqual(scaffolds[4], [
