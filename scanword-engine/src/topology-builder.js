@@ -9,9 +9,9 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * layout. It is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
-  [4, 8, 11],
-  [3, 7, 11],
-  [4, 7, 11]
+  [4, 8],
+  [3, 7],
+  [4, 7]
 ]);
 
 const LOW_SHORT_SCAFFOLD = Object.freeze([
@@ -290,7 +290,7 @@ export function generateTopology(options = {}) {
 
 
 /** Exposes the preflight geometry metrics for regression tests and diagnostics. */
-export function diagnoseTopologyScaffold(extraRows = [4, 8, 11], options = {}) {
+export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const rows = includeSpecialEleven ? createSpecialScaffold(extraRows) : createScaffold(extraRows);
   const matrix = cloneRows(rows);
