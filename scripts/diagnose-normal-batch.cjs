@@ -11,7 +11,7 @@ async function main() {
     // Match the real worker's bounded search budgets.
     maxCspTimeMs: 1200,
     specialMaxCspTimeMs: 1500,
-    specialTopologyAttempts: 4,
+    specialTopologyAttempts: 1,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
