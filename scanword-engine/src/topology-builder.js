@@ -99,8 +99,8 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = incl
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production uses a cap of four short answers; the low-short scaffold starts
-  // at two and allows seeded, validator-approved mutations for variety.
+  // Production caps ordinary boards at two short answers. Geometry-only
+  // topology diagnostics may request a broader range to measure diversity.
   if (twoLetterSlots < (includeSpecialEleven ? 2 : 1) || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
