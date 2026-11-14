@@ -116,14 +116,12 @@ function prepareTopologyDomains(slots, indexes, options = {}) {
   const domains = [];
   let availableVariants = 0;
 
-  // Reuse the positional index's length buckets. Each production slot has one
-  // forward orientation (right/down); the CSP will make the final direction
-  // and clue-cell decision after crossings have been propagated.
+  // Every slot has two endpoints, and either endpoint may host the clue.
+  // Preserve both orientations so production can use right/left/down/up.
   for (const slot of slots) {
     const candidates = indexes.byLength.get(slot.length) ?? [];
     const domainOptions = [];
     for (const orientation of slot.directionOptions ?? []) {
-      if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
       for (const entry of candidates) {
         if (slot.length === 2
           && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(entry.answer, { foldYo }))) {
@@ -281,7 +279,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -294,7 +291,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id, {
+            candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
               coordinates: orientation.coordinates
             });
@@ -609,7 +606,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
