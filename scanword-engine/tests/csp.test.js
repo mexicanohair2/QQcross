@@ -619,3 +619,54 @@ test('CSP never places answers to the left or upward even when reverse orientati
     assert.equal(v.words[0].direction, 'down', 'seed=' + seed);
   }
 });
+
+
+test('rejects musical-note names as artificial two-letter fillers', () => {
+  const noteSlot = slot(
+    'note',
+    { row: 1, col: 0 },
+    { row: 1, col: 3 },
+    [{ row: 1, col: 1 }, { row: 1, col: 2 }],
+    'right',
+    'left'
+  );
+  const result = solveSlotsCsp([noteSlot], [
+    entry('do-note', 'ДО', 'Первая ступень музыкальной гаммы.')
+  ], {
+    seed: 18,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right'],
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'NO_CSP_SOLUTION');
+});
+
+test('keeps familiar real two-letter answers available', () => {
+  const shortSlot = slot(
+    'hedgehog',
+    { row: 1, col: 0 },
+    { row: 1, col: 3 },
+    [{ row: 1, col: 1 }, { row: 1, col: 2 }],
+    'right',
+    'left'
+  );
+  const result = solveSlotsCsp([shortSlot], [
+    entry('hedgehog', 'ЁЖ', 'Небольшое животное с колючими иглами на спине.')
+  ], {
+    seed: 19,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right'],
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ЁЖ');
+});

@@ -111,7 +111,7 @@ async function startDailyScanword(d){
   if(scanwordPreparePromise)await scanwordPreparePromise;
   const rawSeed=Number(d?.scanwordSeed);
   const seed=Number.isFinite(rawSeed)?rawSeed>>>0:Number(String(d?.date||"").replace(/-/g,""))>>>0;
-  preparedScanword=await buildScanwordInWorker(getScanwordDictionary(),{seed});
+  preparedScanword=await buildScanwordInWorker(getScanwordDictionary(),{seed,countSequence:false});
   if(!preparedScanword)throw new Error("Не удалось подготовить ежедневное поле");
   state.screen="";
   await begin(1,false,{date:d.date,completed:!!d.completed?.scanword});
@@ -864,12 +864,30 @@ function refreshPracticeButton(){
   button.disabled=scanwordPreparing;
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
+const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v1";
+function getNextScanwordSequenceIndex(){
+  try{
+    const stored=Number(localStorage.getItem(SCANWORD_SEQUENCE_KEY));
+    return Number.isSafeInteger(stored)&&stored>0?stored+1:1;
+  }catch{return 1}
+}
+function saveScanwordSequenceIndex(index){
+  try{localStorage.setItem(SCANWORD_SEQUENCE_KEY,String(index))}catch{}
+}
 function buildScanwordInWorker(entries, overrides={}){
   const seed=Number.isFinite(Number(overrides.seed))
     ? Number(overrides.seed)>>>0
     : (Date.now()^Math.floor(Math.random()*0xffffffff))>>>0;
+  const countSequence=overrides.countSequence!==false;
+  const sequenceIndex=Number.isSafeInteger(overrides.sequenceIndex)&&overrides.sequenceIndex>0
+    ? overrides.sequenceIndex
+    : countSequence?getNextScanwordSequenceIndex():null;
+  const rememberSequence=()=>{
+    if(countSequence&&Number.isSafeInteger(sequenceIndex)&&sequenceIndex>0)saveScanwordSequenceIndex(sequenceIndex);
+  };
   const generationOptions={
     seed,
+    ...(sequenceIndex===null?{}:{sequenceIndex}),
     maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
     maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
@@ -887,7 +905,9 @@ function buildScanwordInWorker(entries, overrides={}){
       const reason=result.reason?" ("+result.reason+")":"";
       throw new Error((result.message||"Не удалось создать сканворд")+reason);
     }
-    return adapt(result.scanword);
+    const puzzle=await adapt(result.scanword);
+    rememberSequence();
+    return puzzle;
   };
   if(typeof Worker!=="function")return runOnMainThread();
   return new Promise((resolve,reject)=>{
@@ -914,8 +934,11 @@ function buildScanwordInWorker(entries, overrides={}){
         if(settled)return;
         settled=true;
         cleanup();
-        try{resolve(await adapt(data.scanword))}
-        catch(error){reject(error)}
+        try{
+          const puzzle=await adapt(data.scanword);
+          rememberSequence();
+          resolve(puzzle);
+        }catch(error){reject(error)}
       };
       worker.onerror=event=>{
         const message=event?.message||"Модульный worker нового генератора завершился с ошибкой";

@@ -12,7 +12,7 @@ function now() {
 }
 
 const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
-  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'
 ].map(answer => canonicalAnswerKey(answer)));
 
 function canAssignDistinctShortAnswers(domains) {
@@ -384,8 +384,17 @@ export function generateScanword(inputDictionary, options = {}) {
   const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
 
   const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
-  const wantsEleven = hasElevenLetterAnswers
-    && random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE);
+  const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
+    ? options.sequenceIndex
+    : null;
+  // Production supplies a 1-based generation sequence: every fourth new
+  // scanword must contain the eleven-letter boundary answer. Direct callers
+  // without a sequence index keep the seeded-probability fallback.
+  const wantsEleven = hasElevenLetterAnswers && (
+    sequenceIndex !== null
+      ? sequenceIndex % 4 === 0
+      : random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE)
+  );
   // Build and rank the compatible special plan pool once per puzzle. Re-running
   // the full dictionary/topology arc-consistency pass for every retry was
   // unnecessary work and could consume most of the worker's 16-second limit.
@@ -543,6 +552,7 @@ export function generateScanword(inputDictionary, options = {}) {
     scanword.metadata = {
       ...scanword.metadata,
       seed,
+      sequenceIndex,
       topologySeed,
       topologyScaffold: topologyResult.scaffoldIndex,
       topologyAttempts: topologyResult.attempts,
@@ -604,6 +614,7 @@ export function generateScanword(inputDictionary, options = {}) {
       },
       stats: {
         seed,
+        sequenceIndex,
         attempts: attempt + 1,
         topologyAttempts: topologyResult.attempts,
         nodes: solved.nodes,

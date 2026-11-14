@@ -16,7 +16,6 @@ async function main() {
     maxTwoLetterSlots: 6,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
-    specialElevenLetterChance: 0.25
   };
   const runs = [];
   let specialElevenCount = 0;
@@ -25,7 +24,7 @@ async function main() {
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed });
+    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index });
     const elapsedMs = Math.round(performance.now() - started);
     if (!result.ok) {
       runs.push({
@@ -71,6 +70,7 @@ async function main() {
       questionCells: validation.metrics.questionCells,
       letters: validation.metrics.letters,
       twoLetterAnswers: words.filter(word => word.length === 2).map(word => word.answer),
+      musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
       weakPronouns: words.filter(word => ["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ"].includes(word.answer)).map(word => word.answer),
       images: validation.metrics.imageCount,
       distinctImageClueCells,
@@ -92,7 +92,7 @@ async function main() {
     specialElevenCount,
     specialElevenMissedCount: specialElevenMisses.length,
     specialElevenMisses,
-    expectedSpecialElevenRange: [15, 35],
+    expectedSpecialElevenRange: [25, 25],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
     medianTwoLetterAnswers: twoLetterCounts[Math.floor(twoLetterCounts.length/2)],
@@ -102,14 +102,17 @@ async function main() {
   };
   console.log(JSON.stringify(report,null,2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
+  if (successful.some(run => run.musicNoteAnswers.length > 0)) {
+    throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
+  }
+  if (specialElevenRequestedCount !== 25 || specialElevenCount !== 25) {
+    throw new Error('Exactly every fourth of 100 puzzles must contain the eleven-letter answer; requested=' + specialElevenRequestedCount + ', generated=' + specialElevenCount);
+  }
   if (report.maximumTwoLetterAnswers > 6) {
     throw new Error("A production scanword contains more than six two-letter answers.");
   }
   if (specialElevenMisses.length > 0) {
     throw new Error("A requested eleven-letter scanword fell back to a normal puzzle: " + specialElevenMisses.length + " misses.");
-  }
-  if (specialElevenCount < 15 || specialElevenCount > 35) {
-    throw new Error("Eleven-letter frequency should be near one in four; observed " + specialElevenCount + "/100.");
   }
   if (report.p95Ms > 4000) {
     throw new Error("Generation p95 exceeded the 4-second mobile safety budget: " + report.p95Ms + "ms.");

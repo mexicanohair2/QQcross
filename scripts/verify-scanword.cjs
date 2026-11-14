@@ -46,7 +46,8 @@ async function main() {
     const started = performance.now();
     const result = generateScanword(dictionary, {
       ...generationOptions,
-      seed
+      seed,
+      sequenceIndex: run
     });
     const elapsedMs = Math.round(performance.now() - started);
     timings.push(elapsedMs);
@@ -83,6 +84,8 @@ async function main() {
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 6, "too many short answers on seed " + seed);
+    assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
+    assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
@@ -101,7 +104,8 @@ async function main() {
     if (run <= 3) {
       const repeated = generateScanword(dictionary, {
         ...generationOptions,
-        seed
+        seed,
+        sequenceIndex: run
       });
       assert.equal(repeated.ok, true, "same-seed replay failed for " + seed);
       assert.equal(stablePuzzle(repeated.scanword), stablePuzzle(scanword), "same seed must produce identical puzzle content: " + seed);
@@ -145,8 +149,7 @@ async function main() {
   if (failures.length) {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
-  assert.ok(specialElevenCount >= 15 && specialElevenCount <= 35,
-    "Eleven-letter frequency should stay near one in four; observed " + specialElevenCount + "/100");
+  assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
 }
 
 main().catch(error => {
