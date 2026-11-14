@@ -610,6 +610,13 @@ test("scanword clue cells follow the top-left reference anchors and show directi
   expect(edgeCounts.left).toBeGreaterThanOrEqual(4);
   const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    return row > 0 && col > 0;
+  }).length);
+  const rightEdgeClues = await board.locator('.scan-clue[data-clue-cell$=",7"]').count();
+  expect(interiorClues).toBeGreaterThanOrEqual(5);
+  expect(rightEdgeClues).toBeLessThanOrEqual(5);
+  const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
     return row > 0 && col > 0 && col < 7;
   }).length);
   expect(interiorClues).toBeGreaterThanOrEqual(3);
