@@ -270,6 +270,12 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       plans.push({
         answer: entry.answer,
         rows: topology.rows,
+        // Preserve the AC-3-pruned dictionary domains so the production CSP
+        // does not reopen candidates already proven incompatible at crossings.
+        allowedEntryIdsBySlot: new Map(domains.map(domain => [
+          domain.slot.id,
+          new Set(domain.options.map(option => option.entry.id))
+        ])),
         score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots,
         tie: random()
       });
@@ -283,6 +289,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const rankedPlans = plans.map(plan => ({
     answer: plan.answer,
     rows: plan.rows,
+    allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',')
   }));
@@ -446,6 +453,7 @@ export function generateScanword(inputDictionary, options = {}) {
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
+      allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
       captureTrace: options.captureTrace === true
     });
 
