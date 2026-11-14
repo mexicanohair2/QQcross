@@ -9,16 +9,15 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * layout. It is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
-  [4, 8],
-  [4, 9],
-  [5, 9]
+  { col4Rows: [3, 7, 11], col5Rows: [4, 8], rightEdgeRows: [3, 7] },
+  { col4Rows: [4, 8], col5Rows: [3, 7, 11], rightEdgeRows: [3, 7] },
+  { col4Rows: [3, 7], col5Rows: [4, 8], rightEdgeRows: [4, 8] }
 ]);
 
-function createScaffold(extraRows) {
-  const col4Rows = new Set([...extraRows, 10, 11]);
-  const col5Rows = new Set([4, 8]);
-  const col6Rows = new Set([4, 8]);
-  const rightEdgeRows = new Set([4, 8]);
+function createScaffold(layout = SCAFFOLD_ROWS[0]) {
+  const col4Rows = new Set(layout.col4Rows);
+  const col5Rows = new Set(layout.col5Rows);
+  const rightEdgeRows = new Set(layout.rightEdgeRows);
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
@@ -27,18 +26,12 @@ function createScaffold(extraRows) {
       cells[0] = '#';
       if (col4Rows.has(row)) cells[4] = '#';
       if (col5Rows.has(row)) cells[5] = '#';
-      if (col6Rows.has(row)) cells[6] = '#';
       if (rightEdgeRows.has(row)) cells[7] = '#';
     }
     return cells.join('');
   });
 }
 
-function createSpecialScaffold(_extraRows) {
-  // Keep the audited eleven-letter layout: it reserves column 1 for the
-  // eleven-letter answer and has a sparse right edge rather than a full wall.
-  return LOW_SHORT_SCAFFOLD.slice();
-}
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
   '#...#...',
@@ -74,13 +67,13 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = includeSpecialEleven ? 4 : 1, minimumInteriorQuestionCells = 8) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5, minimumInteriorQuestionCells = includeSpecialEleven ? 8 : 5) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) !== (includeSpecialEleven ? 4 : 5)) return null;
   if (countRightEdgeQuestions(matrix) !== (includeSpecialEleven ? 4 : 3)) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < Math.max(8, minimumInteriorQuestionCells)) return null;
+  if (interiorQuestionCells < Math.max(includeSpecialEleven ? 8 : 5, minimumInteriorQuestionCells)) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -148,14 +141,14 @@ function countInteriorQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 1) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
   // The special 11-letter layout keeps its crossing rows intact. Ordinary
   // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven ? 0 : 5 + Math.floor(random() * 5);
+  const targetMutations = includeSpecialEleven ? 0 : 1 + Math.floor(random() * 3);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
@@ -183,7 +176,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
-  const requiredInterior = includeSpecialEleven ? 3 : 8;
+  const requiredInterior = includeSpecialEleven ? 8 : 5;
   if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
     return { candidate: null, accepted, tried };
   }
@@ -201,7 +194,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(1, Math.min(8, options.maxTwoLetterSlots ?? (includeSpecialEleven ? 4 : 1)));
+  const maxTwoLetterSlots = Math.max(1, Math.min(8, options.maxTwoLetterSlots ?? (includeSpecialEleven ? 4 : 5)));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
     && options.scaffoldIndex < SCAFFOLD_ROWS.length
@@ -283,7 +276,7 @@ export function generateTopology(options = {}) {
 /** Exposes the preflight geometry metrics for regression tests and diagnostics. */
 export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
-  const rows = includeSpecialEleven ? [...LOW_SHORT_SCAFFOLD] : createScaffold(extraRows);
+  const rows = includeSpecialEleven ? [...LOW_SHORT_SCAFFOLD] : createScaffold({ col4Rows: extraRows, col5Rows: [4, 8], rightEdgeRows: [3, 7] });
   const matrix = cloneRows(rows);
   const grid = toRoleGrid(matrix);
   const validation = validateTopology(grid, {
