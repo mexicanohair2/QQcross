@@ -27,8 +27,7 @@ jobs:
         run: node scripts/diagnose-topologies.mjs
       - name: Validate redesigned low-short-slot 8x12 topology
         run: node scripts/diagnose-custom-topology.mjs
-      - name: Generate ten distinct zero-short-slot 8x12 diagnostic puzzles
+      - name: Validate seeded 8x12 topology sampling
         run: node scripts/diagnose-border-compatible-topology.cjs
       - name: Stress-test normal full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs
-      # Restore the 100-seed stress test after the CSP blocker is resolved.
