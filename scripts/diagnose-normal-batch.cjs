@@ -8,9 +8,9 @@ async function main() {
   const options = {
     maxTopologyAttempts: 16,
     maxNodes: 120000,
-    // Match the real worker setting in app.js; a 450ms cap under-reports
-    // optional 11-letter puzzles that production is allowed 1200ms to solve.
+    // Match the real worker's bounded search budgets.
     maxCspTimeMs: 1200,
+    specialMaxCspTimeMs: 1500,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
