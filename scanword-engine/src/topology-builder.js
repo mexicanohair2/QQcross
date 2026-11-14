@@ -77,7 +77,10 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  if (twoLetterSlots < 4 || twoLetterSlots > 8 || longSlots < 12) return null;
+  // Keep short answers a minority: every accepted 8×12 board has four to
+  // six two-letter slots, while the remaining answer slots have at least
+  // three letters. This prevents random clue splits from flooding the board.
+  if (twoLetterSlots < 4 || twoLetterSlots > 6 || longSlots < 12) return null;
 
   return {
     grid,
