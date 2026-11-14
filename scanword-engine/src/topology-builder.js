@@ -70,9 +70,11 @@ function inspectCandidate(matrix, includeSpecialEleven) {
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
-  const expectedSlots = 18 + (includeSpecialEleven ? 1 : 0);
-  if (derived.errors.length || derived.slots.length !== 19 + (includeSpecialEleven ? 1 : 0)) return null;
-  if (derived.slots.filter(slot => slot.length === 2).length !== 6) return null;
+  const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
+  const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
+  const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
+  if (derived.errors.length || derived.slots.length < minimumSlots) return null;
+  if (twoLetterSlots < 4 || twoLetterSlots > 8 || longSlots < 12) return null;
 
   return {
     grid,
@@ -96,22 +98,75 @@ function countTopQuestions(matrix) {
 }
 
 /**
- * Selects a seeded, fully validated role mask. Geometry is always checked
- * before the dictionary solver is called; the masks contain no stored words.
+ * Apply bounded seeded mutations only to internal cells. A mutation is kept
+ * only when the independent geometry validator still proves complete letter
+ * coverage, connected clue structure, valid answer lengths and active clues.
+ */
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96) {
+  const matrix = cloneRows(baseRows);
+  let candidate = inspectCandidate(matrix, includeSpecialEleven);
+  if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
+
+  const targetMutations = 2 + Math.floor(random() * 5);
+  const touched = new Set();
+  let accepted = 0;
+  let tried = 0;
+
+  for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
+    const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
+    // Columns 1 and 2 stay letters so every left-border question has room
+    // for a meaningful answer; the outer border is never mutated.
+    const col = 3 + Math.floor(random() * (CONFIG.WIDTH - 4));
+    const key = row + ',' + col;
+    if (touched.has(key)) continue;
+    touched.add(key);
+    tried++;
+
+    const previous = matrix[row][col];
+    matrix[row][col] = previous === '#' ? '.' : '#';
+    const next = inspectCandidate(matrix, includeSpecialEleven);
+
+    if (next) {
+      candidate = next;
+      accepted++;
+    } else {
+      matrix[row][col] = previous;
+    }
+  }
+
+  return { candidate, accepted, tried };
+}
+
+/**
+ * Selects a seeded, fully validated role mask. Every topology begins with a
+ * known-safe scaffold, then receives bounded, validator-approved mutations;
+ * no answer letters are stored in this stage.
  */
 export function generateTopology(options = {}) {
   const seed = options.seed ?? 1;
   const random = createRng(seed);
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
+  const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
   const history = [];
+  let fallback = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const scaffoldIndex = Math.floor(random() * SCAFFOLDS.length);
-    const matrix = cloneRows(SCAFFOLDS[scaffoldIndex]);
-    const candidate = inspectCandidate(matrix, includeSpecialEleven);
-    if (!candidate) {
+    const mutated = mutateValidatedScaffold(
+      SCAFFOLDS[scaffoldIndex],
+      includeSpecialEleven,
+      random,
+      mutationBudget
+    );
+    if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');
+      continue;
+    }
+
+    if (!fallback) fallback = { candidate: mutated.candidate, scaffoldIndex, mutations: mutated.accepted };
+    if (mutated.accepted === 0) {
+      history.push('VALID_SCAFFOLD_WITHOUT_MUTATION');
       continue;
     }
 
@@ -120,25 +175,26 @@ export function generateTopology(options = {}) {
       seed,
       attempts: attempt,
       scaffoldIndex,
-      topology: candidate,
+      mutationCount: mutated.accepted,
+      mutationTries: mutated.tried,
+      topology: mutated.candidate,
       rejectedAttempts: attempt - 1,
       diagnostics: history.slice(-8)
     };
   }
 
-  for (let scaffoldIndex = 0; scaffoldIndex < SCAFFOLDS.length; scaffoldIndex++) {
-    const candidate = inspectCandidate(cloneRows(SCAFFOLDS[scaffoldIndex]), includeSpecialEleven);
-    if (candidate) {
-      return {
-        ok: true,
-        seed,
-        attempts: maxAttempts + 1,
-        scaffoldIndex,
-        topology: candidate,
-        rejectedAttempts: maxAttempts,
-        diagnostics: ['SEEDED_TOPOLOGY_RETRIES_EXHAUSTED', 'VALIDATED_SCAFFOLD_FALLBACK']
-      };
-    }
+  if (fallback) {
+    return {
+      ok: true,
+      seed,
+      attempts: maxAttempts + 1,
+      scaffoldIndex: fallback.scaffoldIndex,
+      mutationCount: fallback.mutations,
+      mutationTries: mutationBudget,
+      topology: fallback.candidate,
+      rejectedAttempts: maxAttempts,
+      diagnostics: ['SEEDED_MUTATION_BUDGET_EXHAUSTED', 'VALIDATED_SCAFFOLD_FALLBACK', ...history.slice(-6)]
+    };
   }
 
   return {
