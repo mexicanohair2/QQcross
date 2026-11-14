@@ -1067,8 +1067,12 @@ async function begin(size=1,chatGPT=false,dailyChallenge=null){
     if(!Array.isArray(window.QQCROSS_DICTIONARY)||!window.QQCROSS_DICTIONARY.length){
       throw new Error("Не загрузился словарь сканворда. Проверь интернет и нажми «Играть одному» ещё раз.");
     }
-    if(!preparedScanword)await prepareNextScanword();
-    if(!preparedScanword)throw new Error("Не удалось подготовить сканворд. Нажми «Повторить подготовку».");
+    // Background preparation can fail for a particular seed on a slower phone.
+    // Retry once with a fresh bounded seed instead of leaving the player on the menu.
+    for(let generationAttempt=0;generationAttempt<2&&!preparedScanword;generationAttempt++){
+      await prepareNextScanword();
+    }
+    if(!preparedScanword)throw new Error("Не удалось подготовить сканворд после двух ограниченных попыток. Нажми «Повторить подготовку».");
     let loaded=false,lastError=null;
     for(let attempt=0;attempt<2&&!loaded;attempt++){
       try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQCross: puzzle start failed",error)}
