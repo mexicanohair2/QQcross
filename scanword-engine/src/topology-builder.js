@@ -30,16 +30,22 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
 ]);
 
 function createScaffold(extraRows) {
+  // Keep three top anchors and the full left clue edge, but stagger horizontal
+  // answer endpoints across columns 4–7. Repeated columns create genuine
+  // vertical slots, moving active clues into the interior instead of placing
+  // a decorative question tile in every cell of the rightmost column.
+  const rowEndColumns = [null, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7];
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
       cells[1] = '#';
       cells[4] = '#';
+      cells[7] = '#';
     } else {
       cells[0] = '#';
+      cells[rowEndColumns[row]] = '#';
       if (extraRows.includes(row)) cells[4] = '#';
     }
-    cells[7] = '#';
     return cells.join('');
   });
 }
