@@ -62,7 +62,7 @@ async function main() {
             attempts: result.lastDiagnostic.attempts,
             lastDeadEnd: result.lastDiagnostic.lastDeadEnd,
             deepestDeadEnd: result.lastDiagnostic.deepestDeadEnd,
-            searchTrace: result.lastDiagnostic.attempts?.[0]?.searchTrace?.slice(0, 30)
+            searchTrace: result.lastDiagnostic.searchTrace?.slice(0, 30)
           } : null
         }
       });
