@@ -297,10 +297,10 @@ export function diagnoseTopologyScaffold(extraRows = [4, 8], options = {}) {
   const validation = validateTopology(grid, {
     requireConnected: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
-    minimumOuterBoundaryLength: 3
+    allowOuterBoundarySlots: !includeSpecialEleven,
+    minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3
   });
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: true, minimumOuterBoundaryLength: 3 });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowOuterBoundarySlots: !includeSpecialEleven, minimumOuterBoundaryLength: includeSpecialEleven ? undefined : 3 });
   return {
     pattern: rows,
     valid: validation.valid,
