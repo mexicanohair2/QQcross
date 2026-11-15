@@ -1,0 +1,132 @@
+name: Playwright browser tests
+
+concurrency:
+  group: qqcross-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-wordle:
+    name: Build expanded Russian Wordle dictionary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Cache source dictionaries
+        uses: actions/cache@v4
+        with:
+          path: .cache/wordle
+          key: qqcross-wordle-source-v2
+      - name: Build Wordle dictionary
+        run: python scripts/build_wordle_dictionary.py
+      - name: Build 100k Russian lexicon
+        run: python scripts/build_russian_lexicon.py
+      - name: Strictly validate the 100k lexicon against game dictionaries
+        run: python scripts/validate_russian_lexicon.py
+      - name: Publish generated Russian dictionaries to the GitHub Pages source
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git add data/wordle-words.json data/russian-words-100000.json data/russian-words-common-25000.json
+          if git diff --cached --quiet; then
+            echo "The Russian dictionaries are already current."
+          else
+            cache_version=$(date -u +%Y%m%d%H%M%S)
+            sed -i "s/^const CACHE_NAME=.*/const CACHE_NAME=\"qqcross-${cache_version}\";/" sw.js
+            git add sw.js
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "Publish 100,000-word Russian lexicon [skip ci]"
+            git push
+          fi
+      - name: Upload generated Wordle dictionary
+        uses: actions/upload-artifact@v4
+        with:
+          name: wordle-dictionary
+          path: data/wordle-words.json
+          retention-days: 1
+      - name: Upload 100k Russian lexicon
+        uses: actions/upload-artifact@v4
+        with:
+          name: russian-lexicon
+          path: data/russian-words-100000.json
+          retention-days: 1
+      - name: Upload 25k common Russian lexicon
+        uses: actions/upload-artifact@v4
+        with:
+          name: russian-common-lexicon
+          path: data/russian-words-common-25000.json
+          retention-days: 1
+
+  e2e:
+    name: ${{ matrix.project }}
+    needs: prepare-wordle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [desktop-chromium, mobile-chromium]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Download generated Wordle dictionary
+        uses: actions/download-artifact@v4
+        with:
+          name: wordle-dictionary
+          path: data
+      - name: Download 100k Russian lexicon
+        uses: actions/download-artifact@v4
+        with:
+          name: russian-lexicon
+          path: data
+      - name: Download 25k common Russian lexicon
+        uses: actions/download-artifact@v4
+        with:
+          name: russian-common-lexicon
+          path: data
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Audit scanword dictionary with Python
+        run: python scripts/scanword_audit.py
+      - name: Check Wordle dictionary builder
+        run: |
+          python -m py_compile scripts/build_wordle_dictionary.py scripts/build_russian_lexicon.py
+          python scripts/build_wordle_dictionary.py --self-test
+      - name: Validate scanword dictionary
+        run: node scripts/validate-scanwords.js
+      - name: Run browser tests
+        run: npx playwright test --project=${{ matrix.project }}
+      - name: Upload test report and failure artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.project }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
