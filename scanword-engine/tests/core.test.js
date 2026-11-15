@@ -481,36 +481,23 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator reject left/up scanword answers', () => {
-  const leftWord = {
-    id: 'left-word', entryId: 'cat', answer: 'КОТ',
-    question: 'Домашнее животное из семейства кошачьих.',
-    clue: { row: 1, col: 4 }, direction: 'left',
-    coordinates: [
-      { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
-    ]
-  };
-  const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
-  assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
-
-  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
-  grid[0][0].type = 'corner';
-  grid[1][4] = { row: 1, col: 4, type: 'question', letter: null, questionIds: ['q-left'], wordIds: [] };
-  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
-  leftWord.coordinates.forEach((point, index) => {
-    grid[point.row][point.col] = {
-      ...grid[point.row][point.col], type: 'letter',
-      letter: leftWord.answer[index], questionIds: [], wordIds: [leftWord.id]
+test('assembler accepts all four canonical scanword directions', () => {
+  const cases = [
+    { direction: 'right', clue: { row: 1, col: 0 }, coordinates: [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }], terminal: { row: 1, col: 4 } },
+    { direction: 'left', clue: { row: 1, col: 4 }, coordinates: [{ row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }], terminal: { row: 1, col: 0 } },
+    { direction: 'down', clue: { row: 0, col: 4 }, coordinates: [{ row: 1, col: 4 }, { row: 2, col: 4 }, { row: 3, col: 4 }], terminal: { row: 4, col: 4 } },
+    { direction: 'up', clue: { row: 4, col: 4 }, coordinates: [{ row: 3, col: 4 }, { row: 2, col: 4 }, { row: 1, col: 4 }], terminal: { row: 0, col: 4 } }
+  ];
+  for (const [index, geometry] of cases.entries()) {
+    const word = {
+      id: 'direction-' + geometry.direction, entryId: 'cat', answer: 'КОТ',
+      question: 'Домашнее животное из семейства кошачьих.',
+      ...geometry
     };
-  });
-  const validation = validateScanword({
-    width: 8, height: 12, grid,
-    words: [leftWord],
-    questions: [{
-      id: 'q-left', wordId: leftWord.id, text: leftWord.question,
-      clue: leftWord.clue, direction: 'left', length: 3
-    }]
-  }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+    const assembled = assembleScanword({ seed: index + 1, words: [word], questions: [] });
+    assert.equal(assembled.ok, true, geometry.direction + ': ' + JSON.stringify(assembled.errors));
+    assert.equal(assembled.scanword.grid[geometry.clue.row][geometry.clue.col].type, 'question');
+    assert.equal(assembled.scanword.grid[geometry.terminal.row][geometry.terminal.col].type, 'question');
+    assert.deepEqual(word.coordinates.map(point => assembled.scanword.grid[point.row][point.col].letter), ['К', 'О', 'Т']);
+  }
 });
