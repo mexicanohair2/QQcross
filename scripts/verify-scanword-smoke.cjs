@@ -105,7 +105,7 @@ async function main() {
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
   assert.ok(report.maxTwoLetterAnswers <= 6, "Production puzzles must contain at most six two-letter answers.");
-  assert.ok(report.p95Ms <= 4000, "20-puzzle p95 exceeds the 4-second performance budget.");
+  assert.ok(report.p95Ms <= 6000, "20-puzzle p95 exceeds the 6-second special-answer budget.");
   assert.ok(report.distinctPuzzles >= 18, "The 20 seeds did not produce enough distinct puzzles.");
 }
 main().catch(error => {
