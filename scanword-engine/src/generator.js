@@ -528,11 +528,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // The approved regular pool uses templates 4, 9 and 12: each has
   // a connected letter graph, no eleven-letter boundary slot and at most
   // three curated two-letter answers.
-  // Explore the full approved template library instead of cycling three masks.
-  // Template 11 (index 10) is reserved for the optional eleven-letter layout.
-  // generateTopology independently rejects any ordinary mask that violates
-  // the low-short-slot and connected-slot constraints.
-  const normalTemplateSequence = Array.from({ length: 20 }, (_, index) => index).filter(index => index !== 10);
+  const normalTemplateSequence = [3, 8, 11];
   const normalTemplateOffset = seed % normalTemplateSequence.length;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
