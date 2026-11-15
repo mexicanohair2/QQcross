@@ -5,8 +5,8 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * The original three scaffolds remain available for broad topology exploration.
- * The fourth, low-short-answer scaffold is reserved for the optional 11-letter
- * layout. It is not connected when that boundary answer is omitted.
+ * The fourth scaffold is reserved for the optional 11-letter layout. It has
+ * no two-letter answer slots and is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8, 11],
@@ -15,18 +15,18 @@ const SCAFFOLD_ROWS = Object.freeze([
 ]);
 
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
-  '#...#...',
-  '#...#...',
-  '#...#...',
+  '.#...#..',
+  '#.......',
+  '#.......',
   '#......#',
-  '#....##.',
   '#...#...',
-  '#...#...',
+  '#.......',
+  '#.......',
   '#......#',
-  '#....##.',
-  '#.....#.',
-  '#.......'
+  '#...#...',
+  '#.......',
+  '#.......',
+  '#......#'
 ]);
 
 function createScaffold(extraRows) {
