@@ -132,19 +132,20 @@ export function assembleScanword(assignments, options = {}) {
     };
     if (sourceWord.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
       const exactCoordinates = sourceWord.coordinates.every((point, index) =>
-        point.row === index + 1 && point.col === 1
+        point.row === index + 1 && point.col === clue.col
       );
       if (
         answer.length !== 11
         || clue.row !== 0
-        || clue.col !== 1
+        || clue.col < 1
+        || clue.col >= CONFIG.WIDTH
         || sourceWord.direction !== 'down'
         || !exactCoordinates
         || terminal.row !== CONFIG.HEIGHT
-        || terminal.col !== 1
+        || terminal.col !== clue.col
       ) {
-        fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Неверная геометрия специального ответа из 11 букв.', {
-          wordId: sourceWord.id, terminal
+        fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Специальный ответ из 11 букв должен идти вниз от верхней вопросной клетки до нижней границы.', {
+          wordId: sourceWord.id, clue, terminal
         });
       }
     } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
