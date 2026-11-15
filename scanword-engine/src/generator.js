@@ -159,6 +159,13 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   const plans = [];
   const uniqueAnswers = new Set();
+  const startableInitials = new Set(entries
+    .filter(candidate => {
+      const length = String(candidate.answer ?? '').length;
+      return length >= 3 && length <= CONFIG.WIDTH - 1
+        || length === 2 && ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }));
+    })
+    .map(candidate => normalizeInitial([...candidate.answer][0])));
   const planDiagnostics = {
     elevenLetterAnswers: 0,
     unstartableInitialAnswers: 0,
@@ -181,9 +188,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     // Every letter of the vertical 11-letter answer becomes the first
     // character of a horizontal answer from the mandatory left border.
     // Reject impossible initials (notably Ь/Ъ/Ы) before building any CSP plans.
-    const startableInitials = requirements.startableInitials ?? new Set(
-      entries.map(candidate => normalizeInitial([...candidate.answer][0]))
-    );
     if (letters.some(letter => !startableInitials.has(letter))) {
       planDiagnostics.unstartableInitialAnswers++;
       continue;
