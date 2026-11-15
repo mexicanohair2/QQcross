@@ -269,14 +269,15 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  for (let col = 1; col < CONFIG.WIDTH; col++) {
-    if (grid[0][col].type !== 'question') {
-      errors.push({
-        type: 'TOP_ROW_NOT_QUESTION',
-        message: 'Верхняя строка, кроме угла (0,0), должна состоять из вопросных клеток с ответами вниз.',
-        row: 0, col
-      });
-    }
+  const topQuestionCount = grid[0].slice(1).filter(cell => cell?.type === 'question').length;
+  if (topQuestionCount < 2) {
+    errors.push({
+      type: 'INSUFFICIENT_TOP_QUESTIONS',
+      message: 'В верхней строке должны быть как минимум два вопросных старта; остальные клетки могут быть буквенными и обязаны входить в слова.',
+      row: 0,
+      actual: topQuestionCount,
+      minimum: 2
+    });
   }
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
