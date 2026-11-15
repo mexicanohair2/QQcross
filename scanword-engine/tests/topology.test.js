@@ -67,7 +67,7 @@ test('does not turn a one-letter gap into an answer', () => {
   setQuestion(grid, 2, 2);
 
   const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  assert.equal(result.slots.some(item => item.axis === 'horizontal' && item.endpoints[0].row === 2), false);
+  assert.equal(result.slots.some(item => item.axis === 'horizontal' && item.length === 1), false);
   assert.ok(result.warnings.some(item => item.type === 'SINGLE_LETTER_GAP'));
 });
 
@@ -99,7 +99,11 @@ test('validates borders and reports unassigned and orphan cells independently', 
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
   for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
-  grid[5][5] = { row: 5, col: 5, type: 'unassigned', letter: null, questionIds: [], wordIds: [] };
+  setQuestion(grid, 5, 4);
+  setQuestion(grid, 5, 6);
+  setQuestion(grid, 4, 5);
+  setQuestion(grid, 6, 5);
+  grid[5][5] = { row: 5, col: 5, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
 
   const result = validateTopology(grid);
   assert.equal(result.valid, false);

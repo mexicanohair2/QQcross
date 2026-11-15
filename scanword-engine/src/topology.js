@@ -117,22 +117,24 @@ export function deriveWordSlots(grid, options = {}) {
   function scanLine(axis, fixedIndex) {
     const horizontal = axis === 'horizontal';
     const lineLength = horizontal ? CONFIG.WIDTH : CONFIG.HEIGHT;
+    const startOffset = (horizontal && fixedIndex === 0) || (!horizontal && fixedIndex === 0) ? 1 : 0;
     const questionPositions = [];
-    for (let offset = 0; offset < lineLength; offset++) {
+    for (let offset = startOffset; offset < lineLength; offset++) {
       const row = horizontal ? fixedIndex : offset;
       const col = horizontal ? offset : fixedIndex;
       if (grid[row][col].type === 'question') questionPositions.push(offset);
     }
 
-    // Board edges are real terminals. Every contiguous letter run is bounded
-    // by Q/Q, Q/edge, or edge/Q. Runs without an actual clue are not answers.
-    const endpoints = [-1, ...questionPositions, lineLength];
+    // The sole corner is outside both clue runs. A line with no clue at either
+    // end is not a word and must not become a fake 12-letter boundary slot.
+    const endpoints = [startOffset - 1, ...questionPositions, lineLength];
     for (let index = 0; index < endpoints.length - 1; index++) {
       const from = endpoints[index], to = endpoints[index + 1];
       const length = to - from - 1;
       if (length <= 0) continue;
+      if (from === startOffset - 1 && to === lineLength) continue;
 
-      const first = from === -1
+      const first = from === startOffset - 1
         ? (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true })
         : (horizontal ? point(fixedIndex, from) : point(from, fixedIndex));
       const last = to === lineLength
