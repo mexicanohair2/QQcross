@@ -127,7 +127,7 @@ export function deriveWordSlots(grid, options = {}) {
 
     // The sole corner is outside both clue runs. A line with no clue at either
     // end is not a word and must not become a fake 12-letter boundary slot.
-    const endpoints = [startOffset - 1, ...questionPositions, lineLength];
+    const endpoints = [...(startOffset === 0 ? [-1] : []), ...questionPositions, lineLength];
     for (let index = 0; index < endpoints.length - 1; index++) {
       const from = endpoints[index], to = endpoints[index + 1];
       const length = to - from - 1;
