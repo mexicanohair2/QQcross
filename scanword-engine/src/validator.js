@@ -510,7 +510,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       const key = slotKey(axis, first, last);
       const matches = words.filter(word => {
         if (!word || typeof word.answer !== 'string' || !word.clue
-          || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
