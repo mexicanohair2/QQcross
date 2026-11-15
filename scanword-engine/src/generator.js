@@ -443,7 +443,7 @@ export function generateScanword(inputDictionary, options = {}) {
     Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8, specialPlanSequence.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
