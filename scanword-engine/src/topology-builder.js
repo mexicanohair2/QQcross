@@ -18,7 +18,7 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...#..',
   '#.......',
   '#.......',
-  '#..#...#',
+  '#......#',
   '#...#...',
   '#.......',
   '#.......',
@@ -66,7 +66,7 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = includeSpecialEleven ? 2 : 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
