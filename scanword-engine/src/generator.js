@@ -243,7 +243,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     seed: 1,
     templateIndex: specialTemplateIndex,
     includeSpecialEleven: true,
-    maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
+    maxTwoLetterSlots: 3
   });
   const specialSlot = specialTemplateTopology.ok
     ? specialTemplateTopology.topology.slots.find(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY')
@@ -502,7 +502,6 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialPlanPool = wantsEleven
     ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
-        maxTwoLetterSlots: options.maxTwoLetterSlots ?? 6,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       }) ?? [])
@@ -561,7 +560,7 @@ export function generateScanword(inputDictionary, options = {}) {
       seed: topologySeed,
       templateIndex: selectedTemplateIndex,
       includeSpecialEleven: useSpecialTopology,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? (useSpecialTopology ? 6 : 3)
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 3
     });
 
     if (!topologyResult.ok) {
