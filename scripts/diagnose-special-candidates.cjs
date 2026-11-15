@@ -15,7 +15,7 @@ async function main() {
       seed,
       specialElevenLetterChance: 1,
       maxTopologyAttempts: 16,
-      specialTopologyAttempts: 8,
+      specialTopologyAttempts: 2,
       maxNodes: 120000,
       maxCspTimeMs: 1200,
       topologyMutationAttempts: 96,
