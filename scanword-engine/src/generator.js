@@ -348,7 +348,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
         ])),
-        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots,
+        score: minimumDomain * 100000 - totalDomain * 100 + imageKeys.size * 10 + logicSlots,
         tie: random()
       });
     }
