@@ -360,7 +360,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // normal interactive budget; cap special retries so the worker stays bounded.
   const specialMaxCspTimeMs = Math.max(
     maxCspTimeMs,
-    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
+    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 5000
   );
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
