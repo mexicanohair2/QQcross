@@ -25,8 +25,8 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#...#...',
   '#......#',
   '#....##.',
-  '#.....#.',
-  '#......#'
+  '#....##.',
+  '#.......'
 ]);
 
 function createScaffold(extraRows, includeSpecialEleven = false) {
