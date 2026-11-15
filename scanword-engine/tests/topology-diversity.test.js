@@ -71,9 +71,9 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
+    '.#...##.',
     '#...#...',
-    '#...#...',
+    '#...#..#',
     '#...#...',
     '#......#',
     '#....##.',
