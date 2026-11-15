@@ -35,6 +35,33 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
+function canAssignDistinctEntryAnswers(domains, foldYo = false) {
+  const ordered = domains
+    .map(domain => [...new Set(domain.options.map(option =>
+      canonicalAnswerKey(option.entry.answer, { foldYo })
+    ))].sort())
+    .sort((a, b) => a.length - b.length);
+  const ownerByAnswer = new Map();
+
+  function assign(index, seen) {
+    for (const answer of ordered[index]) {
+      if (seen.has(answer)) continue;
+      seen.add(answer);
+      const previous = ownerByAnswer.get(answer);
+      if (previous === undefined || assign(previous, seen)) {
+        ownerByAnswer.set(answer, index);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  for (let index = 0; index < ordered.length; index++) {
+    if (!assign(index, new Set())) return false;
+  }
+  return true;
+}
+
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
   const positions = domains.map(domain => new Map(
     domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
@@ -173,6 +200,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     missingSlotDomains: 0,
     arcConsistencyRejected: 0,
     shortAnswerMatchingRejected: 0,
+    allDifferentMatchingRejected: 0,
     contentRequirementsRejected: 0,
     viablePlans: 0
   };
@@ -251,6 +279,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             ...arcDiagnostics
           };
         }
+        continue;
+      }
+
+      if (!canAssignDistinctEntryAnswers(domains, foldYo)) {
+        planDiagnostics.allDifferentMatchingRejected++;
         continue;
       }
 
