@@ -83,6 +83,7 @@ async function main() {
       failure: result.ok ? null : {
         reason: result.reason,
         rejectedReasons: result.rejectedReasons,
+        specialPlanDiagnostics: result.specialElevenPlanDiagnostics ?? null,
         lastDiagnostic: result.lastDiagnostic ? {
           attempts: result.lastDiagnostic.attempts,
           lastDeadEnd: result.lastDiagnostic.lastDeadEnd,
