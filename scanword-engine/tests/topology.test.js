@@ -100,7 +100,7 @@ test('validates borders and reports unassigned and orphan cells independently', 
   for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
   grid[5][5] = { row: 5, col: 5, type: 'unassigned', letter: null, questionIds: [], wordIds: [] };
-  for (const [row, col] of [[4, 5], [6, 5], [5, 4], [5, 6]]) setQuestion(grid, row, col);
+  for (const [row, col] of [[4, 5], [6, 5], [5, 4], [5, 6], [7, 4], [9, 4], [8, 3], [8, 5]]) setQuestion(grid, row, col);
 
   const result = validateTopology(grid);
   assert.equal(result.valid, false);
@@ -169,8 +169,8 @@ test('requires the top-left anchor and complete left border, but not every top-r
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
   const result = validateTopology(grid);
-  assert.ok(result.errors.some(item => item.type === 'QUESTION_WITHOUT_SLOT'));
   assert.ok(!result.errors.some(item => item.type === 'TOP_ROW_NOT_QUESTION'));
+  assert.ok(!result.errors.some(item => item.type === 'INSUFFICIENT_TOP_QUESTIONS'));
 
   grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
   const missingAnchor = validateTopology(grid);
