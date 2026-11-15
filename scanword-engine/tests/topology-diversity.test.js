@@ -71,18 +71,18 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
-    '#...#...',
-    '#...#...',
-    '#...#...',
+    '.#...#..',
+    '#.......',
+    '#.......',
     '#......#',
-    '#....##.',
     '#...#...',
-    '#...#...',
+    '#.......',
+    '#.......',
     '#......#',
-    '#....##.',
-    '#.....#.',
-    '#.......'
+    '#...#...',
+    '#.......',
+    '#.......',
+    '#......#'
   ]);
 
   const result = generateTopology({
@@ -104,6 +104,6 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.ok(shortSlots >= 2 && shortSlots <= 4, 'low-short scaffold must stay within its four-slot cap; got ' + shortSlots);
-  assert.ok(result.topology.slots.length >= 20);
+  assert.equal(shortSlots, 0, 'special 11-letter scaffold must not force short filler answers');
+  assert.ok(result.topology.slots.length >= 18);
 });
