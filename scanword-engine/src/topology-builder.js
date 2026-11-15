@@ -207,7 +207,7 @@ export function generateTopology(options = {}) {
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
     const scaffold = includeSpecialEleven
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows, true))
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
