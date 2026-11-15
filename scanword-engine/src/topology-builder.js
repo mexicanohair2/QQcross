@@ -89,7 +89,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
   const topologyOptions = {
     requireConnected: true,
     requireFullTopBorder: true,
-    allowSpecialElevenBoundary: false,
+    allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
     allowColumnOneBoundarySlot: true,
     minimumOuterBoundaryLength: 2
