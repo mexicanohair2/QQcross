@@ -18,17 +18,14 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'FIXED_TOP_AND_LEFT_CLUE_BORDERS',
+    reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
     width,
     height,
-    requiredTopBorderCells: Array.from({ length: width - 1 }, (_, index) => ({ row: 0, col: index + 1 })),
-    requiredLeftBorderCells: Array.from({ length: height - 1 }, (_, index) => ({ row: index + 1, col: 0 })),
-    forcedLongVerticalAnswers: [
-      { clueCell: { row: 0, col: 1 }, direction: 'down', length: 11, terminal: 'bottom-edge' },
-      { clueCell: { row: 0, col: 2 }, direction: 'down', length: 11, terminal: 'bottom-edge' }
-    ],
+    requiredTopQuestionCount: 2,
+    requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
+    forcedLongVerticalAnswers: [],
     conflicts: [],
-    message: 'При полной верхней и левой полосе вопросных клеток столбцы 1 и 2 неизбежно образуют два вертикальных ответа до нижней границы.'
+    message: 'В обычных сканвордах верхняя строка содержит минимум две вопросные клетки, но (0,1) остаётся буквой. Это снимает неизбежный ответ из 11 букв; специальная топология сохраняет его отдельно.'
   };
 }
 
@@ -262,23 +259,23 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  if (grid[0][1].type !== 'question') {
+  const topQuestionCount = grid[0].slice(1).filter(cell => cell?.type === 'question').length;
+  if (topQuestionCount < 2) {
     errors.push({
-      type: 'TOP_LEFT_BORDER_ANCHOR_MISSING',
-      message: 'Клетка (0,1) должна быть вопросной: верхний ряд не имеет вопросной границы слева от неё.',
+      type: 'INSUFFICIENT_TOP_QUESTIONS',
+      message: 'Верхняя строка обычного сканворда должна содержать минимум две вопросные клетки.',
+      row: 0,
+      required: 2,
+      actual: topQuestionCount
+    });
+  }
+  if (options.requireSpecialElevenAnchor === true && grid[0][1].type !== 'question') {
+    errors.push({
+      type: 'SPECIAL_ELEVEN_ANCHOR_MISSING',
+      message: 'Специальный ответ из 11 букв требует вопросную клетку (0,1).',
       row: 0,
       col: 1
     });
-  }
-
-  for (let col = 1; col < CONFIG.WIDTH; col++) {
-    if (grid[0][col].type !== 'question') {
-      errors.push({
-        type: 'TOP_ROW_NOT_QUESTION',
-        message: 'Верхняя строка, кроме угла (0,0), должна состоять из вопросных клеток с ответами вниз.',
-        row: 0, col
-      });
-    }
   }
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {

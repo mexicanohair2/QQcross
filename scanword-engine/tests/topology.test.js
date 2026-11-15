@@ -159,19 +159,18 @@ test('supports dynamic top-row clue omissions while covering all 96 cells', () =
   assert.ok(result.errors.length === 0);
 });
 
-test('requires the top-left anchor and complete left border, but not every top-row cell', () => {
+test('ordinary topology does not force a top-left 11-letter answer; left border stays complete', () => {
   const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
-  setQuestion(grid, 0, 1);
+  grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
+  setQuestion(grid, 0, 4);
+  setQuestion(grid, 0, 7);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
   const result = validateTopology(grid);
-  assert.ok(result.errors.some(item => item.type === 'QUESTION_WITHOUT_SLOT'));
-  assert.ok(!result.errors.some(item => item.type === 'TOP_ROW_NOT_QUESTION'));
-
-  grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
-  const missingAnchor = validateTopology(grid);
-  assert.ok(missingAnchor.errors.some(item => item.type === 'TOP_LEFT_BORDER_ANCHOR_MISSING'));
+  assert.ok(!result.errors.some(item => item.type === 'TOP_LEFT_BORDER_ANCHOR_MISSING'));
+  assert.ok(!result.errors.some(item => item.type === 'SPECIAL_ELEVEN_ANCHOR_MISSING'));
+  for (let row = 1; row < 12; row++) assert.equal(grid[row][0].type, 'question');
 });
 
 test('the 8x12 preflight permits the dynamically generated top border', () => {
@@ -180,7 +179,7 @@ test('the 8x12 preflight permits the dynamically generated top border', () => {
   assert.equal(result.reason, 'DYNAMIC_TOP_BORDER_SUPPORTED');
   assert.equal(result.width, 8);
   assert.equal(result.height, 12);
-  assert.deepEqual(result.requiredTopAnchor, { row: 0, col: 1 });
+  assert.equal(result.requiredTopQuestionCount, 2);
   assert.deepEqual(result.requiredLeftBorderRows, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
   const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });

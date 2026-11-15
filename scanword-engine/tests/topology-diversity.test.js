@@ -21,7 +21,7 @@ test('seeded topology generation produces broad geometric variety while preservi
 
     const rows = result.topology.pattern;
     assert.equal(rows[0][0], '.', 'the upper-left corner must remain the only blank corner');
-    assert.equal(rows[0][1], '#', 'the required top anchor must remain a question cell');
+    assert.equal(rows[0][1], '.', 'ordinary boards must not force an 11-letter vertical answer');
     for (let row = 1; row < 12; row++) {
       assert.equal(rows[row][0], '#', 'left border question missing at row ' + row + ', seed=' + seed);
     }

@@ -29,11 +29,11 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#'
 ]);
 
-function createScaffold(extraRows) {
+function createScaffold(extraRows, includeSpecialEleven = false) {
   return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
     const cells = Array(CONFIG.WIDTH).fill('.');
     if (row === 0) {
-      cells[1] = '#';
+      if (includeSpecialEleven) cells[1] = '#';
       cells[4] = '#';
     } else {
       cells[0] = '#';
@@ -68,7 +68,7 @@ function toRoleGrid(matrix) {
 
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
-  if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
+  if (matrix[0][0] !== '.' || matrix[0][1] !== (includeSpecialEleven ? '#' : '.')) return null;
   if (countTopQuestions(matrix) < 2) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
@@ -84,7 +84,8 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireSpecialElevenAnchor: includeSpecialEleven
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
