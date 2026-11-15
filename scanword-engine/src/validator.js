@@ -93,8 +93,13 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
-  // Top-row question placement is deliberately dynamic. Any non-question
-  // cell must still be covered by a reconstructed answer slot below.
+  if (options.requireFullTopBorder !== false) {
+    for (let col = 1; col < CONFIG.WIDTH; col++) {
+      if (grid[0][col]?.type !== 'question') {
+        add('TOP_BORDER_NOT_QUESTION', 'Все клетки верхнего ряда, кроме пустого угла, должны быть вопросными.', { row: 0, col });
+      }
+    }
+  }
 
   let questionCells = 0;
   let letterCells = 0;
@@ -280,18 +285,19 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
       specialCount++;
       const exactCoordinates = word.coordinates.every((coordinate, index) =>
-        coordinate.row === index + 1 && coordinate.col === 1
+        coordinate.row === index + 1 && coordinate.col === clue.col
       );
       if (
         answer.length !== 11
         || clue.row !== 0
-        || clue.col !== 1
+        || clue.col < 1
+        || clue.col >= CONFIG.WIDTH
         || word.direction !== 'down'
         || !exactCoordinates
         || terminal.row !== CONFIG.HEIGHT
-        || terminal.col !== 1
+        || terminal.col !== clue.col
       ) {
-        add('INVALID_SPECIAL_BOUNDARY_WORD', 'Исключение допускается только для ответа из 11 букв вниз из (0,1) до нижней границы.', {
+        add('INVALID_SPECIAL_BOUNDARY_WORD', 'Специальный ответ из 11 букв должен идти вниз от верхней вопросной клетки до нижней границы.', {
           wordId: word.id, answer, clue, direction: word.direction, terminal
         });
       }
