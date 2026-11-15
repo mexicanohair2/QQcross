@@ -193,7 +193,7 @@ export function deriveWordSlots(grid, options = {}) {
     // A clue may point to a word that finishes at the outer board edge.
     // This keeps the side and lower boundaries usable without extra clue tiles.
     if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
-      && !(axis === 'vertical' && fixedIndex === 1)) {
+      && (!(axis === 'vertical' && fixedIndex === 1) || options.allowColumnOneBoundarySlot === true)) {
       const from = questionPositions[questionPositions.length - 1];
       const length = lineLength - from - 1;
       if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
@@ -357,8 +357,21 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  // The top row is intentionally dynamic. Letter cells are permitted only
-  // when a horizontal slot between two question cells covers them.
+  if (options.requireFullTopBorder === true) {
+    for (let col = 1; col < CONFIG.WIDTH; col++) {
+      if (grid[0][col].type !== 'question') {
+        errors.push({
+          type: 'TOP_BORDER_NOT_QUESTION',
+          message: 'Все клетки верхнего ряда, кроме пустого угла (0,0), должны быть вопросными.',
+          row: 0,
+          col
+        });
+      }
+    }
+  }
+
+  // The top row may be dynamic for legacy diagnostic layouts. Production templates
+  // set requireFullTopBorder and enforce seven consecutive top-edge clue cells.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
