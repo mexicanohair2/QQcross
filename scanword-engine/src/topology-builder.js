@@ -88,16 +88,18 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
-  if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
+  const minimumQuestionCells = includeSpecialEleven ? 18 : 20;
+  if (validation.metrics.questionCells < minimumQuestionCells || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production uses a cap of four short answers; the low-short scaffold starts
-  // at two and allows seeded, validator-approved mutations for variety.
-  if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
+  // Ordinary layouts retain the approved short-answer cap. The special
+  // 11-letter layout deliberately has zero two-letter filler slots.
+  const minimumTwoLetterSlots = includeSpecialEleven ? 0 : 2;
+  if (twoLetterSlots < minimumTwoLetterSlots || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
