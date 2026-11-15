@@ -15,9 +15,9 @@ const SCAFFOLD_ROWS = Object.freeze([
 ]);
 
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
+  '.#...##.',
   '#...#...',
-  '#...#...',
+  '#...#..#',
   '#...#...',
   '#......#',
   '#....##.',
