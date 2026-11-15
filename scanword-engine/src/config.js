@@ -23,7 +23,10 @@ export const DIRECTIONS = Object.freeze({
  */
 export function isAllowedClueDirection(clueCell, direction) {
   if (!DIRECTIONS[direction] || !Number.isInteger(clueCell?.row) || !Number.isInteger(clueCell?.col)) return false;
-  if (clueCell.row === 0) return direction !== 'up';
+  if (clueCell.row === 0) {
+    if (clueCell.col === 1) return direction === 'right' || direction === 'down';
+    return direction === 'down';
+  }
   if (clueCell.col === 0) return direction === 'right';
   return true;
 }
