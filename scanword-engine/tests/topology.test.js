@@ -104,6 +104,7 @@ test('validates borders and reports unassigned and orphan cells independently', 
   setQuestion(grid, 4, 5);
   setQuestion(grid, 6, 5);
   grid[5][5] = { row: 5, col: 5, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
+  grid[2][3] = { row: 2, col: 3, type: 'unassigned', letter: null, questionIds: [], wordIds: [] };
 
   const result = validateTopology(grid);
   assert.equal(result.valid, false);
