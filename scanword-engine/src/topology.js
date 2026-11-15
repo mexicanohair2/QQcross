@@ -18,17 +18,15 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'FIXED_TOP_AND_LEFT_CLUE_BORDERS',
+    reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
     width,
     height,
-    requiredTopBorderCells: Array.from({ length: width - 1 }, (_, index) => ({ row: 0, col: index + 1 })),
-    requiredLeftBorderCells: Array.from({ length: height - 1 }, (_, index) => ({ row: index + 1, col: 0 })),
-    forcedLongVerticalAnswers: [
-      { clueCell: { row: 0, col: 1 }, direction: 'down', length: 11, terminal: 'bottom-edge' },
-      { clueCell: { row: 0, col: 2 }, direction: 'down', length: 11, terminal: 'bottom-edge' }
-    ],
+    requiredTopAnchor: { row: 0, col: 1 },
+    requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
+    minimumTopQuestionCells: 2,
+    forcedLongVerticalAnswers: [],
     conflicts: [],
-    message: 'При полной верхней и левой полосе вопросных клеток столбцы 1 и 2 неизбежно образуют два вертикальных ответа до нижней границы.'
+    message: 'Верхняя граница содержит обязательный стартовый вопрос и дополнительные вопросные клетки по топологии; левый столбец остаётся полностью вопросным.'
   };
 }
 
