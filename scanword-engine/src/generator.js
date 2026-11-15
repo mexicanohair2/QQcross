@@ -36,48 +36,56 @@ function canAssignDistinctShortAnswers(domains) {
 }
 
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
-  const positions = domains.map(domain => new Map(
-    domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
+  // Candidate coordinates are stored in answer-reading order. They may be
+  // reversed for LEFT/UP, so never compare answer indexes from the slot's
+  // canonical top-to-bottom/left-to-right coordinate order.
+  const slotCells = domains.map(domain => new Set(
+    domain.slot.coordinates.map(point => point.row + ',' + point.col)
   ));
   const neighbors = domains.map(() => []);
 
   for (let left = 0; left < domains.length; left++) {
     for (let right = left + 1; right < domains.length; right++) {
-      const shared = [];
-      for (const [key, leftPosition] of positions[left]) {
-        const rightPosition = positions[right].get(key);
-        if (rightPosition !== undefined) shared.push([leftPosition, rightPosition]);
-      }
-      if (!shared.length) continue;
-      neighbors[left].push({ other: right, pairs: shared });
-      neighbors[right].push({
-        other: left,
-        pairs: shared.map(([leftPosition, rightPosition]) => [rightPosition, leftPosition])
-      });
+      const sharedKeys = [...slotCells[left]].filter(key => slotCells[right].has(key));
+      if (!sharedKeys.length) continue;
+      neighbors[left].push({ other: right, sharedKeys });
+      neighbors[right].push({ other: left, sharedKeys });
     }
   }
 
   const queue = [];
   for (let self = 0; self < neighbors.length; self++) {
     for (const relation of neighbors[self]) {
-      queue.push({ self, other: relation.other, pairs: relation.pairs });
+      queue.push({ self, other: relation.other, sharedKeys: relation.sharedKeys });
     }
   }
 
   const letterKey = value => foldYo && value === 'Ё' ? 'Е' : value;
+  const signatureFor = (option, domain, sharedKeys) => {
+    const coordinates = option.coordinates ?? domain.slot.coordinates;
+    const positions = new Map(coordinates.map((point, index) => [
+      point.row + ',' + point.col,
+      index
+    ]));
+    if (sharedKeys.some(key => !positions.has(key))) return null;
+    return sharedKeys.map(key => {
+      const index = positions.get(key);
+      return letterKey(option.entry.answer[index] ?? '');
+    }).join('');
+  };
+
   while (queue.length) {
     const arc = queue.shift();
     const ownDomain = domains[arc.self];
     const otherDomain = domains[arc.other];
     const supportedSignatures = new Set(otherDomain.options.map(option =>
-      arc.pairs.map(([, otherPosition]) => letterKey(option.entry.answer[otherPosition])).join('')
-    ));
+      signatureFor(option, otherDomain, arc.sharedKeys)
+    ).filter(signature => signature !== null));
 
-    const revised = ownDomain.options.filter(option =>
-      supportedSignatures.has(
-        arc.pairs.map(([ownPosition]) => letterKey(option.entry.answer[ownPosition])).join('')
-      )
-    );
+    const revised = ownDomain.options.filter(option => {
+      const signature = signatureFor(option, ownDomain, arc.sharedKeys);
+      return signature !== null && supportedSignatures.has(signature);
+    });
     if (revised.length === ownDomain.options.length) continue;
 
     const removedCount = ownDomain.options.length - revised.length;
@@ -88,7 +96,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
         diagnostics.failure = {
           slotId: ownDomain.slot.id,
           againstSlotId: otherDomain.slot.id,
-          sharedPositions: arc.pairs.map(([ownPosition, otherPosition]) => ({ ownPosition, otherPosition })),
+          sharedCells: arc.sharedKeys,
           survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
         };
       }
@@ -100,8 +108,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
       queue.push({
         self: relation.other,
         other: arc.self,
-        // Reversing arc direction also reverses each shared-cell index pair.
-        pairs: relation.pairs.map(([selfPosition, otherPosition]) => [otherPosition, selfPosition])
+        sharedKeys: relation.sharedKeys
       });
     }
   }
