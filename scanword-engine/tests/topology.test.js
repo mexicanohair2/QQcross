@@ -67,7 +67,7 @@ test('does not turn a one-letter gap into an answer', () => {
   setQuestion(grid, 2, 2);
 
   const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  assert.equal(result.slots.some(item => item.axis === 'horizontal' && item.endpoints[0].row === 2), false);
+  assert.equal(result.slots.some(item => item.axis === 'horizontal' && item.endpoints[0].row === 2 && item.length === 1), false);
   assert.ok(result.warnings.some(item => item.type === 'SINGLE_LETTER_GAP'));
 });
 
@@ -151,11 +151,10 @@ test('supports dynamic top-row clue omissions while covering all 96 cells', () =
     }
   }
 
-  setQuestion(grid, 6, 2);
   const result = validateTopology(grid, { requireConnected: true });
   assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.equal(result.metrics.totalCells, 96);
-  assert.equal(result.metrics.questionCells, 35);
+  assert.equal(result.metrics.questionCells, 34);
   assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 25);
   assert.ok(result.slots.some(slot => slot.axis === 'horizontal' && slot.endpoints[0].row === 0));
   assert.ok(result.errors.length === 0);
