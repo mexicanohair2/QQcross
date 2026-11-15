@@ -137,6 +137,12 @@ export function deriveWordSlots(grid, options = {}) {
       // must be covered by perpendicular, clue-started words instead.
       if (from === -1 && to === lineLength) continue;
 
+      // The sole corner cell is not a letter run before the first clue.
+      if (from === -1) {
+        const edgeCell = horizontal ? grid[fixedIndex][0] : grid[0][fixedIndex];
+        if (edgeCell?.type === 'corner') continue;
+      }
+
       const first = from === -1
         ? (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true })
         : (horizontal ? point(fixedIndex, from) : point(from, fixedIndex));
