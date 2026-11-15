@@ -28,26 +28,31 @@ function validateSlotGeometry(slot) {
   const lastKey = pointKey(slot.endpoints[1]);
 
   if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
+    const clue = slot.endpoints[0];
+    const column = clue?.col;
     if (
       slot.length !== 11
       || slot.directionOptions.length !== 1
-      || pointKey(slot.endpoints[0]) !== '0,1'
+      || clue?.row !== 0
+      || !Number.isInteger(column)
+      || column < 1
+      || column >= CONFIG.WIDTH
       || slot.endpoints[1]?.row !== CONFIG.HEIGHT
-      || slot.endpoints[1]?.col !== 1
+      || slot.endpoints[1]?.col !== column
       || slot.endpoints[1]?.boundary !== true
     ) return false;
     const option = slot.directionOptions[0];
     if (
-      pointKey(option.clueCell) !== '0,1'
+      pointKey(option.clueCell) !== '0,' + column
       || option.direction !== 'down'
       || !option.terminalCell?.boundary
       || option.terminalCell.row !== CONFIG.HEIGHT
-      || option.terminalCell.col !== 1
+      || option.terminalCell.col !== column
       || option.coordinates.length !== 11
     ) return false;
     return option.coordinates.every((coordinate, index) =>
       coordinate.row === index + 1
-      && coordinate.col === 1
+      && coordinate.col === column
       && slot.coordinates[index]?.row === coordinate.row
       && slot.coordinates[index]?.col === coordinate.col
     );
