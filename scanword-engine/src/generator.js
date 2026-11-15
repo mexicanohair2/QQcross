@@ -149,7 +149,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxTwoLetterSlots: 4
   });
   if (lowShortTopology.ok) {
-    topologies.push({
+    topologies.unshift({
       rows: [3, 7, 11],
       patternKey: 'low-short',
       specialPattern: lowShortPattern,
@@ -232,6 +232,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           planDiagnostics.firstArcFailure = {
             answer: entry.answer,
             rows: topology.rows,
+            patternKey: topology.patternKey,
             ...arcDiagnostics
           };
         }
@@ -272,6 +273,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           planDiagnostics.firstContentFailure = {
             answer: entry.answer,
             rows: topology.rows,
+            patternKey: topology.patternKey,
             availableImageKeys: imageKeys.size,
             requiredImageCount,
             logicSlots,
