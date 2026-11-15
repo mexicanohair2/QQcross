@@ -2,6 +2,7 @@ import { CONFIG } from './config.js';
 import { createEmptyGrid } from './grid.js';
 import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
+import { SCANWORD_TEMPLATES, getScanwordTemplates as listScanwordTemplates } from './template-library.js';
 
 /*
  * Three original scaffolds remain available for broad topology exploration.
@@ -70,6 +71,75 @@ function toRoleGrid(matrix) {
     }
   }
   return grid;
+}
+
+/**
+ * Independently validates one of the twenty user-approved 8x12 templates.
+ * Template masks are immutable in production: there are no random role flips
+ * that could quietly change the agreed geometry.
+ */
+function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots = 5) {
+  const rows = SCANWORD_TEMPLATES[templateIndex];
+  if (!rows || rows.length !== CONFIG.HEIGHT || rows.some(row => row.length !== CONFIG.WIDTH)) return null;
+  if (rows[0] !== '.#######') return null;
+  if (rows.some((row, index) => index > 0 && row[0] !== '#')) return null;
+
+  const matrix = cloneRows(rows);
+  const grid = toRoleGrid(matrix);
+  const topologyOptions = {
+    requireConnected: true,
+    requireFullTopBorder: true,
+    allowSpecialElevenBoundary: false,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: true,
+    minimumOuterBoundaryLength: 2
+  };
+  const validation = validateTopology(grid, topologyOptions);
+  const derived = deriveWordSlots(grid, topologyOptions);
+  if (!validation.valid || derived.errors.length) return null;
+
+  const shortSlots = derived.slots.filter(slot => slot.length === 2);
+  const longSlots = derived.slots.filter(slot => slot.length >= 3);
+  const elevenSlots = derived.slots.filter(slot =>
+    slot.special === 'OUTER_BOUNDARY'
+    && slot.axis === 'vertical'
+    && slot.length === 11
+    && slot.endpoints[0]?.row === 0
+  );
+
+  if (shortSlots.length < 1 || shortSlots.length > maxTwoLetterSlots || longSlots.length < 12) return null;
+  if (includeSpecialEleven) {
+    if (elevenSlots.length !== 1) return null;
+    elevenSlots[0].special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
+  } else if (elevenSlots.length > 0) {
+    return null;
+  }
+  if (derived.slots.length < 20) return null;
+
+  const interiorQuestionCells = countInteriorQuestions(matrix);
+  return {
+    grid,
+    slots: derived.slots,
+    validation,
+    pattern: rows.map(row => row),
+    templateIndex,
+    metrics: {
+      totalCells: CONFIG.TOTAL_CELLS,
+      questionCells: validation.metrics.questionCells,
+      interiorQuestionCells,
+      letterCells: validation.metrics.letterCells,
+      slotCount: derived.slots.length,
+      horizontalSlots: validation.metrics.horizontalSlots,
+      verticalSlots: validation.metrics.verticalSlots,
+      crossingsPotential: validation.metrics.coveredLetters,
+      twoLetterSlots: shortSlots.length,
+      elevenLetterSlots: elevenSlots.length
+    }
+  };
+}
+
+export function getScanwordTemplates() {
+  return listScanwordTemplates();
 }
 
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5, minimumInteriorQuestionCells = includeSpecialEleven ? 8 : 5) {
@@ -195,6 +265,37 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
  */
 export function generateTopology(options = {}) {
   const seed = options.seed ?? 1;
+  if (Number.isInteger(options.templateIndex)) {
+    const templateIndex = options.templateIndex;
+    const includeSpecialEleven = options.includeSpecialEleven === true;
+    const maxTwoLetterSlots = Math.max(1, Math.min(10, options.maxTwoLetterSlots ?? 3));
+    const candidate = inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots);
+    if (!candidate) {
+      return {
+        ok: false,
+        reason: 'TEMPLATE_REJECTED',
+        seed,
+        templateIndex,
+        templateNumber: templateIndex + 1,
+        attempts: 1,
+        rejectedAttempts: 1,
+        message: 'Шаблон не прошёл независимую проверку геометрии и ограничений ответов.'
+      };
+    }
+    return {
+      ok: true,
+      seed,
+      attempts: 1,
+      scaffoldIndex: templateIndex,
+      templateIndex,
+      templateNumber: templateIndex + 1,
+      mutationCount: 0,
+      mutationTries: 0,
+      topology: candidate,
+      rejectedAttempts: 0,
+      diagnostics: ['APPROVED_TEMPLATE_USED']
+    };
+  }
   const random = createRng(seed);
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
