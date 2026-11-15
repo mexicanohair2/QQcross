@@ -191,18 +191,19 @@ export function deriveWordSlots(grid, options = {}) {
       }
 
       if (length === 11) {
-        const specialOption = slot.directionOptions.find(option =>
+        const topBoundaryOption = slot.directionOptions.find(option =>
           option.direction === 'down'
-          && option.clueCell.row === 0 && option.clueCell.col === 1
+          && option.clueCell.row === 0
           && option.terminalCell.boundary === true
-          && option.terminalCell.row === CONFIG.HEIGHT && option.terminalCell.col === 1
+          && option.terminalCell.row === CONFIG.HEIGHT
         );
-        if (specialOption) {
-          // The top-left anchor points right on ordinary boards. Its vertical
-          // column is then part of crossing horizontal answers, not a forced
-          // eleventh-letter answer. Only the scheduled special layout enables
-          // the downward clue arrow.
-          if (options.allowSpecialElevenBoundary === false) continue;
+        if (topBoundaryOption) {
+          // Top-row clues may point horizontally. Their downward columns are
+          // crossing letters unless the anchor at (0,1) is explicitly selected
+          // as the scheduled special 11-letter answer.
+          const isSpecialAnchor = topBoundaryOption.clueCell.col === 1
+            && topBoundaryOption.terminalCell.col === 1;
+          if (!isSpecialAnchor || options.allowSpecialElevenBoundary === false) continue;
           slot.special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
           slot.id = 'special-eleven:0,1>bottom-boundary';
         }
