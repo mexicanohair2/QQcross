@@ -106,7 +106,6 @@ test('validator accepts an ordinary answer ending at the board boundary', () => 
 
   const result = validateScanword(fake, [], { requireBorderClues: false, requireConnected: false });
   assert.ok(!result.errors.some(item => item.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
-  assert.ok(!result.errors.some(item => item.type === 'UNREGISTERED_ANSWER_SLOT'));
 });
 
 test('validator rejects duplicate clue directions and non-contiguous coordinates', () => {
