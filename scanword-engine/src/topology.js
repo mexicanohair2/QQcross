@@ -127,15 +127,16 @@ export function deriveWordSlots(grid, options = {}) {
 
     // The sole corner is outside both clue runs. A line with no clue at either
     // end is not a word and must not become a fake 12-letter boundary slot.
-    const endpoints = [...(startOffset === 0 ? [-1] : []), ...questionPositions, lineLength];
+    const cornerStart = horizontal && fixedIndex === 0;
+    const endpoints = [...(cornerStart || startOffset === 0 ? [-1] : []), ...questionPositions, lineLength];
     for (let index = 0; index < endpoints.length - 1; index++) {
       const from = endpoints[index], to = endpoints[index + 1];
       const length = to - from - 1;
       if (length <= 0) continue;
       if (from === startOffset - 1 && to === lineLength) continue;
 
-      const first = from === startOffset - 1
-        ? (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true })
+      const first = from === -1
+        ? (cornerStart ? { row: 0, col: 0, boundary: true, corner: true } : (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true }))
         : (horizontal ? point(fixedIndex, from) : point(from, fixedIndex));
       const last = to === lineLength
         ? (horizontal ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true } : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true })
@@ -172,6 +173,7 @@ export function deriveWordSlots(grid, options = {}) {
       }
 
       const slot = makeSlot(axis, first, last, coordinates);
+      if (first.corner === true) slot.special = 'TOP_LEFT_CORNER_TERMINAL';
       if (!slot.directionOptions.length) {
         errors.push({
           type: 'UNANCHORED_ANSWER_RUN',

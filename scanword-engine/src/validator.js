@@ -320,6 +320,16 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       } else {
         leftBoundaryRows.add(clue.row);
       }
+    } else if (word.special === 'TOP_LEFT_CORNER_TERMINAL') {
+      const exactCoordinates = word.coordinates.every((coordinate, index) =>
+        coordinate.row === 0 && coordinate.col === clue.col - index - 1
+      );
+      if (clue.row !== 0 || word.direction !== 'left' || terminal.row !== 0 || terminal.col !== 0
+        || !exactCoordinates) {
+        add('INVALID_TOP_LEFT_CORNER_TERMINAL', 'Ответ к пустому углу должен идти влево по верхней строке.', {
+          wordId: word.id, clue, direction: word.direction, terminal
+        });
+      }
     } else {
       if (word.special != null) {
         add('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
@@ -490,15 +500,15 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     }
     if (!positions.length) return;
 
-    const endpoints = [...positions];
+    const endpoints = [...(horizontal && fixedIndex === 0 ? [-1] : []), ...positions];
     for (let index = 0; index < endpoints.length; index++) {
       const start = endpoints[index];
       const end = endpoints[index + 1] ?? lineLength;
       const length = end - start - 1;
       if (length < 2) continue;
-      const first = horizontal
-        ? { row: fixedIndex, col: start }
-        : { row: start, col: fixedIndex };
+      const first = start === -1
+        ? { row: 0, col: 0, boundary: true, corner: true }
+        : (horizontal ? { row: fixedIndex, col: start } : { row: start, col: fixedIndex });
       const last = end === lineLength
         ? (horizontal
           ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
