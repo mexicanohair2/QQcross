@@ -91,7 +91,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
     requireFullTopBorder: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true,
+    allowColumnOneBoundarySlot: !includeSpecialEleven,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
