@@ -85,6 +85,21 @@ test('recognizes only the exact eleven-letter bottom boundary exception', () => 
   assert.deepEqual(special.directionOptions.map(item => item.direction), ['down']);
 });
 
+test('only the top-left anchor may start the optional 11-letter boundary answer', () => {
+  const grid = makeGrid();
+  setQuestion(grid, 0, 1);
+  setQuestion(grid, 0, 5);
+
+  const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
+  const special = result.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
+
+  assert.equal(special.length, 1);
+  assert.deepEqual(special[0].directionOptions.map(option => option.clueCell), [{ row: 0, col: 1 }]);
+  assert.equal(result.slots.some(slot => slot.length === 11 && slot.directionOptions.some(option =>
+    option.direction === 'down' && option.clueCell.row === 0 && option.clueCell.col === 5
+  )), false);
+});
+
 test('does not grant the boundary exception when an intermediate cell is a clue', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 1);
