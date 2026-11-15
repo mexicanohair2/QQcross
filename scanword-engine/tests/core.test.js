@@ -499,5 +499,14 @@ test('assembler accepts all four canonical scanword directions', () => {
     assert.equal(assembled.scanword.grid[geometry.clue.row][geometry.clue.col].type, 'question');
     assert.equal(assembled.scanword.grid[geometry.terminal.row][geometry.terminal.col].type, 'question');
     assert.deepEqual(word.coordinates.map(point => assembled.scanword.grid[point.row][point.col].letter), ['К', 'О', 'Т']);
+    const validation = validateScanword(assembled.scanword, [], {
+      requireBorderClues: false,
+      requireConnected: false,
+      requiredImageCount: 0,
+      minimumLogicClueCells: 0
+    });
+    assert.equal(validation.errors.some(error =>
+      error.type === 'INVALID_DIRECTION' || error.type === 'DISALLOWED_ANSWER_DIRECTION'
+    ), false, geometry.direction + ': ' + JSON.stringify(validation.errors));
   }
 });
