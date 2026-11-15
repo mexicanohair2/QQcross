@@ -101,7 +101,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
   const shortSlots = derived.slots.filter(slot => slot.length === 2);
   const longSlots = derived.slots.filter(slot => slot.length >= 3);
   const elevenSlots = derived.slots.filter(slot =>
-    slot.special === 'OUTER_BOUNDARY'
+    slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
     && slot.axis === 'vertical'
     && slot.length === 11
     && slot.endpoints[0]?.row === 0
