@@ -10,7 +10,7 @@ async function main() {
     maxTopologyAttempts: 16,
     maxNodes: 120000,
     maxCspTimeMs: 1200,
-    specialMaxCspTimeMs: 1500,
+    specialMaxCspTimeMs: 5000,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
     maxTwoLetterSlots: 6,
