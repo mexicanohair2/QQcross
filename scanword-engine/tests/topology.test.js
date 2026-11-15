@@ -163,6 +163,7 @@ test('requires the top-left anchor and complete left border, but not every top-r
   const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
   setQuestion(grid, 0, 1);
+  setQuestion(grid, 0, 4);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
   const result = validateTopology(grid);
