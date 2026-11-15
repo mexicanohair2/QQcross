@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CONFIG } from '../src/config.js';
+import { CONFIG, isAllowedClueDirection } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
@@ -513,4 +513,60 @@ test('assembler and independent validator reject left/up scanword answers', () =
     }]
   }, [], { requireBorderClues: false, requireConnected: false });
   assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+});
+
+
+test('assembler and independent validator accept all four answer directions', () => {
+  const assembled = assembleScanword({
+    seed: 818,
+    words: [
+      {
+        id: 'w-left', entryId: 'left-word', answer: 'КОТ', question: 'Домашнее животное.',
+        clue: { row: 4, col: 5 }, direction: 'left',
+        coordinates: [{ row: 4, col: 4 }, { row: 4, col: 3 }, { row: 4, col: 2 }]
+      },
+      {
+        id: 'w-up', entryId: 'up-word', answer: 'ОСА', question: 'Полосатое жалящее насекомое.',
+        clue: { row: 5, col: 3 }, direction: 'up',
+        coordinates: [{ row: 4, col: 3 }, { row: 3, col: 3 }, { row: 2, col: 3 }]
+      },
+      {
+        id: 'w-right', entryId: 'right-word', answer: 'ЛЕС', question: 'Большая территория с деревьями.',
+        clue: { row: 7, col: 1 }, direction: 'right',
+        coordinates: [{ row: 7, col: 2 }, { row: 7, col: 3 }, { row: 7, col: 4 }]
+      },
+      {
+        id: 'w-down', entryId: 'down-word', answer: 'ДОМ', question: 'Место, где живут люди.',
+        clue: { row: 2, col: 6 }, direction: 'down',
+        coordinates: [{ row: 3, col: 6 }, { row: 4, col: 6 }, { row: 5, col: 6 }]
+      }
+    ]
+  });
+
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  assert.deepEqual(assembled.scanword.words.map(word => word.direction), ['left', 'up', 'right', 'down']);
+  assert.equal(assembled.scanword.grid[4][3].letter, 'О');
+  assert.deepEqual(assembled.scanword.grid[4][3].wordIds.sort(), ['w-left', 'w-up']);
+
+  const validation = validateScanword(assembled.scanword, [], {
+    requireBorderClues: false,
+    requireTopAnchor: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'), false);
+  assert.equal(validation.errors.some(error => error.type === 'INVALID_BORDER_DIRECTION'), false);
+  assert.equal(validation.errors.some(error => error.type === 'NON_CONTIGUOUS_WORD'), false);
+});
+
+test('border clue directions stay readable while interior clues may point all four ways', () => {
+  assert.equal(isAllowedClueDirection({ row: 0, col: 1 }, 'right'), true);
+  assert.equal(isAllowedClueDirection({ row: 0, col: 1 }, 'down'), true);
+  assert.equal(isAllowedClueDirection({ row: 0, col: 4 }, 'up'), false);
+  assert.equal(isAllowedClueDirection({ row: 5, col: 0 }, 'right'), true);
+  assert.equal(isAllowedClueDirection({ row: 5, col: 0 }, 'left'), false);
+  for (const direction of ['right', 'left', 'down', 'up']) {
+    assert.equal(isAllowedClueDirection({ row: 5, col: 4 }, direction), true);
+  }
 });

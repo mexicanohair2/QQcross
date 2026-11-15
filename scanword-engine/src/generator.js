@@ -1,4 +1,4 @@
-import { CONFIG } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
@@ -191,7 +191,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+          if (!isAllowedClueDirection(orientation.clueCell, orientation.direction)) continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -498,8 +498,9 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      requireEveryClueStarts: true,
+      allowedDirections: Object.keys(DIRECTIONS),
+      enforceBorderDirectionRules: true,
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
