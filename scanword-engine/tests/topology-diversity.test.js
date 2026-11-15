@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
-import { createEmptyGrid } from '../src/grid.js';
-import { deriveWordSlots, validateTopology } from '../src/topology.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -72,16 +70,6 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
-  const debugGrid = createEmptyGrid();
-  for (let row = 0; row < 12; row++) for (let col = 0; col < 8; col++) {
-    if (row === 0 && col === 0) continue;
-    debugGrid[row][col].type = specialPattern[row][col] === '#' ? 'question' : 'letter';
-    debugGrid[row][col].letter = debugGrid[row][col].type === 'letter' ? 'А' : null;
-  }
-  console.log('LOW_SHORT_DIAGNOSTIC', JSON.stringify({
-    topology: validateTopology(debugGrid, { requireConnected: true, allowSpecialElevenBoundary: true, requireSpecialElevenAnchor: true }),
-    slots: deriveWordSlots(debugGrid, { allowSpecialElevenBoundary: true })
-  }));
   assert.deepEqual(specialPattern, [
     '.#...##.',
     '#...#...',
