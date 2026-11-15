@@ -92,8 +92,8 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
     '#...#...',
     '#...#...',
     '#......#',
-    '#....##.',
-    '#....##.',
+    '#.......',
+    '#.....#.',
     '#.......'
   ]);
 
