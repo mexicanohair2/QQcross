@@ -211,7 +211,12 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id, {
+            // Keep every direction-specific placement in the planning
+            // domain. The same dictionary answer can fit one orientation at
+            // a crossing and fail in its reverse orientation.
+            const orientationKey = candidate.id + '|' + orientation.direction
+              + '|' + orientation.clueCell.row + ',' + orientation.clueCell.col;
+            candidatesById.set(orientationKey, {
               entry: candidate,
               coordinates: orientation.coordinates
             });
