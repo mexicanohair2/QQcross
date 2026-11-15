@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
+import { createEmptyGrid } from '../src/grid.js';
+import { deriveWordSlots, validateTopology } from '../src/topology.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -65,6 +67,28 @@ test('topology generation is deterministic for a fixed seed', () => {
   );
 });
 
+
+test('special scaffold passes direct geometry and slot validation', () => {
+  const pattern = getTopologyScaffolds()[3];
+  const grid = createEmptyGrid();
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (row === 0 && col === 0) {
+        grid[row][col] = { row, col, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+      } else {
+        const question = pattern[row][col] === '#';
+        grid[row][col] = {
+          row, col, type: question ? 'question' : 'letter',
+          letter: question ? null : 'А', questionIds: [], wordIds: []
+        };
+      }
+    }
+  }
+  const validation = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: true });
+  const slots = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
+  assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+  assert.equal(slots.errors.length, 0, JSON.stringify(slots.errors));
+});
 
 test('low-short scaffold is accepted only with its mandatory 11-letter crossing chain', () => {
   const scaffolds = getTopologyScaffolds();
