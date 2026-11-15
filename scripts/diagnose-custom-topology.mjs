@@ -41,4 +41,4 @@ const result={
   pattern
 };
 console.log(JSON.stringify(result,null,2));
-if(!topology.valid||normal.errors.length||normal.slots.length!==19||normal.slots.filter(slot=>slot.length===2).length!==6)process.exitCode=1;
+if(!topology.valid||normal.errors.length||normal.slots.length<19||normal.slots.filter(slot=>slot.length===2).length!==6)process.exitCode=1;

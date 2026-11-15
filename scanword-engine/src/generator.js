@@ -149,7 +149,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxTwoLetterSlots: 4
   });
   if (lowShortTopology.ok) {
-    topologies.push({
+    topologies.unshift({
       rows: [3, 7, 11],
       patternKey: 'low-short',
       specialPattern: lowShortPattern,
@@ -191,7 +191,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -233,6 +232,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           planDiagnostics.firstArcFailure = {
             answer: entry.answer,
             rows: topology.rows,
+            patternKey: topology.patternKey,
             ...arcDiagnostics
           };
         }
@@ -273,6 +273,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           planDiagnostics.firstContentFailure = {
             answer: entry.answer,
             rows: topology.rows,
+            patternKey: topology.patternKey,
             availableImageKeys: imageKeys.size,
             requiredImageCount,
             logicSlots,
@@ -499,7 +500,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
@@ -570,7 +571,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireLeftBorderClues: true,
-      requireTopAnchor: true,
+      requireTopAnchor: scanword.metadata.specialElevenLetterQuestion === true,
       requireConnected: true
     });
 

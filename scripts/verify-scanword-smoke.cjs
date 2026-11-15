@@ -33,17 +33,17 @@ async function main() {
       continue;
     }
 
-    const validation = validateScanword(result.scanword, dictionary, {
-      requiredImageCount: 5,
-      minimumLogicClueCells: 3,
-      requireLeftBorderClues: true,
-      requireTopAnchor: true,
-      requireConnected: true
-    });
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
     const shortAnswers = words.filter(word => word.length === 2);
     const special = result.scanword.metadata.specialElevenLetterQuestion === true;
+    const validation = validateScanword(result.scanword, dictionary, {
+      requiredImageCount: 5,
+      minimumLogicClueCells: 3,
+      requireLeftBorderClues: true,
+      requireTopAnchor: special,
+      requireConnected: true
+    });
     if (result.stats.specialElevenRequested) specialRequested++;
     if (special) specialGenerated++;
 

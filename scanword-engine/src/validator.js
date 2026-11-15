@@ -196,12 +196,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (word.direction !== 'right' && word.direction !== 'down') {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
-        wordId: word.id, direction: word.direction
-      });
-      continue;
-    }
 
     const clue = word.clue;
     if (!inBounds(clue?.row, clue?.col)) {
@@ -326,6 +320,16 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       } else {
         leftBoundaryRows.add(clue.row);
       }
+    } else if (word.special === 'TOP_LEFT_CORNER_TERMINAL') {
+      const exactCoordinates = word.coordinates.every((coordinate, index) =>
+        coordinate.row === 0 && coordinate.col === clue.col - index - 1
+      );
+      if (clue.row !== 0 || word.direction !== 'left' || terminal.row !== 0 || terminal.col !== 0
+        || !exactCoordinates) {
+        add('INVALID_TOP_LEFT_CORNER_TERMINAL', 'Ответ к пустому углу должен идти влево по верхней строке.', {
+          wordId: word.id, clue, direction: word.direction, terminal
+        });
+      }
     } else {
       if (word.special != null) {
         add('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
@@ -333,9 +337,15 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         });
       }
       if (!inBounds(terminal.row, terminal.col)) {
-        add('ORDINARY_WORD_ENDS_AT_BOUNDARY', 'Обычный ответ обязан завершаться вопросной клеткой внутри поля.', {
-          wordId: word.id, terminal
-        });
+        const validBoundary = (
+          ([-1, CONFIG.HEIGHT].includes(terminal.row) && terminal.col >= 0 && terminal.col < CONFIG.WIDTH)
+          || ([-1, CONFIG.WIDTH].includes(terminal.col) && terminal.row >= 0 && terminal.row < CONFIG.HEIGHT)
+        );
+        if (!validBoundary) {
+          add('ORDINARY_WORD_ENDS_OUTSIDE_BOUNDARY', 'Обычный ответ может завершаться только на физической границе поля.', {
+            wordId: word.id, terminal
+          });
+        }
       } else if (grid[terminal.row][terminal.col]?.type !== 'question') {
         add('MISSING_TERMINAL_QUESTION', 'После последней буквы ответа должна находиться вопросная клетка.', {
           wordId: word.id, terminal
@@ -474,52 +484,58 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     }
   }
 
-  // Reconstruct every geometric run between consecutive question cells.
-  // Each run with at least two letters must map to exactly one registered word.
+  // Reconstruct every geometric run between consecutive clues and between
+  // a clue and a physical edge. The top-left corner is excluded as a clue.
   const discoveredSlots = new Set();
   function inspectLine(axis, fixedIndex) {
     const horizontal = axis === 'horizontal';
     const lineLength = horizontal ? CONFIG.WIDTH : CONFIG.HEIGHT;
+    const startsAfterCorner = fixedIndex === 0;
+    const startOffset = startsAfterCorner ? 1 : 0;
     const positions = [];
-    for (let offset = 0; offset < lineLength; offset++) {
+    for (let offset = startOffset; offset < lineLength; offset++) {
       const row = horizontal ? fixedIndex : offset;
       const col = horizontal ? offset : fixedIndex;
       if (grid[row][col]?.type === 'question') positions.push(offset);
     }
+    if (!positions.length) return;
 
-    for (let index = 0; index < positions.length - 1; index++) {
-      const start = positions[index];
-      const end = positions[index + 1];
+    const endpoints = [...(horizontal && fixedIndex === 0 ? [0] : []), ...positions];
+    for (let index = 0; index < endpoints.length; index++) {
+      const start = endpoints[index];
+      const end = endpoints[index + 1] ?? lineLength;
       const length = end - start - 1;
       if (length < 2) continue;
+      const first = horizontal && fixedIndex === 0 && start === 0
+        ? { row: 0, col: 0, boundary: true, corner: true }
+        : (horizontal ? { row: fixedIndex, col: start } : { row: start, col: fixedIndex });
+      const last = end === lineLength
+        ? (horizontal
+          ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
+          : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true })
+        : (horizontal
+          ? { row: fixedIndex, col: end }
+          : { row: end, col: fixedIndex });
 
-      const first = horizontal ? { row: fixedIndex, col: start } : { row: start, col: fixedIndex };
-      const last = horizontal ? { row: fixedIndex, col: end } : { row: end, col: fixedIndex };
       const key = slotKey(axis, first, last);
       const matches = words.filter(word => {
-        if (
-          !word
-          || typeof word.answer !== 'string'
-          || !word.clue
-          || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-          || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
-        ) return false;
+        if (!word || typeof word.answer !== 'string' || !word.clue
+          || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
-        if (!vector) return false;
+        if (!vector || word.answer.length !== length) return false;
         const expectedTerminal = {
           row: word.clue.row + vector.dr * (word.answer.length + 1),
           col: word.clue.col + vector.dc * (word.answer.length + 1)
         };
-        return samePoint(expectedTerminal, samePoint(word.clue, first) ? last : first)
-          && word.answer.length === length;
+        const other = samePoint(word.clue, first) ? last : first;
+        return samePoint(expectedTerminal, other);
       });
-
       if (matches.length !== 1) {
         add(
           matches.length === 0 ? 'UNREGISTERED_ANSWER_SLOT' : 'DUPLICATE_ANSWER_SLOT',
           matches.length === 0
-            ? 'Между вопросными клетками найден ответный слот без зарегистрированного слова.'
+            ? 'Между вопросной клеткой и следующей вопросной клеткой/границей найден слот без зарегистрированного слова.'
             : 'Один геометрический слот назначен нескольким ответам.',
           { axis, first, last, length, wordIds: matches.map(word => word.id) }
         );

@@ -80,6 +80,33 @@ function validateSlotGeometry(slot) {
     );
   }
 
+  const boundaryEndpoints = slot.endpoints.filter(endpoint => endpoint?.boundary === true);
+  if (boundaryEndpoints.length === 1) {
+    if (slot.directionOptions.length !== 1) return false;
+    const clueEndpoint = slot.endpoints.find(endpoint => !endpoint.boundary);
+    const boundaryEndpoint = boundaryEndpoints[0];
+    const option = slot.directionOptions[0];
+    const vector = DIRECTIONS[option.direction];
+    if (!clueEndpoint || !vector
+      || pointKey(option.clueCell) !== pointKey(clueEndpoint)
+      || !option.terminalCell?.boundary
+      || pointKey(option.terminalCell) !== pointKey(boundaryEndpoint)
+      || !Array.isArray(option.coordinates)
+      || option.coordinates.length !== slot.length) return false;
+    const baseCoordinates = new Set(slot.coordinates.map(pointKey));
+    if (option.coordinates.some(point => !baseCoordinates.has(pointKey(point)))) return false;
+    for (let index = 0; index < option.coordinates.length; index++) {
+      const coordinate = option.coordinates[index];
+      if (coordinate.row !== clueEndpoint.row + vector.dr * (index + 1)
+        || coordinate.col !== clueEndpoint.col + vector.dc * (index + 1)
+        || coordinate.row < 0 || coordinate.row >= CONFIG.HEIGHT
+        || coordinate.col < 0 || coordinate.col >= CONFIG.WIDTH) return false;
+    }
+    const last = option.coordinates[option.coordinates.length - 1];
+    return last.row + vector.dr === boundaryEndpoint.row
+      && last.col + vector.dc === boundaryEndpoint.col;
+  }
+
   if (
     slot.endpoints.some(endpoint =>
       endpoint.boundary

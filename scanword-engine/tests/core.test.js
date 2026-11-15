@@ -82,7 +82,7 @@ test('generator rejects a dictionary that cannot satisfy picture and logic quota
   assert.equal(result.dictionaryStats.withImages, 0);
   assert.equal(result.dictionaryStats.logicEntries, 0);
 });
-test('validator rejects an ordinary answer ending at the board boundary', () => {
+test('validator accepts an ordinary answer ending at the board boundary', () => {
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
   const fake = {
@@ -105,7 +105,7 @@ test('validator rejects an ordinary answer ending at the board boundary', () => 
   grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
 
   const result = validateScanword(fake, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(result.errors.some(item => item.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
+  assert.ok(!result.errors.some(item => item.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
 });
 
 test('validator rejects duplicate clue directions and non-contiguous coordinates', () => {
@@ -481,7 +481,7 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator reject left/up scanword answers', () => {
+test('assembler and independent validator accept left/up scanword answers', () => {
   const leftWord = {
     id: 'left-word', entryId: 'cat', answer: 'КОТ',
     question: 'Домашнее животное из семейства кошачьих.',
@@ -491,8 +491,7 @@ test('assembler and independent validator reject left/up scanword answers', () =
     ]
   };
   const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
-  assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
@@ -512,5 +511,14 @@ test('assembler and independent validator reject left/up scanword answers', () =
       clue: leftWord.clue, direction: 'left', length: 3
     }]
   }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  assert.ok(!validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+
+  const upWord = {
+    id: 'up-word', entryId: 'up-cat', answer: 'КОТ',
+    question: 'Животное, которое мяукает.',
+    clue: { row: 4, col: 4 }, direction: 'up',
+    coordinates: [{ row: 3, col: 4 }, { row: 2, col: 4 }, { row: 1, col: 4 }]
+  };
+  const upAssembled = assembleScanword({ seed: 2, words: [upWord], questions: [] });
+  assert.equal(upAssembled.ok, true, JSON.stringify(upAssembled.errors));
 });

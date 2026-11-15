@@ -58,12 +58,6 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
-    if (sourceWord.direction !== 'right' && sourceWord.direction !== 'down') {
-      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
-        wordId: sourceWord.id, direction: sourceWord.direction
-      });
-      continue;
-    }
     if (!Array.isArray(sourceWord.coordinates) || sourceWord.coordinates.length !== answer.length) {
       fail('INVALID_WORD_COORDINATES', 'Количество координат не совпадает с длиной ответа.', {
         wordId: sourceWord.id
@@ -172,13 +166,35 @@ export function assembleScanword(assignments, options = {}) {
           wordId: sourceWord.id, terminal, enabled
         });
       }
+    } else if (sourceWord.special === 'TOP_LEFT_CORNER_TERMINAL') {
+      const exactCoordinates = sourceWord.coordinates.every((point, index) =>
+        point.row === 0 && point.col === clue.col - index - 1
+      );
+      if (sourceWord.direction !== 'left' || terminal.row !== 0 || terminal.col !== 0
+        || !exactCoordinates || clue.row !== 0) {
+        fail('INVALID_TOP_LEFT_CORNER_TERMINAL', 'Ответ к пустому верхнему левому углу должен идти влево по верхней строке.', {
+          wordId: sourceWord.id, terminal
+        });
+      }
     } else {
       if (sourceWord.special != null) {
         fail('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
           wordId: sourceWord.id, special: sourceWord.special
         });
       }
-      markQuestion(terminal);
+      if (inBounds(terminal.row, terminal.col)) {
+        markQuestion(terminal);
+      } else {
+        const validBoundary = (
+          ([-1, CONFIG.HEIGHT].includes(terminal.row) && terminal.col >= 0 && terminal.col < CONFIG.WIDTH)
+          || ([-1, CONFIG.WIDTH].includes(terminal.col) && terminal.row >= 0 && terminal.row < CONFIG.HEIGHT)
+        );
+        if (!validBoundary) {
+          fail('INVALID_WORD_TERMINAL_BOUNDARY', 'Конец ответа должен совпадать с границей поля.', {
+            wordId: sourceWord.id, terminal
+          });
+        }
+      }
     }
 
     const word = {
