@@ -41,9 +41,17 @@ async function main() {
       stats: result.stats,
       score: result.scanword.metadata.score,
       metrics: result.validation.metrics,
+      grid: result.scanword.grid.map(row => row.map(cell =>
+        cell.type === 'corner' ? '·' : cell.type === 'question' ? '□' : cell.letter
+      )),
       words: result.scanword.words.map(word => ({
-        answer: word.answer, question: word.question, direction: word.direction,
-        clue: word.clue, length: word.answer.length
+        answer: word.answer,
+        question: word.question,
+        direction: word.direction,
+        clue: word.clue,
+        letterCells: word.coordinates,
+        terminalCell: word.terminalCell ?? null,
+        length: word.answer.length
       }))
     } : null
   };
