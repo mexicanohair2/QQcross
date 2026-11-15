@@ -133,6 +133,10 @@ export function deriveWordSlots(grid, options = {}) {
       const length = to - from - 1;
       if (length <= 0) continue;
 
+      // A letter run with no clue at either end is not an answer. Its letters
+      // must be covered by perpendicular, clue-started words instead.
+      if (from === -1 && to === lineLength) continue;
+
       const first = from === -1
         ? (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true })
         : (horizontal ? point(fixedIndex, from) : point(from, fixedIndex));
@@ -180,7 +184,7 @@ export function deriveWordSlots(grid, options = {}) {
         continue;
       }
 
-      if (options.allowSpecialElevenBoundary !== false && length === 11) {
+      if (length === 11) {
         const specialOption = slot.directionOptions.find(option =>
           option.direction === 'down'
           && option.clueCell.row === 0 && option.clueCell.col === 1
@@ -188,6 +192,11 @@ export function deriveWordSlots(grid, options = {}) {
           && option.terminalCell.row === CONFIG.HEIGHT && option.terminalCell.col === 1
         );
         if (specialOption) {
+          // The top-left anchor points right on ordinary boards. Its vertical
+          // column is then part of crossing horizontal answers, not a forced
+          // eleventh-letter answer. Only the scheduled special layout enables
+          // the downward clue arrow.
+          if (options.allowSpecialElevenBoundary === false) continue;
           slot.special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
           slot.id = 'special-eleven:0,1>bottom-boundary';
         }
