@@ -7,10 +7,10 @@ async function main() {
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
   const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
   const options = {
-    maxTopologyAttempts: 16,
+    maxTopologyAttempts: 24,
     maxNodes: 120000,
-    maxCspTimeMs: 1200,
-    specialMaxCspTimeMs: 1500,
+    maxCspTimeMs: 1600,
+    specialMaxCspTimeMs: 1800,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
     maxTwoLetterSlots: 3,
