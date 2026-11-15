@@ -3,7 +3,7 @@ import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } f
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
-import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
+import { generateTopology } from './topology-builder.js';
 import { scoreScanword } from './scoring.js';
 import { createRng } from './rng.js';
 
@@ -235,24 +235,26 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  // Special 11-letter boards use the dedicated sparse-edge scaffold.
-  // The general open-edge topology has additional boundary slots that are
-  // useful for ordinary boards but make the long-answer CSP unnecessarily
-  // constrained. Keep this special template isolated and independently checked.
-  const lowShortPattern = getTopologyScaffolds()[5];
-  const lowShortTopology = generateTopology({
+  // Template 11 is one of the approved 8x12 masks and contains exactly
+  // one top-to-bottom eleven-letter slot. Its clue column comes from the
+  // template itself rather than a hard-coded coordinate.
+  const specialTemplateIndex = 10;
+  const specialTemplateTopology = generateTopology({
     seed: 1,
+    templateIndex: specialTemplateIndex,
     includeSpecialEleven: true,
-    specialPattern: lowShortPattern,
-    maxAttempts: 1,
-    maxTwoLetterSlots: 4
+    maxTwoLetterSlots: 3
   });
-  const topologies = lowShortTopology.ok
+  const specialSlot = specialTemplateTopology.ok
+    ? specialTemplateTopology.topology.slots.find(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY')
+    : null;
+  const topologies = specialSlot
     ? [{
-        rows: [3, 7, 10],
-        patternKey: 'low-short',
-        specialPattern: lowShortPattern,
-        result: lowShortTopology
+        rows: specialTemplateTopology.topology.pattern,
+        templateIndex: specialTemplateIndex,
+        patternKey: 'approved-template-11',
+        specialSlot,
+        result: specialTemplateTopology
       }]
     : [];
 
@@ -276,14 +278,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     uniqueAnswers.add(answerKey);
 
     const letters = [...entry.answer].map(normalizeInitial);
-    const imposedLetters = new Map(letters.map((letter, index) => [
-      (index + 1) + ',1',
-      letter
-    ]));
 
     for (const topology of topologies) {
       const domains = [];
       let valid = true;
+      const imposedLetters = new Map(topology.specialSlot.coordinates.map((point, index) => [
+        point.row + ',' + point.col,
+        letters[index]
+      ]));
 
       for (const slot of topology.result.topology.slots) {
         if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') continue;
@@ -390,8 +392,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       plans.push({
         answer: entry.answer,
         rows: topology.rows,
-        patternKey: topology.patternKey ?? ('split-' + topology.rows.join('-')),
-        specialPattern: topology.specialPattern,
+        templateIndex: topology.templateIndex,
+        patternKey: topology.patternKey,
         // Preserve the AC-3-pruned dictionary domains so the production CSP
         // does not reopen candidates already proven incompatible at crossings.
         allowedEntryIdsBySlot: new Map(domains.map(domain => [
@@ -411,11 +413,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const rankedPlans = plans.map(plan => ({
     answer: plan.answer,
     rows: plan.rows,
+    templateIndex: plan.templateIndex,
     patternKey: plan.patternKey,
-    specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
     score: plan.score,
-    planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
+    planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|template-' + (plan.templateIndex + 1) + '|' + plan.patternKey
   }));
   if (requirements.returnAllPlans === true) return rankedPlans;
   return rankedPlans[0] ?? null;
@@ -507,13 +509,9 @@ export function generateScanword(inputDictionary, options = {}) {
 
   // Prefer the low-short special topology when its dictionary/CSP domain is
   // compatible, then retain the other validated layouts as fallbacks.
-  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
-  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
-  const specialPlanSequence = firstLowShortPlan
-    ? [firstLowShortPlan, ...conventionalSpecialPlans]
-    : specialPlanPool;
+  const specialPlanSequence = specialPlanPool;
   if (options.capturePlanDiagnostics) {
-    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
+    specialPlanDiagnostics.approvedTemplatePlans = specialPlanPool.length;
   }
 
   // In the 100-seed production batch, four retries still left 11/33
@@ -527,14 +525,11 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // Only ordinary scaffolds 3 and 4 satisfy both the production
-  // short-answer cap and the minimum interior-clue count. Scaffold 2 is
-  // geometrically valid in isolation but has too few interior clue cells.
-  const normalScaffoldSequence = [4, 3];
-  const requestedScaffold = Number.isInteger(options.normalScaffoldIndex)
-    ? options.normalScaffoldIndex
-    : 4;
-  const requestedScaffoldOffset = Math.max(0, normalScaffoldSequence.indexOf(requestedScaffold));
+  // The approved regular pool uses templates 4, 9 and 12: each has
+  // a connected letter graph, no eleven-letter boundary slot and at most
+  // three curated two-letter answers.
+  const normalTemplateSequence = [3, 8, 11];
+  const normalTemplateOffset = seed % normalTemplateSequence.length;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -557,19 +552,15 @@ export function generateScanword(inputDictionary, options = {}) {
     }
     const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
+    const normalOffset = Math.max(0, attempt - specialAttempts);
+    const selectedTemplateIndex = useSpecialTopology
+      ? specialPlan.templateIndex
+      : normalTemplateSequence[(normalTemplateOffset + normalOffset) % normalTemplateSequence.length];
     const topologyResult = generateTopology({
       seed: topologySeed,
+      templateIndex: selectedTemplateIndex,
       includeSpecialEleven: useSpecialTopology,
-      scaffoldIndex: useSpecialTopology
-        ? undefined
-        : normalScaffoldSequence[(requestedScaffoldOffset + attempt - specialAttempts + normalScaffoldSequence.length) % normalScaffoldSequence.length],
-      preserveScaffold: !useSpecialTopology && attempt === 0,
-      specialSplitRows: specialPlan?.rows,
-      specialPattern: specialPlan?.specialPattern,
-      maxAttempts: options.topologyMutationAttempts ?? 96,
-      maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 8)
-        : (options.maxTwoLetterSlots ?? 3)
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 3
     });
 
     if (!topologyResult.ok) {
@@ -683,6 +674,7 @@ export function generateScanword(inputDictionary, options = {}) {
       sequenceIndex,
       topologySeed,
       topologyScaffold: topologyResult.scaffoldIndex,
+      topologyTemplate: topologyResult.templateNumber ?? null,
       topologyAttempts: topologyResult.attempts,
       cspNodes: solved.nodes,
       cspElapsedMs: solved.elapsedMs,
@@ -699,6 +691,7 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
+      requireFullTopBorder: true,
       requireConnected: true
     });
 
