@@ -100,6 +100,7 @@ test('validates borders and reports unassigned and orphan cells independently', 
   for (let col = 1; col < 8; col++) setQuestion(grid, 0, col);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
   grid[5][5] = { row: 5, col: 5, type: 'unassigned', letter: null, questionIds: [], wordIds: [] };
+  for (const [row, col] of [[4, 5], [6, 5], [5, 4], [5, 6]]) setQuestion(grid, row, col);
 
   const result = validateTopology(grid);
   assert.equal(result.valid, false);
@@ -150,10 +151,11 @@ test('supports dynamic top-row clue omissions while covering all 96 cells', () =
     }
   }
 
+  setQuestion(grid, 6, 2);
   const result = validateTopology(grid, { requireConnected: true });
   assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.equal(result.metrics.totalCells, 96);
-  assert.equal(result.metrics.questionCells, 34);
+  assert.equal(result.metrics.questionCells, 35);
   assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 25);
   assert.ok(result.slots.some(slot => slot.axis === 'horizontal' && slot.endpoints[0].row === 0));
   assert.ok(result.errors.length === 0);
