@@ -500,13 +500,13 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     }
     if (!positions.length) return;
 
-    const endpoints = [...(horizontal && fixedIndex === 0 ? [-1] : []), ...positions];
+    const endpoints = [...(horizontal && fixedIndex === 0 ? [0] : []), ...positions];
     for (let index = 0; index < endpoints.length; index++) {
       const start = endpoints[index];
       const end = endpoints[index + 1] ?? lineLength;
       const length = end - start - 1;
       if (length < 2) continue;
-      const first = start === -1
+      const first = horizontal && fixedIndex === 0 && start === 0
         ? { row: 0, col: 0, boundary: true, corner: true }
         : (horizontal ? { row: fixedIndex, col: start } : { row: start, col: fixedIndex });
       const last = end === lineLength
