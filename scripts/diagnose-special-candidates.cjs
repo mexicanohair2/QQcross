@@ -5,6 +5,37 @@ async function main() {
   const { generateScanword } = await import("../scanword-engine/src/generator.js");
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
   const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
+  const { createEmptyGrid } = await import("../scanword-engine/src/grid.js");
+  const { deriveWordSlots, validateTopology } = await import("../scanword-engine/src/topology.js");
+  const { SCANWORD_TEMPLATES } = await import("../scanword-engine/src/template-library.js");
+  const specialRows = SCANWORD_TEMPLATES[10];
+  const specialGrid = createEmptyGrid();
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (row === 0 && col === 0) continue;
+      specialGrid[row][col].type = specialRows[row][col] === "#" ? "question" : "letter";
+      specialGrid[row][col].letter = specialGrid[row][col].type === "letter" ? "А" : null;
+    }
+  }
+  const specialTopologyOptions = {
+    requireConnected: true,
+    requireFullTopBorder: true,
+    allowSpecialElevenBoundary: true,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: false,
+    minimumOuterBoundaryLength: 2
+  };
+  const specialTopologyValidation = validateTopology(specialGrid, specialTopologyOptions);
+  const specialDerived = deriveWordSlots(specialGrid, specialTopologyOptions);
+  console.log("SPECIAL_TEMPLATE_GEOMETRY " + JSON.stringify({
+    rows: specialRows,
+    validationErrors: specialTopologyValidation.errors,
+    derivedErrors: specialDerived.errors,
+    slots: specialDerived.slots.map(slot => ({
+      id: slot.id, length: slot.length, special: slot.special,
+      endpoints: slot.endpoints
+    }))
+  }));
   const trials = 8;
   let successful = null;
   const attempts = [];
