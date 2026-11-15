@@ -505,7 +505,10 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: true,
+      // A geometric endpoint may be terminal-only. Such cells are not
+      // independent question starts; the validator still requires every
+      // actual clue record to own a word and every terminal to be connected.
+      requireEveryClueStarts: false,
       allowedDirections: Object.keys(DIRECTIONS),
       enforceBorderDirectionRules: true,
       history: options.history,
