@@ -893,9 +893,9 @@ function buildScanwordInWorker(entries, overrides={}){
   const generationOptions={
     seed,
     ...(sequenceIndex===null?{}:{sequenceIndex}),
-    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
+    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:24,
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
-    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
+    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1600,
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
@@ -951,7 +951,7 @@ function buildScanwordInWorker(entries, overrides={}){
       };
       timer=setTimeout(()=>{
         finish(reject,new Error("Новый генератор превысил лимит времени. Попробуй подготовить сканворд ещё раз."));
-      },16000);
+      },22000);
       worker.postMessage({entries,options:generationOptions});
     }catch(error){
       finish(reject,error);
@@ -1097,10 +1097,10 @@ async function begin(size=1,chatGPT=false,dailyChallenge=null){
     }
     // Background preparation can fail for a particular seed on a slower phone.
     // Retry once with a fresh bounded seed instead of leaving the player on the menu.
-    for(let generationAttempt=0;generationAttempt<2&&!preparedScanword;generationAttempt++){
+    for(let generationAttempt=0;generationAttempt<4&&!preparedScanword;generationAttempt++){
       await prepareNextScanword();
     }
-    if(!preparedScanword)throw new Error("Не удалось подготовить сканворд после двух ограниченных попыток. Нажми «Повторить подготовку».");
+    if(!preparedScanword)throw new Error("Не удалось подготовить сканворд после четырёх ограниченных попыток. Нажми «Повторить подготовку».");
     let loaded=false,lastError=null;
     for(let attempt=0;attempt<2&&!loaded;attempt++){
       try{loaded=!!loadPuzzle()}catch(error){lastError=error;console.error("QQCross: puzzle start failed",error)}
