@@ -12,9 +12,9 @@ async function main() {
   let specialElevenCount = 0;
   const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
   const generationOptions = {
-    maxTopologyAttempts: 16,
+    maxTopologyAttempts: 24,
     maxNodes: 100000,
-    maxCspTimeMs: 1200,
+    maxCspTimeMs: 1600,
     specialTopologyAttempts: 2,
     maxTwoLetterSlots: 6,
     topologyMutationAttempts: 96,
