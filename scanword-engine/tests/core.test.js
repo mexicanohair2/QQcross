@@ -33,6 +33,68 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
 });
 
+
+test('AC-3 compares crossing letters by physical coordinates for reversed clue directions', () => {
+  const horizontal = {
+    slot: {
+      id: 'horizontal',
+      coordinates: [
+        { row: 4, col: 1 },
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    },
+    options: [
+      {
+        entry: { answer: 'КОТ' },
+        coordinates: [
+          { row: 4, col: 1 },
+          { row: 4, col: 2 },
+          { row: 4, col: 3 }
+        ]
+      },
+      {
+        entry: { answer: 'ТОК' },
+        coordinates: [
+          { row: 4, col: 3 },
+          { row: 4, col: 2 },
+          { row: 4, col: 1 }
+        ]
+      },
+      {
+        entry: { answer: 'КОТ' },
+        coordinates: [
+          { row: 4, col: 3 },
+          { row: 4, col: 2 },
+          { row: 4, col: 1 }
+        ]
+      }
+    ]
+  };
+  const vertical = {
+    slot: {
+      id: 'vertical',
+      coordinates: [
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    },
+    options: [{
+      entry: { answer: 'ОТ' },
+      coordinates: [
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    }]
+  };
+
+  assert.equal(enforceCrossingArcConsistency([horizontal, vertical]), true);
+  assert.deepEqual(
+    horizontal.options.map(option => option.entry.answer + ':' + option.coordinates.map(p => p.col).join(',')),
+    ['КОТ:1,2,3', 'ТОК:3,2,1']
+  );
+});
+
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
   assert.equal(CONFIG.TOTAL_CELLS, 96); assert.equal(grid.length, 12); assert.ok(grid.every(r => r.length === 8)); assert.ok(assertGridDimensions(grid));
