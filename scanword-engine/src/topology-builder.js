@@ -388,7 +388,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     requireBorderClues: false,
     allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: false,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
