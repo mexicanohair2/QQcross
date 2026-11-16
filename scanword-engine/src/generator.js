@@ -522,10 +522,9 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // The approved regular pool uses templates 4, 9 and 12: each has
-  // a connected letter graph, no eleven-letter boundary slot and at most
-  // three curated two-letter answers.
-  const normalTemplateSequence = [3, 8, 11]; // Only the three production-validated ordinary templates.
+  // Cycle through the complete independently validated ordinary template
+  // library so CSP can choose a topology compatible with the current dictionary.
+  const normalTemplateSequence = Array.from({ length: 20 }, (_, index) => index);
   const normalTemplateOffset = seed % normalTemplateSequence.length;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
