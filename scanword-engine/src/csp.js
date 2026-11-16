@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
@@ -145,7 +145,7 @@ function validateSlotGeometry(slot) {
       || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
       || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
     )
-    || slot.directionOptions.length !== 1
+    || slot.directionOptions.length !== 2
   ) return false;
 
   const [start, end] = slot.endpoints;
@@ -155,31 +155,31 @@ function validateSlotGeometry(slot) {
   const distance = Math.abs(end.row - start.row) + Math.abs(end.col - start.col);
   if (distance !== slot.length + 1) return false;
 
+  const forward = [];
   for (let index = 0; index < slot.length; index++) {
-    const expected = horizontal
+    forward.push(horizontal
       ? { row: start.row, col: start.col + index + 1 }
-      : { row: start.row + index + 1, col: start.col };
-    if (
-      slot.coordinates[index]?.row !== expected.row
-      || slot.coordinates[index]?.col !== expected.col
-    ) return false;
+      : { row: start.row + index + 1, col: start.col });
   }
+  if (forward.some((point, index) =>
+    slot.coordinates[index]?.row !== point.row || slot.coordinates[index]?.col !== point.col
+  )) return false;
 
-  const option = slot.directionOptions[0];
-  const expectedDirection = horizontal ? 'right' : 'down';
-  if (
-    option.direction !== expectedDirection
-    || pointKey(option.clueCell) !== firstKey
-    || pointKey(option.terminalCell) !== lastKey
-    || !Array.isArray(option.coordinates)
-    || option.coordinates.length !== slot.length
-  ) return false;
-
-  for (let index = 0; index < option.coordinates.length; index++) {
-    if (
-      option.coordinates[index].row !== slot.coordinates[index].row
-      || option.coordinates[index].col !== slot.coordinates[index].col
-    ) return false;
+  const expected = new Map([
+    [horizontal ? 'right' : 'down', { clue: start, terminal: end, coordinates: forward }],
+    [horizontal ? 'left' : 'up', { clue: end, terminal: start, coordinates: [...forward].reverse() }]
+  ]);
+  if (slot.directionOptions.length !== expected.size) return false;
+  for (const option of slot.directionOptions) {
+    const rule = expected.get(option.direction);
+    if (!rule
+      || pointKey(option.clueCell) !== pointKey(rule.clue)
+      || pointKey(option.terminalCell) !== pointKey(rule.terminal)
+      || !Array.isArray(option.coordinates)
+      || option.coordinates.length !== slot.length
+      || option.coordinates.some((point, index) =>
+        point.row !== rule.coordinates[index].row || point.col !== rule.coordinates[index].col
+      )) return false;
   }
   return true;
 }
@@ -286,6 +286,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   for (const orientation of slot.directionOptions ?? []) {
     // Production may restrict directions; generic CSP tests can retain all valid orientations.
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
+    if (!isAllowedClueDirection(orientation.clueCell, orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
     if (usedDirections?.has(orientation.direction)) continue;
