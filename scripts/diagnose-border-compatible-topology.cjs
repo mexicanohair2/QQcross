@@ -12,22 +12,22 @@ async function main() {
 
   const observed = new Set();
   let normalSamples = 0;
-  let specialSamples = 0;
   for (let index = 0; index < 128; index++) {
     const seed = 510000 + index * 7919;
-    const special = index % 4 === 3;
     const generated = generateTopology({
       seed,
-      includeSpecialEleven: special,
-      maxAttempts: 96
+      includeSpecialEleven: false,
+      maxAttempts: 96,
+      maxTwoLetterSlots: 5
     });
     assert.equal(generated.ok, true, "Topology generation failed for seed " + seed);
     const grid = generated.topology.grid;
     const topologyOptions = {
       requireConnected: true,
-      allowSpecialElevenBoundary: special,
-      allowOuterBoundarySlots: !special,
-      minimumOuterBoundaryLength: special ? undefined : 2
+      allowSpecialElevenBoundary: false,
+      allowOuterBoundarySlots: true,
+      allowColumnOneBoundarySlot: true,
+      minimumOuterBoundaryLength: 2
     };
     const validation = validateTopology(grid, topologyOptions);
     assert.equal(validation.valid, true, "Independent topology check failed for seed " + seed + ": " + JSON.stringify(validation.errors));
@@ -40,21 +40,15 @@ async function main() {
     for (let row = 1; row < 12; row++) assert.equal(grid[row][0].type, "question");
     const slots = deriveWordSlots(grid, topologyOptions);
     assert.equal(slots.errors.length, 0);
-    if (special) {
-      assert.equal(slots.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length, 1);
-      specialSamples++;
-    } else {
-      assert.equal(slots.slots.some(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY"), false);
-      normalSamples++;
-    }
+    assert.equal(slots.slots.some(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY"), false);
+    normalSamples++;
     observed.add(generated.topology.pattern.join("/"));
   }
   assert.ok(
     observed.size >= 12,
     "128 seeded generations should produce at least 12 distinct validated topologies; got " + observed.size
   );
-  assert.equal(normalSamples, 96);
-  assert.equal(specialSamples, 32);
+  assert.equal(normalSamples, 128);
   console.log(JSON.stringify({
     ok: true,
     dimensions: "8x12",
@@ -63,8 +57,8 @@ async function main() {
     distinctGeneratedTopologies: observed.size,
     seededSamples: 128,
     normalSamples,
-    specialElevenSamples: specialSamples,
-    note: "This verifies topology only; dictionary assignment and gameplay are tested separately."
+    specialElevenSamples: 0,
+    note: "All sampled topologies use the ordinary layout; the retired 11-letter special mode is disabled."
   }, null, 2));
 }
 main().catch(error => {
