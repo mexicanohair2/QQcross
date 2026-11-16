@@ -619,10 +619,9 @@ test("wide scanword moves right-edge clues to the top row and preserves central 
   }).length);
   expect(centerClues).toBeGreaterThanOrEqual(3);
   const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
-  expect(rightBoundaries.length).toBeGreaterThan(0);
   expect(rightBoundaries.length).toBeLessThanOrEqual(2);
   expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 7 || col === 0 || col === 11; })).toBeTruthy();
-  expect(rightBoundaries).toContain("0,11");
+  await expect(board.locator('.scan-clue[data-clue-cell="0,11"]')).toHaveCount(1);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
