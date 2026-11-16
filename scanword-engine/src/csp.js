@@ -145,68 +145,43 @@ function validateSlotGeometry(slot) {
       || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
       || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
     )
-    || slot.directionOptions.length !== 2
+    || slot.directionOptions.length !== 1
   ) return false;
 
   const [start, end] = slot.endpoints;
   const horizontal = start.row === end.row;
   const vertical = start.col === end.col;
-  if (horizontal === vertical) return false;
+  if (horizontal === vertical || end.row < start.row || end.col < start.col) return false;
   const distance = Math.abs(end.row - start.row) + Math.abs(end.col - start.col);
   if (distance !== slot.length + 1) return false;
 
-  const rowStep = Math.sign(end.row - start.row);
-  const colStep = Math.sign(end.col - start.col);
   for (let index = 0; index < slot.length; index++) {
-    const expected = {
-      row: start.row + rowStep * (index + 1),
-      col: start.col + colStep * (index + 1)
-    };
+    const expected = horizontal
+      ? { row: start.row, col: start.col + index + 1 }
+      : { row: start.row + index + 1, col: start.col };
     if (
       slot.coordinates[index]?.row !== expected.row
       || slot.coordinates[index]?.col !== expected.col
     ) return false;
   }
 
-  const expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
+  const option = slot.directionOptions[0];
+  const expectedDirection = horizontal ? 'right' : 'down';
   if (
-    slot.directionOptions.length !== expectedDirections.size
-    || slot.directionOptions.some(option => !expectedDirections.has(option.direction))
+    option.direction !== expectedDirection
+    || pointKey(option.clueCell) !== firstKey
+    || pointKey(option.terminalCell) !== lastKey
+    || !Array.isArray(option.coordinates)
+    || option.coordinates.length !== slot.length
   ) return false;
 
-  for (const option of slot.directionOptions ?? []) {
-    const vector = DIRECTIONS[option.direction];
-    if (!vector || !option.clueCell || !option.terminalCell) return false;
-
-    const clueKey = pointKey(option.clueCell);
-    const terminalKey = pointKey(option.terminalCell);
-    if (!(
-      (clueKey === firstKey && terminalKey === lastKey)
-      || (clueKey === lastKey && terminalKey === firstKey)
-    )) return false;
-
-    if (!Array.isArray(option.coordinates) || option.coordinates.length !== slot.length) return false;
-    const baseCoordinates = new Set(slot.coordinates.map(pointKey));
-    if (option.coordinates.some(coordinate => !baseCoordinates.has(pointKey(coordinate)))) return false;
-    for (let index = 0; index < option.coordinates.length; index++) {
-      const expectedRow = option.clueCell.row + vector.dr * (index + 1);
-      const expectedCol = option.clueCell.col + vector.dc * (index + 1);
-      if (
-        option.coordinates[index].row !== expectedRow
-        || option.coordinates[index].col !== expectedCol
-        || expectedRow < 0
-        || expectedCol < 0
-        || expectedRow >= CONFIG.HEIGHT
-        || expectedCol >= CONFIG.WIDTH
-      ) return false;
-    }
-    const last = option.coordinates[option.coordinates.length - 1];
-    const terminalRow = last.row + vector.dr;
-    const terminalCol = last.col + vector.dc;
-    if (terminalRow !== option.terminalCell.row || terminalCol !== option.terminalCell.col) return false;
+  for (let index = 0; index < option.coordinates.length; index++) {
+    if (
+      option.coordinates[index].row !== slot.coordinates[index].row
+      || option.coordinates[index].col !== slot.coordinates[index].col
+    ) return false;
   }
-
-  return slot.directionOptions.length > 0;
+  return true;
 }
 
 function calculateSlotDegrees(slots) {
