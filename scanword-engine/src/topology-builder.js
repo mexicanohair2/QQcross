@@ -25,10 +25,40 @@ const STANDARD_SCAFFOLD = Object.freeze([
   '#...#..#'
 ]);
 
+const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
+  '.#..#..#',
+  '#.....#.',
+  '#....#..',
+  '#....#..',
+  '#...#...',
+  '#.....#.',
+  '#.....#.',
+  '#...#.#.',
+  '#...#...',
+  '#....#..',
+  '#.....#.',
+  '#...#..#'
+]);
+
+const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
+  '.#..#..#',
+  '#.....#.',
+  '#.....#.',
+  '#....#..',
+  '#...#...',
+  '#...#...',
+  '#....#..',
+  '#....#..',
+  '#.....#.',
+  '#...#...',
+  '#....#..',
+  '#.....##'
+]);
+
 const SCAFFOLD_VARIANTS = Object.freeze([
   STANDARD_SCAFFOLD,
-  STANDARD_SCAFFOLD,
-  STANDARD_SCAFFOLD
+  STANDARD_SCAFFOLD_VARIANT_2,
+  STANDARD_SCAFFOLD_VARIANT_3
 ]);
 
 /*
@@ -51,8 +81,11 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#'
 ]);
 
-function createScaffold(_extraRows) {
-  return STANDARD_SCAFFOLD.map(row => row);
+function createScaffold(extraRows) {
+  const variantIndex = Array.isArray(extraRows)
+    ? extraRows.reduce((sum, row) => sum + Number(row || 0), 0) % SCAFFOLD_VARIANTS.length
+    : 0;
+  return SCAFFOLD_VARIANTS[variantIndex].map(row => row);
 }
 
 const SCAFFOLDS = Object.freeze([
