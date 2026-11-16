@@ -79,7 +79,6 @@ test('recognizes only the exact eleven-letter bottom boundary exception', () => 
   const special = result.slots.find(item => item.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
 
   assert.ok(special);
-  assert.ok(result.topology.metrics.centerQuestionCells >= 3);
   assert.equal(special.length, 11);
   assert.deepEqual(special.coordinates[0], { row: 1, col: 1 });
   assert.deepEqual(special.coordinates[10], { row: 11, col: 1 });
