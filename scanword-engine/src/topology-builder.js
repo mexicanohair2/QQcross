@@ -26,6 +26,21 @@ function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
 
+function hasCrossingOuterBoundarySlots(slots) {
+  const boundarySlots = slots.filter(slot => slot.special === 'OUTER_BOUNDARY');
+  const occupied = boundarySlots.map(slot => new Set(
+    slot.coordinates.map(point => point.row + ',' + point.col)
+  ));
+  for (let left = 0; left < occupied.length; left++) {
+    for (let right = left + 1; right < occupied.length; right++) {
+      for (const key of occupied[left]) {
+        if (occupied[right].has(key)) return true;
+      }
+    }
+  }
+  return false;
+}
+
 const JUNCTION_ROWS = Object.freeze([4, 8]);
 const JUNCTION_COLUMNS = Object.freeze([1, 2]);
 
@@ -89,7 +104,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
   };
   const validation = validateTopology(grid, topologyOptions);
   const derived = deriveWordSlots(grid, topologyOptions);
-  if (!validation.valid || derived.errors.length) return null;
+  if (!validation.valid || derived.errors.length || hasCrossingOuterBoundarySlots(derived.slots)) return null;
 
   const shortSlots = derived.slots.filter(slot => slot.length === 2);
   const longSlots = derived.slots.filter(slot => slot.length >= 3);
@@ -162,6 +177,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const validation = validateTopology(grid, topologyOptions);
   const derived = deriveWordSlots(grid, topologyOptions);
   if (!validation.valid || derived.errors.length
+    || hasCrossingOuterBoundarySlots(derived.slots)
     || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
