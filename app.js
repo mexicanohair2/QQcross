@@ -1066,19 +1066,9 @@ async function runChatGPTTurn(root,turnKey){
   }catch(error){
     console.error("QQCross ChatGPT turn:",error);
     if(state.screen!=="game"||state.turn!==1)return;
-    const fallback=chooseLocalAIMove();
-    if(fallback){
-      const rack=state.playerRacks[1]||[];
-      state.pendingMoves=fallback.moves;
-      fallback.used.sort((a,b)=>b-a).forEach(index=>rack.splice(index,1));
-      state.playerRacks[1]=rack;state.letters=rack;
-      state.aiError="GPT сейчас недоступен — этот ход сделал встроенный словарный помощник.";
-    }else{
-      state.pendingMoves=[];
-      state.aiError="GPT сейчас недоступен — встроенный помощник пропустил ход.";
-    }
+    state.aiError=error?.message||"Не удалось получить ход от ChatGPT. Проверь соединение и повтори попытку.";
     state.aiThinkingTurn=null;
-    await finishTurn(root);
+    renderGame(root);
   }
 }
 
