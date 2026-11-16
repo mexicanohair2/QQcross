@@ -115,7 +115,8 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 3) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
-  if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
+  const centerQuestionCells = countCenterQuestions(matrix);
+  if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
   // crossing can become a short slot dictated by the eleven-letter answer.
   if (includeSpecialEleven && matrix.some(row => row[3] === '#')) return null;
@@ -152,6 +153,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
       totalCells: CONFIG.TOTAL_CELLS,
       questionCells: validation.metrics.questionCells,
       interiorQuestionCells,
+      centerQuestionCells,
       letterCells: validation.metrics.letterCells,
       slotCount: derived.slots.length,
       horizontalSlots: validation.metrics.horizontalSlots,
@@ -168,6 +170,13 @@ function countTopQuestions(matrix) {
 function countInteriorQuestions(matrix) {
   return matrix.slice(1).reduce(
     (total, row) => total + row.slice(1, CONFIG.WIDTH - 1).filter(value => value === '#').length,
+    0
+  );
+}
+
+function countCenterQuestions(matrix) {
+  return matrix.slice(3, 9).reduce(
+    (total, row) => total + row.slice(3, 6).filter(value => value === '#').length,
     0
   );
 }
