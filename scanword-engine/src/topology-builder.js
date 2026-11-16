@@ -83,7 +83,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
     requireFullTopBorder: !lowShortLayout,
     allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
+    allowOuterBoundarySlots: false,
     allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
@@ -155,7 +155,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
     requireFullTopBorder: !lowShortLayout,
     allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
+    allowOuterBoundarySlots: false,
     allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
@@ -430,7 +430,7 @@ export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
     requireFullTopBorder: !lowShortLayout,
     allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
+    allowOuterBoundarySlots: false,
     allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
@@ -469,7 +469,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     requireFullTopBorder: !lowShortLayout,
     allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
-    allowOuterBoundarySlots: true,
+    allowOuterBoundarySlots: false,
     allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
