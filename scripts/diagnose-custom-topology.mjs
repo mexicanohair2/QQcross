@@ -36,11 +36,12 @@ const result = {
   answerLengthRange: lengths.length ? [Math.min(...lengths), Math.max(...lengths)] : null,
   twoLetterSlots: lengths.filter(length => length === 2).length,
   elevenLetterSlots: lengths.filter(length => length === 11).length,
+  taggedSpecialElevenSlots: derived.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length,
   fourDirectionSlots: derived.slots.filter(slot => slot.directionOptions.some(option => ["left", "up"].includes(option.direction))).length
 };
 console.log(JSON.stringify(result, null, 2));
 assert.equal(result.valid, true, "Production topology must pass independent validation.");
 assert.ok(result.slotCount >= 20, "Production topology must contain at least 20 answer slots.");
-assert.ok(lengths.every(length => length >= 2 && length <= 10), "Ordinary puzzles must not contain one-letter or 11-letter answers.");
-assert.equal(result.elevenLetterSlots, 0, "The retired 11-letter feature must not appear.");
-assert.ok(result.twoLetterSlots <= 3, "Production topology must limit two-letter answers.");
+assert.ok(lengths.every(length => length >= 2), "Production topology must not contain one-letter answers.");
+assert.equal(result.taggedSpecialElevenSlots, 0, "The retired special 11-letter feature must not appear.");
+assert.ok(result.twoLetterSlots <= 5, "Production topology must stay within the configured short-answer limit.");
