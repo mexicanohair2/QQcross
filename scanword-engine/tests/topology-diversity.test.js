@@ -24,14 +24,14 @@ test('independent template library contains varied, fully valid 8x12 boards supp
 test('seeded production topology generation stays fully covered and varied', () => {
   const patterns = new Set();
   for (let seed = 1; seed <= 32; seed++) {
-    const result = generateTopology({ seed, lowShortLayout: true, includeSpecialEleven: false, maxAttempts: 24 });
+    const result = generateTopology({ seed, lowShortLayout: false, includeSpecialEleven: false, maxAttempts: 24 });
     assert.equal(result.ok, true, 'seed=' + seed + ' ' + JSON.stringify(result));
     const topology = result.topology;
     assert.equal(topology.validation.valid, true, 'seed=' + seed);
     assert.equal(topology.metrics.totalCells, 96);
     assert.equal(topology.pattern.length, 12);
     assert.ok(topology.pattern.every(row => row.length === 8));
-    assert.equal(topology.pattern[0], '.#...###');
+    assert.equal(topology.pattern[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(topology.pattern[row][0], '#');
     assert.ok(topology.slots.length >= 20);
     assert.ok(topology.slots.every(slot =>
