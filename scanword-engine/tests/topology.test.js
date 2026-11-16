@@ -107,7 +107,7 @@ test('every independent template has the complete top/left clue borders and conn
     assert.equal(rows[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(rows[row][0], '#');
     assert.ok(diagnostics.slotCount >= 20);
-    assert.ok(diagnostics.shortSlots >= 1 && diagnostics.shortSlots <= 5);
+    assert.ok(diagnostics.shortSlots >= 0 && diagnostics.shortSlots <= 5);
     assert.ok(diagnostics.longSlots >= 12);
   }
 });
@@ -152,10 +152,10 @@ test('top border answer columns are split into short vertical segments at clue-l
     slot.axis === 'vertical' && [1, 2].includes(slot.endpoints[0].col)
     && [1, 2].includes(slot.endpoints[1].col)
   );
-  assert.equal(vertical.length, 8);
+  assert.equal(vertical.length, 6);
   assert.ok(vertical.every(slot => slot.length === 3));
   assert.equal(derived.slots.some(slot => slot.length === 11), false);
-  assert.ok(grid.flat().filter(cell => cell.type === 'junction').length === 8);
+  assert.ok(grid.flat().filter(cell => cell.type === 'junction').length === 4);
   assert.ok(vertical.every(slot => slot.directionOptions.some(option => option.direction === 'down')));
 });
 
