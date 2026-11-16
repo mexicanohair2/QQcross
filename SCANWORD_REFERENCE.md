@@ -60,3 +60,14 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 ## Verification note
 
 The official maker page and its embedded canvas were inspected through rendered-page extraction. The maker confirms the default 8×12 size and Grid → Clues → Play/Share/Print workflow; the canvas advertises drag-to-create grid editing. Dynamic editor behavior (automatic word placement, crossing validation and clue validation) has not been directly observed. The screenshot's overall grid/screen structure was previously inspected in a browser. Exact pixel coordinates for every interior clue cell have not yet been transcribed into a fixed coordinate template. Do not claim an exact cell-by-cell placement match until that map has been measured against the screenshot.
+
+
+## Production validation — 2026-11-17
+
+- Production answer placement supports right, left, down and up; the top-right anchor and lower-right terminal remain fixed.
+- The approved two-letter answer set is limited to five curated entries; music-note and weak filler answers are excluded.
+- Independent seeded validation: 20/20 first-gate puzzles and 100/100 stress puzzles passed.
+- Scheduled eleven-letter puzzles: 25/25 generated at the required one-in-four cadence.
+- Independent validator errors: 0.
+- Desktop Chromium and mobile Chromium Playwright suites: passed.
+- Stress generation timing: median 498 ms, p95 729 ms, maximum 840 ms.
