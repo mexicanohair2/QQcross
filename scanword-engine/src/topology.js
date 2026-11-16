@@ -1,6 +1,6 @@
 import { CONFIG, DIRECTIONS } from './config.js';
 
-export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter']);
+export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter', 'junction']);
 export const MIN_ANSWER_LENGTH = 2;
 
 /**
@@ -47,11 +47,45 @@ function hasValidShape(grid) {
     && grid.every(row => Array.isArray(row) && row.length === CONFIG.WIDTH);
 }
 
-function makeSlot(axis, first, last, coordinates) {
+export function isQuestionRole(cell) {
+  return cell?.type === 'question' || cell?.type === 'junction';
+}
+
+export function isLetterRole(cell) {
+  return cell?.type === 'letter' || cell?.type === 'junction';
+}
+
+export function clueAllowsDirection(cell, direction) {
+  if (cell?.type === 'question') return true;
+  return cell?.type === 'junction'
+    && Array.isArray(cell.clueDirections)
+    && cell.clueDirections.includes(direction);
+}
+
+function makeSlot(axis, first, last, coordinates, grid) {
   const forwardDirection = axis === 'horizontal' ? 'right' : 'down';
   const reverseDirection = axis === 'horizontal' ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
   const reverse = [...forward].reverse().map(item => ({ ...item }));
+  const directionOptions = [];
+
+  if (clueAllowsDirection(grid[first.row][first.col], forwardDirection)) {
+    directionOptions.push({
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    });
+  }
+  if (clueAllowsDirection(grid[last.row][last.col], reverseDirection)) {
+    directionOptions.push({
+      clueCell: { ...last },
+      terminalCell: { ...first },
+      direction: reverseDirection,
+      coordinates: reverse.map(item => ({ ...item }))
+    });
+  }
+  if (!directionOptions.length) return null;
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
@@ -59,21 +93,7 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    // Either endpoint may carry the clue; coordinates always follow answer order.
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions,
     special: null
   };
 }
@@ -128,7 +148,12 @@ export function deriveWordSlots(grid, options = {}) {
     for (let offset = 0; offset < lineLength; offset++) {
       const row = horizontal ? fixedIndex : offset;
       const col = horizontal ? offset : fixedIndex;
-      if (grid[row][col].type === 'question') questionPositions.push(offset);
+      const cell = grid[row][col];
+      const axisDirections = horizontal ? ['right', 'left'] : ['down', 'up'];
+      if (cell.type === 'question'
+        || (cell.type === 'junction' && axisDirections.some(direction => clueAllowsDirection(cell, direction)))) {
+        questionPositions.push(offset);
+      }
     }
 
     for (let index = 0; index < questionPositions.length - 1; index++) {
@@ -147,7 +172,7 @@ export function deriveWordSlots(grid, options = {}) {
         const col = horizontal ? offset : fixedIndex;
         const cell = grid[row][col];
 
-        if (!cell || cell.type !== 'letter') {
+        if (!isLetterRole(cell)) {
           malformed = true;
           errors.push({
             type: 'NON_LETTER_INSIDE_SLOT',
@@ -186,22 +211,25 @@ export function deriveWordSlots(grid, options = {}) {
         continue;
       }
 
-      slots.push(makeSlot(axis, first, last, coordinates));
+      const slot = makeSlot(axis, first, last, coordinates, grid);
+      if (slot) slots.push(slot);
     }
 
     // A clue at the first question may point back to the outer left/top edge.
     if (options.allowOuterBoundarySlots === true && questionPositions.length > 0) {
       const from = questionPositions[0];
+      const cluePoint = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+      const direction = horizontal ? 'left' : 'up';
+      if (!clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)) return;
       const length = from;
       if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
-        const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+        const clue = cluePoint;
         const terminal = horizontal
           ? { row: fixedIndex, col: -1, boundary: true }
           : { row: -1, col: fixedIndex, boundary: true };
         const coordinates = Array.from({ length }, (_, index) => horizontal
           ? point(fixedIndex, from - index - 1)
           : point(from - index - 1, fixedIndex));
-        const direction = horizontal ? 'left' : 'up';
         slots.push({
           id: 'outer-boundary-reverse:' + axis + ':' + keyOf(clue),
           axis,
@@ -220,19 +248,20 @@ export function deriveWordSlots(grid, options = {}) {
     }
 
     // A clue at the last question may point to the outer right/bottom edge.
-    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
-      && (!(axis === 'vertical' && fixedIndex === 1) || options.allowColumnOneBoundarySlot === true)) {
+    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0) {
       const from = questionPositions[questionPositions.length - 1];
+      const cluePoint = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+      const direction = horizontal ? 'right' : 'down';
+      if (!clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)) return;
       const length = lineLength - from - 1;
       if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
-        const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+        const clue = cluePoint;
         const terminal = horizontal
           ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
           : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true };
         const coordinates = Array.from({ length }, (_, index) => horizontal
           ? point(fixedIndex, from + index + 1)
           : point(from + index + 1, fixedIndex));
-        const direction = horizontal ? 'right' : 'down';
         slots.push({
           id: 'outer-boundary:' + axis + ':' + keyOf(clue),
           axis,
@@ -327,10 +356,12 @@ function collectSlotCoverage(slots) {
       letterCoverage.set(key, (letterCoverage.get(key) ?? 0) + 1);
     }
 
-    const clue = slot.directionOptions?.[0]?.clueCell;
-    if (clue && !clue.boundary) {
-      const key = keyOf(clue);
-      clueCoverage.set(key, (clueCoverage.get(key) ?? 0) + 1);
+    for (const option of slot.directionOptions ?? []) {
+      const clue = option.clueCell;
+      if (clue && !clue.boundary) {
+        const key = keyOf(clue);
+        clueCoverage.set(key, (clueCoverage.get(key) ?? 0) + 1);
+      }
     }
   }
 
@@ -450,8 +481,12 @@ export function validateTopology(grid, options = {}) {
         });
       }
 
-      if (cell.type === 'question') {
+      if (isQuestionRole(cell)) {
         questionCells++;
+        if (cell.type === 'junction' && (!Array.isArray(cell.clueDirections) || !cell.clueDirections.length
+          || cell.clueDirections.some(direction => !['right', 'down', 'left', 'up'].includes(direction)))) {
+          errors.push({ type: 'INVALID_JUNCTION_DIRECTIONS', message: 'У комбинированной клетки должно быть хотя бы одно корректное направление вопроса.', row, col });
+        }
         if (options.requireQuestionIds && (!Array.isArray(cell.questionIds) || cell.questionIds.length === 0)) {
           errors.push({
             type: 'QUESTION_WITHOUT_ID',
@@ -462,7 +497,7 @@ export function validateTopology(grid, options = {}) {
         }
       }
 
-      if (cell.type === 'letter') {
+      if (isLetterRole(cell)) {
         letterCells++;
         if (typeof cell.letter !== 'string' || !/^[А-ЯЁ]$/u.test(cell.letter)) {
           errors.push({
@@ -505,7 +540,7 @@ export function validateTopology(grid, options = {}) {
       if (!cell) continue;
 
       const key = row + ',' + col;
-      if (cell.type === 'letter' && !coverage.letterCoverage.has(key)) {
+      if (isLetterRole(cell) && !coverage.letterCoverage.has(key)) {
         errors.push({
           type: 'ORPHAN_LETTER',
           message: 'Буква не входит ни в один геометрически допустимый ответ.',
@@ -515,7 +550,7 @@ export function validateTopology(grid, options = {}) {
         });
       }
 
-      if (cell.type === 'question' && !coverage.clueCoverage.has(key)) {
+      if (isQuestionRole(cell) && !coverage.clueCoverage.has(key)) {
         errors.push({
           type: 'QUESTION_WITHOUT_SLOT',
           message: 'Вопросная клетка не ограничивает ни один допустимый ответ.',
@@ -532,7 +567,7 @@ export function validateTopology(grid, options = {}) {
 
     for (let row = 0; row < CONFIG.HEIGHT; row++) {
       for (let col = 0; col < CONFIG.WIDTH; col++) {
-        if (grid[row][col].type === 'question') {
+        if (isQuestionRole(grid[row][col])) {
           const key = row + ',' + col;
           questionKeys.push(key);
           adjacency.set(key, new Set());
