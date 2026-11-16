@@ -13,13 +13,13 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#...#...',
   '#...#...',
   '#......#',
-  '#....#..',
+  '#...#...',
   '#...#...',
   '#...#...',
   '#......#',
   '#.....#.',
   '#...#...',
-  '#....##.'
+  '#....#..'
 ]);
 
 function cloneRows(rows) {
@@ -192,11 +192,11 @@ function buildLowShortScaffolds(includeSpecialEleven, maxTwoLetterSlots) {
     matrix[0] = '.#...###'.split('');
     matrix[1] = '#....#..'.split('');
     matrix[4] = '#......#'.split('');
-    matrix[5] = '#....#..'.split('');
+    matrix[5] = '#...#...'.split('');
     matrix[8] = '#......#'.split('');
     matrix[9] = '#.....#.'.split('');
     matrix[10] = '#...#...'.split('');
-    matrix[11] = '#....##.'.split('');
+    matrix[11] = '#....#..'.split('');
     const candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
     if (!candidate) continue;
     const key = candidate.pattern.join('/');
