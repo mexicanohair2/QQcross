@@ -620,6 +620,28 @@ test('CSP places answers in all four directions when each orientation is allowed
   }
 });
 
+test('CSP preserves the fixed downward lower-right terminal slot', () => {
+  const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 11, col: 7 },
+    Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
+    'down', 'up'
+  );
+  terminalSlot.requiredDirection = 'down';
+  const result = solveSlotsCsp([terminalSlot], [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')
+  ], {
+    seed: 7,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right', 'left', 'down', 'up'],
+    maxNodes: 100,
+    maxTimeMs: 500
+  });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].direction, 'down');
+});
+
+
 test('rejects musical-note names as artificial two-letter fillers', () => {
   const noteSlot = slot(
     'note',
