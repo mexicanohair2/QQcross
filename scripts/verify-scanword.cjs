@@ -10,7 +10,7 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
-  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const directionCounts = { right: 0, down: 0 };
   const generationOptions = {
     maxTopologyAttempts: 24,
     maxNodes: 100000,
@@ -83,6 +83,7 @@ async function main() {
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
+    assert.ok(scanword.words.every(word => word.direction === 'right' || word.direction === 'down'), "forbidden answer direction on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 6, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
     assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
@@ -149,7 +150,7 @@ async function main() {
   if (failures.length) {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
-  assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
+  assert.equal(specialElevenCount, 25, "Every fourth puzzle must tag its required special 11-letter answer; both top-border 11-letter answers exist on every board.");
 }
 
 main().catch(error => {
