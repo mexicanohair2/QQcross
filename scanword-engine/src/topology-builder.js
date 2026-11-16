@@ -26,14 +26,25 @@ function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
 
+const JUNCTION_ROWS = Object.freeze([4, 8]);
+const JUNCTION_COLUMNS = Object.freeze([1, 2]);
+
 function toRoleGrid(matrix) {
   const grid = createEmptyGrid();
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
     for (let col = 0; col < CONFIG.WIDTH; col++) {
       if (row === 0 && col === 0) continue;
       const cell = grid[row][col];
-      cell.type = matrix[row][col] === '#' ? 'question' : 'letter';
-      cell.letter = cell.type === 'letter' ? 'А' : null;
+      if (JUNCTION_ROWS.includes(row) && JUNCTION_COLUMNS.includes(col)) {
+        // The vertical clue begins here while the same square remains a
+        // letter in the horizontal answer started at the left border.
+        cell.type = 'junction';
+        cell.letter = 'А';
+        cell.clueDirections = ['down'];
+      } else {
+        cell.type = matrix[row][col] === '#' ? 'question' : 'letter';
+        cell.letter = cell.type === 'letter' ? 'А' : null;
+      }
     }
   }
   return grid;
