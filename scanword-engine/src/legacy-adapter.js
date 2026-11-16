@@ -76,6 +76,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
       isEmoji: hasEmoji(clue),
       logic: word.logic === true,
       imageKey: word.imageKey ?? null,
+      featuredShortQuestion: word.featuredShortQuestion === true,
       dir: word.direction,
       dirIndex: DIRECTION_INDEX[word.direction],
       cells: word.coordinates.map(point => [point.row, point.col]),
