@@ -19,7 +19,7 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#',
   '#....#..',
   '#.......',
-  '#......#'
+  '#...#...'
 ]);
 
 function cloneRows(rows) {
@@ -29,13 +29,14 @@ function cloneRows(rows) {
 const JUNCTION_ROWS = Object.freeze([4, 8]);
 const JUNCTION_COLUMNS = Object.freeze([1, 2]);
 
-function toRoleGrid(matrix) {
+function toRoleGrid(matrix, includeSpecialEleven = false) {
   const grid = createEmptyGrid();
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
     for (let col = 0; col < CONFIG.WIDTH; col++) {
       if (row === 0 && col === 0) continue;
       const cell = grid[row][col];
-      if (JUNCTION_ROWS.includes(row) && JUNCTION_COLUMNS.includes(col)) {
+      const junctionColumns = includeSpecialEleven ? [2] : JUNCTION_COLUMNS;
+      if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
         // The vertical clue begins here while the same square remains a
         // letter in the horizontal answer started at the left border.
         cell.type = 'junction';
@@ -63,7 +64,7 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
   if (rows.some((row, index) => index > 0 && row[0] !== '#')) return null;
 
   const matrix = cloneRows(rows);
-  const grid = toRoleGrid(matrix);
+  const grid = toRoleGrid(matrix, includeSpecialEleven);
   const topologyOptions = {
     requireConnected: true,
     requireFullTopBorder: !lowShortLayout,
@@ -301,7 +302,7 @@ export function generateTopology(options = {}) {
   let fallback = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const lowShortLayout = options.lowShortLayout === true || includeSpecialEleven;
+    const lowShortLayout = options.lowShortLayout !== false || includeSpecialEleven;
     const scaffoldIndex = lowShortLayout
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLDS.length);
