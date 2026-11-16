@@ -14,11 +14,11 @@ const targetPattern = [
   "#...#...",
   "#......#",
   "#....#..",
-  "#.......",
-  "#......#"
+  "#...#...",
+  "#....##."
 ];
 
-function roleGrid(rows) {
+function roleGrid(rows, includeSpecialEleven = false) {
   const grid = createEmptyGrid();
   for (let row = 0; row < 12; row++) {
     for (let col = 0; col < 8; col++) {
@@ -28,8 +28,9 @@ function roleGrid(rows) {
       cell.letter = cell.type === "letter" ? "А" : null;
     }
   }
+  const junctionColumns = includeSpecialEleven ? [2] : [1, 2];
   for (const row of [4, 8]) {
-    for (const col of [1, 2]) {
+    for (const col of junctionColumns) {
       grid[row][col] = { ...grid[row][col], type: "junction", letter: "А", clueDirections: ["down"] };
     }
   }
@@ -37,13 +38,13 @@ function roleGrid(rows) {
 }
 
 function metrics(rows, includeSpecialEleven = false) {
-  const grid = roleGrid(rows);
+  const grid = roleGrid(rows, includeSpecialEleven);
   const topologyOptions = {
     requireConnected: true,
     allowTopRowHorizontalRun: true,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: false,
+    allowColumnOneBoundarySlot: !includeSpecialEleven,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
