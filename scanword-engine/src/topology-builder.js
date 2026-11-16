@@ -49,7 +49,7 @@ function toRoleGrid(matrix, includeSpecialEleven = false) {
         cell.type = 'junction';
         cell.letter = 'А';
         cell.clueDirections = ['right'];
-      } else if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
+      } else if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col) && matrix[row][col] === '.') {
         // The vertical clue begins here while the same square remains a
         // letter in the horizontal answer started at the left border.
         cell.type = 'junction';
