@@ -184,6 +184,29 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   };
 }
 
+function buildLowShortScaffolds(includeSpecialEleven, maxTwoLetterSlots) {
+  const patterns = [];
+  const seen = new Set();
+  for (const source of SCAFFOLDS) {
+    const matrix = cloneRows(source);
+    matrix[0] = '.#...###'.split('');
+    matrix[1] = '#....#..'.split('');
+    matrix[5] = '#....#..'.split('');
+    matrix[10] = '#...#...'.split('');
+    matrix[11] = '#....##.'.split('');
+    const candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
+    if (!candidate) continue;
+    const key = candidate.pattern.join('/');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    patterns.push(candidate.pattern);
+  }
+
+  const fallback = inspectCandidate(cloneRows(LOW_SHORT_SCAFFOLD), includeSpecialEleven, maxTwoLetterSlots);
+  if (!patterns.length && fallback) patterns.push(fallback.pattern);
+  return patterns;
+}
+
 function countTopQuestions(matrix) {
   return matrix[0].slice(1).filter(value => value === '#').length;
 }
@@ -303,11 +326,18 @@ export function generateTopology(options = {}) {
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const lowShortLayout = options.lowShortLayout !== false || includeSpecialEleven;
+    const lowShortScaffolds = lowShortLayout
+      ? buildLowShortScaffolds(includeSpecialEleven, maxTwoLetterSlots)
+      : [];
     const scaffoldIndex = lowShortLayout
-      ? -1
+      ? (requestedScaffoldIndex !== null && requestedScaffoldIndex < lowShortScaffolds.length
+        ? requestedScaffoldIndex
+        : Math.floor(random() * Math.max(1, lowShortScaffolds.length)))
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLDS.length);
     const scaffold = lowShortLayout
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : LOW_SHORT_SCAFFOLD)
+      ? (Array.isArray(options.specialPattern)
+        ? options.specialPattern
+        : lowShortScaffolds[scaffoldIndex] ?? LOW_SHORT_SCAFFOLD)
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,
