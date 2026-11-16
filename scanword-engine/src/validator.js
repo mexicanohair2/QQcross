@@ -327,12 +327,10 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     } else if (word.special === 'OUTER_BOUNDARY') {
       const exactCoordinates = word.coordinates.every((coordinate, index) => {
-        if (word.direction === 'right') {
-          return coordinate.row === clue.row && coordinate.col === clue.col + index + 1;
-        }
-        if (word.direction === 'down') {
-          return coordinate.row === clue.row + index + 1 && coordinate.col === clue.col;
-        }
+        if (word.direction === 'right') return coordinate.row === clue.row && coordinate.col === clue.col + index + 1;
+        if (word.direction === 'down') return coordinate.row === clue.row + index + 1 && coordinate.col === clue.col;
+        if (word.direction === 'left') return coordinate.row === clue.row && coordinate.col === clue.col - index - 1;
+        if (word.direction === 'up') return coordinate.row === clue.row - index - 1 && coordinate.col === clue.col;
         return false;
       });
       const validException = answer.length >= 2
@@ -347,9 +345,17 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
             && clue.row >= 0 && clue.row < CONFIG.HEIGHT - 1
             && clue.col >= 0 && clue.col < CONFIG.WIDTH
             && terminal.row === CONFIG.HEIGHT && terminal.col === clue.col)
+          || (word.direction === 'left'
+            && clue.row >= 0 && clue.row < CONFIG.HEIGHT
+            && clue.col >= 1 && clue.col < CONFIG.WIDTH
+            && terminal.row === clue.row && terminal.col === -1)
+          || (word.direction === 'up'
+            && clue.row >= 1 && clue.row < CONFIG.HEIGHT
+            && clue.col >= 0 && clue.col < CONFIG.WIDTH
+            && terminal.row === -1 && terminal.col === clue.col)
         );
       if (!validException) {
-        add('INVALID_OUTER_BOUNDARY_WORD', 'Ответ на открытом краю должен идти вправо или вниз до границы поля.', {
+        add('INVALID_OUTER_BOUNDARY_WORD', 'Ответ на внешней границе должен непрерывно идти в одном из четырёх направлений до края поля.', {
           wordId: word.id, answer, clue, direction: word.direction, terminal
         });
       }
