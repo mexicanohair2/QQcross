@@ -522,10 +522,9 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // Cycle through the complete independently validated ordinary template
-  // library so CSP can choose a topology compatible with the current dictionary.
-  const normalTemplateSequence = Array.from({ length: 20 }, (_, index) => index);
-  const normalTemplateOffset = seed % normalTemplateSequence.length;
+  // Generate a fresh seeded mutation from the complete validated scaffold
+  // library on every retry; fixed masks can be geometrically valid yet have
+  // no compatible dictionary crossing assignment.
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -548,16 +547,20 @@ export function generateScanword(inputDictionary, options = {}) {
     }
     const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
-    const normalOffset = Math.max(0, attempt - specialAttempts);
-    const selectedTemplateIndex = useSpecialTopology
-      ? specialPlan.templateIndex
-      : normalTemplateSequence[(normalTemplateOffset + normalOffset) % normalTemplateSequence.length];
-    const topologyResult = generateTopology({
-      seed: topologySeed,
-      templateIndex: selectedTemplateIndex,
-      includeSpecialEleven: useSpecialTopology,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
-    });
+    const topologyResult = useSpecialTopology
+      ? generateTopology({
+          seed: topologySeed,
+          templateIndex: specialPlan.templateIndex,
+          includeSpecialEleven: true,
+          maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
+        })
+      : generateTopology({
+          seed: topologySeed,
+          includeSpecialEleven: false,
+          maxAttempts: options.topologyMutationAttempts ?? 96,
+          mutationBudget: options.topologyMutationAttempts ?? 96,
+          maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
+        });
 
     if (!topologyResult.ok) {
       countFailure(rejectedReasons, topologyResult.reason);
