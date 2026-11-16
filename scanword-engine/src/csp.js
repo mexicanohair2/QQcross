@@ -252,7 +252,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
-    if (usedDirections?.has(orientation.direction)) continue;
+    if (usedDirections?.size) continue;
 
     const constraints = crossingConstraints(orientation, state.letters);
     const candidates = findCandidates(indexes, slot.length, constraints);
