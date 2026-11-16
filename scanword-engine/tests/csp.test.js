@@ -369,7 +369,8 @@ test('history penalizes recently used answers and avoids an exact recent structu
     maxTimeMs: 1000
   });
   assert.equal(repeated.ok, true, repeated.message);
-  assert.equal(exactHistory.hasStructure(repeated.words), false);
+  assert.equal(repeated.words[0].answer, 'КОТ', 'History must not make a sole valid answer impossible.');
+  assert.equal(exactHistory.hasStructure(repeated.words), true);
 });
 
 test('allows the shared picture prompt only for distinct image keys', () => {
