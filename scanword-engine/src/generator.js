@@ -86,13 +86,14 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
       .map(option => signatureFor(otherDomain, option, arc.sharedKeys))
       .filter(signature => signature !== null));
 
-    const revised = ownDomain.options.filter(option => {
+    const previousOptions = ownDomain.options;
+    const revised = previousOptions.filter(option => {
       const signature = signatureFor(ownDomain, option, arc.sharedKeys);
       return signature !== null && supportedSignatures.has(signature);
     });
-    if (revised.length === ownDomain.options.length) continue;
+    if (revised.length === previousOptions.length) continue;
 
-    const removedCount = ownDomain.options.length - revised.length;
+    const removedCount = previousOptions.length - revised.length;
     if (diagnostics) diagnostics.removedOptions = (diagnostics.removedOptions ?? 0) + removedCount;
     ownDomain.options = revised;
     if (!revised.length) {
@@ -102,7 +103,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
           againstSlotId: otherDomain.slot.id,
           sharedCells: arc.sharedKeys,
           survivingSupportSignatures: [...supportedSignatures].slice(0, 12),
-          ownDomainBeforeFailure: ownDomain.options.slice(0, 40).map(option => ({
+          ownDomainBeforeFailure: previousOptions.slice(0, 40).map(option => ({
             answer: option.entry.answer,
             direction: option.direction,
             signature: signatureFor(ownDomain, option, arc.sharedKeys)
