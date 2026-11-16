@@ -167,49 +167,46 @@ test('ordinary topology never creates a featured eleven-letter answer', () => {
 });
 
 
-test('ordinary low-short layout has one three-letter top answer and no 11-letter slot', () => {
-  const diagnostics = diagnoseTopologyScaffold(0, { lowShortLayout: true, includeSpecialEleven: false });
+test('ordinary production layout preserves the full top clue border and has no 11-letter slot', () => {
+  const diagnostics = diagnoseTopologyScaffold(0, { includeSpecialEleven: false });
   assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
   assert.equal(diagnostics.elevenLetterSlots, 0);
+  assert.equal(diagnostics.pattern[0], '.#######');
 
   const generated = generateTopology({
     seed: 77123,
-    lowShortLayout: true,
+    lowShortLayout: false,
     includeSpecialEleven: false,
     maxAttempts: 24,
     mutationBudget: 96,
     maxTwoLetterSlots: 5
   });
   assert.equal(generated.ok, true, JSON.stringify(generated));
-  assert.equal(generated.topology.pattern[0], '.#...###');
-  assert.ok(generated.topology.slots.some(slot =>
-    slot.axis === 'horizontal'
-    && slot.length === 3
-    && slot.endpoints[0].row === 0
-    && slot.endpoints[0].col === 1
-    && slot.endpoints[1].col === 5
-  ));
+  assert.equal(generated.topology.pattern[0], '.#######');
+  assert.ok(generated.topology.pattern[0].slice(1).split('').every(cell => cell === '#'));
+  assert.equal(generated.topology.slots.some(slot => slot.length === 11), false);
   assert.equal(generated.topology.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
-test('periodic long-answer layout adds exactly one 11-letter slot to the same top-short grid', () => {
-  const diagnostics = diagnoseTopologyScaffold(0, { lowShortLayout: true, includeSpecialEleven: true });
+test('every fourth production layout adds exactly one 11-letter answer to the full-border grid', () => {
+  const diagnostics = diagnoseTopologyScaffold(0, { includeSpecialEleven: true });
   assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
   assert.equal(diagnostics.elevenLetterSlots, 1);
+  assert.equal(diagnostics.pattern[0], '.#######');
 
   const generated = generateTopology({
     seed: 77124,
-    lowShortLayout: true,
+    lowShortLayout: false,
     includeSpecialEleven: true,
     maxAttempts: 1,
-    maxTwoLetterSlots: 5
+    maxTwoLetterSlots: 5,
+    preserveScaffold: true
   });
   assert.equal(generated.ok, true, JSON.stringify(generated));
-  assert.equal(generated.topology.pattern[0], '.#...###');
-  const long = generated.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
+  assert.equal(generated.topology.pattern[0], '.#######');
+  const long = generated.topology.slots.filter(slot => slot.length === 11);
   assert.equal(long.length, 1);
-  assert.equal(long[0].length, 11);
-  assert.ok(generated.topology.slots.some(slot => slot.axis === 'horizontal' && slot.length === 3 && slot.endpoints[0].row === 0));
+  assert.equal(long[0].special, 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
 });
 
 test('border feasibility reports a fixed 8x12 full-border contract', () => {
