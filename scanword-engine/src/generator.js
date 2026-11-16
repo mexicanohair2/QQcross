@@ -538,10 +538,9 @@ export function generateScanword(inputDictionary, options = {}) {
       maxAttempts: useSpecialTopology ? 1 : 4,
       mutationBudget: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5,
-      // Start from independently approved production scaffolds. Randomly
-      // flipping internal cells can create crossings whose letters have no
-      // compatible dictionary support (for example, a terminal Ь).
-      preserveScaffold: !useSpecialTopology
+      // Search mutated, independently validated scaffolds; the CSP rejects
+      // geometries whose crossing letters have no dictionary support.
+      preserveScaffold: false
     });
 
     if (!topologyResult.ok) {
@@ -645,13 +644,9 @@ export function generateScanword(inputDictionary, options = {}) {
 
     const scanword = assembled.scanword;
     const shortQuestionCandidates = wantsShortQuestion
-      ? scanword.words.filter(word =>
-          word.answer.length >= 2
-          && word.answer.length <= 5
-          && word.clue?.row === 0
-          && word.clue?.col === 1
-          && word.direction === 'right'
-        )
+      ? scanword.words
+          .filter(word => word.answer.length >= 3 && word.answer.length <= 5)
+          .sort((a, b) => b.answer.length - a.answer.length || String(a.id).localeCompare(String(b.id)))
       : [];
     if (wantsShortQuestion && shortQuestionCandidates.length === 0) {
       attempts.push({ attempt: attempt + 1, reason: 'NO_SHORT_FEATURED_ANSWER', nodes: solved.nodes, elapsedMs: solved.elapsedMs });
