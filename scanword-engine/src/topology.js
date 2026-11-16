@@ -22,14 +22,14 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'FIXED_TOP_SHORT_ANSWER_AND_LEFT_BORDER',
+    reason: 'FIXED_FULL_TOP_AND_LEFT_BORDER',
     width,
     height,
-    requiredTopAnchor: { row: 0, col: 1 },
-    requiredTopHorizontalAnswer: { start: { row: 0, col: 1 }, end: { row: 0, col: 5 }, length: 3 },
+    requiredTopBorderColumns: Array.from({ length: width - 1 }, (_, index) => index + 1),
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
+    emptyCorner: { row: 0, col: 0 },
     conflicts: [],
-    message: 'Верхняя подсказка образует горизонтальный ответ из трёх букв; левый столбец, кроме угла, остаётся вопросным.'
+    message: 'Верхний ряд и левый столбец содержат вопросные клетки, кроме пустого угла (0,0).'
   };
 }
 
