@@ -356,18 +356,20 @@ export function generateTopology(options = {}) {
 /** Exposes the preflight geometry metrics for regression tests and diagnostics. */
 export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
+  const lowShortLayout = options.lowShortLayout === true || includeSpecialEleven;
   const selectedIndex = Number.isInteger(templateIndex) && templateIndex >= 0 && templateIndex < SCAFFOLDS.length
     ? templateIndex
-    : (includeSpecialEleven ? 10 : 0);
-  const rows = includeSpecialEleven ? LOW_SHORT_SCAFFOLD : SCAFFOLDS[selectedIndex];
+    : 0;
+  const rows = lowShortLayout ? LOW_SHORT_SCAFFOLD : SCAFFOLDS[selectedIndex];
   const matrix = cloneRows(rows);
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
+    requireFullTopBorder: !lowShortLayout,
+    allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
@@ -396,14 +398,16 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     return { valid: false, errors: [{ type: 'INVALID_PATTERN_SHAPE' }] };
   }
   const includeSpecialEleven = options.includeSpecialEleven === true;
+  const lowShortLayout = options.allowTopRowHorizontalRun === true;
   const matrix = cloneRows(rows);
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
+    requireFullTopBorder: !lowShortLayout,
+    allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
