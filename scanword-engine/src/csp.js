@@ -104,37 +104,38 @@ function validateSlotGeometry(slot) {
       || !Array.isArray(option.coordinates)
       || option.coordinates.length !== slot.length
     ) return false;
-    if (option.direction === 'right') {
-      if (
-        clue.row < 0 || clue.row >= CONFIG.HEIGHT
-        || clue.col < 0 || clue.col >= CONFIG.WIDTH - 1
-        || terminal.row !== clue.row
-        || terminal.col !== CONFIG.WIDTH
-        || slot.length !== CONFIG.WIDTH - clue.col - 1
-      ) return false;
-      return option.coordinates.every((coordinate, index) =>
-        coordinate.row === clue.row
-        && coordinate.col === clue.col + index + 1
-        && slot.coordinates[index]?.row === coordinate.row
-        && slot.coordinates[index]?.col === coordinate.col
-      );
-    }
-    if (option.direction === 'down') {
-      if (
-        clue.row < 0 || clue.row >= CONFIG.HEIGHT - 1
-        || clue.col < 0 || clue.col >= CONFIG.WIDTH
-        || terminal.row !== CONFIG.HEIGHT
-        || terminal.col !== clue.col
-        || slot.length !== CONFIG.HEIGHT - clue.row - 1
-      ) return false;
-      return option.coordinates.every((coordinate, index) =>
-        coordinate.row === clue.row + index + 1
-        && coordinate.col === clue.col
-        && slot.coordinates[index]?.row === coordinate.row
-        && slot.coordinates[index]?.col === coordinate.col
-      );
-    }
-    return false;
+    const expected = (index) => {
+      if (option.direction === 'right') return { row: clue.row, col: clue.col + index + 1 };
+      if (option.direction === 'down') return { row: clue.row + index + 1, col: clue.col };
+      if (option.direction === 'left') return { row: clue.row, col: clue.col - index - 1 };
+      if (option.direction === 'up') return { row: clue.row - index - 1, col: clue.col };
+      return null;
+    };
+    const validBoundary = (
+      (option.direction === 'right' && clue.row >= 0 && clue.row < CONFIG.HEIGHT
+        && clue.col >= 0 && clue.col < CONFIG.WIDTH - 1
+        && terminal.row === clue.row && terminal.col === CONFIG.WIDTH
+        && slot.length === CONFIG.WIDTH - clue.col - 1)
+      || (option.direction === 'down' && clue.row >= 0 && clue.row < CONFIG.HEIGHT - 1
+        && clue.col >= 0 && clue.col < CONFIG.WIDTH
+        && terminal.row === CONFIG.HEIGHT && terminal.col === clue.col
+        && slot.length === CONFIG.HEIGHT - clue.row - 1)
+      || (option.direction === 'left' && clue.row >= 0 && clue.row < CONFIG.HEIGHT
+        && clue.col >= 2 && clue.col < CONFIG.WIDTH
+        && terminal.row === clue.row && terminal.col === -1
+        && slot.length === clue.col)
+      || (option.direction === 'up' && clue.row >= 2 && clue.row < CONFIG.HEIGHT
+        && clue.col >= 0 && clue.col < CONFIG.WIDTH
+        && terminal.row === -1 && terminal.col === clue.col
+        && slot.length === clue.row)
+    );
+    return validBoundary && option.coordinates.every((coordinate, index) => {
+      const point = expected(index);
+      return point
+        && coordinate.row === point.row && coordinate.col === point.col
+        && slot.coordinates[index]?.row === point.row
+        && slot.coordinates[index]?.col === point.col;
+    });
   }
 
   if (
@@ -145,7 +146,7 @@ function validateSlotGeometry(slot) {
       || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
       || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
     )
-    || slot.directionOptions.length !== 1
+    || ![1, 2].includes(slot.directionOptions.length)
   ) return false;
 
   const [start, end] = slot.endpoints;
@@ -154,6 +155,21 @@ function validateSlotGeometry(slot) {
   if (horizontal === vertical || end.row < start.row || end.col < start.col) return false;
   const distance = Math.abs(end.row - start.row) + Math.abs(end.col - start.col);
   if (distance !== slot.length + 1) return false;
+
+  const forwardDirection = horizontal ? 'right' : 'down';
+  const reverseDirection = horizontal ? 'left' : 'up';
+  const forwardCoordinates = slot.coordinates;
+  const reverseCoordinates = [...slot.coordinates].reverse();
+  const validOption = (option, direction, clue, terminal, coordinates) =>
+    option.direction === direction
+    && pointKey(option.clueCell) === pointKey(clue)
+    && pointKey(option.terminalCell) === pointKey(terminal)
+    && Array.isArray(option.coordinates)
+    && option.coordinates.length === slot.length
+    && option.coordinates.every((coordinate, index) =>
+      coordinate.row === coordinates[index].row
+      && coordinate.col === coordinates[index].col
+    );
 
   for (let index = 0; index < slot.length; index++) {
     const expected = horizontal
@@ -165,23 +181,11 @@ function validateSlotGeometry(slot) {
     ) return false;
   }
 
-  const option = slot.directionOptions[0];
-  const expectedDirection = horizontal ? 'right' : 'down';
-  if (
-    option.direction !== expectedDirection
-    || pointKey(option.clueCell) !== firstKey
-    || pointKey(option.terminalCell) !== lastKey
-    || !Array.isArray(option.coordinates)
-    || option.coordinates.length !== slot.length
-  ) return false;
-
-  for (let index = 0; index < option.coordinates.length; index++) {
-    if (
-      option.coordinates[index].row !== slot.coordinates[index].row
-      || option.coordinates[index].col !== slot.coordinates[index].col
-    ) return false;
-  }
-  return true;
+  const forward = slot.directionOptions.find(option => option.direction === forwardDirection);
+  if (!forward || !validOption(forward, forwardDirection, start, end, forwardCoordinates)) return false;
+  if (slot.directionOptions.length === 1) return true;
+  const reverse = slot.directionOptions.find(option => option.direction === reverseDirection);
+  return Boolean(reverse && validOption(reverse, reverseDirection, end, start, reverseCoordinates));
 }
 
 function calculateSlotDegrees(slots) {
