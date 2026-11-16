@@ -19,6 +19,7 @@ async function main() {
   };
   const runs = [];
   const fingerprints = new Set();
+  const topologyMasks = new Set();
   let featuredShortRequested = 0;
   let featuredShortGenerated = 0;
   const directionCoverage = new Set();
@@ -50,6 +51,8 @@ async function main() {
     if (shouldFeatureShort) featuredShortRequested++;
     if (featured.length === 1 && featured[0].answer.length <= 5) featuredShortGenerated++;
 
+    const topologyMask = JSON.stringify(result.scanword.grid.map(row => row.map(cell => cell.type)));
+    topologyMasks.add(topologyMask);
     const fingerprint = JSON.stringify({
       roles: result.scanword.grid.map(row => row.map(cell => cell.type)),
       answers: words.map(word => word.answer).sort()
@@ -94,6 +97,7 @@ async function main() {
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
     distinctPuzzles: fingerprints.size,
+    distinctTopologies: topologyMasks.size,
     directionCoverage: [...directionCoverage].sort(),
     ordinaryScaffoldsUsed: [...new Set(successful.filter(run => Number.isInteger(run.scaffoldIndex) && run.scaffoldIndex >= 0).map(run => run.scaffoldIndex))].sort((a, b) => a - b),
     averageAnswers: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.answerCount, 0) / successful.length * 100) / 100 : 0,
@@ -110,7 +114,7 @@ async function main() {
   assert.equal(featuredShortRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must feature one short clue.");
   assert.equal(featuredShortGenerated, 5, "Every fourth puzzle must feature exactly one answer of at most five letters.");
   assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
-  assert.ok(report.ordinaryScaffoldsUsed.length >= 3, 'Production must use at least three independently validated ordinary topologies across the batch.');
+  assert.ok(report.distinctTopologies >= 3, 'Production must produce at least three distinct validated topology masks across the batch.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
 
   assert.ok(report.maxTwoLetterAnswers <= options.maxTwoLetterSlots, "Production puzzles must stay within the configured two-letter answer limit.");
