@@ -5,7 +5,7 @@ async function main() {
   const { generateScanword } = await import("../scanword-engine/src/generator.js");
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
   const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
-  const trials = 8;
+  const trials = 1;
   let successful = null;
   const attempts = [];
 
@@ -16,8 +16,8 @@ async function main() {
       specialElevenLetterChance: 1,
       maxTopologyAttempts: 16,
       specialTopologyAttempts: 8,
-      maxNodes: 120000,
-      maxCspTimeMs: 1200,
+      maxNodes: 240000,
+      maxCspTimeMs: 5000,
       topologyMutationAttempts: 96,
       requiredImageCount: 5,
       minimumLogicClueCells: 3,
