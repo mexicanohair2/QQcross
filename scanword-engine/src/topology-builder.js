@@ -177,7 +177,7 @@ function countInteriorQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 5) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
