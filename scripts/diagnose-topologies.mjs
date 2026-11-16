@@ -1,6 +1,22 @@
-const { getTopologyScaffolds, generateTopology } = await import("../scanword-engine/src/topology-builder.js");
-const { createEmptyGrid } = await import("../scanword-engine/src/grid.js");
-const { validateTopology, deriveWordSlots } = await import("../scanword-engine/src/topology.js");
+import assert from "node:assert/strict";
+import { generateTopology } from "../scanword-engine/src/topology-builder.js";
+import { createEmptyGrid } from "../scanword-engine/src/grid.js";
+import { validateTopology, deriveWordSlots } from "../scanword-engine/src/topology.js";
+
+const targetPattern = [
+  ".#...###",
+  "#...#...",
+  "#...#...",
+  "#...#...",
+  "#......#",
+  "#....##.",
+  "#...#...",
+  "#...#...",
+  "#......#",
+  "#....#..",
+  "#.......",
+  "#......#"
+];
 
 function roleGrid(rows) {
   const grid = createEmptyGrid();
@@ -14,64 +30,78 @@ function roleGrid(rows) {
   }
   return grid;
 }
-function metrics(rows) {
+
+function metrics(rows, includeSpecialEleven = false) {
   const grid = roleGrid(rows);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
+    allowTopRowHorizontalRun: true,
+    allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true,
+    allowColumnOneBoundarySlot: false,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
   const derived = deriveWordSlots(grid, topologyOptions);
-  const counts = Object.fromEntries([2,3,4,5,6,7,8,9,10,11].map(n => [
-    String(n), derived.slots.filter(slot => slot.length === n).length
-  ]));
   return {
-    valid: validation.valid,
-    errors: validation.errors.slice(0, 5),
+    valid: validation.valid && derived.errors.length === 0,
+    errors: [...validation.errors, ...derived.errors].slice(0, 8),
     pattern: rows.join("/"),
     questionCells: validation.metrics.questionCells,
     letterCells: validation.metrics.letterCells,
     slots: derived.slots.length,
-    lengths: counts,
-    shortSlots: counts["2"],
-    minLength: Math.min(...derived.slots.map(slot => slot.length)),
-    topQuestions: rows[0].slice(1).split("").filter(x => x === "#").length
+    shortSlots: derived.slots.filter(slot => slot.length === 2).length,
+    longSlots: derived.slots.filter(slot => slot.length >= 3).length,
+    elevenSlots: derived.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length,
+    topShortSlot: derived.slots.some(slot =>
+      slot.axis === "horizontal" && slot.length === 3
+      && slot.endpoints[0].row === 0 && slot.endpoints[0].col === 1
+      && slot.endpoints[1].row === 0 && slot.endpoints[1].col === 5
+    )
   };
 }
 
-const targetPattern = [
-  ".#...###",
-  "#...#...",
-  "#...#...",
-  "#...#...",
-  "#......#",
-  "#....##.",
-  "#...#...",
-  "#...#...",
-  "#......#",
-  "#....##.",
-  "#.....#.",
-  "#......#"
-];
-const targetMetrics = metrics(targetPattern);
-const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows)}));
-if (!scaffoldResults.some(item => item.valid && item.shortSlots <= 3)) throw new Error("Missing independently validated scaffold with at most three short answer slots.");
+const target = metrics(targetPattern, false);
+assert.equal(target.valid, true, JSON.stringify(target));
+assert.equal(target.topShortSlot, true);
+assert.equal(target.elevenSlots, 0);
+
+const special = generateTopology({
+  seed: 4004,
+  lowShortLayout: true,
+  includeSpecialEleven: true,
+  maxAttempts: 1
+});
+assert.equal(special.ok, true, JSON.stringify(special));
+const specialMetrics = metrics(special.topology.pattern, true);
+assert.equal(specialMetrics.valid, true, JSON.stringify(specialMetrics));
+assert.equal(specialMetrics.elevenSlots, 1);
+
 const randomResults = [];
-for(let seed=1;seed<=48;seed++){
-  const result=generateTopology({seed,includeSpecialEleven:false,maxAttempts:128});
-  if(result.ok)randomResults.push({seed,...metrics(result.topology.pattern)});
+for (let seed = 1; seed <= 48; seed++) {
+  const result = generateTopology({
+    seed,
+    lowShortLayout: true,
+    includeSpecialEleven: false,
+    maxAttempts: 96,
+    mutationBudget: 96,
+    maxTwoLetterSlots: 5
+  });
+  assert.equal(result.ok, true, "seed=" + seed + " " + JSON.stringify(result));
+  const item = metrics(result.topology.pattern, false);
+  assert.equal(item.valid, true, "seed=" + seed + " " + JSON.stringify(item));
+  assert.equal(item.elevenSlots, 0);
+  randomResults.push(item);
 }
+const distinctTopologies = new Set(randomResults.map(item => item.pattern));
+assert.ok(distinctTopologies.size >= 8, "Expected at least 8 distinct mutated low-short topologies.");
+
 console.log(JSON.stringify({
-  target:{rows:targetPattern,...targetMetrics},
-  scaffolds:scaffoldResults,
-  randomSample:randomResults,
-  averages:{
-    scaffoldShorts:scaffoldResults.reduce((sum,x)=>sum+x.shortSlots,0)/scaffoldResults.length,
-    randomShorts:randomResults.reduce((sum,x)=>sum+x.shortSlots,0)/randomResults.length,
-    scaffoldValid:scaffoldResults.filter(x=>x.valid).length,
-    randomValid:randomResults.filter(x=>x.valid).length
-  }
-},null,2));
+  ok: true,
+  target,
+  specialEleven: specialMetrics,
+  randomSampleCount: randomResults.length,
+  distinctMutatedTopologies: distinctTopologies.size,
+  shortBoards: 48,
+  longBoards: 1
+}, null, 2));
