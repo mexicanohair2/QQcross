@@ -1,6 +1,7 @@
 import { CONFIG, DIRECTIONS } from './config.js';
 import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
+import { isQuestionRole, isLetterRole, clueAllowsDirection } from './topology.js';
 
 function pointKey(point) {
   return point.row + ',' + point.col;
@@ -128,7 +129,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
     for (let col = 0; col < CONFIG.WIDTH; col++) {
       const cell = grid[row][col];
-      if (!cell || !['corner', 'question', 'letter'].includes(cell.type)) {
+      if (!cell || !['corner', 'question', 'letter', 'junction'].includes(cell.type)) {
         add('UNASSIGNED_CELL', 'Каждая клетка должна быть углом, вопросом или буквой.', {
           row, col, actual: cell?.type ?? null
         });
@@ -136,21 +137,30 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
 
       if (cell.type === 'corner') {
-        if (row !== 0 || col !== 0) {
-          add('EXTRA_CORNER', 'Пустой угол разрешён только в (0,0).', { row, col });
-        }
+        if (row !== 0 || col !== 0) add('EXTRA_CORNER', 'Пустой угол разрешён только в (0,0).', { row, col });
         if (cell.letter != null || (cell.questionIds?.length ?? 0) || (cell.wordIds?.length ?? 0)) {
           add('CORNER_HAS_CONTENT', 'Пустой угол не может содержать букву, вопрос или слово.', { row, col });
         }
-      } else if (cell.type === 'question') {
-        questionCells++;
-        if (cell.letter != null) add('QUESTION_HAS_LETTER', 'Вопросная клетка не может одновременно быть буквенной.', { row, col });
-      } else if (cell.type === 'letter') {
-        letterCells++;
-        if (typeof cell.letter !== 'string' || !/^[А-ЯЁ]$/u.test(cell.letter)) {
-          add('INVALID_LETTER', 'Буквенная клетка должна содержать одну русскую заглавную букву.', {
-            row, col, actual: cell.letter ?? null
-          });
+      } else {
+        if (isQuestionRole(cell)) {
+          questionCells++;
+          if (cell.type === 'question' && cell.letter != null) {
+            add('QUESTION_HAS_LETTER', 'Обычная вопросная клетка не может одновременно быть буквенной.', { row, col });
+          }
+          if (cell.type === 'junction') {
+            const directions = Array.isArray(cell.clueDirections) ? cell.clueDirections : [];
+            if (!directions.length || directions.some(direction => !DIRECTIONS[direction])) {
+              add('INVALID_JUNCTION_DIRECTIONS', 'Комбинированная клетка должна иметь допустимые направления вопроса.', { row, col, directions });
+            }
+          }
+        }
+        if (isLetterRole(cell)) {
+          letterCells++;
+          if (typeof cell.letter !== 'string' || !/^[А-ЯЁ]$/u.test(cell.letter)) {
+            add('INVALID_LETTER', 'Буквенная клетка должна содержать одну русскую заглавную букву.', {
+              row, col, actual: cell.letter ?? null
+            });
+          }
         }
       }
     }
@@ -230,7 +240,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (grid[clue.row][clue.col]?.type !== 'question') {
+    if (!isQuestionRole(grid[clue.row][clue.col])) {
       add('WORD_START_NOT_QUESTION', 'Ответ должен начинаться из вопросной клетки.', {
         wordId: word.id, row: clue.row, col: clue.col
       });
@@ -273,7 +283,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
       const key = pointKey(coordinate);
       const cell = grid[coordinate.row][coordinate.col];
-      if (cell.type !== 'letter') {
+      if (!isLetterRole(cell)) {
         add('WORD_CROSSES_NON_LETTER', 'Ответ пересекает вопросную клетку или пустой угол.', {
           wordId: word.id, row: coordinate.row, col: coordinate.col, cellType: cell.type
         });
@@ -539,7 +549,12 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     for (let offset = 0; offset < lineLength; offset++) {
       const row = horizontal ? fixedIndex : offset;
       const col = horizontal ? offset : fixedIndex;
-      if (grid[row][col]?.type === 'question') positions.push(offset);
+      const cell = grid[row][col];
+      const axisDirections = horizontal ? ['right', 'left'] : ['down', 'up'];
+      if (cell?.type === 'question'
+        || (cell?.type === 'junction' && axisDirections.some(direction => clueAllowsDirection(cell, direction)))) {
+        positions.push(offset);
+      }
     }
 
     for (let index = 0; index < positions.length - 1; index++) {
@@ -560,15 +575,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
           || word.special === 'OUTER_BOUNDARY'
         ) return false;
-        if (!samePoint(word.clue, first)) return false;
         const vector = DIRECTIONS[word.direction];
         if (!vector) return false;
         const expectedTerminal = {
           row: word.clue.row + vector.dr * (word.answer.length + 1),
           col: word.clue.col + vector.dc * (word.answer.length + 1)
         };
-        return samePoint(expectedTerminal, last)
-          && word.answer.length === length;
+        const forwardDirection = horizontal ? 'right' : 'down';
+        const reverseDirection = horizontal ? 'left' : 'up';
+        return word.answer.length === length && (
+          (samePoint(word.clue, first) && word.direction === forwardDirection && samePoint(expectedTerminal, last))
+          || (samePoint(word.clue, last) && word.direction === reverseDirection && samePoint(expectedTerminal, first))
+        );
       });
 
       if (matches.length !== 1) {
@@ -612,7 +630,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       const cell = grid[row][col];
       const key = row + ',' + col;
 
-      if (cell?.type === 'letter') {
+      if (cell && isLetterRole(cell)) {
         const expected = expectedWordIds.get(key) ?? new Set();
         if (expected.size === 0) {
           add('ORPHAN_LETTER_CELL', 'Буквенная клетка не принадлежит ни одному ответу.', {
@@ -624,8 +642,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
             row, col, expected: [...expected].sort(), actual: sortedUnique(cell.wordIds)
           });
         }
-        if ((cell.questionIds?.length ?? 0) > 0) {
-          add('LETTER_HAS_QUESTION_REFERENCES', 'Буквенная клетка не может содержать ссылки на вопросы.', {
+        if (cell.type === 'letter' && (cell.questionIds?.length ?? 0) > 0) {
+          add('LETTER_HAS_QUESTION_REFERENCES', 'Обычная буквенная клетка не может содержать ссылки на вопросы.', {
             row, col, actual: cell.questionIds
           });
         }
@@ -637,18 +655,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         }
       }
 
-      if (cell?.type === 'question') {
+      if (cell && isQuestionRole(cell)) {
         const expected = questionIdsByCell.get(key) ?? new Set();
         if (expected.size === 0) {
-          add('QUESTION_CELL_WITHOUT_QUESTION', 'Вопросная клетка не является ни началом ответа, ни его корректным конечным ограничителем.', { row, col });
+          add('QUESTION_CELL_WITHOUT_QUESTION', 'Вопросная клетка не имеет собственного вопроса или конечного слова.', { row, col });
         }
         if (!sameStringSet(cell.questionIds, [...expected])) {
           add('QUESTION_REFERENCES_MISMATCH', 'Список вопросов в клетке не совпадает с вопросными записями.', {
             row, col, expected: [...expected].sort(), actual: sortedUnique(cell.questionIds)
           });
         }
-        if ((cell.wordIds?.length ?? 0) > 0) {
-          add('QUESTION_HAS_WORD_REFERENCES', 'В вопросной клетке не должно быть ссылок на буквенные вхождения.', {
+        if (cell.type === 'question' && (cell.wordIds?.length ?? 0) > 0) {
+          add('QUESTION_HAS_WORD_REFERENCES', 'Обычная вопросная клетка не должна содержать буквенные вхождения.', {
             row, col, actual: cell.wordIds
           });
         }
