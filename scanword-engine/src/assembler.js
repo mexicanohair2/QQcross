@@ -58,8 +58,8 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
-    if (sourceWord.direction !== 'right' && sourceWord.direction !== 'down') {
-      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
+    if (!['right', 'left', 'down', 'up'].includes(sourceWord.direction)) {
+      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
         wordId: sourceWord.id, direction: sourceWord.direction
       });
       continue;
