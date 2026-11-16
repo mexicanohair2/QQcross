@@ -450,7 +450,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const lowShortLayout = options.allowTopRowHorizontalRun === true;
   const matrix = cloneRows(rows);
-  const grid = toRoleGrid(matrix);
+  const grid = toRoleGrid(matrix, includeSpecialEleven);
   const topologyOptions = {
     requireConnected: true,
     requireFullTopBorder: !lowShortLayout,
