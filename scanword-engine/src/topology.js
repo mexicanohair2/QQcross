@@ -22,13 +22,13 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'FIXED_FULL_TOP_AND_LEFT_BORDERS',
+    reason: 'DYNAMIC_TOP_AND_FIXED_LEFT_BORDERS',
     width,
     height,
     requiredTopAnchor: { row: 0, col: 1 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
     conflicts: [],
-    message: 'Все клетки верхней строки, кроме пустого угла (0,0), и все клетки левого столбца, кроме угла, обязательны для вопросных клеток.'
+    message: 'Верхний ряд использует вопросные опорные клетки и короткие слова между ними; весь левый столбец, кроме угла, остаётся вопросным.'
   };
 }
 
@@ -47,22 +47,31 @@ function hasValidShape(grid) {
 }
 
 function makeSlot(axis, first, last, coordinates) {
-  const direction = axis === 'horizontal' ? 'right' : 'down';
+  const horizontal = axis === 'horizontal';
+  const forwardDirection = horizontal ? 'right' : 'down';
+  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-
+  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
     axis,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    // A slot always starts at its first question and proceeds right/down.
-    directionOptions: [{
-      clueCell: { ...first },
-      terminalCell: { ...last },
-      direction,
-      coordinates: forward.map(item => ({ ...item }))
-    }],
+    directionOptions: [
+      {
+        clueCell: { ...first },
+        terminalCell: { ...last },
+        direction: forwardDirection,
+        coordinates: forward.map(item => ({ ...item }))
+      },
+      {
+        clueCell: { ...last },
+        terminalCell: { ...first },
+        direction: reverseDirection,
+        coordinates: reverse.map(item => ({ ...item }))
+      }
+    ],
     special: null
   };
 }
@@ -280,20 +289,20 @@ export function deriveWordSlots(grid, options = {}) {
 function collectSlotCoverage(slots) {
   const letterCoverage = new Map();
   const clueCoverage = new Map();
-
   for (const slot of slots) {
     for (const coordinate of slot.coordinates) {
       const key = keyOf(coordinate);
       letterCoverage.set(key, (letterCoverage.get(key) ?? 0) + 1);
     }
-
-    const clue = slot.directionOptions?.[0]?.clueCell;
-    if (clue && !clue.boundary) {
+    const cluePoints = slot.special === 'OUTER_BOUNDARY'
+      ? [slot.directionOptions?.[0]?.clueCell]
+      : slot.endpoints.filter(endpoint => !endpoint.boundary);
+    for (const clue of cluePoints) {
+      if (!clue) continue;
       const key = keyOf(clue);
       clueCoverage.set(key, (clueCoverage.get(key) ?? 0) + 1);
     }
   }
-
   return { letterCoverage, clueCoverage };
 }
 
@@ -345,7 +354,7 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  if (options.requireBorderClues !== false) {
+  if (options.requireFullTopBorder === true) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col].type !== 'question') {
         errors.push({
@@ -358,8 +367,8 @@ export function validateTopology(grid, options = {}) {
     }
   }
 
-  // The top row may be dynamic for legacy diagnostic layouts. Production templates
-  // set requireFullTopBorder and enforce seven consecutive top-edge clue cells.
+  // The top row is intentionally dynamic. The fixed anchor at (0,1) and the
+  // full left clue column keep the reference layout without forcing 11-letter runs.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
