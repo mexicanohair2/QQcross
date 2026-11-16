@@ -105,19 +105,19 @@ test('topology validator cannot be bypassed into allowing a partial top border',
   assert.ok(result.errors.some(error => error.type === 'TOP_BORDER_NOT_QUESTION'));
 });
 
-test('topology validator rejects an inactive question cell and unassigned letters', () => {
+test('topology validator rejects a question cell with no valid outgoing slot', () => {
   const rows = getTopologyScaffolds()[0];
   const inactive = [...rows];
-  const question = inactive[3].indexOf('#');
-  assert.ok(question > 2);
-  inactive[3] = inactive[3].slice(0, question) + '.' + inactive[3].slice(question + 1);
+  // At (2,2), both the incoming top/left runs would contain only one
+  // letter before this new clue, so the clue cannot own a valid answer.
+  inactive[2] = inactive[2].slice(0, 2) + '#' + inactive[2].slice(3);
   const result = validateTopology(gridFromPattern(inactive), {
     requireConnected: true,
     allowOuterBoundarySlots: true,
     allowColumnOneBoundarySlot: true
   });
   assert.equal(result.valid, false);
-  assert.ok(result.errors.some(error => error.type === 'ORPHAN_LETTER' || error.type === 'QUESTION_WITHOUT_SLOT'));
+  assert.ok(result.errors.some(error => error.type === 'QUESTION_WITHOUT_SLOT'));
 });
 
 test('the first two mandatory top clues create two 11-letter downward slots', () => {
