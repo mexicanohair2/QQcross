@@ -29,6 +29,14 @@ function gridFromPattern(rows) {
       }
     }
   }
+  for (const row of [4, 8]) {
+    for (const col of [1, 2]) {
+      grid[row][col] = {
+        row, col, type: 'junction', letter: 'А',
+        clueDirections: ['down'], questionIds: [], wordIds: []
+      };
+    }
+  }
   return grid;
 }
 
@@ -133,28 +141,29 @@ test('topology validator rejects a question cell with no valid outgoing slot', (
   assert.ok(result.errors.some(error => error.type === 'QUESTION_WITHOUT_SLOT'));
 });
 
-test('the first two mandatory top clues create two 11-letter downward slots', () => {
+test('top border answer columns are split into short vertical segments at clue-letter junctions', () => {
   const grid = gridFromPattern(getTopologyScaffolds()[0]);
   const derived = deriveWordSlots(grid, {
     allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true
+    minimumOuterBoundaryLength: 2
   });
-  const eleven = derived.slots.filter(slot => slot.length === 11 && slot.special === 'OUTER_BOUNDARY');
-  assert.equal(eleven.length, 2);
-  assert.deepEqual(eleven.map(slot => slot.directionOptions[0].direction), ['down', 'down']);
-  assert.deepEqual(eleven.map(slot => slot.directionOptions[0].clueCell.col), [1, 2]);
+  const vertical = derived.slots.filter(slot =>
+    slot.axis === 'vertical' && [1, 2].includes(slot.endpoints[0].col)
+    && [1, 2].includes(slot.endpoints[1].col)
+  );
+  assert.equal(vertical.length, 6);
+  assert.ok(vertical.every(slot => slot.length === 3));
+  assert.equal(derived.slots.some(slot => slot.length === 11), false);
+  assert.ok(grid.flat().filter(cell => cell.type === 'junction').length === 4);
+  assert.ok(vertical.every(slot => slot.directionOptions.some(option => option.direction === 'down')));
 });
 
-test('optional special-eleven metadata marks a single one of the mandatory 11-letter slots', () => {
-  const result = generateTopology({ seed: 123, includeSpecialEleven: true, maxAttempts: 8 });
+test('ordinary topology never creates a featured eleven-letter answer', () => {
+  const result = generateTopology({ seed: 123, includeSpecialEleven: false, maxAttempts: 8 });
   assert.equal(result.ok, true, JSON.stringify(result));
-  const special = result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
-  assert.equal(special.length, 1);
-  assert.equal(special[0].length, 11);
-  assert.deepEqual(special[0].directionOptions.map(item => item.direction), ['down']);
-  assert.deepEqual(special[0].coordinates[0], { row: 1, col: 1 });
-  assert.deepEqual(special[0].coordinates[10], { row: 11, col: 1 });
+  assert.equal(result.topology.slots.some(slot => slot.length === 11), false);
+  assert.equal(result.topology.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
 
@@ -222,12 +231,11 @@ test('seeded topology generation is deterministic and provides reverse answer di
   assert.equal(first.ok, true, JSON.stringify(first));
   assert.equal(second.ok, true, JSON.stringify(second));
   assert.deepEqual(first.topology.pattern, second.topology.pattern);
-  assert.ok(first.topology.slots.filter(slot => slot.special == null).every(slot => {
-    const directions = slot.directionOptions.map(item => item.direction);
-    return slot.axis === 'horizontal'
-      ? directions.length === 2 && directions.includes('right') && directions.includes('left')
-      : directions.length === 2 && directions.includes('down') && directions.includes('up');
-  }));
+  assert.ok(first.topology.slots.every(slot =>
+    slot.directionOptions.length >= 1
+    && slot.directionOptions.every(option => ['right', 'down', 'left', 'up'].includes(option.direction))
+  ));
   assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'left')));
   assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'up')));
+  assert.ok(first.topology.slots.some(slot => slot.directionOptions.length === 1));
 });
