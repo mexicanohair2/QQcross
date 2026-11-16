@@ -5,7 +5,7 @@ import { validateTopology, deriveWordSlots } from "../scanword-engine/src/topolo
 
 const targetPattern = [
   ".#...###",
-  "#...#...",
+  "#....#..",
   "#...#...",
   "#...#...",
   "#......#",
