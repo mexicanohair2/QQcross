@@ -4,8 +4,8 @@ export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter', 'juncti
 export const MIN_ANSWER_LENGTH = 2;
 
 /**
- * Reports the fixed 8x12 layout contract: an anchored top-row short answer,
- * a fully clued left border, and an empty top-left corner.
+ * Reports the fixed 8x12 layout contract: a fully clued top row and left
+ * border, with the top-left corner kept empty.
  */
 export function analyzeRequiredBorderFeasibility(options = {}) {
   const width = options.width ?? CONFIG.WIDTH;
