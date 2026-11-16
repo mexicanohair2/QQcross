@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { createEmptyGrid, inBounds } from './grid.js';
 import { normalizeAnswer } from './dictionary.js';
 
@@ -55,6 +55,12 @@ export function assembleScanword(assignments, options = {}) {
     if (!vector || !inBounds(clue?.row, clue?.col) || answer.length < 2 || answer.length > CONFIG.MAX_WORD_LENGTH) {
       fail('INVALID_WORD_GEOMETRY', 'Ответ имеет некорректное направление, вопрос или длину.', {
         wordId: sourceWord.id, direction: sourceWord.direction, clue, length: answer.length
+      });
+      continue;
+    }
+    if (!isAllowedClueDirection(clue, sourceWord.direction)) {
+      fail('INVALID_BORDER_DIRECTION', 'Вопросные клетки верхней и левой границ должны соблюдать установленные направления.', {
+        wordId: sourceWord.id, clue, direction: sourceWord.direction
       });
       continue;
     }
@@ -146,6 +152,20 @@ export function assembleScanword(assignments, options = {}) {
       ) {
         fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Специальный ответ из 11 букв должен идти вниз от верхней вопросной клетки до нижней границы.', {
           wordId: sourceWord.id, clue, terminal
+        });
+      }
+    } else if (sourceWord.special === 'OUTER_BOUNDARY') {
+      const validOuter = answer.length >= 2 && answer.length <= CONFIG.MAX_WORD_LENGTH
+        && sourceWord.coordinates.every((point, index) => {
+          if (sourceWord.direction === 'right') return point.row === clue.row && point.col === clue.col + index + 1;
+          if (sourceWord.direction === 'down') return point.row === clue.row + index + 1 && point.col === clue.col;
+          return false;
+        })
+        && ((sourceWord.direction === 'right' && terminal.row === clue.row && terminal.col === CONFIG.WIDTH)
+          || (sourceWord.direction === 'down' && terminal.row === CONFIG.HEIGHT && terminal.col === clue.col));
+      if (!validOuter) {
+        fail('INVALID_OUTER_BOUNDARY_WORD', 'Граничный ответ должен идти вправо или вниз до края поля.', {
+          wordId: sourceWord.id, clue, direction: sourceWord.direction, terminal
         });
       }
     } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
