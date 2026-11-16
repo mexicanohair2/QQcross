@@ -80,17 +80,17 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
 
   const shortSlots = derived.slots.filter(slot => slot.length === 2);
   const longSlots = derived.slots.filter(slot => slot.length >= 3);
-  const elevenSlots = derived.slots.filter(slot =>
+  const elevenSlots = derived.slots.filter(slot => slot.length === 11);
+  const specialElevenSlots = elevenSlots.filter(slot =>
     slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
     && slot.axis === 'vertical'
-    && slot.length === 11
     && slot.endpoints[0]?.row === 0
   );
 
   if (shortSlots.length < 1 || shortSlots.length > maxTwoLetterSlots || longSlots.length < 12) return null;
   if (includeSpecialEleven) {
-    if (elevenSlots.length !== 1) return null;
-    elevenSlots[0].special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
+    if (elevenSlots.length !== 1 || specialElevenSlots.length !== 1) return null;
+    specialElevenSlots[0].special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
   } else if (elevenSlots.length > 0) {
     return null;
   }
@@ -154,15 +154,17 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
 
   const shortSlots = derived.slots.filter(slot => slot.length === 2);
   const longSlots = derived.slots.filter(slot => slot.length >= 3);
-  const elevenSlots = derived.slots.filter(slot =>
+  const elevenSlots = derived.slots.filter(slot => slot.length === 11);
+  const specialElevenSlots = elevenSlots.filter(slot =>
     slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
     && slot.axis === 'vertical'
-    && slot.length === 11
     && slot.endpoints[0]?.row === 0
   );
   if (shortSlots.length < 1 || shortSlots.length > maxTwoLetterSlots || longSlots.length < 12) return null;
   if (derived.slots.length < 20) return null;
-  if (includeSpecialEleven ? elevenSlots.length !== 1 : elevenSlots.length !== 0) return null;
+  if (includeSpecialEleven
+    ? elevenSlots.length !== 1 || specialElevenSlots.length !== 1
+    : elevenSlots.length !== 0) return null;
 
   return {
     grid,
@@ -328,7 +330,7 @@ export function generateTopology(options = {}) {
   let fallback = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const lowShortLayout = options.lowShortLayout !== false || includeSpecialEleven;
+    const lowShortLayout = options.lowShortLayout === true;
     const lowShortScaffolds = lowShortLayout
       ? buildLowShortScaffolds(includeSpecialEleven, maxTwoLetterSlots)
       : [];
@@ -403,7 +405,7 @@ export function generateTopology(options = {}) {
 /** Exposes the preflight geometry metrics for regression tests and diagnostics. */
 export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
-  const lowShortLayout = options.lowShortLayout === true || includeSpecialEleven;
+  const lowShortLayout = options.lowShortLayout === true;
   const selectedIndex = Number.isInteger(templateIndex) && templateIndex >= 0 && templateIndex < SCAFFOLDS.length
     ? templateIndex
     : 0;
@@ -446,7 +448,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     return { valid: false, errors: [{ type: 'INVALID_PATTERN_SHAPE' }] };
   }
   const includeSpecialEleven = options.includeSpecialEleven === true;
-  const lowShortLayout = options.allowTopRowHorizontalRun === true || includeSpecialEleven;
+  const lowShortLayout = options.allowTopRowHorizontalRun === true;
   const matrix = cloneRows(rows);
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
