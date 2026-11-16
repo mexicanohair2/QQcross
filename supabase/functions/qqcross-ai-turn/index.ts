@@ -30,6 +30,7 @@ Deno.serve(async (req: Request) => {
   let body: any;
   try { body = await req.json(); } catch { return json(400, { error: "Некорректный запрос." }); }
   if (!body || typeof body !== "object" || Array.isArray(body)) return json(400, { error: "Некорректный запрос." });
+  if (body.mode === "status") return json(200, { ready: true });
   if (body.mode === "ask") {
     const question = typeof body.question === "string" ? body.question.trim() : "";
     if (question.length < 2 || question.length > 500) return json(400, { error: "Вопрос должен содержать от 2 до 500 символов." });
