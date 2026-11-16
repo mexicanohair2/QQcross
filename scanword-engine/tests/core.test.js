@@ -510,7 +510,7 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator permit only right and down answers', () => {
+test('assembler and independent validator permit all four answer directions', () => {
   const cases = [
     {
       direction: 'right',
@@ -521,6 +521,16 @@ test('assembler and independent validator permit only right and down answers', (
       direction: 'down',
       clue: { row: 0, col: 2 },
       coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
+    },
+    {
+      direction: 'left',
+      clue: { row: 2, col: 4 },
+      coordinates: [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
+    },
+    {
+      direction: 'up',
+      clue: { row: 4, col: 2 },
+      coordinates: [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
     }
   ];
 
@@ -550,21 +560,4 @@ test('assembler and independent validator permit only right and down answers', (
     assert.equal(checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'), false);
   }
 
-  for (const direction of ['left', 'up']) {
-    const rejected = assembleScanword({
-      seed: 18,
-      words: [{
-        id: 'forbidden-' + direction,
-        answer: 'КОТ',
-        question: 'Недопустимое направление.',
-        clue: direction === 'left' ? { row: 2, col: 4 } : { row: 4, col: 2 },
-        direction,
-        coordinates: direction === 'left'
-          ? [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
-          : [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
-      }]
-    });
-    assert.equal(rejected.ok, false);
-    assert.ok(rejected.errors.some(error => error.type === 'INVALID_WORD_GEOMETRY'));
-  }
 });
