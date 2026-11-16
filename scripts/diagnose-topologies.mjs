@@ -28,6 +28,11 @@ function roleGrid(rows) {
       cell.letter = cell.type === "letter" ? "А" : null;
     }
   }
+  for (const row of [4, 8]) {
+    for (const col of [1, 2]) {
+      grid[row][col] = { ...grid[row][col], type: "junction", letter: "А", clueDirections: ["down"] };
+    }
+  }
   return grid;
 }
 
