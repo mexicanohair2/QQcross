@@ -20,6 +20,7 @@ const options = {
   requireFullTopBorder: true,
   allowOuterBoundarySlots: true,
   allowColumnOneBoundarySlot: true,
+  allowSpecialElevenBoundary: false,
   minimumOuterBoundaryLength: 2
 };
 const topology = validateTopology(grid, options);
