@@ -203,8 +203,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       continue;
     }
     if (
-      (word.clue?.row === 0 && word.clue?.col === CONFIG.WIDTH - 1 && word.direction !== 'down')
-      || (word.clue?.row === CONFIG.HEIGHT - 1 && word.clue?.col === CONFIG.WIDTH - 1)
+      word.clue?.row === CONFIG.HEIGHT - 1 && word.clue?.col === CONFIG.WIDTH - 1
     ) {
       add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Нижняя правая терминальная клетка должна оставаться концом ответов, а не началом слова.', {
         wordId: word.id, clue: word.clue, direction: word.direction
