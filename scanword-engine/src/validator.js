@@ -196,8 +196,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (word.direction !== 'right' && word.direction !== 'down') {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
+    if (!['right', 'left', 'down', 'up'].includes(word.direction)) {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
         wordId: word.id, direction: word.direction
       });
       continue;
