@@ -166,7 +166,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
     const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
     ]).map(canonicalAnswerKey));
     if (answer.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(answer))) {
       add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ входит в утверждённый список коротких русских слов.', {
