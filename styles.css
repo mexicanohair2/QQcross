@@ -2385,3 +2385,36 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 .game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-right{right:1px;bottom:1px}
 .game-screen .scanword-board>.scan-cell.scan-boundary .scan-arrow-down{right:1px;top:1px}
+
+
+/* Wide scanword presentation: the validated 8×12 engine grid is displayed as 12×8. */
+.game-screen .board-wrap.scanword-wrap{
+  width:100%!important;flex:1 1 auto!important;min-height:0!important;
+  padding:0!important;overflow:hidden!important;
+}
+.game-screen .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:repeat(8,minmax(0,1fr))!important;
+  width:min(90vw,calc((100dvh - 170px)*1.5),900px)!important;
+  height:auto!important;aspect-ratio:3/2!important;
+  max-width:90vw!important;max-height:calc(100dvh - 170px)!important;
+  min-width:0!important;min-height:0!important;
+  margin:0 auto!important;gap:1px!important;
+  box-sizing:border-box!important;flex:0 0 auto!important;overflow:hidden!important;
+}
+@media(max-height:700px){
+  .game-screen .scanword-board{
+    width:min(90vw,calc((100dvh - 140px)*1.5),900px)!important;
+    max-width:90vw!important;max-height:calc(100dvh - 140px)!important;
+  }
+}
+@media(max-width:420px){
+  .game-screen .scanword-board{
+    width:min(90vw,calc((100dvh - 150px)*1.5))!important;
+    max-width:90vw!important;
+  }
+  .game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
+    font-size:clamp(6px,1.8vw,8px)!important;
+  }
+}
