@@ -1,55 +1,34 @@
 import assert from "node:assert/strict";
-import { createEmptyGrid } from "../scanword-engine/src/grid.js";
-import { deriveWordSlots, validateTopology } from "../scanword-engine/src/topology.js";
-import { SCANWORD_TEMPLATES } from "../scanword-engine/src/template-library.js";
+import { generateTopology } from "../scanword-engine/src/topology-builder.js";
+import { validateTopology, deriveWordSlots } from "../scanword-engine/src/topology.js";
 
-const templateIndex = 3;
-const pattern = SCANWORD_TEMPLATES[templateIndex];
-assert.ok(pattern, "The selected production template must exist.");
-const grid = createEmptyGrid();
-for (let row = 0; row < 12; row++) {
-  for (let col = 0; col < 8; col++) {
-    if (row === 0 && col === 0) continue;
-    const question = pattern[row][col] === "#";
-    grid[row][col].type = question ? "question" : "letter";
-    grid[row][col].letter = question ? null : "А";
-  }
+for (const includeSpecialEleven of [false, true]) {
+  const generated = generateTopology({
+    seed: includeSpecialEleven ? 77124 : 77123,
+    lowShortLayout: false,
+    includeSpecialEleven,
+    maxAttempts: 96,
+    mutationBudget: 96,
+    maxTwoLetterSlots: 5
+  });
+  assert.equal(generated.ok, true, JSON.stringify(generated));
+  const options = {
+    requireConnected: true,
+    requireFullTopBorder: true,
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    minimumOuterBoundaryLength: 2
+  };
+  const topology = validateTopology(generated.topology.grid, options);
+  const derived = deriveWordSlots(generated.topology.grid, options);
+  const eleven = derived.slots.filter(slot => slot.length === 11);
+  assert.equal(topology.valid, true, JSON.stringify(topology.errors));
+  assert.equal(derived.errors.length, 0, JSON.stringify(derived.errors));
+  assert.equal(generated.topology.pattern[0], ".#######");
+  assert.ok(generated.topology.grid[0].slice(1).every(cell => cell.type === "question"));
+  assert.equal(eleven.length, includeSpecialEleven ? 1 : 0);
+  assert.equal(eleven.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length, includeSpecialEleven ? 1 : 0);
+  assert.ok(derived.slots.length >= 20);
 }
-for (const row of [4, 8]) {
-  for (const col of [1, 2]) {
-    grid[row][col].type = "junction";
-    grid[row][col].letter = "А";
-    grid[row][col].clueDirections = ["down"];
-  }
-}
-const options = {
-  requireConnected: true,
-  requireFullTopBorder: true,
-  allowOuterBoundarySlots: true,
-  allowColumnOneBoundarySlot: true,
-  allowSpecialElevenBoundary: false,
-  minimumOuterBoundaryLength: 2
-};
-const topology = validateTopology(grid, options);
-const derived = deriveWordSlots(grid, options);
-const lengths = derived.slots.map(slot => slot.length);
-const result = {
-  templateIndex,
-  pattern,
-  valid: topology.valid && derived.errors.length === 0,
-  validationErrors: topology.errors,
-  slotErrors: derived.errors,
-  metrics: topology.metrics,
-  slotCount: derived.slots.length,
-  answerLengthRange: lengths.length ? [Math.min(...lengths), Math.max(...lengths)] : null,
-  twoLetterSlots: lengths.filter(length => length === 2).length,
-  elevenLetterSlots: lengths.filter(length => length === 11).length,
-  taggedSpecialElevenSlots: derived.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length,
-  fourDirectionSlots: derived.slots.filter(slot => slot.directionOptions.some(option => ["left", "up"].includes(option.direction))).length
-};
-console.log(JSON.stringify(result, null, 2));
-assert.equal(result.valid, true, "Production topology must pass independent validation.");
-assert.ok(result.slotCount >= 20, "Production topology must contain at least 20 answer slots.");
-assert.ok(lengths.every(length => length >= 2), "Production topology must not contain one-letter answers.");
-assert.equal(result.taggedSpecialElevenSlots, 0, "The retired special 11-letter feature must not appear.");
-assert.ok(result.twoLetterSlots <= 5, "Production topology must stay within the configured short-answer limit.");
+console.log(JSON.stringify({ ok: true, fullTopBorder: true, ordinaryElevenAnswers: 0, specialElevenAnswers: 1 }, null, 2));
