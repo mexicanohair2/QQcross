@@ -9,8 +9,10 @@ export const CONFIG = Object.freeze({
   MAX_WORD_LENGTH: 11,
   HISTORY_LIMIT: 100
 });
-// QQCross scanwords have exactly two answer directions: right and down.
+// Answers may start at either endpoint of a slot in all four directions.
 export const DIRECTIONS = Object.freeze({
   right: Object.freeze({ dr: 0, dc: 1 }),
-  down: Object.freeze({ dr: 1, dc: 0 })
+  down: Object.freeze({ dr: 1, dc: 0 }),
+  left: Object.freeze({ dr: 0, dc: -1 }),
+  up: Object.freeze({ dr: -1, dc: 0 })
 });
