@@ -41,6 +41,43 @@ function hasCrossingOuterBoundarySlots(slots) {
   return false;
 }
 
+function repairOuterBoundaryCrossings(matrix, includeSpecialEleven, maxTwoLetterSlots) {
+  const options = {
+    requireConnected: true,
+    requireFullTopBorder: true,
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    minimumOuterBoundaryLength: 2
+  };
+  let repairs = 0;
+  while (repairs < 8) {
+    const grid = toRoleGrid(matrix, includeSpecialEleven);
+    const derived = deriveWordSlots(grid, options);
+    const boundarySlots = derived.slots.filter(slot => slot.special === 'OUTER_BOUNDARY');
+    let intersection = null;
+    for (let left = 0; left < boundarySlots.length && !intersection; left++) {
+      const leftKeys = new Set(boundarySlots[left].coordinates.map(point => point.row + ',' + point.col));
+      for (let right = left + 1; right < boundarySlots.length && !intersection; right++) {
+        for (const point of boundarySlots[right].coordinates) {
+          if (leftKeys.has(point.row + ',' + point.col)) {
+            intersection = point;
+            break;
+          }
+        }
+      }
+    }
+    if (!intersection) break;
+    const { row, col } = intersection;
+    if (row <= 0 || col <= 0 || row >= CONFIG.HEIGHT || col >= CONFIG.WIDTH
+      || matrix[row][col] !== '.') break;
+    if (grid[row][col].type === 'junction') break;
+    matrix[row][col] = '#';
+    repairs++;
+  }
+  return repairs;
+}
+
 const JUNCTION_ROWS = Object.freeze([4, 8]);
 const JUNCTION_COLUMNS = Object.freeze([1, 2]);
 
@@ -262,7 +299,8 @@ function countInteriorQuestions(matrix) {
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
 function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = includeSpecialEleven ? 4 : 5, preserveScaffold = false) {
-  const matrix = cloneRows(baseRows);
+  let matrix = cloneRows(baseRows);
+  repairOuterBoundaryCrossings(matrix, includeSpecialEleven, maxTwoLetterSlots);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
@@ -288,15 +326,18 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     touched.add(key);
     tried++;
 
-    const previous = matrix[row][col];
-    matrix[row][col] = previous === '#' ? '.' : '#';
-    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, 3);
+    const previousMatrix = cloneRows(matrix);
+    const attemptMatrix = cloneRows(matrix);
+    attemptMatrix[row][col] = attemptMatrix[row][col] === '#' ? '.' : '#';
+    repairOuterBoundaryCrossings(attemptMatrix, includeSpecialEleven, maxTwoLetterSlots);
+    const next = inspectCandidate(attemptMatrix, includeSpecialEleven, maxTwoLetterSlots, 3);
 
     if (next) {
+      matrix = attemptMatrix;
       candidate = next;
       accepted++;
     } else {
-      matrix[row][col] = previous;
+      matrix = previousMatrix;
     }
   }
 
