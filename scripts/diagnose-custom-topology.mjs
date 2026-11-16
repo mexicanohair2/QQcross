@@ -1,44 +1,46 @@
+import assert from "node:assert/strict";
 import { createEmptyGrid } from "../scanword-engine/src/grid.js";
 import { deriveWordSlots, validateTopology } from "../scanword-engine/src/topology.js";
+import { SCANWORD_TEMPLATES } from "../scanword-engine/src/template-library.js";
 
-const pattern = [
-  ".#..#..#",
-  "#......#",
-  "#......#",
-  "#......#",
-  "#...#..#",
-  "#......#",
-  "#......#",
-  "#......#",
-  "#...#..#",
-  "#......#",
-  "#......#",
-  "#...#..#"
-];
+const templateIndex = 3;
+const pattern = SCANWORD_TEMPLATES[templateIndex];
+assert.ok(pattern, "The selected production template must exist.");
 const grid = createEmptyGrid();
-for(let row=0;row<12;row++){
-  for(let col=0;col<8;col++){
-    if(row===0&&col===0)continue;
-    const question=pattern[row][col]==="#";
-    grid[row][col].type=question?"question":"letter";
-    grid[row][col].letter=question?null:"А";
+for (let row = 0; row < 12; row++) {
+  for (let col = 0; col < 8; col++) {
+    if (row === 0 && col === 0) continue;
+    const question = pattern[row][col] === "#";
+    grid[row][col].type = question ? "question" : "letter";
+    grid[row][col].letter = question ? null : "А";
   }
 }
-const topology=validateTopology(grid,{requireConnected:true});
-const normal=deriveWordSlots(grid,{allowSpecialElevenBoundary:false});
-const special=deriveWordSlots(grid,{allowSpecialElevenBoundary:true});
-const histogram=slots=>Object.fromEntries([2,3,4,5,6,7,8,9,10,11].map(n=>[
-  String(n),slots.filter(slot=>slot.length===n).length
-]));
-const result={
-  valid:topology.valid,
-  errors:topology.errors,
-  metrics:topology.metrics,
-  normalSlots:normal.slots.length,
-  specialSlots:special.slots.length,
-  normalLengths:histogram(normal.slots),
-  specialLengths:histogram(special.slots),
-  pattern
+const options = {
+  requireConnected: true,
+  requireFullTopBorder: true,
+  allowOuterBoundarySlots: true,
+  allowColumnOneBoundarySlot: true,
+  minimumOuterBoundaryLength: 2
 };
-console.log(JSON.stringify(result,null,2));
-if(!topology.valid||normal.errors.length||normal.slots.length!==19||normal.slots.filter(slot=>slot.length===2).length!==6)process.exitCode=1;
+const topology = validateTopology(grid, options);
+const derived = deriveWordSlots(grid, options);
+const lengths = derived.slots.map(slot => slot.length);
+const result = {
+  templateIndex,
+  pattern,
+  valid: topology.valid && derived.errors.length === 0,
+  validationErrors: topology.errors,
+  slotErrors: derived.errors,
+  metrics: topology.metrics,
+  slotCount: derived.slots.length,
+  answerLengthRange: lengths.length ? [Math.min(...lengths), Math.max(...lengths)] : null,
+  twoLetterSlots: lengths.filter(length => length === 2).length,
+  elevenLetterSlots: lengths.filter(length => length === 11).length,
+  fourDirectionSlots: derived.slots.filter(slot => slot.directionOptions.some(option => ["left", "up"].includes(option.direction))).length
+};
+console.log(JSON.stringify(result, null, 2));
+assert.equal(result.valid, true, "Production topology must pass independent validation.");
+assert.ok(result.slotCount >= 20, "Production topology must contain at least 20 answer slots.");
+assert.ok(lengths.every(length => length >= 2 && length <= 10), "Ordinary puzzles must not contain one-letter or 11-letter answers.");
+assert.equal(result.elevenLetterSlots, 0, "The retired 11-letter feature must not appear.");
+assert.ok(result.twoLetterSlots <= 3, "Production topology must limit two-letter answers.");
