@@ -532,14 +532,14 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
           || word.special === 'OUTER_BOUNDARY'
         ) return false;
-        if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
+        if (!samePoint(word.clue, first)) return false;
         const vector = DIRECTIONS[word.direction];
         if (!vector) return false;
         const expectedTerminal = {
           row: word.clue.row + vector.dr * (word.answer.length + 1),
           col: word.clue.col + vector.dc * (word.answer.length + 1)
         };
-        return samePoint(expectedTerminal, samePoint(word.clue, first) ? last : first)
+        return samePoint(expectedTerminal, last)
           && word.answer.length === length;
       });
 
@@ -611,7 +611,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
       if (cell?.type === 'question') {
         const expected = questionIdsByCell.get(key) ?? new Set();
-        if (expected.size === 0 && !terminalQuestionKeys.has(key)) {
+        if (expected.size === 0) {
           add('QUESTION_CELL_WITHOUT_QUESTION', 'Вопросная клетка не является ни началом ответа, ни его корректным конечным ограничителем.', { row, col });
         }
         if (!sameStringSet(cell.questionIds, [...expected])) {
