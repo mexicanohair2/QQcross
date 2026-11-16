@@ -9,7 +9,7 @@ const SCAFFOLDS = Object.freeze(
 );
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
-  '#...#...',
+  '#....#..',
   '#...#...',
   '#...#...',
   '#......#',
