@@ -384,7 +384,21 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  if (options.requireBorderClues !== false) {
+  if (options.allowTopRowHorizontalRun === true) {
+    const expectedTopRow = ['corner', 'question', 'letter', 'letter', 'letter', 'question', 'question', 'question'];
+    for (let col = 0; col < CONFIG.WIDTH; col++) {
+      if (grid[0][col].type !== expectedTopRow[col]) {
+        errors.push({
+          type: 'TOP_ROW_SHORT_ANSWER_LAYOUT_INVALID',
+          message: 'Короткий верхний ответ должен идти от (0,1) вправо через три буквы до вопросной клетки (0,5).',
+          row: 0,
+          col,
+          expected: expectedTopRow[col],
+          actual: grid[0][col].type
+        });
+      }
+    }
+  } else if (options.requireBorderClues !== false) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col].type !== 'question') {
         errors.push({
@@ -397,8 +411,7 @@ export function validateTopology(grid, options = {}) {
     }
   }
 
-  // The top row may be dynamic for legacy diagnostic layouts. Production templates
-  // set requireFullTopBorder and enforce seven consecutive top-edge clue cells.
+  // The left border remains fully question-marked for both production layouts.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
@@ -466,6 +479,22 @@ export function validateTopology(grid, options = {}) {
   const derived = deriveWordSlots(grid, options);
   errors.push(...derived.errors);
   warnings.push(...derived.warnings);
+  if (options.allowTopRowHorizontalRun === true) {
+    const topShortSlot = derived.slots.some(slot =>
+      slot.axis === 'horizontal'
+      && slot.length === 3
+      && slot.endpoints[0]?.row === 0
+      && slot.endpoints[0]?.col === 1
+      && slot.endpoints[1]?.row === 0
+      && slot.endpoints[1]?.col === 5
+    );
+    if (!topShortSlot) {
+      errors.push({
+        type: 'TOP_ROW_SHORT_ANSWER_SLOT_MISSING',
+        message: 'Верхняя короткая подсказка должна образовывать ответ из трёх букв.'
+      });
+    }
+  }
 
   const coverage = collectSlotCoverage(derived.slots);
 
