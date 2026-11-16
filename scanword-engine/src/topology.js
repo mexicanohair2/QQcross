@@ -4,8 +4,8 @@ export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter']);
 export const MIN_ANSWER_LENGTH = 2;
 
 /**
- * Proves whether the required top/left clue borders can satisfy the rule
- * that every ordinary answer ends at an in-board question cell.
+ * Reports the fixed 8x12 layout contract: an anchored top-row short answer,
+ * a fully clued left border, and an empty top-left corner.
  */
 export function analyzeRequiredBorderFeasibility(options = {}) {
   const width = options.width ?? CONFIG.WIDTH;
@@ -22,13 +22,14 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'FIXED_FULL_TOP_AND_LEFT_BORDERS',
+    reason: 'FIXED_TOP_SHORT_ANSWER_AND_LEFT_BORDER',
     width,
     height,
     requiredTopAnchor: { row: 0, col: 1 },
+    requiredTopHorizontalAnswer: { start: { row: 0, col: 1 }, end: { row: 0, col: 5 }, length: 3 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
     conflicts: [],
-    message: 'Все клетки верхней строки, кроме пустого угла (0,0), и все клетки левого столбца, кроме угла, обязательны для вопросных клеток.'
+    message: 'Верхняя подсказка образует горизонтальный ответ из трёх букв; левый столбец, кроме угла, остаётся вопросным.'
   };
 }
 
