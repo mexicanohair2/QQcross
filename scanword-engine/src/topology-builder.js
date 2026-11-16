@@ -239,7 +239,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
   // The special 11-letter layout keeps its crossing rows intact. Ordinary
   // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven || preserveScaffold ? 0 : 2 + Math.floor(random() * 4);
+  const targetMutations = includeSpecialEleven || preserveScaffold ? 0 : 6 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
