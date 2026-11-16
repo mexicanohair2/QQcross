@@ -266,26 +266,26 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  // The full top border forces two 11-letter downward answers on every board.
-  // For special puzzles, try each independently validated template and tag
-  // exactly one of those required long answers as the featured special answer.
+  // The featured 11-letter answer uses the same short-top layout as
+  // ordinary puzzles, with its dedicated uninterrupted first column.
+  const candidateTopology = generateTopology({
+    seed: 1,
+    lowShortLayout: true,
+    includeSpecialEleven: true,
+    maxAttempts: 1,
+    mutationBudget: 1,
+    maxTwoLetterSlots: 5,
+    preserveScaffold: true
+  });
   const topologies = [];
-  for (let templateIndex = 0; templateIndex < 20; templateIndex++) {
-    const candidateTopology = generateTopology({
-      seed: templateIndex + 1,
-      templateIndex,
-      includeSpecialEleven: true,
-      maxTwoLetterSlots: 5
-    });
-    if (!candidateTopology.ok) continue;
+  if (candidateTopology.ok) {
     const specialSlot = candidateTopology.topology.slots.find(slot =>
       slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
     );
-    if (!specialSlot) continue;
-    topologies.push({
+    if (specialSlot) topologies.push({
       rows: candidateTopology.topology.pattern,
-      templateIndex,
-      patternKey: 'approved-template-' + (templateIndex + 1),
+      templateIndex: null,
+      patternKey: 'short-top-special-11',
       specialSlot,
       result: candidateTopology
     });
