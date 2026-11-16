@@ -29,6 +29,18 @@ function cloneRows(rows) {
 const JUNCTION_ROWS = Object.freeze([4, 8]);
 const JUNCTION_COLUMNS = Object.freeze([1, 2]);
 
+function contiguousLetters(matrix, row, col, dr, dc) {
+  let count = 0;
+  for (let step = 1; step < Math.max(CONFIG.HEIGHT, CONFIG.WIDTH); step++) {
+    const nextRow = row + dr * step;
+    const nextCol = col + dc * step;
+    if (nextRow < 0 || nextRow >= CONFIG.HEIGHT || nextCol < 0 || nextCol >= CONFIG.WIDTH) break;
+    if (matrix[nextRow][nextCol] !== '.') break;
+    count++;
+  }
+  return count;
+}
+
 function toRoleGrid(matrix, includeSpecialEleven = false) {
   const grid = createEmptyGrid();
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
@@ -36,13 +48,22 @@ function toRoleGrid(matrix, includeSpecialEleven = false) {
       if (row === 0 && col === 0) continue;
       const cell = grid[row][col];
       const junctionColumns = includeSpecialEleven ? [2] : JUNCTION_COLUMNS;
-      const horizontalJunction = [1, 2, 9, 10].includes(row) && col === 4 && matrix[row][col] === '.';
-      if (horizontalJunction) {
-        // Split long horizontal runs into shorter answer segments.
-        // The junction remains a letter in the vertical answer.
+      const horizontalJunction = col === 4 && matrix[row][col] === '.'
+        && contiguousLetters(matrix, row, col, 0, -1) >= 2
+        && contiguousLetters(matrix, row, col, 0, 1) >= 2;
+      const verticalJunction = row === 6 && col >= 3 && col <= 7
+        && matrix[row][col] === '.'
+        && contiguousLetters(matrix, row, col, -1, 0) >= 2
+        && contiguousLetters(matrix, row, col, 1, 0) >= 2;
+      if (horizontalJunction || verticalJunction) {
+        // Junctions split long runs in one or both axes while remaining
+        // playable letters in the crossing answer.
         cell.type = 'junction';
         cell.letter = 'А';
-        cell.clueDirections = ['right'];
+        cell.clueDirections = [
+          ...(horizontalJunction ? ['right'] : []),
+          ...(verticalJunction ? ['down'] : [])
+        ];
       } else if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
         // The vertical clue begins here while the same square remains a
         // letter in the horizontal answer started at the left border.
