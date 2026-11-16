@@ -32,7 +32,7 @@ function gridFromPattern(rows) {
   return grid;
 }
 
-test('derives only rightward horizontal answer slots', () => {
+test('derives horizontal answer slots in both directions', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 4);
@@ -40,13 +40,17 @@ test('derives only rightward horizontal answer slots', () => {
   const slot = result.slots.find(item => item.axis === 'horizontal' && item.endpoints[0].row === 2);
   assert.ok(slot);
   assert.equal(slot.length, 3);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right', 'left']);
   assert.deepEqual(slot.directionOptions[0].coordinates, [
     { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }
   ]);
+  assert.deepEqual(slot.directionOptions[1].coordinates, [
+    { row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }
+  ]);
+  assert.deepEqual(slot.directionOptions[1].clueCell, { row: 2, col: 4 });
 });
 
-test('derives only downward vertical answer slots', () => {
+test('derives vertical answer slots in both directions', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 4);
   setQuestion(grid, 5, 4);
@@ -54,18 +58,27 @@ test('derives only downward vertical answer slots', () => {
   const slot = result.slots.find(item => item.axis === 'vertical' && item.endpoints[0].col === 4);
   assert.ok(slot);
   assert.equal(slot.length, 4);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down', 'up']);
+  assert.deepEqual(slot.directionOptions[1].coordinates, [
+    { row: 4, col: 4 }, { row: 3, col: 4 }, { row: 2, col: 4 }, { row: 1, col: 4 }
+  ]);
 });
 
-test('coordinate helper rejects left and up directions', () => {
+test('coordinate helper supports all four directions and enforces bounds', () => {
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'right', 2), [
     { row: 2, col: 3 }, { row: 2, col: 4 }
   ]);
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'down', 2), [
     { row: 3, col: 2 }, { row: 4, col: 2 }
   ]);
-  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), null);
-  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), null);
+  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), [
+    { row: 2, col: 1 }, { row: 2, col: 0 }
+  ]);
+  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), [
+    { row: 1, col: 2 }, { row: 0, col: 2 }
+  ]);
+  assert.equal(getAnswerCoordinates({ row: 2, col: 0 }, 'left', 1), null);
+  assert.equal(getAnswerCoordinates({ row: 0, col: 2 }, 'up', 1), null);
 });
 
 test('does not turn a one-letter gap into an answer', () => {
@@ -155,15 +168,19 @@ test('border feasibility reports a fixed 8x12 full-border contract', () => {
   assert.equal(unsupported.reason, 'UNSUPPORTED_DIMENSIONS');
 });
 
-test('seeded topology generation is deterministic and never adds reverse directions', () => {
+test('seeded topology generation is deterministic and provides reverse answer directions', () => {
   const options = { seed: 90317, includeSpecialEleven: false, maxAttempts: 12 };
   const first = generateTopology(options);
   const second = generateTopology(options);
   assert.equal(first.ok, true, JSON.stringify(first));
   assert.equal(second.ok, true, JSON.stringify(second));
   assert.deepEqual(first.topology.pattern, second.topology.pattern);
-  assert.ok(first.topology.slots.every(slot =>
-    slot.directionOptions.length === 1
-    && ['right', 'down'].includes(slot.directionOptions[0].direction)
-  ));
+  assert.ok(first.topology.slots.filter(slot => slot.special == null).every(slot => {
+    const directions = slot.directionOptions.map(item => item.direction);
+    return directions.length === 2
+      && directions.some(direction => ['right', 'left'].includes(direction))
+      && directions.some(direction => ['down', 'up'].includes(direction)) === (slot.axis === 'vertical');
+  }));
+  assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'left')));
+  assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'up')));
 });
