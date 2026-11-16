@@ -235,28 +235,30 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  // Template 11 is one of the approved 8x12 masks and contains exactly
-  // one top-to-bottom eleven-letter slot. Its clue column comes from the
-  // template itself rather than a hard-coded coordinate.
-  const specialTemplateIndex = 10;
-  const specialTemplateTopology = generateTopology({
-    seed: 1,
-    templateIndex: specialTemplateIndex,
-    includeSpecialEleven: true,
-    maxTwoLetterSlots: 3
-  });
-  const specialSlot = specialTemplateTopology.ok
-    ? specialTemplateTopology.topology.slots.find(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY')
-    : null;
-  const topologies = specialSlot
-    ? [{
-        rows: specialTemplateTopology.topology.pattern,
-        templateIndex: specialTemplateIndex,
-        patternKey: 'approved-template-11',
-        specialSlot,
-        result: specialTemplateTopology
-      }]
-    : [];
+  // The full top border forces two 11-letter downward answers on every board.
+  // For special puzzles, try each independently validated template and tag
+  // exactly one of those required long answers as the featured special answer.
+  const topologies = [];
+  for (let templateIndex = 0; templateIndex < 20; templateIndex++) {
+    const candidateTopology = generateTopology({
+      seed: templateIndex + 1,
+      templateIndex,
+      includeSpecialEleven: true,
+      maxTwoLetterSlots: 5
+    });
+    if (!candidateTopology.ok) continue;
+    const specialSlot = candidateTopology.topology.slots.find(slot =>
+      slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
+    );
+    if (!specialSlot) continue;
+    topologies.push({
+      rows: candidateTopology.topology.pattern,
+      templateIndex,
+      patternKey: 'approved-template-' + (templateIndex + 1),
+      specialSlot,
+      result: candidateTopology
+    });
+  }
 
   const plans = [];
   const uniqueAnswers = new Set();
@@ -560,7 +562,7 @@ export function generateScanword(inputDictionary, options = {}) {
       seed: topologySeed,
       templateIndex: selectedTemplateIndex,
       includeSpecialEleven: useSpecialTopology,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 3
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
     });
 
     if (!topologyResult.ok) {
