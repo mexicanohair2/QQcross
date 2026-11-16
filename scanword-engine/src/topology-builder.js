@@ -137,10 +137,11 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
+    requireFullTopBorder: !lowShortLayout,
+    allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
