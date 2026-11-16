@@ -32,7 +32,7 @@ function gridFromPattern(rows) {
   return grid;
 }
 
-test('derives only rightward horizontal answer slots', () => {
+test('derives both horizontal answer directions for a single geometric slot', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 4);
@@ -40,13 +40,16 @@ test('derives only rightward horizontal answer slots', () => {
   const slot = result.slots.find(item => item.axis === 'horizontal' && item.endpoints[0].row === 2);
   assert.ok(slot);
   assert.equal(slot.length, 3);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right', 'left']);
   assert.deepEqual(slot.directionOptions[0].coordinates, [
     { row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }
   ]);
+  assert.deepEqual(slot.directionOptions[1].coordinates, [
+    { row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }
+  ]);
 });
 
-test('derives only downward vertical answer slots', () => {
+test('derives both vertical answer directions for a single geometric slot', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 4);
   setQuestion(grid, 5, 4);
@@ -54,18 +57,24 @@ test('derives only downward vertical answer slots', () => {
   const slot = result.slots.find(item => item.axis === 'vertical' && item.endpoints[0].col === 4);
   assert.ok(slot);
   assert.equal(slot.length, 4);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down', 'up']);
 });
 
-test('coordinate helper rejects left and up directions', () => {
+test('coordinate helper supports all four answer directions and rejects out-of-bounds paths', () => {
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'right', 2), [
     { row: 2, col: 3 }, { row: 2, col: 4 }
+  ]);
+  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), [
+    { row: 2, col: 1 }, { row: 2, col: 0 }
   ]);
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'down', 2), [
     { row: 3, col: 2 }, { row: 4, col: 2 }
   ]);
-  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), null);
-  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), null);
+  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), [
+    { row: 1, col: 2 }, { row: 0, col: 2 }
+  ]);
+  assert.equal(getAnswerCoordinates({ row: 2, col: 0 }, 'left', 2), null);
+  assert.equal(getAnswerCoordinates({ row: 0, col: 2 }, 'up', 1), null);
 });
 
 test('does not turn a one-letter gap into an answer', () => {
@@ -77,77 +86,87 @@ test('does not turn a one-letter gap into an answer', () => {
   assert.ok(result.warnings.some(item => item.type === 'SINGLE_LETTER_GAP'));
 });
 
-test('every independent template has the complete top/left clue borders and connected coverage', () => {
+test('all twenty templates preserve the dynamic top anchor and complete left clue border', () => {
   const templates = getTopologyScaffolds();
   assert.equal(templates.length, 20);
   for (const [index, rows] of templates.entries()) {
     const diagnostics = diagnoseTopologyPattern(rows);
     assert.equal(diagnostics.valid, true, 'template=' + index + ' ' + JSON.stringify(diagnostics));
-    assert.equal(rows[0], '.#######');
+    assert.equal(rows[0], '.#..#..#');
     for (let row = 1; row < 12; row++) assert.equal(rows[row][0], '#');
     assert.ok(diagnostics.slotCount >= 20);
     assert.ok(diagnostics.shortSlots >= 1 && diagnostics.shortSlots <= 5);
     assert.ok(diagnostics.longSlots >= 12);
+    assert.ok(diagnostics.slotLengths.every(length => length <= 10));
   }
 });
 
-test('topology validator cannot be bypassed into allowing a partial top border', () => {
-  const rows = getTopologyScaffolds()[0];
-  const partial = [...rows];
-  partial[0] = '.###.###';
-  const result = validateTopology(gridFromPattern(partial), {
-    requireConnected: true,
-    requireFullTopBorder: false,
-    allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true
+test('the featured layout creates exactly one five-letter top-row answer and no eleven-letter slot', () => {
+  const result = generateTopology({
+    seed: 123,
+    templateIndex: 0,
+    includeSpecialEleven: false,
+    featuredShortQuestion: true
   });
-  assert.equal(result.valid, false);
-  assert.ok(result.errors.some(error => error.type === 'TOP_BORDER_NOT_QUESTION'));
+  assert.equal(result.ok, true, JSON.stringify(result));
+  assert.equal(result.topology.pattern[0], '.#.....#');
+  const featured = result.topology.slots.filter(slot =>
+    slot.axis === 'horizontal'
+    && slot.length === 5
+    && slot.endpoints.some(point => point.row === 0 && point.col === 1)
+    && slot.endpoints.some(point => point.row === 0 && point.col === 7)
+  );
+  assert.equal(featured.length, 1);
+  assert.equal(result.topology.slots.some(slot => slot.length === 11), false);
+  assert.equal(result.topology.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
-test('topology validator rejects a question cell with no valid outgoing slot', () => {
+test('topology validation preserves the top anchor and left border while allowing the short top layout', () => {
+  const featured = generateTopology({ seed: 27, templateIndex: 2, featuredShortQuestion: true });
+  assert.equal(featured.ok, true, JSON.stringify(featured));
+  const validation = validateTopology(featured.topology.grid, {
+    requireConnected: true,
+    requireFullTopBorder: false,
+    allowSpecialElevenBoundary: false,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: false
+  });
+  assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+  assert.equal(featured.topology.grid[0][1].type, 'question');
+  for (let row = 1; row < 12; row++) assert.equal(featured.topology.grid[row][0].type, 'question');
+});
+
+test('topology validator rejects a question cell with no valid slot', () => {
   const rows = getTopologyScaffolds()[0];
   const inactive = [...rows];
-  // At (2,2), both the incoming top/left runs would contain only one
-  // letter before this new clue, so the clue cannot own a valid answer.
   inactive[2] = inactive[2].slice(0, 2) + '#' + inactive[2].slice(3);
   const result = validateTopology(gridFromPattern(inactive), {
     requireConnected: true,
+    requireBorderClues: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true
+    allowColumnOneBoundarySlot: false
   });
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(error => error.type === 'QUESTION_WITHOUT_SLOT'));
 });
 
-test('the first two mandatory top clues create two 11-letter downward slots', () => {
-  const grid = gridFromPattern(getTopologyScaffolds()[0]);
-  const derived = deriveWordSlots(grid, {
-    allowSpecialElevenBoundary: false,
-    allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: true
-  });
-  const eleven = derived.slots.filter(slot => slot.length === 11 && slot.special === 'OUTER_BOUNDARY');
-  assert.equal(eleven.length, 2);
-  assert.deepEqual(eleven.map(slot => slot.directionOptions[0].direction), ['down', 'down']);
-  assert.deepEqual(eleven.map(slot => slot.directionOptions[0].clueCell.col), [1, 2]);
+test('no topology template generates an 11-letter boundary answer', () => {
+  for (const rows of getTopologyScaffolds()) {
+    const derived = deriveWordSlots(gridFromPattern(rows), {
+      allowSpecialElevenBoundary: false,
+      allowOuterBoundarySlots: true,
+      allowColumnOneBoundarySlot: false
+    });
+    assert.equal(derived.errors.length, 0);
+    assert.equal(derived.slots.some(slot => slot.length === 11), false);
+    assert.equal(derived.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
+  }
 });
 
-test('optional special-eleven metadata marks a single one of the mandatory 11-letter slots', () => {
-  const result = generateTopology({ seed: 123, includeSpecialEleven: true, maxAttempts: 8 });
-  assert.equal(result.ok, true, JSON.stringify(result));
-  const special = result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
-  assert.equal(special.length, 1);
-  assert.equal(special[0].length, 11);
-  assert.deepEqual(special[0].directionOptions.map(item => item.direction), ['down']);
-  assert.deepEqual(special[0].coordinates[0], { row: 1, col: 1 });
-  assert.deepEqual(special[0].coordinates[10], { row: 11, col: 1 });
-});
-
-test('border feasibility reports a fixed 8x12 full-border contract', () => {
+test('border feasibility reports the dynamic top and fixed left clue borders', () => {
   const result = analyzeRequiredBorderFeasibility();
   assert.equal(result.feasible, true);
-  assert.equal(result.reason, 'FIXED_FULL_TOP_AND_LEFT_BORDERS');
+  assert.equal(result.reason, 'DYNAMIC_TOP_AND_FIXED_LEFT_BORDERS');
   assert.deepEqual(result.requiredTopAnchor, { row: 0, col: 1 });
   assert.deepEqual(result.requiredLeftBorderRows, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });
@@ -155,15 +174,14 @@ test('border feasibility reports a fixed 8x12 full-border contract', () => {
   assert.equal(unsupported.reason, 'UNSUPPORTED_DIMENSIONS');
 });
 
-test('seeded topology generation is deterministic and never adds reverse directions', () => {
+test('seeded topology generation is deterministic and uses valid reversible slots', () => {
   const options = { seed: 90317, includeSpecialEleven: false, maxAttempts: 12 };
   const first = generateTopology(options);
   const second = generateTopology(options);
   assert.equal(first.ok, true, JSON.stringify(first));
   assert.equal(second.ok, true, JSON.stringify(second));
   assert.deepEqual(first.topology.pattern, second.topology.pattern);
-  assert.ok(first.topology.slots.every(slot =>
-    slot.directionOptions.length === 1
-    && ['right', 'down'].includes(slot.directionOptions[0].direction)
-  ));
+  assert.ok(first.topology.slots.every(slot => slot.special === 'OUTER_BOUNDARY'
+    ? slot.directionOptions.length === 1 && ['right', 'down'].includes(slot.directionOptions[0].direction)
+    : slot.directionOptions.length === 2));
 });
