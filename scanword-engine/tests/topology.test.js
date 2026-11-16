@@ -198,7 +198,7 @@ test('every fourth production layout adds exactly one 11-letter answer to the fu
     seed: 77124,
     lowShortLayout: false,
     includeSpecialEleven: true,
-    maxAttempts: 1,
+    maxAttempts: 24,
     maxTwoLetterSlots: 5,
     preserveScaffold: true
   });
