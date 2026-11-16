@@ -42,8 +42,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireBorderClues: false,
-      requireTopRowHorizontalRun: true,
+      requireBorderClues: true,
+      requireTopRowHorizontalRun: false,
       requireConnected: true
     });
     const words = result.scanword.words;
@@ -122,8 +122,8 @@ async function main() {
   fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
-  assert.equal(featuredShortRequested, 15, "Exactly three out of every four puzzles must feature one short top-row clue.");
-  assert.equal(featuredShortGenerated, 15, "Every short-layout puzzle must feature exactly one answer of at most five letters.");
+  assert.equal(featuredShortRequested, 15, "Exactly three out of every four puzzles must feature one short answer.");
+  assert.equal(featuredShortGenerated, 15, "Every ordinary puzzle must feature exactly one answer of at most five letters.");
   assert.equal(specialElevenRequested, 5, "Exactly every fourth puzzle must request one 11-letter answer.");
   assert.equal(specialElevenGenerated, 5, "Every fourth puzzle must contain exactly one 11-letter answer.");
   assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
