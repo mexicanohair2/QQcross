@@ -681,8 +681,8 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireFullTopBorder: false,
-      requireTopRowHorizontalRun: true,
+      requireFullTopBorder: true,
+      requireTopRowHorizontalRun: false,
       requireConnected: true
     });
 
