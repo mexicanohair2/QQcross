@@ -249,7 +249,8 @@ export function deriveWordSlots(grid, options = {}) {
     }
 
     // A clue at the last question may point to the outer right/bottom edge.
-    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0) {
+    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
+      && (!(axis === 'vertical' && fixedIndex === 1) || options.allowColumnOneBoundarySlot === true)) {
       const from = questionPositions[questionPositions.length - 1];
       const cluePoint = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
       const direction = horizontal ? 'right' : 'down';
