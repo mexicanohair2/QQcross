@@ -177,9 +177,9 @@ test('seeded topology generation is deterministic and provides reverse answer di
   assert.deepEqual(first.topology.pattern, second.topology.pattern);
   assert.ok(first.topology.slots.filter(slot => slot.special == null).every(slot => {
     const directions = slot.directionOptions.map(item => item.direction);
-    return directions.length === 2
-      && directions.some(direction => ['right', 'left'].includes(direction))
-      && directions.some(direction => ['down', 'up'].includes(direction)) === (slot.axis === 'vertical');
+    return slot.axis === 'horizontal'
+      ? directions.length === 2 && directions.includes('right') && directions.includes('left')
+      : directions.length === 2 && directions.includes('down') && directions.includes('up');
   }));
   assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'left')));
   assert.ok(first.topology.slots.some(slot => slot.directionOptions.some(item => item.direction === 'up')));
