@@ -54,7 +54,7 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 - Never change the agreed **8×12** dimensions.
 - Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
 - Preserve the visual clue-cell language, small direction indicators, and vertical composition from the screenshot.
-- The current production topology is validated for right/down placements. Do not enable left/up production placements until topology, CSP, validator, renderer, hints, and all four direction paths pass the same independent tests.
+- QQCross supports all four answer directions: right, left, down and up. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's visible arrows are a visual reference, not a restriction on production directions.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note
