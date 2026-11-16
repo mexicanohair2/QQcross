@@ -216,9 +216,9 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
 
-    const directionKey = pointKey(clue) + '|' + word.direction;
+    const directionKey = pointKey(clue);
     if (clueDirectionUse.has(directionKey)) {
-      add('DUPLICATE_CLUE_DIRECTION', 'Одна вопросная клетка не может иметь два ответа в одном направлении.', {
+      add('MULTIPLE_ANSWERS_FROM_ONE_CLUE', 'Одна вопросная клетка может задавать только один ответ и одно направление.', {
         wordId: word.id, otherWordId: clueDirectionUse.get(directionKey), row: clue.row, col: clue.col, direction: word.direction
       });
     } else {
