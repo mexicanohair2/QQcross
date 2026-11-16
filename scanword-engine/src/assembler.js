@@ -38,10 +38,8 @@ export function assembleScanword(assignments, options = {}) {
     }
     if (cell.type === 'letter') cell.type = 'junction';
     else if (cell.type === 'unassigned') cell.type = 'question';
-    if (cell.type === 'junction') {
-      cell.clueDirections = Array.isArray(cell.clueDirections) ? cell.clueDirections : [];
-      if (direction && !cell.clueDirections.includes(direction)) cell.clueDirections.push(direction);
-    }
+    cell.clueDirections = Array.isArray(cell.clueDirections) ? cell.clueDirections : [];
+    if (direction && !cell.clueDirections.includes(direction)) cell.clueDirections.push(direction);
     if (questionId && !cell.questionIds.includes(questionId)) cell.questionIds.push(questionId);
   }
 
