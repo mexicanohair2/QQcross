@@ -155,7 +155,7 @@ test('top border answer columns are split into short vertical segments at clue-l
   assert.equal(vertical.length, 6);
   assert.ok(vertical.every(slot => slot.length === 3));
   assert.equal(derived.slots.some(slot => slot.length === 11), false);
-  assert.ok(grid.flat().filter(cell => cell.type === 'junction').length === 4);
+  assert.ok(grid.flat().filter(cell => cell.type === 'junction').length === 8);
   assert.ok(vertical.every(slot => slot.directionOptions.some(option => option.direction === 'down')));
 });
 
