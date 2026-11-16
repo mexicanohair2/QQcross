@@ -22,9 +22,26 @@ function hasEmoji(value) {
   return /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(String(value ?? ''));
 }
 
+function rotatePoint(point) {
+  return [7 - point[1], point[0]];
+}
+
+function rotateDirection(direction) {
+  const rotated = { right: 'up', down: 'right', left: 'down', up: 'left' };
+  return rotated[direction] ?? null;
+}
+
+function rotateKeySet(source) {
+  return new Set([...source].map(key => {
+    const [row, col] = key.split(',').map(Number);
+    return rotatePoint([row, col]).join(',');
+  }));
+}
+
 /**
  * Converts the certified engine format into the shape consumed by the
- * existing QQCross game renderer. The source puzzle stays 8 columns × 12 rows.
+ * existing QQCross game renderer. The validated 8×12 engine grid is displayed
+ * counter-clockwise as a wide 12-column × 8-row game board.
  */
 export function toLegacyPuzzle(scanword, options = {}) {
   if (!scanword || scanword.width !== 8 || scanword.height !== 12) {
@@ -76,10 +93,10 @@ export function toLegacyPuzzle(scanword, options = {}) {
       isEmoji: hasEmoji(clue),
       logic: word.logic === true,
       imageKey: word.imageKey ?? null,
-      dir: word.direction,
-      dirIndex: DIRECTION_INDEX[word.direction],
-      cells: word.coordinates.map(point => [point.row, point.col]),
-      clueCell: [word.clue.row, word.clue.col],
+      dir: rotateDirection(word.direction),
+      dirIndex: DIRECTION_INDEX[rotateDirection(word.direction)],
+      cells: word.coordinates.map(point => rotatePoint([point.row, point.col])),
+      clueCell: rotatePoint([word.clue.row, word.clue.col]),
       special: word.special ?? null
     };
   });
@@ -89,12 +106,12 @@ export function toLegacyPuzzle(scanword, options = {}) {
   return {
     id,
     title: 'Сканворд',
-    w: 8,
-    h: 12,
+    w: 12,
+    h: 8,
     words,
-    used,
-    clueKeys,
-    reservedKeys,
+    used: rotateKeySet(used),
+    clueKeys: rotateKeySet(clueKeys),
+    reservedKeys: rotateKeySet(reservedKeys),
     coverage: 1
   };
 }

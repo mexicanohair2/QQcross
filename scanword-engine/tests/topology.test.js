@@ -199,6 +199,7 @@ test('generates varied, connected topologies rather than one fixed board layout'
     assert.ok(result.topology.slots.length >= 19);
     assert.ok(result.topology.slots.filter(slot => slot.length === 2).length <= 8);
     assert.ok(result.topology.metrics.questionCells >= 20);
+    assert.ok(result.topology.metrics.centerQuestionCells >= 3);
     patterns.add(result.topology.pattern.join('/'));
   }
   assert.ok(patterns.size >= 3, 'expected multiple distinct topologies, got ' + patterns.size);
