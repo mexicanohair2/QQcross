@@ -48,12 +48,12 @@ export function toLegacyPuzzle(scanword, options = {}) {
       const key = row + ',' + col;
       if (row === 0 && col === 0) {
         if (cell.type !== 'corner') throw new Error('Клетка (0,0) должна оставаться пустым углом.');
-      } else if (cell.type === 'question') {
-        clueKeys.add(key);
-      } else if (cell.type === 'letter') {
-        used.add(key);
       } else {
-        throw new Error('Клетка ' + key + ' не имеет роли.');
+        if (cell.type === 'question' || cell.type === 'junction') clueKeys.add(key);
+        if (cell.type === 'letter' || cell.type === 'junction') used.add(key);
+        if (!['question', 'letter', 'junction'].includes(cell.type)) {
+          throw new Error('Клетка ' + key + ' не имеет роли.');
+        }
       }
     }
   }
