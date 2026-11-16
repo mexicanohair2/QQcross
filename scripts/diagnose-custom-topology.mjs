@@ -15,6 +15,13 @@ for (let row = 0; row < 12; row++) {
     grid[row][col].letter = question ? null : "А";
   }
 }
+for (const row of [4, 8]) {
+  for (const col of [1, 2]) {
+    grid[row][col].type = "junction";
+    grid[row][col].letter = "А";
+    grid[row][col].clueDirections = ["down"];
+  }
+}
 const options = {
   requireConnected: true,
   requireFullTopBorder: true,
