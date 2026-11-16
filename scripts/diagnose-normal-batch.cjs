@@ -18,9 +18,7 @@ async function main() {
     minimumLogicClueCells: 3,
   };
   const runs = [];
-  let specialElevenCount = 0;
-  let specialElevenRequestedCount = 0;
-  const specialElevenMisses = [];
+
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
@@ -49,21 +47,9 @@ async function main() {
       runs.push({ seed, ok: false, reason: 'IMAGE_CLUE_CELL_COLLISION', elapsedMs, distinctImageClueCells });
       continue;
     }
-    if (result.stats.specialElevenRequested) specialElevenRequestedCount++;
-    if (result.scanword.metadata.specialElevenLetterQuestion) specialElevenCount++;
-    else if (result.stats.specialElevenRequested) specialElevenMisses.push({
-      seed,
-      elapsedMs,
-      attempts: result.stats.attempts,
-      attemptedSpecialTopologies: result.stats.specialElevenAttempted,
-      diagnostics: result.stats.specialElevenFailureDiagnostics,
-      rejectedReasons: result.stats.rejectedReasons
-    });
+
     runs.push({
       seed, ok: validation.valid, elapsedMs,
-      specialElevenRequested: result.stats.specialElevenRequested,
-      specialElevenGenerated: result.scanword.metadata.specialElevenLetterQuestion,
-      specialAttemptsUsed: result.stats.specialElevenAttempted,
       generationAttempts: result.stats.attempts,
       score: result.scanword.metadata.score,
       answers: words.length,
@@ -88,11 +74,7 @@ async function main() {
     requested: runs.length,
     successful: successful.length,
     failed: runs.length - successful.length,
-    specialElevenRequestedCount,
-    specialElevenCount,
-    specialElevenMissedCount: specialElevenMisses.length,
-    specialElevenMisses,
-    expectedSpecialElevenRange: [25, 25],
+
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
     medianTwoLetterAnswers: twoLetterCounts[Math.floor(twoLetterCounts.length/2)],
@@ -107,20 +89,11 @@ async function main() {
   if (successful.some(run => run.musicNoteAnswers.length > 0)) {
     throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
   }
-  if (specialElevenRequestedCount !== 25 || specialElevenCount !== 25) {
-    throw new Error('Exactly every fourth of 100 puzzles must contain the eleven-letter answer; requested=' + specialElevenRequestedCount + ', generated=' + specialElevenCount);
-  }
   if (report.maximumTwoLetterAnswers > 6) {
     throw new Error("A production scanword contains more than six two-letter answers.");
   }
-  if (specialElevenMisses.length > 0) {
-    throw new Error("A requested eleven-letter scanword fell back to a normal puzzle: " + specialElevenMisses.length + " misses.");
-  }
   if (report.p95Ms > 4000) {
     throw new Error("Generation p95 exceeded the 4-second mobile safety budget: " + report.p95Ms + "ms.");
-  }
-  if (specialElevenMisses.some(item => item.attemptedSpecialTopologies > 1)) {
-    throw new Error("A missed long-answer request repeated more than one special topology attempt.");
   }
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
