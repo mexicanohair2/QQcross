@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { diagnoseTopologyPattern, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
 
-test('independent template library contains varied, fully valid 8x12 down-right boards', () => {
+test('independent template library contains varied, fully valid 8x12 boards supporting all four directions', () => {
   const templates = getTopologyScaffolds();
   assert.equal(templates.length, 20);
   const patterns = new Set();
@@ -34,11 +34,17 @@ test('seeded production topology generation stays fully covered and varied', () 
     assert.equal(topology.pattern[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(topology.pattern[row][0], '#');
     assert.ok(topology.slots.length >= 20);
-    assert.ok(topology.slots.every(slot =>
-      slot.length >= 2
-      && slot.directionOptions.length === 1
-      && ['right', 'down'].includes(slot.directionOptions[0].direction)
-    ));
+    assert.ok(topology.slots.every(slot => {
+      if (slot.length < 2) return false;
+      if (slot.special === 'OUTER_BOUNDARY' || slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
+        return slot.directionOptions.length === 1
+          && ['right', 'down', 'left', 'up'].includes(slot.directionOptions[0].direction);
+      }
+      const directions = slot.directionOptions.map(option => option.direction);
+      return slot.axis === 'horizontal'
+        ? directions.length === 2 && directions.includes('right') && directions.includes('left')
+        : directions.length === 2 && directions.includes('down') && directions.includes('up');
+    }));
     assert.ok(topology.validation.metrics.letterCells >= 30);
     assert.ok(topology.metrics.interiorQuestionCells >= 5);
     patterns.add(topology.pattern.join('/'));
@@ -61,5 +67,5 @@ test('the special topology still contains both mandatory long slots and one tagg
   const tagged = eleven.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
   assert.equal(tagged.length, 1);
   assert.equal(tagged[0].directionOptions[0].direction, 'down');
-  assert.ok(topology.slots.every(slot => ['right', 'down'].includes(slot.directionOptions[0].direction)));
+  assert.ok(topology.slots.every(slot => slot.directionOptions.every(option => ['right', 'down', 'left', 'up'].includes(option.direction))));
 });
