@@ -629,19 +629,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         && state.usedLogicClues.size >= minimumLogicClueCells;
       if (!contentValid) return false;
 
-      const completedStructure = slots.map(slot => {
-        const assignment = state.assignments.get(slot.id);
-        return {
-          entryId: assignment.entry.id,
-          clueCell: assignment.clueCell,
-          direction: assignment.direction,
-          coordinates: assignment.coordinates
-        };
-      });
-      if (options.history?.hasStructure?.(completedStructure)) {
-        recordDeadEnd({ reason: 'RECENT_STRUCTURE_REPEAT' });
-        return false;
-      }
+      // History is a ranking signal, never a hard validity rule. If the
+      // dictionary/topology has only one possible completion, accepting that
+      // valid board is better than failing generation solely because it was
+      // seen before. Candidate ordering already applies repeat penalties.
       return true;
     }
 
