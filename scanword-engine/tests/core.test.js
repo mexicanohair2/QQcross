@@ -510,6 +510,10 @@ test('assembler and independent validator accept left/up scanword answers', () =
   const assembled = assembleScanword({ seed: 1, words, questions });
   assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
   assert.deepEqual(new Set(assembled.scanword.words.map(word => word.direction)), new Set(['left', 'up']));
+  assert.equal(
+    assembled.scanword.words.some(word => word.clue.row === 0 && word.clue.col === 7 && word.direction !== 'down'),
+    false
+  );
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
