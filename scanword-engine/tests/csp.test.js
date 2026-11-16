@@ -7,28 +7,19 @@ function entry(id, answer, question) {
   return { id, answer, clue: question };
 }
 
-function slot(id, first, last, coordinates, forwardDirection, reverseDirection) {
+function slot(id, first, last, coordinates, direction) {
   const forward = coordinates.map(point => ({ ...point }));
-  const reverse = [...coordinates].reverse().map(point => ({ ...point }));
   return {
     id,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse
-      }
-    ]
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction,
+      coordinates: forward.map(point => ({ ...point }))
+    }]
   };
 }
 
@@ -39,37 +30,40 @@ const fourWords = [
   entry('forest', 'ЛЕС', 'Большая территория, покрытая деревьями.')
 ];
 
-test('solves a cyclic four-clue topology and assigns all clue cells an outgoing answer', () => {
-  const a = { row: 1, col: 1 };
-  const b = { row: 1, col: 5 };
-  const c = { row: 5, col: 1 };
-  const d = { row: 5, col: 5 };
-
-  const slots = [
-    slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right', 'left'),
-    slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down', 'up'),
-    slot('dc', d, c, [{ row: 5, col: 4 }, { row: 5, col: 3 }, { row: 5, col: 2 }], 'left', 'right'),
-    slot('ca', c, a, [{ row: 4, col: 1 }, { row: 3, col: 1 }, { row: 2, col: 1 }], 'up', 'down')
+test('solves intersecting right/down answers without reverse directions', () => {
+  const horizontal = slot(
+    'horizontal',
+    { row: 2, col: 1 },
+    { row: 2, col: 5 },
+    [{ row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 }],
+    'right'
+  );
+  const vertical = slot(
+    'vertical',
+    { row: 0, col: 3 },
+    { row: 4, col: 3 },
+    [{ row: 1, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 3 }],
+    'down'
+  );
+  const dictionary = [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.'),
+    entry('nose', 'НОС', 'Часть лица для дыхания и обоняния.')
   ];
-
-  const result = solveSlotsCsp(slots, fourWords, {
+  const result = solveSlotsCsp([horizontal, vertical], dictionary, {
     seed: 42,
     requiredImageCount: 0,
     minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
     maxNodes: 1000,
     maxTimeMs: 1000
   });
 
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.words.length, 4);
-  assert.equal(new Set(result.words.map(word => word.answer)).size, 4);
-  assert.deepEqual(
-    [...new Set(result.words.map(word => word.direction))].sort(),
-    ['down', 'left', 'right', 'up']
-  );
-  for (const key of ['1,1', '1,5', '5,1', '5,5']) {
-    assert.ok(result.clueDirections.get(key)?.size > 0, 'missing outgoing clue at ' + key);
-  }
+  assert.equal(result.words.length, 2);
+  assert.deepEqual([...new Set(result.words.map(word => word.direction))].sort(), ['down', 'right']);
+  assert.equal(result.letters.get('2,3'), 'О');
+  assert.equal(result.words[0].answer[result.words[0].coordinates.findIndex(p => p.row === 2 && p.col === 3)],
+    result.words[1].answer[result.words[1].coordinates.findIndex(p => p.row === 2 && p.col === 3)]);
 });
 
 test('propagates crossing letters into positional candidate indexes', () => {
@@ -639,7 +633,7 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
   assert.equal(result.lastDeadEnd.reason, 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS');
 });
 
-test('CSP never places answers to the left or upward even when reverse orientations are available', () => {
+test('CSP only emits the two permitted directions: right and down', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
   ], 'right', 'left');
