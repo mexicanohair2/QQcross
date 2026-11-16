@@ -1008,6 +1008,13 @@ async function startChatGPTGame(button){
       const {error}=await supabaseClient.auth.signInAnonymously();
       if(error)throw error;
     }
+    const {data:preflight,error:preflightError}=await supabaseClient.functions.invoke("qqcross-ai-turn",{body:{mode:"status"}});
+    if(preflightError){
+      let message=preflightError.message||"Не удалось проверить подключение ChatGPT.";
+      try{const payload=await preflightError.context?.json();if(payload?.error)message=payload.error}catch{}
+      throw new Error(message);
+    }
+    if(!preflight?.ready)throw new Error("Режим ChatGPT пока не настроен на сервере.");
     await begin(2,true);
   }catch(error){
     console.error("QQCross ChatGPT sign-in:",error);
