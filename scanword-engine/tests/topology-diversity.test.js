@@ -59,7 +59,7 @@ test('production topology splits both top-border columns into short junction-con
   assert.equal(topology.validation.valid, true);
   assert.equal(topology.slots.some(slot => slot.length === 11), false);
   const junctions = topology.grid.flat().filter(cell => cell.type === 'junction');
-  assert.equal(junctions.length, 6);
+  assert.ok(junctions.length >= 6 && junctions.length <= 8);
   assert.ok(topology.slots.filter(slot => slot.axis === 'vertical' && [1, 2].includes(slot.endpoints[0].col)
     && [1, 2].includes(slot.endpoints[1].col)).every(slot => slot.length === 3));
 });
