@@ -269,7 +269,7 @@ export function generateTopology(options = {}) {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const scaffoldIndex = includeSpecialEleven
       ? -1
-      : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
+      : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLDS.length);
     const scaffold = includeSpecialEleven
       ? (Array.isArray(options.specialPattern) ? options.specialPattern : LOW_SHORT_SCAFFOLD)
       : SCAFFOLDS[scaffoldIndex];
