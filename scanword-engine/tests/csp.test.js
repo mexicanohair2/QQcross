@@ -593,7 +593,7 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
   assert.equal(result.lastDeadEnd.reason, 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS');
 });
 
-test('CSP never places answers to the left or upward even when reverse orientations are available', () => {
+test('CSP places answers in all four directions when each orientation is allowed', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
   ], 'right', 'left');
@@ -603,21 +603,42 @@ test('CSP never places answers to the left or upward even when reverse orientati
   const dictionary = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
 
   for (let seed = 1; seed <= 64; seed++) {
-    const h = solveSlotsCsp([horizontal], dictionary, {
+    const left = solveSlotsCsp([horizontal], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
+      requireEveryClueStarts: false, allowedDirections: ['left'],
       maxNodes: 100, maxTimeMs: 500
     });
-    const v = solveSlotsCsp([vertical], dictionary, {
+    const up = solveSlotsCsp([vertical], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
+      requireEveryClueStarts: false, allowedDirections: ['up'],
       maxNodes: 100, maxTimeMs: 500
     });
-    assert.equal(h.ok, true, h.message);
-    assert.equal(v.ok, true, v.message);
-    assert.equal(h.words[0].direction, 'right', 'seed=' + seed);
-    assert.equal(v.words[0].direction, 'down', 'seed=' + seed);
+    assert.equal(left.ok, true, left.message);
+    assert.equal(up.ok, true, up.message);
+    assert.equal(left.words[0].direction, 'left', 'seed=' + seed);
+    assert.equal(up.words[0].direction, 'up', 'seed=' + seed);
   }
+});
+
+test('CSP preserves the fixed downward lower-right terminal slot', () => {
+  const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 4, col: 7 },
+    Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
+    'down', 'up'
+  );
+  terminalSlot.requiredDirection = 'down';
+  const result = solveSlotsCsp([terminalSlot], [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')
+  ], {
+    seed: 7,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right', 'left', 'down', 'up'],
+    maxNodes: 100,
+    maxTimeMs: 500
+  });
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].direction, 'down');
 });
 
 

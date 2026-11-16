@@ -166,7 +166,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
     const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
+      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
     ]).map(canonicalAnswerKey));
     if (answer.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(answer))) {
       add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ входит в утверждённый список коротких русских слов.', {
@@ -196,11 +196,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (word.direction !== 'right' && word.direction !== 'down') {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
+    if (!['right', 'left', 'down', 'up'].includes(word.direction)) {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
         wordId: word.id, direction: word.direction
       });
       continue;
+    }
+    if (
+      word.clue?.row === CONFIG.HEIGHT - 1 && word.clue?.col === CONFIG.WIDTH - 1
+    ) {
+      add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Нижняя правая терминальная клетка должна оставаться концом ответов, а не началом слова.', {
+        wordId: word.id, clue: word.clue, direction: word.direction
+      });
     }
 
     const clue = word.clue;
@@ -283,6 +290,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       row: clue.row + vector.dr * (answer.length + 1),
       col: clue.col + vector.dc * (answer.length + 1)
     };
+    if (word.direction === 'up' && terminal.row === 0 && terminal.col === CONFIG.WIDTH - 1) {
+      add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Верхняя правая вопросная клетка должна быть началом вертикального ответа вниз.', {
+        wordId: word.id, clue, direction: word.direction, terminal
+      });
+    }
 
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
       specialCount++;

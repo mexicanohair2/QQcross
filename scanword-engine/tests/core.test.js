@@ -481,7 +481,7 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator reject left/up scanword answers', () => {
+test('assembler and independent validator accept left/up scanword answers', () => {
   const leftWord = {
     id: 'left-word', entryId: 'cat', answer: 'КОТ',
     question: 'Домашнее животное из семейства кошачьих.',
@@ -490,27 +490,106 @@ test('assembler and independent validator reject left/up scanword answers', () =
       { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
     ]
   };
-  const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
-  assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  const upWord = {
+    id: 'up-word', entryId: 'dog', answer: 'ПЁС',
+    question: 'Домашнее животное, которое лает.',
+    clue: { row: 4, col: 6 }, direction: 'up',
+    coordinates: [
+      { row: 3, col: 6 }, { row: 2, col: 6 }, { row: 1, col: 6 }
+    ]
+  };
+  const words = [leftWord, upWord];
+  const questions = words.map(word => ({
+    id: 'q-' + word.id,
+    wordId: word.id,
+    text: word.question,
+    clue: word.clue,
+    direction: word.direction,
+    length: word.answer.length
+  }));
+  const assembled = assembleScanword({ seed: 1, words, questions });
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  assert.deepEqual(new Set(assembled.scanword.words.map(word => word.direction)), new Set(['left', 'up']));
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
-  grid[1][4] = { row: 1, col: 4, type: 'question', letter: null, questionIds: ['q-left'], wordIds: [] };
-  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
-  leftWord.coordinates.forEach((point, index) => {
+  for (const word of words) {
+    const questionId = 'q-' + word.id;
+    grid[word.clue.row][word.clue.col] = {
+      row: word.clue.row, col: word.clue.col, type: 'question',
+      letter: null, questionIds: [questionId], wordIds: [word.id]
+    };
+    word.coordinates.forEach((point, index) => {
+      grid[point.row][point.col] = {
+        ...grid[point.row][point.col], type: 'letter',
+        letter: word.answer[index], questionIds: [], wordIds: [word.id]
+      };
+    });
+  }
+  const validation = validateScanword({
+    width: 8, height: 12, grid, words, questions
+  }, [], {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(
+    validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
+    false,
+    JSON.stringify(validation.errors)
+  );
+});
+
+test('assembler rejects using the lower-right terminal cell as a clue', () => {
+  const word = {
+    id: 'bottom-right-reverse',
+    entryId: 'cat',
+    answer: 'КОТ',
+    question: 'Домашнее животное из семейства кошачьих.',
+    clue: { row: 11, col: 7 },
+    direction: 'left',
+    coordinates: [
+      { row: 11, col: 6 }, { row: 11, col: 5 }, { row: 11, col: 4 }
+    ]
+  };
+  const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
+
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  grid[11][7] = {
+    row: 11, col: 7, type: 'question', letter: null,
+    questionIds: ['q-bottom'], wordIds: []
+  };
+  word.coordinates.forEach((point, index) => {
     grid[point.row][point.col] = {
-      ...grid[point.row][point.col], type: 'letter',
-      letter: leftWord.answer[index], questionIds: [], wordIds: [leftWord.id]
+      ...grid[point.row][point.col],
+      type: 'letter',
+      letter: word.answer[index],
+      questionIds: [],
+      wordIds: [word.id]
     };
   });
   const validation = validateScanword({
-    width: 8, height: 12, grid,
-    words: [leftWord],
+    width: 8,
+    height: 12,
+    grid,
+    words: [word],
     questions: [{
-      id: 'q-left', wordId: leftWord.id, text: leftWord.question,
-      clue: leftWord.clue, direction: 'left', length: 3
+      id: 'q-bottom',
+      wordId: word.id,
+      text: word.question,
+      clue: word.clue,
+      direction: word.direction,
+      length: word.answer.length
     }]
-  }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  }, [], {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.ok(validation.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
 });

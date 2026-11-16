@@ -12,7 +12,7 @@ function now() {
 }
 
 const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
-  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'
+  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
 ].map(answer => canonicalAnswerKey(answer)));
 
 function canAssignDistinctShortAnswers(domains) {
@@ -133,7 +133,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       includeSpecialEleven: true,
       specialSplitRows: rows,
       maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 6
+      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
     })
   })).filter(item => item.result.ok);
 
@@ -191,7 +191,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+          if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
+          if (!['right', 'down', 'left', 'up'].includes(orientation.direction)) continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -204,7 +205,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id, {
+            candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
               coordinates: orientation.coordinates
             });
@@ -459,8 +460,8 @@ export function generateScanword(inputDictionary, options = {}) {
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 6)
-        : (options.maxTwoLetterSlots ?? 6)
+        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 5)
+        : (options.maxTwoLetterSlots ?? 5)
     });
 
     if (!topologyResult.ok) {
@@ -499,7 +500,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'down', 'left', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
