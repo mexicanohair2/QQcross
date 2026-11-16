@@ -556,4 +556,40 @@ test('assembler rejects using the lower-right terminal cell as a clue', () => {
   const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });
   assert.equal(assembled.ok, false);
   assert.ok(assembled.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
+
+  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
+  grid[0][0].type = 'corner';
+  grid[11][7] = {
+    row: 11, col: 7, type: 'question', letter: null,
+    questionIds: ['q-bottom'], wordIds: []
+  };
+  word.coordinates.forEach((point, index) => {
+    grid[point.row][point.col] = {
+      ...grid[point.row][point.col],
+      type: 'letter',
+      letter: word.answer[index],
+      questionIds: [],
+      wordIds: [word.id]
+    };
+  });
+  const validation = validateScanword({
+    width: 8,
+    height: 12,
+    grid,
+    words: [word],
+    questions: [{
+      id: 'q-bottom',
+      wordId: word.id,
+      text: word.question,
+      clue: word.clue,
+      direction: word.direction,
+      length: word.answer.length
+    }]
+  }, [], {
+    requireBorderClues: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.ok(validation.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
 });
