@@ -34,17 +34,12 @@ test('seeded production topology generation stays fully covered and varied', () 
     assert.equal(topology.pattern[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(topology.pattern[row][0], '#');
     assert.ok(topology.slots.length >= 20);
-    assert.ok(topology.slots.every(slot => {
-      if (slot.length < 2) return false;
-      if (slot.special === 'OUTER_BOUNDARY' || slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
-        return slot.directionOptions.length === 1
-          && ['right', 'down', 'left', 'up'].includes(slot.directionOptions[0].direction);
-      }
-      const directions = slot.directionOptions.map(option => option.direction);
-      return slot.axis === 'horizontal'
-        ? directions.length === 2 && directions.includes('right') && directions.includes('left')
-        : directions.length === 2 && directions.includes('down') && directions.includes('up');
-    }));
+    assert.ok(topology.slots.every(slot =>
+      slot.length >= 2
+      && slot.directionOptions.length >= 1
+      && slot.directionOptions.every(option => ['right', 'down', 'left', 'up'].includes(option.direction))
+    ));
+    assert.equal(topology.slots.some(slot => slot.length === 11), false);
     assert.ok(topology.validation.metrics.letterCells >= 30);
     assert.ok(topology.metrics.interiorQuestionCells >= 5);
     patterns.add(topology.pattern.join('/'));
@@ -52,20 +47,19 @@ test('seeded production topology generation stays fully covered and varied', () 
   assert.ok(patterns.size >= 8, 'expected broad topology variety; got ' + patterns.size);
 });
 
-test('the special topology still contains both mandatory long slots and one tagged special slot', () => {
+test('production topology splits both top-border columns into short junction-connected words', () => {
   const result = generateTopology({
     seed: 481516,
-    includeSpecialEleven: true,
+    includeSpecialEleven: false,
     maxAttempts: 8,
     preserveScaffold: true
   });
   assert.equal(result.ok, true, JSON.stringify(result));
   const topology = result.topology;
   assert.equal(topology.validation.valid, true);
-  const eleven = topology.slots.filter(slot => slot.length === 11);
-  assert.equal(eleven.length, 2);
-  const tagged = eleven.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
-  assert.equal(tagged.length, 1);
-  assert.equal(tagged[0].directionOptions[0].direction, 'down');
-  assert.ok(topology.slots.every(slot => slot.directionOptions.every(option => ['right', 'down', 'left', 'up'].includes(option.direction))));
+  assert.equal(topology.slots.some(slot => slot.length === 11), false);
+  const junctions = topology.grid.flat().filter(cell => cell.type === 'junction');
+  assert.equal(junctions.length, 4);
+  assert.ok(topology.slots.filter(slot => slot.axis === 'vertical' && [1, 2].includes(slot.endpoints[0].col)
+    && [1, 2].includes(slot.endpoints[1].col)).every(slot => slot.length === 3));
 });
