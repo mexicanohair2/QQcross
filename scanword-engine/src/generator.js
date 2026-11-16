@@ -128,7 +128,7 @@ function prepareTopologyDomains(slots, indexes, options = {}) {
   let availableVariants = 0;
 
   // Every slot has two endpoints, and either endpoint may host the clue.
-  // Preserve both orientations so production can use right/left/down/up.
+  // Every answer starts at its clue and proceeds only right or down.
   for (const slot of slots) {
     const candidates = indexes.byLength.get(slot.length) ?? [];
     const domainOptions = [];
@@ -528,7 +528,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // The approved regular pool uses templates 4, 9 and 12: each has
   // a connected letter graph, no eleven-letter boundary slot and at most
   // three curated two-letter answers.
-  const normalTemplateSequence = [3, 8, 11];
+  const normalTemplateSequence = Array.from({ length: 20 }, (_, index) => index);
   const normalTemplateOffset = seed % normalTemplateSequence.length;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
