@@ -11,7 +11,6 @@ export const CONFIG = Object.freeze({
 });
 export const DIRECTIONS = Object.freeze({
   right: Object.freeze({ dr: 0, dc: 1 }),
-  left: Object.freeze({ dr: 0, dc: -1 }),
   down: Object.freeze({ dr: 1, dc: 0 }),
   up: Object.freeze({ dr: -1, dc: 0 })
 });
