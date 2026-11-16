@@ -36,7 +36,14 @@ function toRoleGrid(matrix, includeSpecialEleven = false) {
       if (row === 0 && col === 0) continue;
       const cell = grid[row][col];
       const junctionColumns = includeSpecialEleven ? [2] : JUNCTION_COLUMNS;
-      if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
+      const topBandJunction = (row === 1 || row === 2) && col === 4;
+      if (topBandJunction) {
+        // Split the two forced full-width crossing rows into short answers.
+        // The junction remains a letter in the vertical top-border answer.
+        cell.type = 'junction';
+        cell.letter = 'А';
+        cell.clueDirections = ['right'];
+      } else if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
         // The vertical clue begins here while the same square remains a
         // letter in the horizontal answer started at the left border.
         cell.type = 'junction';
