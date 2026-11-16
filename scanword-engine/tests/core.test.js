@@ -180,13 +180,13 @@ test('dictionary indexes narrow candidates by every crossing position', () => {
   assert.deepEqual(findCandidates(indexes, 3, [{ position: 1, letter: 'Я' }]), []);
 });
 
-test('dictionary rejects one-letter and over-eleven-letter entries', () => {
+test('dictionary rejects one-letter and over-ten-letter entries', () => {
   const prepared = prepareDictionary([
     { id: 'one', answer: 'Я', clue: 'Личная форма местоимения.' },
     { id: 'long', answer: 'ЭЛЕКТРОНИКАА', clue: 'Тестовая строка длиннее лимита.' },
-    { id: 'valid', answer: 'ЭЛЕКТРОНИКА', clue: 'Область техники, связанная с электрическими сигналами.' }
+    { id: 'valid', answer: 'ИНФОРМАЦИЯ', clue: 'Сведения и сообщения об окружающем мире.' }
   ]);
-  assert.deepEqual(prepared.entries.map(item => item.answer), ['ЭЛЕКТРОНИКА']);
+  assert.deepEqual(prepared.entries.map(item => item.answer), ['ИНФОРМАЦИЯ']);
   assert.equal(prepared.errors.length, 2);
   assert.ok(prepared.errors.some(item => item.codes.includes('ANSWER_LENGTH_OUT_OF_RANGE')));
 });
@@ -297,14 +297,14 @@ test('assembler rejects crossing letter conflicts and invalid answer paths', () 
   assert.ok(assembled.errors.some(item => item.type === 'CROSSING_LETTER_CONFLICT'));
 });
 
-test('eleven-letter preference never bypasses mandatory dictionary content quotas', () => {
+test('featured short question preference never bypasses mandatory dictionary content quotas', () => {
   const result = generateScanword([
     { id: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.' },
     { id: 'home', answer: 'ДОМ', question: 'Место, где живут люди.' },
     { id: 'forest', answer: 'ЛЕС', question: 'Большая территория, покрытая деревьями.' }
   ], {
     seed: 9,
-    specialElevenLetterChance: 1,
+    featuredShortQuestionChance: 1,
     maxNodes: 100,
     maxCspTimeMs: 100
   });
@@ -510,18 +510,12 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator permit only right and down answers', () => {
+test('assembler and independent validator support all four directions while enforcing border rules', () => {
   const cases = [
-    {
-      direction: 'right',
-      clue: { row: 2, col: 0 },
-      coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
-    },
-    {
-      direction: 'down',
-      clue: { row: 0, col: 2 },
-      coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
-    }
+    { direction: 'right', clue: { row: 2, col: 0 }, coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }] },
+    { direction: 'down', clue: { row: 0, col: 2 }, coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }] },
+    { direction: 'left', clue: { row: 2, col: 4 }, coordinates: [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }] },
+    { direction: 'up', clue: { row: 4, col: 2 }, coordinates: [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }] }
   ];
 
   for (const item of cases) {
@@ -547,24 +541,26 @@ test('assembler and independent validator permit only right and down answers', (
       requiredImageCount: 0,
       minimumLogicClueCells: 0
     });
-    assert.equal(checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'), false);
+    assert.equal(checked.errors.some(error => error.type === 'INVALID_BORDER_DIRECTION'), false);
   }
 
-  for (const direction of ['left', 'up']) {
+  const forbidden = [
+    { direction: 'left', clue: { row: 2, col: 0 }, coordinates: [{ row: 2, col: -1 }, { row: 2, col: -2 }, { row: 2, col: -3 }] },
+    { direction: 'up', clue: { row: 0, col: 3 }, coordinates: [{ row: -1, col: 3 }, { row: -2, col: 3 }, { row: -3, col: 3 }] }
+  ];
+  for (const item of forbidden) {
     const rejected = assembleScanword({
       seed: 18,
       words: [{
-        id: 'forbidden-' + direction,
+        id: 'forbidden-' + item.direction,
         answer: 'КОТ',
         question: 'Недопустимое направление.',
-        clue: direction === 'left' ? { row: 2, col: 4 } : { row: 4, col: 2 },
-        direction,
-        coordinates: direction === 'left'
-          ? [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
-          : [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
+        clue: item.clue,
+        direction: item.direction,
+        coordinates: item.coordinates
       }]
     });
     assert.equal(rejected.ok, false);
-    assert.ok(rejected.errors.some(error => error.type === 'INVALID_WORD_GEOMETRY'));
+    assert.ok(rejected.errors.some(error => error.type === 'INVALID_BORDER_DIRECTION'));
   }
 });
