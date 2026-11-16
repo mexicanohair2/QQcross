@@ -205,6 +205,7 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
       let bestVariants = 0;
       let bestAnswers = 0;
       for (const orientation of slot.directionOptions) {
+        if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
         if (allowedDirections instanceof Set && !allowedDirections.has(orientation.direction)) continue;
         const constraints = crossingConstraints(orientation, imposedLetters);
         if (!constraints.length) continue;
@@ -249,6 +250,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     // Production may restrict directions; generic CSP tests can retain all valid orientations.
+    if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
