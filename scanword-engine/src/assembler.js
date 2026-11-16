@@ -64,6 +64,15 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
+    if (
+      (clue.row === 0 && clue.col === CONFIG.WIDTH - 1 && sourceWord.direction !== 'down')
+      || (clue.row === CONFIG.HEIGHT - 1 && clue.col === CONFIG.WIDTH - 1)
+    ) {
+      fail('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Нижняя правая терминальная клетка должна оставаться концом ответов, а не началом слова.', {
+        wordId: sourceWord.id, clue, direction: sourceWord.direction
+      });
+      continue;
+    }
     if (!Array.isArray(sourceWord.coordinates) || sourceWord.coordinates.length !== answer.length) {
       fail('INVALID_WORD_COORDINATES', 'Количество координат не совпадает с длиной ответа.', {
         wordId: sourceWord.id
