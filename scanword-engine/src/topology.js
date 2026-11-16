@@ -47,8 +47,10 @@ function hasValidShape(grid) {
 }
 
 function makeSlot(axis, first, last, coordinates) {
-  const direction = axis === 'horizontal' ? 'right' : 'down';
+  const forwardDirection = axis === 'horizontal' ? 'right' : 'down';
+  const reverseDirection = axis === 'horizontal' ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
+  const reverse = [...forward].reverse().map(item => ({ ...item }));
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
@@ -56,13 +58,21 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    // A slot always starts at its first question and proceeds right/down.
-    directionOptions: [{
-      clueCell: { ...first },
-      terminalCell: { ...last },
-      direction,
-      coordinates: forward.map(item => ({ ...item }))
-    }],
+    // Either endpoint may carry the clue; coordinates always follow answer order.
+    directionOptions: [
+      {
+        clueCell: { ...first },
+        terminalCell: { ...last },
+        direction: forwardDirection,
+        coordinates: forward.map(item => ({ ...item }))
+      },
+      {
+        clueCell: { ...last },
+        terminalCell: { ...first },
+        direction: reverseDirection,
+        coordinates: reverse.map(item => ({ ...item }))
+      }
+    ],
     special: null
   };
 }
@@ -178,8 +188,37 @@ export function deriveWordSlots(grid, options = {}) {
       slots.push(makeSlot(axis, first, last, coordinates));
     }
 
-    // A clue may point to a word that finishes at the outer board edge.
-    // This keeps the side and lower boundaries usable without extra clue tiles.
+    // A clue at the first question may point back to the outer left/top edge.
+    if (options.allowOuterBoundarySlots === true && questionPositions.length > 0) {
+      const from = questionPositions[0];
+      const length = from;
+      if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
+        const clue = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
+        const terminal = horizontal
+          ? { row: fixedIndex, col: -1, boundary: true }
+          : { row: -1, col: fixedIndex, boundary: true };
+        const coordinates = Array.from({ length }, (_, index) => horizontal
+          ? point(fixedIndex, from - index - 1)
+          : point(from - index - 1, fixedIndex));
+        const direction = horizontal ? 'left' : 'up';
+        slots.push({
+          id: 'outer-boundary-reverse:' + axis + ':' + keyOf(clue),
+          axis,
+          length,
+          endpoints: [{ ...clue }, terminal],
+          coordinates,
+          directionOptions: [{
+            clueCell: { ...clue },
+            terminalCell: { ...terminal },
+            direction,
+            coordinates: coordinates.map(item => ({ ...item }))
+          }],
+          special: 'OUTER_BOUNDARY'
+        });
+      }
+    }
+
+    // A clue at the last question may point to the outer right/bottom edge.
     if (options.allowOuterBoundarySlots === true && questionPositions.length > 0
       && (!(axis === 'vertical' && fixedIndex === 1) || options.allowColumnOneBoundarySlot === true)) {
       const from = questionPositions[questionPositions.length - 1];
