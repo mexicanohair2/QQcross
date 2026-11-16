@@ -24,19 +24,24 @@ export function assembleScanword(assignments, options = {}) {
 
   const fail = (type, message, extra = {}) => errors.push({ type, message, ...extra });
 
-  function markQuestion(point, questionId = null) {
+  function markQuestion(point, questionId = null, direction = null) {
     if (!inBounds(point?.row, point?.col)) {
       fail('QUESTION_OUT_OF_BOUNDS', 'Вопросная клетка находится вне поля.', { point });
       return;
     }
     const cell = grid[point.row][point.col];
-    if (cell.type === 'corner' || cell.type === 'letter') {
-      fail('QUESTION_ROLE_CONFLICT', 'Вопросная клетка конфликтует с углом или буквой.', {
+    if (cell.type === 'corner') {
+      fail('QUESTION_ROLE_CONFLICT', 'Вопросная клетка конфликтует с пустым углом.', {
         row: point.row, col: point.col, existingType: cell.type
       });
       return;
     }
-    cell.type = 'question';
+    if (cell.type === 'letter') cell.type = 'junction';
+    else if (cell.type === 'unassigned') cell.type = 'question';
+    if (cell.type === 'junction') {
+      cell.clueDirections = Array.isArray(cell.clueDirections) ? cell.clueDirections : [];
+      if (direction && !cell.clueDirections.includes(direction)) cell.clueDirections.push(direction);
+    }
     if (questionId && !cell.questionIds.includes(questionId)) cell.questionIds.push(questionId);
   }
 
@@ -78,7 +83,7 @@ export function assembleScanword(assignments, options = {}) {
     }
     seenQuestionIds.add(questionId);
 
-    markQuestion(clue, questionId);
+    markQuestion(clue, questionId, sourceWord.direction);
 
     let geometryValid = true;
     for (let index = 0; index < answer.length; index++) {
@@ -104,8 +109,8 @@ export function assembleScanword(assignments, options = {}) {
     for (let index = 0; index < answer.length; index++) {
       const point = sourceWord.coordinates[index];
       const cell = grid[point.row][point.col];
-      if (cell.type === 'corner' || cell.type === 'question') {
-        fail('LETTER_ROLE_CONFLICT', 'Буква ответа конфликтует с вопросной клеткой.', {
+      if (cell.type === 'corner') {
+        fail('LETTER_ROLE_CONFLICT', 'Буква ответа конфликтует с пустым углом.', {
           wordId: sourceWord.id, row: point.row, col: point.col, existingType: cell.type
         });
         continue;
@@ -118,7 +123,8 @@ export function assembleScanword(assignments, options = {}) {
         });
         continue;
       }
-      cell.type = 'letter';
+      if (cell.type === 'question') cell.type = 'junction';
+      else if (cell.type === 'unassigned') cell.type = 'letter';
       cell.letter = answer[index];
       if (!cell.wordIds.includes(sourceWord.id)) cell.wordIds.push(sourceWord.id);
       const key = keyOf(point);
@@ -216,8 +222,8 @@ export function assembleScanword(assignments, options = {}) {
     });
   }
 
-  const questionCells = grid.flat().filter(cell => cell.type === 'question').length;
-  const letterCells = grid.flat().filter(cell => cell.type === 'letter').length;
+  const questionCells = grid.flat().filter(cell => cell.type === 'question' || cell.type === 'junction').length;
+  const letterCells = grid.flat().filter(cell => cell.type === 'letter' || cell.type === 'junction').length;
   return {
     ok: errors.length === 0,
     scanword: {
