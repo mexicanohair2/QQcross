@@ -7,7 +7,20 @@ import { SCANWORD_TEMPLATES, getScanwordTemplates as listScanwordTemplates } fro
 const SCAFFOLDS = Object.freeze(
   SCANWORD_TEMPLATES.map(rows => Object.freeze([...rows]))
 );
-const LOW_SHORT_SCAFFOLD = SCAFFOLDS[10] ?? SCAFFOLDS[0];
+const LOW_SHORT_SCAFFOLD = Object.freeze([
+  '.#...###',
+  '#...#...',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....##.',
+  '#...#...',
+  '#...#...',
+  '#......#',
+  '#....#..',
+  '#.......',
+  '#......#'
+]);
 
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
@@ -41,10 +54,11 @@ function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLet
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
+    requireFullTopBorder: !lowShortLayout,
+    allowTopRowHorizontalRun: lowShortLayout,
     allowSpecialElevenBoundary: includeSpecialEleven,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: !includeSpecialEleven && !lowShortLayout,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
@@ -98,7 +112,8 @@ export function getScanwordTemplates() {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 5) {
   if (!Array.isArray(matrix) || matrix.length !== CONFIG.HEIGHT
     || matrix.some(row => !Array.isArray(row) || row.length !== CONFIG.WIDTH)) return null;
-  if (matrix[0].join('') !== '.#######') return null;
+  const lowShortLayout = matrix[0].join('') === '.#...###';
+  if (!lowShortLayout && matrix[0].join('') !== '.#######') return null;
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (matrix[row][0] !== '#') return null;
@@ -273,10 +288,11 @@ export function generateTopology(options = {}) {
   let fallback = null;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const scaffoldIndex = includeSpecialEleven
+    const lowShortLayout = options.lowShortLayout === true || includeSpecialEleven;
+    const scaffoldIndex = lowShortLayout
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLDS.length);
-    const scaffold = includeSpecialEleven
+    const scaffold = lowShortLayout
       ? (Array.isArray(options.specialPattern) ? options.specialPattern : LOW_SHORT_SCAFFOLD)
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
