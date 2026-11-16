@@ -22,6 +22,8 @@ async function main() {
   const topologyMasks = new Set();
   let featuredShortRequested = 0;
   let featuredShortGenerated = 0;
+  let specialElevenRequested = 0;
+  let specialElevenGenerated = 0;
   const directionCoverage = new Set();
 
   for (let index = 1; index <= 20; index++) {
@@ -40,6 +42,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
+      requireBorderClues: false,
+      requireTopRowHorizontalRun: true,
       requireConnected: true
     });
     const words = result.scanword.words;
@@ -47,9 +51,12 @@ async function main() {
     const shortAnswers = words.filter(word => word.length === 2);
     for (const word of words) directionCoverage.add(word.direction);
     const featured = words.filter(word => word.featuredShortQuestion === true);
-    const shouldFeatureShort = index % 4 === 0;
+    const shouldFeatureShort = index % 4 !== 0;
+    const shouldFeatureEleven = index % 4 === 0;
     if (shouldFeatureShort) featuredShortRequested++;
     if (featured.length === 1 && featured[0].answer.length <= 5) featuredShortGenerated++;
+    if (shouldFeatureEleven) specialElevenRequested++;
+    if (result.scanword.metadata.specialElevenLetterQuestion === true) specialElevenGenerated++;
 
     const topologyMask = JSON.stringify(result.scanword.grid.map(row => row.map(cell => cell.type)));
     topologyMasks.add(topologyMask);
@@ -78,6 +85,8 @@ async function main() {
       featuredShortRequested: shouldFeatureShort,
       featuredShortGenerated: featured.length === 1 && featured[0].answer.length <= 5,
       featuredShortAnswer: featured[0]?.answer ?? null,
+      specialElevenRequested: shouldFeatureEleven,
+      specialElevenGenerated: result.scanword.metadata.specialElevenLetterQuestion === true,
       musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
       validationErrors: validation.errors.slice(0, 5),
 
@@ -93,6 +102,8 @@ async function main() {
     failed: 20 - successful.length,
     featuredShortRequested,
     featuredShortGenerated,
+    specialElevenRequested,
+    specialElevenGenerated,
     medianMs: times[Math.floor(times.length / 2)],
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
@@ -111,8 +122,10 @@ async function main() {
   fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
-  assert.equal(featuredShortRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must feature one short clue.");
-  assert.equal(featuredShortGenerated, 5, "Every fourth puzzle must feature exactly one answer of at most five letters.");
+  assert.equal(featuredShortRequested, 15, "Exactly three out of every four puzzles must feature one short top-row clue.");
+  assert.equal(featuredShortGenerated, 15, "Every short-layout puzzle must feature exactly one answer of at most five letters.");
+  assert.equal(specialElevenRequested, 5, "Exactly every fourth puzzle must request one 11-letter answer.");
+  assert.equal(specialElevenGenerated, 5, "Every fourth puzzle must contain exactly one 11-letter answer.");
   assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
   assert.ok(report.distinctTopologies >= 3, 'Production must produce at least three distinct validated topology masks across the batch.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
