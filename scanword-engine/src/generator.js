@@ -533,10 +533,9 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialAttempts = wantsEleven
     ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
     : 0;
-  // Template 14 is the only current scaffold whose two mandatory top-border
-  // vertical words have dictionary-supported prefixes across all left-border
-  // rows. Keep its geometry stable while the CSP searches answer assignments.
-  const normalTemplateIndex = 13;
+  // Start ordinary generation from the only currently prefix-compatible
+  // scaffold, then mutate its interior so crossing domains can vary per seed.
+  const normalScaffoldIndex = 13;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
 
@@ -559,12 +558,21 @@ export function generateScanword(inputDictionary, options = {}) {
     }
     const useSpecialTopology = Boolean(specialPlan);
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
-    const topologyResult = generateTopology({
-      seed: topologySeed,
-      templateIndex: useSpecialTopology ? specialPlan.templateIndex : normalTemplateIndex,
-      includeSpecialEleven: useSpecialTopology,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
-    });
+    const topologyResult = useSpecialTopology
+      ? generateTopology({
+          seed: topologySeed,
+          templateIndex: specialPlan.templateIndex,
+          includeSpecialEleven: true,
+          maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
+        })
+      : generateTopology({
+          seed: topologySeed,
+          scaffoldIndex: normalScaffoldIndex,
+          includeSpecialEleven: false,
+          maxAttempts: 4,
+          mutationBudget: options.topologyMutationAttempts ?? 96,
+          maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
+        });
 
     if (!topologyResult.ok) {
       countFailure(rejectedReasons, topologyResult.reason);
