@@ -401,6 +401,7 @@ export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
     interiorQuestionCells: countInteriorQuestions(matrix),
     twoLetterSlots: derived.slots.filter(slot => slot.length === 2).length,
     longSlots: derived.slots.filter(slot => slot.length >= 3).length,
+    elevenLetterSlots: derived.slots.filter(slot => slot.length === 11).length,
     slotCount: derived.slots.length
   };
 }
