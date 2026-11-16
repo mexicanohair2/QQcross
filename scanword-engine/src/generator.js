@@ -191,6 +191,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
+          if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
           if (!['right', 'down', 'left', 'up'].includes(orientation.direction)) continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
