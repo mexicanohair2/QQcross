@@ -101,7 +101,17 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
           slotId: ownDomain.slot.id,
           againstSlotId: otherDomain.slot.id,
           sharedCells: arc.sharedKeys,
-          survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
+          survivingSupportSignatures: [...supportedSignatures].slice(0, 12),
+          ownDomainBeforeFailure: ownDomain.options.slice(0, 40).map(option => ({
+            answer: option.entry.answer,
+            direction: option.direction,
+            signature: signatureFor(ownDomain, option, arc.sharedKeys)
+          })),
+          otherDomainCandidates: otherDomain.options.slice(0, 40).map(option => ({
+            answer: option.entry.answer,
+            direction: option.direction,
+            signature: signatureFor(otherDomain, option, arc.sharedKeys)
+          }))
         };
       }
       return false;
