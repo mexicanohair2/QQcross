@@ -220,9 +220,10 @@ export function deriveWordSlots(grid, options = {}) {
       const from = questionPositions[0];
       const cluePoint = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
       const direction = horizontal ? 'left' : 'up';
-      if (!clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)) return;
       const length = from;
-      if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
+      if (clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)
+        && length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH)
+        && length <= CONFIG.MAX_WORD_LENGTH) {
         const clue = cluePoint;
         const terminal = horizontal
           ? { row: fixedIndex, col: -1, boundary: true }
@@ -252,9 +253,10 @@ export function deriveWordSlots(grid, options = {}) {
       const from = questionPositions[questionPositions.length - 1];
       const cluePoint = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
       const direction = horizontal ? 'right' : 'down';
-      if (!clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)) return;
       const length = lineLength - from - 1;
-      if (length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH) && length <= CONFIG.MAX_WORD_LENGTH) {
+      if (clueAllowsDirection(grid[cluePoint.row][cluePoint.col], direction)
+        && length >= (options.minimumOuterBoundaryLength ?? MIN_ANSWER_LENGTH)
+        && length <= CONFIG.MAX_WORD_LENGTH) {
         const clue = cluePoint;
         const terminal = horizontal
           ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true }
