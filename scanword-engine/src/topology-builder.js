@@ -200,7 +200,7 @@ export function generateTopology(options = {}) {
   const maxTwoLetterSlots = Math.max(2, Math.min(8, options.maxTwoLetterSlots ?? 8));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
-    && options.scaffoldIndex < SCAFFOLD_ROWS.length
+    && options.scaffoldIndex < SCAFFOLD_VARIANTS.length
     ? options.scaffoldIndex
     : null;
   const history = [];
