@@ -376,7 +376,7 @@ export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
     : 0;
   const rows = lowShortLayout ? LOW_SHORT_SCAFFOLD : SCAFFOLDS[selectedIndex];
   const matrix = cloneRows(rows);
-  const grid = toRoleGrid(matrix);
+  const grid = toRoleGrid(matrix, includeSpecialEleven);
   const topologyOptions = {
     requireConnected: true,
     requireFullTopBorder: !lowShortLayout,
