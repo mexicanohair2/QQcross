@@ -40,7 +40,7 @@ function makeError(type, message, extra = {}) {
 export function validateScanword(scanword, dictionary = [], options = {}) {
   const errors = [];
   const warnings = [];
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const maximumImageCount = options.maximumImageCount ?? 4;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
 
@@ -678,16 +678,16 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const imageWords = words.filter(word => word.imageKey);
   const imageKeys = imageWords.map(word => word.imageKey);
   const imageClueCells = imageWords.map(word => pointKey(word.clue));
-  if (imageWords.length !== requiredImageCount) {
-    add('IMAGE_COUNT_MISMATCH', 'Количество картинок не совпадает с обязательным значением.', {
-      expected: requiredImageCount, actual: imageWords.length
+  if (imageWords.length > maximumImageCount) {
+    add('IMAGE_COUNT_EXCEEDED', 'На одном сканворде допускается не более четырёх изображений.', {
+      maximum: maximumImageCount, actual: imageWords.length
     });
   }
   if (new Set(imageKeys).size !== imageKeys.length) {
     add('DUPLICATE_IMAGE_KEY', 'Одно изображение использовано более одного раза.', { imageKeys });
   }
   if (new Set(imageClueCells).size !== imageClueCells.length) {
-    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку: игрок должен видеть пять отдельных изображений.', {
+    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку.', {
       imageClueCells
     });
   }
