@@ -620,7 +620,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: true,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'down', 'left', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
