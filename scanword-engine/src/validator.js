@@ -93,7 +93,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
-  if (options.requireFullTopBorder !== false) {
+  if (options.requireBorderClues !== false) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col]?.type !== 'question') {
         add('TOP_BORDER_NOT_QUESTION', 'Все клетки верхнего ряда, кроме пустого угла, должны быть вопросными.', { row: 0, col });
