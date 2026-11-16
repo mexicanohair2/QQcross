@@ -621,7 +621,7 @@ test('CSP places answers in all four directions when each orientation is allowed
 });
 
 test('CSP preserves the fixed downward lower-right terminal slot', () => {
-  const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 11, col: 7 },
+  const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 4, col: 7 },
     Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
     'down', 'up'
   );
