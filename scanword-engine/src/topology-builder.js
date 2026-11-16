@@ -55,29 +55,34 @@ function repairOuterBoundaryCrossings(matrix, includeSpecialEleven, maxTwoLetter
     const grid = toRoleGrid(matrix, includeSpecialEleven);
     const derived = deriveWordSlots(grid, options);
     const boundarySlots = derived.slots.filter(slot => slot.special === 'OUTER_BOUNDARY');
-    let intersection = null;
-    for (let left = 0; left < boundarySlots.length && !intersection; left++) {
+    const intersections = [];
+    const seen = new Set();
+    for (let left = 0; left < boundarySlots.length; left++) {
       const leftKeys = new Set(boundarySlots[left].coordinates.map(point => point.row + ',' + point.col));
-      for (let right = left + 1; right < boundarySlots.length && !intersection; right++) {
+      for (let right = left + 1; right < boundarySlots.length; right++) {
         for (const point of boundarySlots[right].coordinates) {
-          if (leftKeys.has(point.row + ',' + point.col)) {
-            intersection = point;
-            break;
+          const key = point.row + ',' + point.col;
+          if (leftKeys.has(key) && !seen.has(key)) {
+            seen.add(key);
+            intersections.push(point);
           }
         }
       }
     }
-    if (!intersection) break;
-    const { row, col } = intersection;
-    if (row <= 0 || col <= 0 || row >= CONFIG.HEIGHT || col >= CONFIG.WIDTH
-      || matrix[row][col] !== '.') break;
-    if (grid[row][col].type === 'junction') break;
-    matrix[row][col] = '#';
-    repairs++;
+    if (!intersections.length) break;
+    let placed = false;
+    for (const { row, col } of intersections) {
+      if (row <= 0 || col <= 0 || row >= CONFIG.HEIGHT || col >= CONFIG.WIDTH
+        || matrix[row][col] !== '.' || grid[row][col].type === 'junction') continue;
+      matrix[row][col] = '#';
+      repairs++;
+      placed = true;
+      break;
+    }
+    if (!placed) break;
   }
   return repairs;
 }
-
 const JUNCTION_ROWS = Object.freeze([4, 8]);
 const JUNCTION_COLUMNS = Object.freeze([1, 2]);
 
