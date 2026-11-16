@@ -27,9 +27,9 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     height,
     requiredTopAnchor: { row: 0, col: 1 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
-    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
+    requiredTopQuestionCols: Array.from({ length: width - 1 }, (_, index) => index + 1),
     conflicts: [],
-    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
+    message: 'Верхняя строка и левый столбец состоят из вопросных клеток, кроме угла (0,0).'
   };
 }
 
@@ -50,9 +50,7 @@ function hasValidShape(grid) {
 function makeSlot(axis, first, last, coordinates) {
   const horizontal = axis === 'horizontal';
   const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
@@ -60,20 +58,12 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
