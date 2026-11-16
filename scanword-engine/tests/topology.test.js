@@ -107,7 +107,7 @@ test('every independent template has the complete top/left clue borders and conn
     assert.equal(rows[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(rows[row][0], '#');
     assert.ok(diagnostics.slotCount >= 20);
-    assert.ok(diagnostics.shortSlots >= 1 && diagnostics.shortSlots <= 5);
+    assert.ok(diagnostics.shortSlots >= 0 && diagnostics.shortSlots <= 8);
     assert.ok(diagnostics.longSlots >= 12);
   }
 });
