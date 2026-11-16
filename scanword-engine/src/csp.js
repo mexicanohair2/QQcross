@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
@@ -250,6 +250,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   for (const orientation of slot.directionOptions ?? []) {
     // Production may restrict directions; generic CSP tests can retain all valid orientations.
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
+    if (options.enforceBorderDirectionRules && !isAllowedClueDirection(orientation.clueCell, orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
     if (usedDirections?.has(orientation.direction)) continue;
@@ -525,6 +526,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         minimumLogicClueCells,
         history: options.history,
         allowedDirections,
+        enforceBorderDirectionRules: options.enforceBorderDirectionRules === true,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
@@ -647,6 +649,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         minimumLogicClueCells,
         history: options.history,
         allowedDirections,
+        enforceBorderDirectionRules: options.enforceBorderDirectionRules === true,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
@@ -698,6 +701,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           minimumLogicClueCells,
           history: options.history,
           allowedDirections,
+          enforceBorderDirectionRules: options.enforceBorderDirectionRules === true,
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
           allowedEntryIdsBySlot: options.allowedEntryIdsBySlot

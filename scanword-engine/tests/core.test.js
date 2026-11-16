@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { CONFIG } from '../src/config.js';
+import { CONFIG, isAllowedClueDirection } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
@@ -31,6 +31,68 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[0].options.map(option => option.entry.answer), ['A']);
   assert.deepEqual(domains[1].options.map(option => option.entry.answer), ['AX']);
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
+});
+
+
+test('AC-3 compares crossing letters by physical coordinates for reversed clue directions', () => {
+  const horizontal = {
+    slot: {
+      id: 'horizontal',
+      coordinates: [
+        { row: 4, col: 1 },
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    },
+    options: [
+      {
+        entry: { answer: 'КОТ' },
+        coordinates: [
+          { row: 4, col: 1 },
+          { row: 4, col: 2 },
+          { row: 4, col: 3 }
+        ]
+      },
+      {
+        entry: { answer: 'ТОК' },
+        coordinates: [
+          { row: 4, col: 3 },
+          { row: 4, col: 2 },
+          { row: 4, col: 1 }
+        ]
+      },
+      {
+        entry: { answer: 'КОТ' },
+        coordinates: [
+          { row: 4, col: 3 },
+          { row: 4, col: 2 },
+          { row: 4, col: 1 }
+        ]
+      }
+    ]
+  };
+  const vertical = {
+    slot: {
+      id: 'vertical',
+      coordinates: [
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    },
+    options: [{
+      entry: { answer: 'ОТ' },
+      coordinates: [
+        { row: 4, col: 2 },
+        { row: 4, col: 3 }
+      ]
+    }]
+  };
+
+  assert.equal(enforceCrossingArcConsistency([horizontal, vertical]), true);
+  assert.deepEqual(
+    horizontal.options.map(option => option.entry.answer + ':' + option.coordinates.map(p => p.col).join(',')),
+    ['КОТ:1,2,3', 'ТОК:3,2,1']
+  );
 });
 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
@@ -481,36 +543,59 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator reject left/up scanword answers', () => {
-  const leftWord = {
-    id: 'left-word', entryId: 'cat', answer: 'КОТ',
-    question: 'Домашнее животное из семейства кошачьих.',
-    clue: { row: 1, col: 4 }, direction: 'left',
-    coordinates: [
-      { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
-    ]
-  };
-  const assembled = assembleScanword({ seed: 1, words: [leftWord], questions: [] });
-  assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
 
-  const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
-  grid[0][0].type = 'corner';
-  grid[1][4] = { row: 1, col: 4, type: 'question', letter: null, questionIds: ['q-left'], wordIds: [] };
-  grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
-  leftWord.coordinates.forEach((point, index) => {
-    grid[point.row][point.col] = {
-      ...grid[point.row][point.col], type: 'letter',
-      letter: leftWord.answer[index], questionIds: [], wordIds: [leftWord.id]
-    };
+
+test('assembler and independent validator accept all four answer directions', () => {
+  const assembled = assembleScanword({
+    seed: 818,
+    words: [
+      {
+        id: 'w-left', entryId: 'left-word', answer: 'КОТ', question: 'Домашнее животное.',
+        clue: { row: 4, col: 5 }, direction: 'left',
+        coordinates: [{ row: 4, col: 4 }, { row: 4, col: 3 }, { row: 4, col: 2 }]
+      },
+      {
+        id: 'w-up', entryId: 'up-word', answer: 'ОСА', question: 'Полосатое жалящее насекомое.',
+        clue: { row: 5, col: 3 }, direction: 'up',
+        coordinates: [{ row: 4, col: 3 }, { row: 3, col: 3 }, { row: 2, col: 3 }]
+      },
+      {
+        id: 'w-right', entryId: 'right-word', answer: 'ЛЕС', question: 'Большая территория с деревьями.',
+        clue: { row: 7, col: 1 }, direction: 'right',
+        coordinates: [{ row: 7, col: 2 }, { row: 7, col: 3 }, { row: 7, col: 4 }]
+      },
+      {
+        id: 'w-down', entryId: 'down-word', answer: 'ДОМ', question: 'Место, где живут люди.',
+        clue: { row: 2, col: 6 }, direction: 'down',
+        coordinates: [{ row: 3, col: 6 }, { row: 4, col: 6 }, { row: 5, col: 6 }]
+      }
+    ]
   });
-  const validation = validateScanword({
-    width: 8, height: 12, grid,
-    words: [leftWord],
-    questions: [{
-      id: 'q-left', wordId: leftWord.id, text: leftWord.question,
-      clue: leftWord.clue, direction: 'left', length: 3
-    }]
-  }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+
+  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
+  assert.deepEqual(assembled.scanword.words.map(word => word.direction), ['left', 'up', 'right', 'down']);
+  assert.equal(assembled.scanword.grid[4][3].letter, 'О');
+  assert.deepEqual(assembled.scanword.grid[4][3].wordIds.sort(), ['w-left', 'w-up']);
+
+  const validation = validateScanword(assembled.scanword, [], {
+    requireBorderClues: false,
+    requireTopAnchor: false,
+    requireConnected: false,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0
+  });
+  assert.equal(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'), false);
+  assert.equal(validation.errors.some(error => error.type === 'INVALID_BORDER_DIRECTION'), false);
+  assert.equal(validation.errors.some(error => error.type === 'NON_CONTIGUOUS_WORD'), false);
+});
+
+test('border clue directions stay readable while interior clues may point all four ways', () => {
+  assert.equal(isAllowedClueDirection({ row: 0, col: 1 }, 'right'), true);
+  assert.equal(isAllowedClueDirection({ row: 0, col: 1 }, 'down'), true);
+  assert.equal(isAllowedClueDirection({ row: 0, col: 4 }, 'up'), false);
+  assert.equal(isAllowedClueDirection({ row: 5, col: 0 }, 'right'), true);
+  assert.equal(isAllowedClueDirection({ row: 5, col: 0 }, 'left'), false);
+  for (const direction of ['right', 'left', 'down', 'up']) {
+    assert.equal(isAllowedClueDirection({ row: 5, col: 4 }, direction), true);
+  }
 });

@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
@@ -196,13 +196,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (word.direction !== 'right' && word.direction !== 'down') {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
-        wordId: word.id, direction: word.direction
-      });
-      continue;
-    }
-
     const clue = word.clue;
     if (!inBounds(clue?.row, clue?.col)) {
       add('INVALID_CLUE_COORDINATE', 'Координата вопросной клетки находится вне поля.', {
@@ -213,6 +206,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     if (grid[clue.row][clue.col]?.type !== 'question') {
       add('WORD_START_NOT_QUESTION', 'Ответ должен начинаться из вопросной клетки.', {
         wordId: word.id, row: clue.row, col: clue.col
+      });
+    }
+    if (!isAllowedClueDirection(clue, word.direction)) {
+      add('INVALID_BORDER_DIRECTION', 'Вопрос верхней границы не может начинать ответ вверх, а вопрос левой границы должен начинать ответ вправо.', {
+        wordId: word.id, clue, direction: word.direction
       });
     }
 

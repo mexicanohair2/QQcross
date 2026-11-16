@@ -19,6 +19,8 @@ async function main() {
   };
   const runs = [];
   const fingerprints = new Set();
+  const directionTotals = { right: 0, left: 0, down: 0, up: 0 };
+  let samplePuzzle = null;
   let specialRequested = 0;
   let specialGenerated = 0;
 
@@ -41,6 +43,31 @@ async function main() {
       requireConnected: true
     });
     const words = result.scanword.words;
+    const directionCounts = { right: 0, left: 0, down: 0, up: 0 };
+    for (const word of words) {
+      directionCounts[word.direction] = (directionCounts[word.direction] || 0) + 1;
+      directionTotals[word.direction] = (directionTotals[word.direction] || 0) + 1;
+    }
+    const directionVariety = Object.values(directionCounts).filter(count => count > 0).length;
+    if (!samplePuzzle || directionVariety > samplePuzzle.directionVariety) {
+      samplePuzzle = {
+        index,
+        seed,
+        directionVariety,
+        directionCounts,
+        grid: result.scanword.grid.map(row => row.map(cell =>
+          cell.type === 'corner' ? '·' : cell.type === 'question' ? '◆' : cell.letter
+        ).join(' ')),
+        words: words.map(word => ({
+          question: word.question,
+          answer: word.answer,
+          clue: { ...word.clue },
+          direction: word.direction,
+          length: word.length,
+          coordinates: word.coordinates.map(point => ({ ...point }))
+        }))
+      };
+    }
     const images = words.filter(word => word.imageKey);
     const shortAnswers = words.filter(word => word.length === 2);
     const special = result.scanword.metadata.specialElevenLetterQuestion === true;
@@ -63,6 +90,7 @@ async function main() {
       letterCells: validation.metrics.letters,
       fillPercent: Math.round((validation.metrics.questionCells + validation.metrics.letters) / 95 * 10000) / 100,
       crossings: validation.metrics.crossings,
+      directionCounts,
       shortAnswers: shortAnswers.map(word => word.answer),
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
@@ -89,6 +117,8 @@ async function main() {
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
     distinctPuzzles: fingerprints.size,
+    directionTotals,
+    samplePuzzle,
     averageAnswers: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.answerCount, 0) / successful.length * 100) / 100 : 0,
     averageQuestionCells: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.questionCells, 0) / successful.length * 100) / 100 : 0,
     averageFillPercent: successful.length ? Math.round(successful.reduce((sum, run) => sum + run.fillPercent, 0) / successful.length * 100) / 100 : 0,

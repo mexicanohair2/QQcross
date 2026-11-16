@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { createEmptyGrid, inBounds } from './grid.js';
 import { normalizeAnswer } from './dictionary.js';
 
@@ -58,9 +58,9 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
-    if (sourceWord.direction !== 'right' && sourceWord.direction !== 'down') {
-      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
-        wordId: sourceWord.id, direction: sourceWord.direction
+    if (!isAllowedClueDirection(clue, sourceWord.direction)) {
+      fail('INVALID_BORDER_DIRECTION', 'Вопрос верхней границы не может начинать ответ вверх, а вопрос левой границы должен начинать ответ вправо.', {
+        wordId: sourceWord.id, clue, direction: sourceWord.direction
       });
       continue;
     }
