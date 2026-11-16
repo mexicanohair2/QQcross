@@ -16,8 +16,15 @@ function roleGrid(rows) {
 }
 function metrics(rows) {
   const grid = roleGrid(rows);
-  const validation = validateTopology(grid, { requireConnected: true });
-  const derived = deriveWordSlots(grid);
+  const topologyOptions = {
+    requireConnected: true,
+    requireFullTopBorder: true,
+    allowOuterBoundarySlots: true,
+    allowColumnOneBoundarySlot: true,
+    minimumOuterBoundaryLength: 2
+  };
+  const validation = validateTopology(grid, topologyOptions);
+  const derived = deriveWordSlots(grid, topologyOptions);
   const counts = Object.fromEntries([2,3,4,5,6,7,8,9,10,11].map(n => [
     String(n), derived.slots.filter(slot => slot.length === n).length
   ]));
