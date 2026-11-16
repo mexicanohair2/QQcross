@@ -13,7 +13,7 @@ async function main() {
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
-    maxTwoLetterSlots: 6,
+    maxTwoLetterSlots: 5,
     requiredImageCount: 5,
     minimumLogicClueCells: 3,
   };
