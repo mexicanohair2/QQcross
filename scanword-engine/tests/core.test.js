@@ -510,6 +510,49 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
+
+test('assembler accepts outer-boundary answers in all four directions', () => {
+  const cases = [
+    {
+      direction: 'right',
+      clue: { row: 2, col: 4 },
+      coordinates: [{ row: 2, col: 5 }, { row: 2, col: 6 }, { row: 2, col: 7 }]
+    },
+    {
+      direction: 'down',
+      clue: { row: 8, col: 2 },
+      coordinates: [{ row: 9, col: 2 }, { row: 10, col: 2 }, { row: 11, col: 2 }]
+    },
+    {
+      direction: 'left',
+      clue: { row: 2, col: 3 },
+      coordinates: [{ row: 2, col: 2 }, { row: 2, col: 1 }, { row: 2, col: 0 }]
+    },
+    {
+      direction: 'up',
+      clue: { row: 3, col: 2 },
+      coordinates: [{ row: 2, col: 2 }, { row: 1, col: 2 }, { row: 0, col: 2 }]
+    }
+  ];
+
+  for (const item of cases) {
+    const assembled = assembleScanword({
+      seed: 21,
+      words: [{
+        id: 'edge-' + item.direction,
+        answer: 'КОТ',
+        question: 'Тестовый ответ у внешней границы.',
+        clue: item.clue,
+        direction: item.direction,
+        coordinates: item.coordinates,
+        special: 'OUTER_BOUNDARY'
+      }]
+    });
+    assert.equal(assembled.ok, true, item.direction + ': ' + JSON.stringify(assembled.errors));
+    assert.equal(assembled.scanword.words[0].special, 'OUTER_BOUNDARY');
+  }
+});
+
 test('assembler and independent validator permit all four answer directions', () => {
   const cases = [
     {
