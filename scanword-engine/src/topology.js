@@ -54,9 +54,21 @@ function makeSlot(axis, first, last, coordinates) {
   const forward = coordinates.map(item => ({ ...item }));
   const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
+  const requiredDirection = !horizontal
+    && first.row === 0 && first.col === CONFIG.WIDTH - 1
+    && last.row === CONFIG.HEIGHT - 1 && last.col === CONFIG.WIDTH - 1
+    ? 'down'
+    : horizontal
+      && first.row === CONFIG.HEIGHT - 1
+      && first.col === CONFIG.WIDTH - 4
+      && last.col === CONFIG.WIDTH - 1
+      ? 'right'
+      : null;
+
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
     axis,
+    requiredDirection,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
