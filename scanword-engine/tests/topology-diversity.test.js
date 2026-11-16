@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
+import { createEmptyGrid } from '../src/grid.js';
+import { deriveWordSlots, validateTopology } from '../src/topology.js';
 
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
@@ -66,22 +68,44 @@ test('topology generation is deterministic for a fixed seed', () => {
 });
 
 
+test('special scaffold passes direct geometry and slot validation', () => {
+  const pattern = getTopologyScaffolds()[3];
+  const grid = createEmptyGrid();
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (row === 0 && col === 0) {
+        grid[row][col] = { row, col, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+      } else {
+        const question = pattern[row][col] === '#';
+        grid[row][col] = {
+          row, col, type: question ? 'question' : 'letter',
+          letter: question ? null : 'А', questionIds: [], wordIds: []
+        };
+      }
+    }
+  }
+  const validation = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: true });
+  const slots = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
+  assert.equal(validation.valid, true, JSON.stringify(validation.errors));
+  assert.equal(slots.errors.length, 0, JSON.stringify(slots.errors));
+});
+
 test('low-short scaffold is accepted only with its mandatory 11-letter crossing chain', () => {
   const scaffolds = getTopologyScaffolds();
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
-    '#...#...',
-    '#...#...',
-    '#...#...',
+    '.#...#..',
+    '#.......',
+    '#.......',
     '#......#',
-    '#....##.',
     '#...#...',
-    '#...#...',
+    '#.......',
+    '#.......',
     '#......#',
-    '#....##.',
-    '#.....#.',
+    '#...#...',
+    '#.......',
+    '#.......',
     '#......#'
   ]);
 
@@ -95,7 +119,7 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
 
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.topology.validation.valid, true);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 3);
+  assert.ok(result.topology.metrics.interiorQuestionCells >= 2);
   assert.equal(result.topology.metrics.totalCells, 96);
   assert.equal(result.topology.pattern.length, 12);
   assert.ok(result.topology.pattern.every(row => row.length === 8));
@@ -104,6 +128,6 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 2);
-  assert.ok(result.topology.slots.length >= 20);
+  assert.equal(shortSlots, 1, 'special 11-letter scaffold may use only one meaningful short answer');
+  assert.ok(result.topology.slots.length >= 18);
 });

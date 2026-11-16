@@ -80,16 +80,23 @@ function validateSlotGeometry(slot) {
     );
   }
 
-  if (
-    slot.endpoints.some(endpoint =>
-      endpoint.boundary
-      || !Number.isInteger(endpoint.row)
-      || !Number.isInteger(endpoint.col)
-      || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
-      || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
-    )
-    || slot.directionOptions.length !== 2
-  ) return false;
+  const boundaryEndpoints = slot.endpoints.filter(endpoint => endpoint.boundary === true);
+  if (boundaryEndpoints.length > 1) return false;
+  if (slot.endpoints.some(endpoint => {
+    if (!Number.isInteger(endpoint.row) || !Number.isInteger(endpoint.col)) return true;
+    if (endpoint.boundary) {
+      const verticalBoundary = (endpoint.row === -1 || endpoint.row === CONFIG.HEIGHT)
+        && endpoint.col >= 0 && endpoint.col < CONFIG.WIDTH;
+      const horizontalBoundary = (endpoint.col === -1 || endpoint.col === CONFIG.WIDTH)
+        && endpoint.row >= 0 && endpoint.row < CONFIG.HEIGHT;
+      return !(verticalBoundary || horizontalBoundary);
+    }
+    return endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
+      || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH;
+  })) return false;
+
+  const expectedOptionCount = boundaryEndpoints.length === 1 ? 1 : 2;
+  if (slot.directionOptions.length !== expectedOptionCount) return false;
 
   const [start, end] = slot.endpoints;
   const horizontal = start.row === end.row;
@@ -111,7 +118,17 @@ function validateSlotGeometry(slot) {
     ) return false;
   }
 
-  const expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
+  let expectedDirections;
+  if (boundaryEndpoints.length === 1) {
+    const clueEndpoint = slot.endpoints.find(endpoint => !endpoint.boundary);
+    const boundaryEndpoint = boundaryEndpoints[0];
+    const direction = horizontal
+      ? (boundaryEndpoint.col > clueEndpoint.col ? 'right' : 'left')
+      : (boundaryEndpoint.row > clueEndpoint.row ? 'down' : 'up');
+    expectedDirections = new Set([direction]);
+  } else {
+    expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
+  }
   if (
     slot.directionOptions.length !== expectedDirections.size
     || slot.directionOptions.some(option => !expectedDirections.has(option.direction))

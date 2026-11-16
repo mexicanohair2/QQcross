@@ -12,11 +12,7 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   const height = options.height ?? CONFIG.HEIGHT;
   if (width !== CONFIG.WIDTH || height !== CONFIG.HEIGHT) {
     return {
-      feasible: null,
-      reason: 'UNSUPPORTED_DIMENSIONS',
-      width,
-      height,
-      conflicts: [],
+      feasible: null, reason: 'UNSUPPORTED_DIMENSIONS', width, height, conflicts: [],
       message: 'Генератор QQCross поддерживает только поле 8×12.'
     };
   }
@@ -27,9 +23,10 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     height,
     requiredTopAnchor: { row: 0, col: 1 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
-    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
+    minimumTopQuestionCells: 2,
+    forcedLongVerticalAnswers: [],
     conflicts: [],
-    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
+    message: 'Верхняя граница содержит обязательный стартовый вопрос и дополнительные вопросные клетки по топологии; левый столбец остаётся полностью вопросным.'
   };
 }
 
@@ -53,27 +50,28 @@ function makeSlot(axis, first, last, coordinates) {
   const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
   const reverse = [...coordinates].reverse().map(item => ({ ...item }));
+  const directionOptions = [];
+
+  // Answers may end at another clue cell or at a physical board edge.
+  if (!first.boundary) {
+    directionOptions.push({
+      clueCell: { ...first }, terminalCell: { ...last },
+      direction: forwardDirection, coordinates: forward.map(item => ({ ...item }))
+    });
+  }
+  if (!last.boundary) {
+    directionOptions.push({
+      clueCell: { ...last }, terminalCell: { ...first },
+      direction: reverseDirection, coordinates: reverse.map(item => ({ ...item }))
+    });
+  }
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
-    axis,
-    length: coordinates.length,
+    axis, length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions,
     special: null
   };
 }
@@ -109,14 +107,10 @@ export function deriveWordSlots(grid, options = {}) {
   const errors = [];
   const warnings = [];
   const slots = [];
-
   if (!hasValidShape(grid)) {
     return {
       slots,
-      errors: [{
-        type: 'INVALID_GRID_SHAPE',
-        message: 'Сетка должна содержать 12 строк по 8 клеток.'
-      }],
+      errors: [{ type: 'INVALID_GRID_SHAPE', message: 'Сетка должна содержать 12 строк по 8 клеток.' }],
       warnings
     };
   }
@@ -125,135 +119,101 @@ export function deriveWordSlots(grid, options = {}) {
     const horizontal = axis === 'horizontal';
     const lineLength = horizontal ? CONFIG.WIDTH : CONFIG.HEIGHT;
     const questionPositions = [];
-
     for (let offset = 0; offset < lineLength; offset++) {
       const row = horizontal ? fixedIndex : offset;
       const col = horizontal ? offset : fixedIndex;
       if (grid[row][col].type === 'question') questionPositions.push(offset);
     }
 
-    for (let index = 0; index < questionPositions.length - 1; index++) {
-      const from = questionPositions[index];
-      const to = questionPositions[index + 1];
+    // Board edges are real terminals. Every contiguous letter run is bounded
+    // by Q/Q, Q/edge, or edge/Q. Runs without an actual clue are not answers.
+    const endpoints = [-1, ...questionPositions, lineLength];
+    for (let index = 0; index < endpoints.length - 1; index++) {
+      const from = endpoints[index], to = endpoints[index + 1];
       const length = to - from - 1;
       if (length <= 0) continue;
 
-      const first = horizontal ? point(fixedIndex, from) : point(from, fixedIndex);
-      const last = horizontal ? point(fixedIndex, to) : point(to, fixedIndex);
+      // A letter run with no clue at either end is not an answer. Its letters
+      // must be covered by perpendicular, clue-started words instead.
+      if (from === -1 && to === lineLength) continue;
+
+      // The sole corner cell is not a letter run before the first clue.
+      if (from === -1) {
+        const edgeCell = horizontal ? grid[fixedIndex][0] : grid[0][fixedIndex];
+        if (edgeCell?.type === 'corner') continue;
+      }
+
+      const first = from === -1
+        ? (horizontal ? { row: fixedIndex, col: -1, boundary: true } : { row: -1, col: fixedIndex, boundary: true })
+        : (horizontal ? point(fixedIndex, from) : point(from, fixedIndex));
+      const last = to === lineLength
+        ? (horizontal ? { row: fixedIndex, col: CONFIG.WIDTH, boundary: true } : { row: CONFIG.HEIGHT, col: fixedIndex, boundary: true })
+        : (horizontal ? point(fixedIndex, to) : point(to, fixedIndex));
+
       const coordinates = [];
       let malformed = false;
-
       for (let offset = from + 1; offset < to; offset++) {
         const row = horizontal ? fixedIndex : offset;
         const col = horizontal ? offset : fixedIndex;
-        const cell = grid[row][col];
-
-        if (!cell || cell.type !== 'letter') {
+        if (grid[row][col]?.type !== 'letter') {
           malformed = true;
           errors.push({
             type: 'NON_LETTER_INSIDE_SLOT',
-            message: 'Между соседними вопросными клетками находится клетка, которая не является буквой.',
-            row,
-            col,
-            axis
+            message: 'Между границей и вопросом/следующим вопросом находится не буквенная клетка.',
+            row, col, axis
           });
         }
         coordinates.push(point(row, col));
       }
-
-      if (malformed) continue;
+      if (malformed || !coordinates.length) continue;
 
       if (length < MIN_ANSWER_LENGTH) {
         warnings.push({
           type: 'SINGLE_LETTER_GAP',
-          message: 'Однобуквенный промежуток не является ответом и должен покрываться пересекающим словом.',
-          axis,
-          first,
-          last,
-          coordinates
+          message: 'Однобуквенный промежуток не является ответом; его буква обязана входить в пересекающийся ответ.',
+          axis, first, last, coordinates
         });
         continue;
       }
-
       if (length > CONFIG.MAX_WORD_LENGTH) {
+        errors.push({ type: 'SLOT_TOO_LONG', message: 'Длина слота превышает максимальную длину словаря.', axis, first, last, length });
+        continue;
+      }
+
+      const slot = makeSlot(axis, first, last, coordinates);
+      if (!slot.directionOptions.length) {
         errors.push({
-          type: 'SLOT_TOO_LONG',
-          message: 'Длина слота превышает максимальную длину словаря.',
-          axis,
-          first,
-          last,
-          length
+          type: 'UNANCHORED_ANSWER_RUN',
+          message: 'Последовательность букв не имеет вопросной клетки, от которой начинается ответ.',
+          axis, first, last, length
         });
         continue;
       }
 
-      slots.push(makeSlot(axis, first, last, coordinates));
+      if (length === 11) {
+        const topBoundaryOption = slot.directionOptions.find(option =>
+          option.direction === 'down'
+          && option.clueCell.row === 0
+          && option.terminalCell.boundary === true
+          && option.terminalCell.row === CONFIG.HEIGHT
+        );
+        if (topBoundaryOption) {
+          // Top-row clues may point horizontally. Their downward columns are
+          // crossing letters unless the anchor at (0,1) is explicitly selected
+          // as the scheduled special 11-letter answer.
+          const isSpecialAnchor = topBoundaryOption.clueCell.col === 1
+            && topBoundaryOption.terminalCell.col === 1;
+          if (!isSpecialAnchor || options.allowSpecialElevenBoundary === false) continue;
+          slot.special = 'ELEVEN_LETTER_BOTTOM_BOUNDARY';
+          slot.id = 'special-eleven:0,1>bottom-boundary';
+        }
+      }
+      slots.push(slot);
     }
   }
 
   for (let row = 0; row < CONFIG.HEIGHT; row++) scanLine('horizontal', row);
   for (let col = 0; col < CONFIG.WIDTH; col++) scanLine('vertical', col);
-
-  // The only permitted answer that ends at the outer board edge:
-  // clue (0,1), direction down, exactly eleven letters at (1,1)..(11,1).
-  if (options.allowSpecialElevenBoundary !== false) {
-    const clue = grid[0][1];
-    const coordinates = Array.from({ length: 11 }, (_, index) => point(index + 1, 1));
-    const uninterrupted = clue.type === 'question'
-      && coordinates.every(item => grid[item.row][item.col].type === 'letter');
-
-    if (uninterrupted) {
-      slots.push({
-        id: 'special-eleven:0,1>bottom-boundary',
-        axis: 'vertical',
-        length: 11,
-        endpoints: [
-          point(0, 1),
-          { row: CONFIG.HEIGHT, col: 1, boundary: true }
-        ],
-        coordinates,
-        directionOptions: [{
-          clueCell: point(0, 1),
-          terminalCell: { row: CONFIG.HEIGHT, col: 1, boundary: true },
-          direction: 'down',
-          coordinates: coordinates.map(item => ({ ...item }))
-        }],
-        special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-      });
-    }
-  }
-
-  // Opt-in exception for the two forced horizontal answers from the left edge.
-  // It is disabled by default and is accepted only for rows 1 and 2.
-  if (options.allowLeftBorderRightBoundary === true) {
-    for (const row of [1, 2]) {
-      const clue = grid[row][0];
-      const coordinates = Array.from({ length: CONFIG.WIDTH - 1 }, (_, index) => point(row, index + 1));
-      const uninterrupted = clue.type === 'question'
-        && coordinates.every(item => grid[item.row][item.col].type === 'letter');
-
-      if (uninterrupted) {
-        slots.push({
-          id: 'special-left-right:' + row + ',0>right-boundary',
-          axis: 'horizontal',
-          length: CONFIG.WIDTH - 1,
-          endpoints: [
-            point(row, 0),
-            { row, col: CONFIG.WIDTH, boundary: true }
-          ],
-          coordinates,
-          directionOptions: [{
-            clueCell: point(row, 0),
-            terminalCell: { row, col: CONFIG.WIDTH, boundary: true },
-            direction: 'right',
-            coordinates: coordinates.map(item => ({ ...item }))
-          }],
-          special: 'LEFT_BORDER_RIGHT_BOUNDARY'
-        });
-      }
-    }
-  }
-
   return { slots, errors, warnings };
 }
 
@@ -325,8 +285,17 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  // The top row is intentionally dynamic. Letter cells are permitted only
-  // when a horizontal slot between two question cells covers them.
+  const topQuestionCount = grid[0].slice(1).filter(cell => cell?.type === 'question').length;
+  if (topQuestionCount < 2) {
+    errors.push({
+      type: 'INSUFFICIENT_TOP_QUESTIONS',
+      message: 'В верхней строке должны быть как минимум два вопросных старта; остальные клетки могут быть буквенными и обязаны входить в слова.',
+      row: 0,
+      actual: topQuestionCount,
+      minimum: 2
+    });
+  }
+
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
@@ -420,6 +389,24 @@ export function validateTopology(grid, options = {}) {
           row,
           col
         });
+      }
+    }
+  }
+
+  if (options.requireEveryQuestionStarts !== false) {
+    const outgoing = new Set(derived.slots.flatMap(slot =>
+      slot.directionOptions.map(option => keyOf(option.clueCell))
+    ));
+    for (let row = 0; row < CONFIG.HEIGHT; row++) {
+      for (let col = 0; col < CONFIG.WIDTH; col++) {
+        if (grid[row][col].type !== 'question') continue;
+        if (!outgoing.has(row + ',' + col)) {
+          errors.push({
+            type: 'QUESTION_WITHOUT_OUTGOING_WORD',
+            message: 'Каждая вопросная клетка обязана начинать хотя бы один настоящий ответ.',
+            row, col
+          });
+        }
       }
     }
   }

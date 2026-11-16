@@ -159,8 +159,16 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   const plans = [];
   const uniqueAnswers = new Set();
+  const startableInitials = new Set(entries
+    .filter(candidate => {
+      const length = String(candidate.answer ?? '').length;
+      return length >= 3 && length <= CONFIG.WIDTH - 1
+        || length === 2 && ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }));
+    })
+    .map(candidate => normalizeInitial([...candidate.answer][0])));
   const planDiagnostics = {
     elevenLetterAnswers: 0,
+    unstartableInitialAnswers: 0,
     topologiesConsidered: topologies.length,
     missingSlotDomains: 0,
     arcConsistencyRejected: 0,
@@ -177,6 +185,13 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     uniqueAnswers.add(answerKey);
 
     const letters = [...entry.answer].map(normalizeInitial);
+    // Every letter of the vertical 11-letter answer becomes the first
+    // character of a horizontal answer from the mandatory left border.
+    // Reject impossible initials (notably Ь/Ъ/Ы) before building any CSP plans.
+    if (letters.some(letter => !startableInitials.has(letter))) {
+      planDiagnostics.unstartableInitialAnswers++;
+      continue;
+    }
     const imposedLetters = new Map(letters.map((letter, index) => [
       (index + 1) + ',1',
       letter
@@ -191,7 +206,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
+          // Slot geometry bounds all four canonical orientations.
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -360,7 +375,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // normal interactive budget; cap special retries so the worker stays bounded.
   const specialMaxCspTimeMs = Math.max(
     maxCspTimeMs,
-    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
+    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 5000
   );
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
@@ -400,11 +415,11 @@ export function generateScanword(inputDictionary, options = {}) {
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
   // Prefer exactly one low-short topology attempt when it has a compatible
@@ -428,7 +443,7 @@ export function generateScanword(inputDictionary, options = {}) {
     Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 8, specialPlanSequence.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
@@ -499,7 +514,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,

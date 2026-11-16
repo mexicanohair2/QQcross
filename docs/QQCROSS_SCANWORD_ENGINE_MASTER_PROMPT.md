@@ -216,3 +216,9 @@ The user works only from an Android phone and expects repository-side execution 
 10. Merge/deploy only after all gates pass.
 
 The only acceptable success is a real, fully playable, fully validated 8×12 QQCross scanword — never a decorative grid, random filler, partial board or unverified demo.
+
+## 14. Mandatory rejection of the 2026-11-15 bad example
+
+Before any future grid is shown to the user, read and satisfy `docs/QQCROSS_SCANWORD_FAILURES_AND_HARD_ACCEPTANCE_2026-11-15.md`. That file is the detailed failure contract for the seven defects: wrong 8×12 orientation, top clues pointing right rather than down, disconnected answers, underused multi-direction clue cells, unassigned cells, missing 11-letter mechanic, and visible empty cells. It supersedes any illustrative ASCII mock-up that contradicts the actual game rules.
+
+Never draw a pretend board and call it generated. A displayed board must come from the real generator's serialized output and carry the independent validator result. A topology-only diagnostic must be explicitly labelled as such. The UI must render arrows from each registered question record and must not silently choose the first question id in a multi-clue cell. If the required top/left geometry cannot be satisfied simultaneously, return a structured failure with the exact conflicting coordinates; do not quietly weaken the contract or fill cells with nonsense.

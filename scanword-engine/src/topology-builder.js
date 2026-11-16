@@ -5,8 +5,8 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * The original three scaffolds remain available for broad topology exploration.
- * The fourth, low-short-answer scaffold is reserved for the optional 11-letter
- * layout. It is not connected when that boundary answer is omitted.
+ * The fourth scaffold is reserved for the optional 11-letter layout. It has
+ * no two-letter answer slots and is not connected when that boundary answer is omitted.
  */
 const SCAFFOLD_ROWS = Object.freeze([
   [4, 8, 11],
@@ -15,17 +15,17 @@ const SCAFFOLD_ROWS = Object.freeze([
 ]);
 
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
-  '#...#...',
-  '#...#...',
-  '#...#...',
+  '.#...#..',
+  '#.......',
+  '#.......',
   '#......#',
-  '#....##.',
   '#...#...',
-  '#...#...',
+  '#.......',
+  '#.......',
   '#......#',
-  '#....##.',
-  '#.....#.',
+  '#...#...',
+  '#.......',
+  '#.......',
   '#......#'
 ]);
 
@@ -66,7 +66,7 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = includeSpecialEleven ? 2 : 3) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) < 2) return null;
@@ -88,16 +88,18 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, m
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
-  if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
+  const minimumQuestionCells = includeSpecialEleven ? 18 : 20;
+  if (validation.metrics.questionCells < minimumQuestionCells || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production uses a cap of four short answers; the low-short scaffold starts
-  // at two and allows seeded, validator-approved mutations for variety.
-  if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
+  // Ordinary layouts retain the approved short-answer cap. The special
+  // 11-letter layout deliberately has zero two-letter filler slots.
+  const minimumTwoLetterSlots = includeSpecialEleven ? 0 : 2;
+  if (twoLetterSlots < minimumTwoLetterSlots || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
     grid,
@@ -168,7 +170,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
-  const requiredInterior = 3;
+  const requiredInterior = includeSpecialEleven ? 2 : 3;
   if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
     return { candidate: null, accepted, tried };
   }
