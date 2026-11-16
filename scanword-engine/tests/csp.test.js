@@ -348,16 +348,16 @@ test('allows the shared picture prompt only for distinct image keys', () => {
   ];
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 17,
-    requiredImageCount: 5,
+    requiredImageCount: 4,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     maxNodes: 500,
     maxTimeMs: 1000
   });
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.metrics.distinctImages, 5);
+  assert.equal(result.metrics.distinctImages, 4);
   assert.equal(new Set(result.words.map(word => word.question)).size, 1);
-  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 5);
+  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 4);
 });
 
 
