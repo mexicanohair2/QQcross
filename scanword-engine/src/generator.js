@@ -537,7 +537,11 @@ export function generateScanword(inputDictionary, options = {}) {
       includeSpecialEleven: useSpecialTopology,
       maxAttempts: useSpecialTopology ? 1 : 4,
       mutationBudget: options.topologyMutationAttempts ?? 96,
-      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5
+      maxTwoLetterSlots: options.maxTwoLetterSlots ?? 5,
+      // Start from independently approved production scaffolds. Randomly
+      // flipping internal cells can create crossings whose letters have no
+      // compatible dictionary support (for example, a terminal Ь).
+      preserveScaffold: !useSpecialTopology
     });
 
     if (!topologyResult.ok) {
