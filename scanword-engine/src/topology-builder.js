@@ -189,8 +189,14 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 3 + Math.floor(random() * (CONFIG.HEIGHT - 3));
-    // Keep the two mandatory left-border answer lanes (columns 1 and 2) clear.
-    const col = 3 + Math.floor(random() * (CONFIG.WIDTH - 3));
+    // Preserve the first horizontal answer from the left border: it is the
+    // crossing prefix that makes the two top-border vertical lanes solvable.
+    const firstQuestion = matrix[row].indexOf('#', 1);
+    if (firstQuestion < 0 || firstQuestion >= CONFIG.WIDTH - 1) continue;
+    const firstMutableColumn = Math.max(3, firstQuestion + 1);
+    if (firstMutableColumn >= CONFIG.WIDTH) continue;
+    const col = firstMutableColumn
+      + Math.floor(random() * (CONFIG.WIDTH - firstMutableColumn));
     const key = row + ',' + col;
     if (touched.has(key)) continue;
     touched.add(key);
