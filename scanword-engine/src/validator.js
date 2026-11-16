@@ -93,7 +93,29 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
-  if (options.requireBorderClues !== false) {
+  if (options.requireTopRowHorizontalRun === true) {
+    const expectedTopRow = ['corner', 'question', 'letter', 'letter', 'letter', 'question', 'question', 'question'];
+    for (let col = 0; col < CONFIG.WIDTH; col++) {
+      if (grid[0][col]?.type !== expectedTopRow[col]) {
+        add('TOP_ROW_SHORT_ANSWER_LAYOUT_INVALID', 'Верхний ряд должен содержать один короткий ответ из трёх букв между вопросными клетками.', {
+          row: 0, col, expected: expectedTopRow[col], actual: grid[0][col]?.type ?? null
+        });
+      }
+    }
+    const topShortAnswer = words.some(word =>
+      word.answer?.length === 3
+      && Array.isArray(word.coordinates)
+      && word.coordinates.length === 3
+      && word.coordinates.every(point => point.row === 0)
+      && (
+        (word.clue?.row === 0 && word.clue?.col === 1 && word.direction === 'right')
+        || (word.clue?.row === 0 && word.clue?.col === 5 && word.direction === 'left')
+      )
+    );
+    if (!topShortAnswer) {
+      add('TOP_ROW_SHORT_ANSWER_MISSING', 'Не найден горизонтальный ответ из трёх букв в верхнем ряду.', { row: 0, col: 1 });
+    }
+  } else if (options.requireBorderClues !== false) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col]?.type !== 'question') {
         add('TOP_BORDER_NOT_QUESTION', 'Все клетки верхнего ряда, кроме пустого угла, должны быть вопросными.', { row: 0, col });
