@@ -351,7 +351,7 @@ export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
     requireBorderClues: false,
     allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: false,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
@@ -384,8 +384,9 @@ export function diagnoseTopologyPattern(rows, options = {}) {
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
-    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireFullTopBorder: false,
+    requireBorderClues: false,
+    allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
     allowColumnOneBoundarySlot: !includeSpecialEleven,
     minimumOuterBoundaryLength: 2
