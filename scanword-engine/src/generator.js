@@ -485,18 +485,13 @@ export function generateScanword(inputDictionary, options = {}) {
   // Build them once, not again inside every CSP retry.
   const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
 
-  const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
   const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
     ? options.sequenceIndex
     : null;
-  // Production supplies a 1-based generation sequence: every fourth new
-  // scanword must contain the eleven-letter boundary answer. Direct callers
-  // without a sequence index keep the seeded-probability fallback.
-  const wantsEleven = hasElevenLetterAnswers && (
-    sequenceIndex !== null
-      ? sequenceIndex % 4 === 0
-      : random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE)
-  );
+  // The former 11-letter featured answer is retired. Every fourth puzzle
+  // instead highlights exactly one ordinary answer of at most five letters.
+  const wantsEleven = false;
+  const wantsShortQuestion = sequenceIndex !== null && sequenceIndex % 4 === 0;
   // Build and rank the compatible special plan pool once per puzzle. Re-running
   // the full dictionary/topology arc-consistency pass for every retry was
   // unnecessary work and could consume most of the worker's 16-second limit.
@@ -670,8 +665,22 @@ export function generateScanword(inputDictionary, options = {}) {
     }
 
     const scanword = assembled.scanword;
+    const shortQuestionCandidates = wantsShortQuestion
+      ? scanword.words
+          .filter(word => word.answer.length >= 3 && word.answer.length <= 5)
+          .sort((a, b) => b.answer.length - a.answer.length || String(a.id).localeCompare(String(b.id)))
+      : [];
+    if (wantsShortQuestion && shortQuestionCandidates.length === 0) {
+      attempts.push({ attempt: attempt + 1, reason: 'NO_SHORT_FEATURED_ANSWER', nodes: solved.nodes, elapsedMs: solved.elapsedMs });
+      continue;
+    }
+    if (wantsShortQuestion) shortQuestionCandidates[0].featuredShortQuestion = true;
     scanword.metadata = {
       ...scanword.metadata,
+      featuredShortQuestion: wantsShortQuestion ? {
+        answer: shortQuestionCandidates[0].answer,
+        maxLetters: 5
+      } : null,
       seed,
       sequenceIndex,
       topologySeed,
