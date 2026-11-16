@@ -16,7 +16,7 @@ async function main() {
     maxNodes: 100000,
     maxCspTimeMs: 1200,
     specialTopologyAttempts: 2,
-    maxTwoLetterSlots: 6,
+    maxTwoLetterSlots: 5,
     topologyMutationAttempts: 96,
     requiredImageCount: 5,
     minimumLogicClueCells: 3
@@ -83,7 +83,7 @@ async function main() {
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
-    assert.ok(scanword.words.filter(word => word.length === 2).length <= 6, "too many short answers on seed " + seed);
+    assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
     assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
@@ -150,6 +150,9 @@ async function main() {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
+  for (const direction of ['right', 'down', 'left', 'up']) {
+    assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
+  }
 }
 
 main().catch(error => {
