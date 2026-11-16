@@ -510,7 +510,7 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator accept all four answer directions', () => {
+test('assembler and independent validator permit only right and down answers', () => {
   const cases = [
     {
       direction: 'right',
@@ -518,19 +518,9 @@ test('assembler and independent validator accept all four answer directions', ()
       coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }, { row: 2, col: 3 }]
     },
     {
-      direction: 'left',
-      clue: { row: 2, col: 4 },
-      coordinates: [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
-    },
-    {
       direction: 'down',
       clue: { row: 0, col: 2 },
       coordinates: [{ row: 1, col: 2 }, { row: 2, col: 2 }, { row: 3, col: 2 }]
-    },
-    {
-      direction: 'up',
-      clue: { row: 4, col: 2 },
-      coordinates: [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
     }
   ];
 
@@ -547,10 +537,8 @@ test('assembler and independent validator accept all four answer directions', ()
         coordinates: item.coordinates
       }]
     });
-
     assert.equal(assembled.ok, true, item.direction + ': ' + JSON.stringify(assembled.errors));
     assert.equal(assembled.scanword.words[0].direction, item.direction);
-
     const checked = validateScanword(assembled.scanword, [], {
       requireBorderClues: false,
       requireLeftBorderClues: false,
@@ -559,10 +547,24 @@ test('assembler and independent validator accept all four answer directions', ()
       requiredImageCount: 0,
       minimumLogicClueCells: 0
     });
-    assert.equal(
-      checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
-      false,
-      item.direction + ' must be accepted by the independent validator'
-    );
+    assert.equal(checked.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'), false);
+  }
+
+  for (const direction of ['left', 'up']) {
+    const rejected = assembleScanword({
+      seed: 18,
+      words: [{
+        id: 'forbidden-' + direction,
+        answer: 'КОТ',
+        question: 'Недопустимое направление.',
+        clue: direction === 'left' ? { row: 2, col: 4 } : { row: 4, col: 2 },
+        direction,
+        coordinates: direction === 'left'
+          ? [{ row: 2, col: 3 }, { row: 2, col: 2 }, { row: 2, col: 1 }]
+          : [{ row: 3, col: 2 }, { row: 2, col: 2 }, { row: 1, col: 2 }]
+      }]
+    });
+    assert.equal(rejected.ok, false);
+    assert.ok(rejected.errors.some(error => error.type === 'INVALID_WORD_GEOMETRY'));
   }
 });
