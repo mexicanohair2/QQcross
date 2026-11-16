@@ -73,6 +73,7 @@ function makeSlot(axis, first, last, coordinates) {
  * The same function is used by the topology layer and future CSP placement.
  */
 export function getAnswerCoordinates(clueCell, direction, length) {
+  if (direction !== 'right' && direction !== 'down') return null;
   const vector = DIRECTIONS[direction];
   if (!vector || !Number.isInteger(length) || length < 1) return null;
 
