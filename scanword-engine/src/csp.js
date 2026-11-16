@@ -245,7 +245,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   // Only a curated set of real, familiar Russian two-letter words is allowed.
   // Pronouns and other filler entries are intentionally excluded.
   const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'
+    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     // Production may restrict directions; generic CSP tests can retain all valid orientations.
