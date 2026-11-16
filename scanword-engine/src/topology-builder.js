@@ -315,7 +315,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(1, Math.min(8, options.maxTwoLetterSlots ?? (includeSpecialEleven ? 4 : 5)));
+  const maxTwoLetterSlots = Math.max(1, Math.min(8, options.maxTwoLetterSlots ?? 5));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
     && options.scaffoldIndex < SCAFFOLDS.length
