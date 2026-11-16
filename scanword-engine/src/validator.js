@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { CONFIG, DIRECTIONS, isAllowedClueDirection } from './config.js';
 import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
@@ -93,7 +93,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
-  if (options.requireBorderClues !== false) {
+  if (options.requireFullTopBorder === true) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col]?.type !== 'question') {
         add('TOP_BORDER_NOT_QUESTION', 'Все клетки верхнего ряда, кроме пустого угла, должны быть вопросными.', { row: 0, col });
@@ -211,6 +211,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     if (grid[clue.row][clue.col]?.type !== 'question') {
       add('WORD_START_NOT_QUESTION', 'Ответ должен начинаться из вопросной клетки.', {
         wordId: word.id, row: clue.row, col: clue.col
+      });
+    }
+    if (!isAllowedClueDirection(clue, word.direction)) {
+      add('INVALID_BORDER_DIRECTION', 'Ответ нарушает допустимое направление вопросной клетки на границе поля.', {
+        wordId: word.id, clue, direction: word.direction
       });
     }
 
@@ -412,6 +417,38 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       count: specialCount
     });
   }
+
+  const featuredShortWords = words.filter(word => word?.featuredShortQuestion === true);
+  if (featuredShortWords.length > 1) {
+    add('MULTIPLE_FEATURED_SHORT_QUESTIONS', 'На одном поле допускается не более одного дополнительного короткого вопроса.', {
+      count: featuredShortWords.length
+    });
+  }
+  for (const word of featuredShortWords) {
+    const vector = DIRECTIONS[word.direction];
+    const terminal = vector && word.clue ? {
+      row: word.clue.row + vector.dr * (word.answer.length + 1),
+      col: word.clue.col + vector.dc * (word.answer.length + 1)
+    } : null;
+    const validFeatured = word.answer.length >= 2 && word.answer.length <= 5
+      && word.clue?.row === 0
+      && ['right', 'left'].includes(word.direction)
+      && ((word.clue.col === 1 && terminal?.col === 7)
+        || (word.clue.col === 7 && terminal?.col === 1))
+      && terminal?.row === 0;
+    if (!validFeatured) {
+      add('INVALID_FEATURED_SHORT_QUESTION', 'Дополнительный вопрос должен быть единственным горизонтальным ответом длиной не более пяти букв в верхнем ряду.', {
+        wordId: word.id, answer: word.answer, clue: word.clue, direction: word.direction, terminal
+      });
+    }
+  }
+  if (options.expectedFeaturedShortQuestion !== undefined
+    && featuredShortWords.length !== Number(options.expectedFeaturedShortQuestion)) {
+    add('FEATURED_SHORT_QUESTION_COUNT_MISMATCH', 'Число дополнительных коротких вопросов не совпадает с расписанием генерации.', {
+      expected: Number(options.expectedFeaturedShortQuestion),
+      actual: featuredShortWords.length
+    });
+  }
   if (leftBoundaryRows.size > 2) {
     add('TOO_MANY_LEFT_BORDER_BOUNDARY_WORDS', 'Допускается не более двух ответов левого граничного исключения.', {
       rows: [...leftBoundaryRows]
@@ -532,14 +569,15 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
           || word.special === 'OUTER_BOUNDARY'
         ) return false;
-        if (!samePoint(word.clue, first)) return false;
+        if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
         if (!vector) return false;
         const expectedTerminal = {
           row: word.clue.row + vector.dr * (word.answer.length + 1),
           col: word.clue.col + vector.dc * (word.answer.length + 1)
         };
-        return samePoint(expectedTerminal, last)
+        const opposite = samePoint(word.clue, first) ? last : first;
+        return samePoint(expectedTerminal, opposite)
           && word.answer.length === length;
       });
 
