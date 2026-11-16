@@ -112,7 +112,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
-  const requiredImageCount = requirements.requiredImageCount ?? 5;
+  const minimumImageCount = requirements.minimumImageCount ?? 0;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
   const rowPatterns = [];
 
@@ -267,14 +267,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         if (domain.options.some(option => option.entry.logic === true)) logicSlots++;
       }
 
-      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) {
+      if (imageKeys.size < minimumImageCount || logicSlots < minimumLogicClueCells) {
         planDiagnostics.contentRequirementsRejected++;
         if (!planDiagnostics.firstContentFailure) {
           planDiagnostics.firstContentFailure = {
             answer: entry.answer,
             rows: topology.rows,
             availableImageKeys: imageKeys.size,
-            requiredImageCount,
+            minimumImageCount,
             logicSlots,
             minimumLogicClueCells,
             domains: domains.map(domain => ({
@@ -362,7 +362,7 @@ export function generateScanword(inputDictionary, options = {}) {
     maxCspTimeMs,
     Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
   );
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const minimumImageCount = options.minimumImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
@@ -372,7 +372,7 @@ export function generateScanword(inputDictionary, options = {}) {
   }
 
   const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
-  if (prepared.stats.withImages < requiredImageCount || prepared.stats.logicEntries < minimumLogicClueCells) {
+  if (prepared.stats.withImages < minimumImageCount || prepared.stats.logicEntries < minimumLogicClueCells) {
     return fail('INSUFFICIENT_DICTIONARY', seed, started, attempts, rejectedReasons, {
       dictionaryStats: prepared.stats,
       dictionaryErrors: prepared.errors.slice(0, 20)
@@ -496,7 +496,7 @@ export function generateScanword(inputDictionary, options = {}) {
       indexes,
       maxNodes,
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
-      requiredImageCount,
+      minimumImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
       allowedDirections: ['right', 'down'],
@@ -567,7 +567,7 @@ export function generateScanword(inputDictionary, options = {}) {
 
     const validation = validateScanword(scanword, inputDictionary, {
       foldYo: options.foldYo === true,
-      requiredImageCount,
+      minimumImageCount,
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
