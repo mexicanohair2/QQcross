@@ -212,9 +212,9 @@ test('every fourth production layout adds exactly one 11-letter answer to the fu
 test('border feasibility reports a fixed 8x12 full-border contract', () => {
   const result = analyzeRequiredBorderFeasibility();
   assert.equal(result.feasible, true);
-  assert.equal(result.reason, 'FIXED_TOP_SHORT_ANSWER_AND_LEFT_BORDER');
-  assert.deepEqual(result.requiredTopAnchor, { row: 0, col: 1 });
-  assert.deepEqual(result.requiredTopHorizontalAnswer, { start: { row: 0, col: 1 }, end: { row: 0, col: 5 }, length: 3 });
+  assert.equal(result.reason, 'FIXED_FULL_TOP_AND_LEFT_BORDER');
+  assert.deepEqual(result.requiredTopBorderColumns, [1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(result.emptyCorner, { row: 0, col: 0 });
   assert.deepEqual(result.requiredLeftBorderRows, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
   const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });
   assert.equal(unsupported.feasible, null);
