@@ -36,9 +36,9 @@ function toRoleGrid(matrix, includeSpecialEleven = false) {
       if (row === 0 && col === 0) continue;
       const cell = grid[row][col];
       const junctionColumns = includeSpecialEleven ? [2] : JUNCTION_COLUMNS;
-      const topBandJunction = (row === 1 || row === 2) && col === 4;
-      if (topBandJunction) {
-        // Split the two forced full-width crossing rows into short answers.
+      const horizontalJunction = [1, 2, 9, 10].includes(row) && col === 4 && matrix[row][col] === '.';
+      if (horizontalJunction) {
+        // Split long horizontal runs into shorter answer segments.
         // The junction remains a letter in the vertical top-border answer.
         cell.type = 'junction';
         cell.letter = 'А';
