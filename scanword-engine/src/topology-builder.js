@@ -57,6 +57,7 @@ function toRoleGrid(matrix) {
  */
 function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots = 5) {
   const rows = SCANWORD_TEMPLATES[templateIndex];
+  const lowShortLayout = false;
   if (!rows || rows.length !== CONFIG.HEIGHT || rows.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (rows[0] !== '.#######') return null;
   if (rows.some((row, index) => index > 0 && row[0] !== '#')) return null;
