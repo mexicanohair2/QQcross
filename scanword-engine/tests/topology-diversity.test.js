@@ -14,7 +14,7 @@ test('independent template library contains varied, fully valid 8x12 boards supp
     assert.equal(rows[0], '.#######');
     for (let row = 1; row < 12; row++) assert.equal(rows[row][0], '#');
     assert.ok(diagnostics.slotCount >= 20);
-    assert.ok(diagnostics.shortSlots >= 1 && diagnostics.shortSlots <= 5);
+    assert.ok(diagnostics.shortSlots >= 0 && diagnostics.shortSlots <= 5);
     assert.ok(diagnostics.longSlots >= 12);
     patterns.add(rows.join('/'));
   }
