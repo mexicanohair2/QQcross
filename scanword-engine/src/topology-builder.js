@@ -413,7 +413,7 @@ export function diagnoseTopologyPattern(rows, options = {}) {
     return { valid: false, errors: [{ type: 'INVALID_PATTERN_SHAPE' }] };
   }
   const includeSpecialEleven = options.includeSpecialEleven === true;
-  const lowShortLayout = options.allowTopRowHorizontalRun === true;
+  const lowShortLayout = options.allowTopRowHorizontalRun === true || includeSpecialEleven;
   const matrix = cloneRows(rows);
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
