@@ -136,7 +136,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const interiorQuestionCells = countInteriorQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
 
-  const grid = toRoleGrid(matrix);
+  const grid = toRoleGrid(matrix, includeSpecialEleven);
   const topologyOptions = {
     requireConnected: true,
     requireFullTopBorder: !lowShortLayout,
