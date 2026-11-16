@@ -17,7 +17,7 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#...#...',
   '#...#...',
   '#......#',
-  '#....#..',
+  '#.....#.',
   '#...#...',
   '#....##.'
 ]);
@@ -191,7 +191,10 @@ function buildLowShortScaffolds(includeSpecialEleven, maxTwoLetterSlots) {
     const matrix = cloneRows(source);
     matrix[0] = '.#...###'.split('');
     matrix[1] = '#....#..'.split('');
+    matrix[4] = '#......#'.split('');
     matrix[5] = '#....#..'.split('');
+    matrix[8] = '#......#'.split('');
+    matrix[9] = '#.....#.'.split('');
     matrix[10] = '#...#...'.split('');
     matrix[11] = '#....##.'.split('');
     const candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
