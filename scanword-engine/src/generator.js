@@ -530,7 +530,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // The approved regular pool uses templates 4, 9 and 12: each has
   // a connected letter graph, no eleven-letter boundary slot and at most
   // three curated two-letter answers.
-  const normalTemplateSequence = Array.from({ length: 20 }, (_, index) => index);
+  const normalTemplateSequence = [3, 8, 11]; // Only the three production-validated ordinary templates.
   const normalTemplateOffset = seed % normalTemplateSequence.length;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
