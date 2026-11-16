@@ -22,6 +22,9 @@ test('rotates an 8x12 scanword into a 12x8 board without changing answer order',
   assert.equal(puzzle.w, 12);
   assert.equal(puzzle.h, 8);
   assert.deepEqual(puzzle.reservedKeys, new Set(['7,0']));
+  assert.equal(puzzle.clueKeys.size, 4);
+  assert.ok(puzzle.clueKeys.has('7,2'));
+  assert.ok(puzzle.used.has('6,2'));
   const byId = Object.fromEntries(puzzle.words.map(word => [word.id, word]));
   assert.equal(byId.right.dir, 'up');
   assert.deepEqual(byId.right.clueCell, [7, 2]);
