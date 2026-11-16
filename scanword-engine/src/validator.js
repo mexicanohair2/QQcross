@@ -290,7 +290,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       row: clue.row + vector.dr * (answer.length + 1),
       col: clue.col + vector.dc * (answer.length + 1)
     };
-    if (sourceWord.direction === 'up' && terminal.row === 0 && terminal.col === CONFIG.WIDTH - 1) {
+    if (word.direction === 'up' && terminal.row === 0 && terminal.col === CONFIG.WIDTH - 1) {
       add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Верхняя правая вопросная клетка должна быть началом вертикального ответа вниз.', {
         wordId: word.id, clue, direction: word.direction, terminal
       });
