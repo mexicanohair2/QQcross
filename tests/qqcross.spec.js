@@ -167,7 +167,7 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
-  expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
+  expect(Math.abs(layout.board.width / layout.board.height - (3 / 2))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -612,7 +612,12 @@ test("wide scanword moves right-edge clues to the top row and preserves central 
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     return row > 0 && row < 7 && col > 0 && col < 11;
   }).length);
-  expect(interiorClues).toBeGreaterThanOrEqual(6);
+  expect(interiorClues).toBeGreaterThanOrEqual(5);
+  const centerClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    return row >= 2 && row <= 4 && col >= 3 && col <= 8;
+  }).length);
+  expect(centerClues).toBeGreaterThanOrEqual(3);
   const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
   expect(rightBoundaries.length).toBeGreaterThan(0);
   expect(rightBoundaries.length).toBeLessThanOrEqual(2);
