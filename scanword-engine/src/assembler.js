@@ -145,6 +145,11 @@ export function assembleScanword(assignments, options = {}) {
       row: clue.row + vector.dr * (answer.length + 1),
       col: clue.col + vector.dc * (answer.length + 1)
     };
+    if (terminal.row === 0 && terminal.col === CONFIG.WIDTH - 1) {
+      fail('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Верхняя правая вопросная клетка должна быть началом вертикального ответа вниз.', {
+        wordId: sourceWord.id, clue, direction: sourceWord.direction, terminal
+      });
+    }
     if (sourceWord.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
       const exactCoordinates = sourceWord.coordinates.every((point, index) =>
         point.row === index + 1 && point.col === 1
