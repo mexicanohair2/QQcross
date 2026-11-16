@@ -37,12 +37,21 @@ function toRoleGrid(matrix, includeSpecialEleven = false) {
       const cell = grid[row][col];
       const junctionColumns = includeSpecialEleven ? [2] : JUNCTION_COLUMNS;
       const horizontalJunction = [1, 2, 9, 10].includes(row) && col === 4 && matrix[row][col] === '.';
+      const verticalJunction = row === 6 && col >= 3 && col <= 7
+        && matrix[row][col] === '.'
+        && matrix[row - 1][col] === '.'
+        && matrix[row + 1][col] === '.';
       if (horizontalJunction) {
         // Split long horizontal runs into shorter answer segments.
-        // The junction remains a letter in the vertical top-border answer.
+        // The junction remains a letter in the vertical answer.
         cell.type = 'junction';
         cell.letter = 'А';
         cell.clueDirections = ['right'];
+      } else if (verticalJunction) {
+        // Split long vertical runs while preserving the horizontal crossing.
+        cell.type = 'junction';
+        cell.letter = 'А';
+        cell.clueDirections = ['down'];
       } else if (JUNCTION_ROWS.includes(row) && junctionColumns.includes(col)) {
         // The vertical clue begins here while the same square remains a
         // letter in the horizontal answer started at the left border.
