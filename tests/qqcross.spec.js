@@ -104,7 +104,7 @@ test("loads a fully occupied 12-column by 8-row wide scanword with five distinct
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
-  await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
+  await expect(page.locator(".scan-grid-cell.scan-boundary")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
