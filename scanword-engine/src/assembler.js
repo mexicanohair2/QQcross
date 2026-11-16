@@ -167,6 +167,26 @@ export function assembleScanword(assignments, options = {}) {
           wordId: sourceWord.id, terminal, enabled
         });
       }
+    } else if (sourceWord.special === 'OUTER_BOUNDARY') {
+      const exactCoordinates = sourceWord.coordinates.every((point, index) => {
+        if (sourceWord.direction === 'right') return point.row === clue.row && point.col === clue.col + index + 1;
+        if (sourceWord.direction === 'down') return point.row === clue.row + index + 1 && point.col === clue.col;
+        if (sourceWord.direction === 'left') return point.row === clue.row && point.col === clue.col - index - 1;
+        if (sourceWord.direction === 'up') return point.row === clue.row - index - 1 && point.col === clue.col;
+        return false;
+      });
+      const validBoundary = answer.length >= 2 && answer.length <= CONFIG.MAX_WORD_LENGTH
+        && exactCoordinates && (
+          (sourceWord.direction === 'right' && terminal.row === clue.row && terminal.col === CONFIG.WIDTH)
+          || (sourceWord.direction === 'down' && terminal.row === CONFIG.HEIGHT && terminal.col === clue.col)
+          || (sourceWord.direction === 'left' && terminal.row === clue.row && terminal.col === -1)
+          || (sourceWord.direction === 'up' && terminal.row === -1 && terminal.col === clue.col)
+        );
+      if (!validBoundary) {
+        fail('INVALID_OUTER_BOUNDARY_WORD', 'Ответ на внешней границе должен непрерывно идти в одном из четырёх направлений до края поля.', {
+          wordId: sourceWord.id, clue, direction: sourceWord.direction, terminal
+        });
+      }
     } else {
       if (sourceWord.special != null) {
         fail('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
