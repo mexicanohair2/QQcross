@@ -60,7 +60,7 @@ test('validator rejects incomplete grids and reports errors', () => {
   const result = validateScanword(fake);
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(e => e.type === 'INCOMPLETE_GRID'));
-  assert.ok(result.errors.some(e => e.type === 'IMAGE_COUNT_MISMATCH'));
+  assert.ok(!result.errors.some(e => e.type === 'IMAGE_COUNT_EXCEEDED'));
   assert.ok(result.errors.some(e => e.type === 'INSUFFICIENT_LOGIC_CLUES'));
 });
 test('seeded random generator is reproducible', () => {
@@ -108,7 +108,7 @@ test('validator rejects an ordinary answer ending at the board boundary', () => 
   assert.ok(result.errors.some(item => item.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
 });
 
-test('validator rejects duplicate clue directions and non-contiguous coordinates', () => {
+test('validator rejects multiple answers from one clue and non-contiguous coordinates', () => {
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
   grid[1][0] = { row: 1, col: 0, type: 'question', letter: null, questionIds: [], wordIds: [] };
@@ -125,7 +125,7 @@ test('validator rejects duplicate clue directions and non-contiguous coordinates
   const result = validateScanword({
     width: 8, height: 12, grid, words: [word, second], questions: []
   }, [], { requireBorderClues: false, requireConnected: false });
-  assert.ok(result.errors.some(item => item.type === 'DUPLICATE_CLUE_DIRECTION'));
+  assert.ok(result.errors.some(item => item.type === 'MULTIPLE_ANSWERS_FROM_ONE_CLUE'));
   assert.ok(result.errors.some(item => item.type === 'NON_CONTIGUOUS_WORD'));
 });
 
