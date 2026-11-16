@@ -264,13 +264,6 @@ export function generateScanword(inputDictionary, options = {}) {
   const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
   const maxNodes = Math.max(500, options.maxNodes ?? 120000);
   const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 450);
-  // Special 11-letter puzzles need a little more CSP time: the full word
-  // constrains every left-to-right crossing. Keep ordinary puzzles on the
-  // normal interactive budget; cap special retries so the worker stays bounded.
-  const specialMaxCspTimeMs = Math.max(
-    maxCspTimeMs,
-    Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
-  );
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
@@ -416,6 +409,31 @@ export function generateScanword(inputDictionary, options = {}) {
     }
 
     const scanword = assembled.scanword;
+    const featuredShortWord = wantsFeaturedShortQuestion
+      ? scanword.words.find(word => {
+          if (word.length !== 5 || word.clue.row !== 0) return false;
+          const vector = DIRECTIONS[word.direction];
+          if (!vector) return false;
+          const terminal = {
+            row: word.clue.row + vector.dr * (word.length + 1),
+            col: word.clue.col + vector.dc * (word.length + 1)
+          };
+          return terminal.row === 0
+            && ((word.clue.col === 1 && terminal.col === 7)
+              || (word.clue.col === 7 && terminal.col === 1));
+        })
+      : null;
+    if (wantsFeaturedShortQuestion && !featuredShortWord) {
+      countFailure(rejectedReasons, 'FEATURED_SHORT_QUESTION_NOT_ASSIGNED');
+      attempts.push({
+        attempt: attempt + 1,
+        seed: topologySeed,
+        reason: 'FEATURED_SHORT_QUESTION_NOT_ASSIGNED'
+      });
+      bestDiagnostic = { reason: 'FEATURED_SHORT_QUESTION_NOT_ASSIGNED' };
+      continue;
+    }
+    if (featuredShortWord) featuredShortWord.featuredShortQuestion = true;
     scanword.metadata = {
       ...scanword.metadata,
       seed,
@@ -426,9 +444,10 @@ export function generateScanword(inputDictionary, options = {}) {
       topologyAttempts: topologyResult.attempts,
       cspNodes: solved.nodes,
       cspElapsedMs: solved.elapsedMs,
-      specialElevenLetterQuestion: scanword.words.some(
-        word => word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-      ),
+      specialElevenLetterQuestion: false,
+      featuredShortQuestion: featuredShortWord
+        ? { wordId: featuredShortWord.id, answerLength: featuredShortWord.length }
+        : null,
       valid: false,
       score: 0
     };
@@ -439,7 +458,8 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireFullTopBorder: true,
+      requireFullTopBorder: false,
+      expectedFeaturedShortQuestion: wantsFeaturedShortQuestion ? 1 : 0,
       requireConnected: true
     });
 
@@ -461,16 +481,7 @@ export function generateScanword(inputDictionary, options = {}) {
     scanword.metadata.score = score;
     scanword.metadata.generationTimeMs = Math.round(now() - started);
 
-    const specialElevenAttemptDiagnostics = attempts
-      .filter(item => item.attempt <= specialAttempts)
-      .map(item => ({
-        attempt: item.attempt,
-        reason: item.reason,
-        nodes: item.nodes ?? null,
-        elapsedMs: item.elapsedMs ?? null,
-        lastDeadEnd: item.lastDeadEnd ?? null
-      }));
-    scanword.metadata.specialElevenRequested = wantsEleven;
+    scanword.metadata.featuredShortQuestionRequested = wantsFeaturedShortQuestion;
     return {
       ok: true,
       scanword,
@@ -491,12 +502,11 @@ export function generateScanword(inputDictionary, options = {}) {
         elapsedMs: Math.round(now() - started),
         cspElapsedMs: solved.elapsedMs,
         score,
-        specialElevenLetterQuestion: scanword.metadata.specialElevenLetterQuestion,
-        specialElevenRequested: wantsEleven,
-        specialElevenMissed: wantsEleven && !scanword.metadata.specialElevenLetterQuestion,
-        specialElevenAttempted: specialAttempts,
-        specialElevenFailureDiagnostics: specialElevenAttemptDiagnostics,
-        ...(options.capturePlanDiagnostics ? { specialElevenPlanDiagnostics } : {}),
+        specialElevenLetterQuestion: false,
+        specialElevenRequested: false,
+        featuredShortQuestionRequested: wantsFeaturedShortQuestion,
+        featuredShortQuestionGenerated: Boolean(featuredShortWord),
+        featuredShortQuestionMissed: wantsFeaturedShortQuestion && !featuredShortWord,
         dictionary: prepared.stats,
         rejectedReasons: { ...rejectedReasons }
       }
@@ -506,7 +516,6 @@ export function generateScanword(inputDictionary, options = {}) {
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
     dictionaryStats: prepared.stats,
     lastDiagnostic: bestDiagnostic,
-    requestedSpecialEleven: wantsEleven,
-    specialElevenPlanDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
+    requestedFeaturedShortQuestion: wantsFeaturedShortQuestion
   });
 }
