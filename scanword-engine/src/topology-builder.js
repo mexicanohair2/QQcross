@@ -4,16 +4,38 @@ import { createRng } from './rng.js';
 import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
- * The original three scaffolds remain available for broad topology exploration.
- * The fourth, low-short-answer scaffold is reserved for the optional 11-letter
- * layout. It is not connected when that boundary answer is omitted.
+ * Production layout: clue starts run across the top and left borders, with
+ * several interior clue cells. The former full right-hand clue boundary is
+ * replaced by one vertical answer that ends at the lower-right corner.
+ * The three regular entries intentionally share this validated seed mask;
+ * bounded seeded mutations create the production topology variety.
  */
-const SCAFFOLD_ROWS = Object.freeze([
-  [4, 8, 11],
-  [3, 7, 11],
-  [4, 7, 11]
+const STANDARD_SCAFFOLD = Object.freeze([
+  '.#..#..#',
+  '#.....#.',
+  '#....#..',
+  '#....#..',
+  '#....#..',
+  '#.....#.',
+  '#.....#.',
+  '#...#...',
+  '#...#...',
+  '#....#..',
+  '#.....#.',
+  '#...#..#'
 ]);
 
+const SCAFFOLD_VARIANTS = Object.freeze([
+  STANDARD_SCAFFOLD,
+  STANDARD_SCAFFOLD,
+  STANDARD_SCAFFOLD
+]);
+
+/*
+ * Retained as a validated special-case seed for the optional eleven-letter
+ * answer. It uses only a small number of right-edge clue cells, never a full
+ * question column.
+ */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
   '.#...###',
   '#...#...',
@@ -29,23 +51,12 @@ const LOW_SHORT_SCAFFOLD = Object.freeze([
   '#......#'
 ]);
 
-function createScaffold(extraRows) {
-  return Array.from({ length: CONFIG.HEIGHT }, (_, row) => {
-    const cells = Array(CONFIG.WIDTH).fill('.');
-    if (row === 0) {
-      cells[1] = '#';
-      cells[4] = '#';
-    } else {
-      cells[0] = '#';
-      if (extraRows.includes(row)) cells[4] = '#';
-    }
-    cells[7] = '#';
-    return cells.join('');
-  });
+function createScaffold(_extraRows) {
+  return STANDARD_SCAFFOLD.map(row => row);
 }
 
 const SCAFFOLDS = Object.freeze([
-  ...SCAFFOLD_ROWS.map(createScaffold),
+  ...SCAFFOLD_VARIANTS,
   LOW_SHORT_SCAFFOLD
 ]);
 
@@ -66,10 +77,10 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 3) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 2) return null;
+  if (countTopQuestions(matrix) < 3) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells) return null;
   // Keep column 3 letter-only for special puzzles: otherwise a left-border
@@ -158,7 +169,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
     const previous = matrix[row][col];
     matrix[row][col] = previous === '#' ? '.' : '#';
-    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, 3);
+    const next = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots, 6);
 
     if (next) {
       candidate = next;
@@ -168,7 +179,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     }
   }
 
-  const requiredInterior = 3;
+  const requiredInterior = 6;
   if ((candidate?.metrics.interiorQuestionCells ?? 0) < requiredInterior) {
     return { candidate: null, accepted, tried };
   }
@@ -204,7 +215,7 @@ export function generateTopology(options = {}) {
       : [3, 7, 10];
     const scaffoldIndex = includeSpecialEleven
       ? -1
-      : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_ROWS.length);
+      : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_VARIANTS.length);
     const scaffold = includeSpecialEleven
       ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
       : SCAFFOLDS[scaffoldIndex];
