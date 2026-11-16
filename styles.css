@@ -2447,3 +2447,27 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
     max-width:90vw!important;
   }
 }
+
+
+/* Etalon rollback: gameplay must remain 8 columns × 12 rows. */
+.game-screen .scanword-board{
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+  width:min(95vw,calc((100dvh - 230px)*.666667),900px)!important;
+  height:auto!important;
+  aspect-ratio:2/3!important;
+  max-width:calc(100vw - 8px)!important;
+  max-height:calc(100dvh - 230px)!important;
+}
+@media(max-height:700px){
+  .game-screen .scanword-board{
+    width:min(95vw,calc((100dvh - 205px)*.666667),900px)!important;
+    max-height:calc(100dvh - 205px)!important;
+  }
+}
+@media(max-width:420px){
+  .game-screen .scanword-board{
+    width:min(95vw,calc((100dvh - 240px)*.666667))!important;
+    max-width:calc(100vw - 8px)!important;
+  }
+}
