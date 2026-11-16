@@ -266,11 +266,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  // The featured 11-letter answer uses the same short-top layout as
-  // ordinary puzzles, with its dedicated uninterrupted first column.
+  // The featured 11-letter answer keeps the full top clue border and uses
+  // the dedicated uninterrupted first column.
   const candidateTopology = generateTopology({
     seed: 1,
-    lowShortLayout: true,
+    lowShortLayout: false,
     includeSpecialEleven: true,
     maxAttempts: 1,
     mutationBudget: 1,
@@ -520,7 +520,7 @@ export function generateScanword(inputDictionary, options = {}) {
     ? options.sequenceIndex
     : null;
   // One long vertical answer appears on every fourth puzzle. The other three
-  // use the same top clue for a single three-letter horizontal answer instead.
+  // feature exactly one ordinary answer of at most five letters.
   const wantsEleven = sequenceIndex !== null && sequenceIndex % 4 === 0;
   const wantsShortQuestion = sequenceIndex !== null && sequenceIndex % 4 !== 0;
   const specialPlanDiagnostics = {};
@@ -533,7 +533,7 @@ export function generateScanword(inputDictionary, options = {}) {
     const topologySeed = (seed + Math.imul(attempt + 1, 7919)) >>> 0;
     const topologyResult = generateTopology({
       seed: topologySeed,
-      lowShortLayout: true,
+      lowShortLayout: false,
       includeSpecialEleven: useSpecialTopology,
       maxAttempts: useSpecialTopology ? 1 : 4,
       mutationBudget: options.topologyMutationAttempts ?? 96,
