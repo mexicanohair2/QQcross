@@ -48,11 +48,8 @@ function hasValidShape(grid) {
 }
 
 function makeSlot(axis, first, last, coordinates) {
-  const horizontal = axis === 'horizontal';
-  const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
+  const direction = axis === 'horizontal' ? 'right' : 'down';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
@@ -60,20 +57,13 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    // A slot always starts at its first question and proceeds right/down.
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
@@ -299,9 +289,9 @@ function collectSlotCoverage(slots) {
       letterCoverage.set(key, (letterCoverage.get(key) ?? 0) + 1);
     }
 
-    for (const endpoint of slot.endpoints) {
-      if (endpoint.boundary) continue;
-      const key = keyOf(endpoint);
+    const clue = slot.directionOptions?.[0]?.clueCell;
+    if (clue && !clue.boundary) {
+      const key = keyOf(clue);
       clueCoverage.set(key, (clueCoverage.get(key) ?? 0) + 1);
     }
   }
