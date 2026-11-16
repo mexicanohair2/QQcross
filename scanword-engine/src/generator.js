@@ -94,7 +94,27 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
     if (revised.length === previousOptions.length) continue;
 
     const removedCount = previousOptions.length - revised.length;
-    if (diagnostics) diagnostics.removedOptions = (diagnostics.removedOptions ?? 0) + removedCount;
+    if (diagnostics) {
+      diagnostics.removedOptions = (diagnostics.removedOptions ?? 0) + removedCount;
+      const previousLongAnswers = new Set(previousOptions
+        .filter(option => option.entry.answer.length === 11)
+        .map(option => option.entry.answer));
+      const revisedLongAnswers = new Set(revised
+        .filter(option => option.entry.answer.length === 11)
+        .map(option => option.entry.answer));
+      const removedLongAnswers = [...previousLongAnswers].filter(answer => !revisedLongAnswers.has(answer));
+      if (removedLongAnswers.length) {
+        diagnostics.longWordPruning ??= [];
+        if (diagnostics.longWordPruning.length < 80) diagnostics.longWordPruning.push({
+          slotId: ownDomain.slot.id,
+          againstSlotId: otherDomain.slot.id,
+          sharedCells: arc.sharedKeys,
+          removedAnswers: removedLongAnswers.slice(0, 12),
+          remainingAnswers: [...revisedLongAnswers].slice(0, 12),
+          supportSignatures: [...supportedSignatures].slice(0, 12)
+        });
+      }
+    }
     ownDomain.options = revised;
     if (!revised.length) {
       if (diagnostics) {
