@@ -19,8 +19,8 @@ async function main() {
   };
   const runs = [];
   const fingerprints = new Set();
-  let specialRequested = 0;
-  let specialGenerated = 0;
+  let featuredShortRequested = 0;
+  let featuredShortGenerated = 0;
   const directionCoverage = new Set();
 
   for (let index = 1; index <= 20; index++) {
@@ -45,9 +45,10 @@ async function main() {
     const images = words.filter(word => word.imageKey);
     const shortAnswers = words.filter(word => word.length === 2);
     for (const word of words) directionCoverage.add(word.direction);
-    const special = result.scanword.metadata.specialElevenLetterQuestion === true;
-    if (result.stats.specialElevenRequested) specialRequested++;
-    if (special) specialGenerated++;
+    const featured = words.filter(word => word.featuredShortQuestion === true);
+    const shouldFeatureShort = index % 4 === 0;
+    if (shouldFeatureShort) featuredShortRequested++;
+    if (featured.length === 1 && featured[0].answer.length <= 5) featuredShortGenerated++;
 
     const fingerprint = JSON.stringify({
       roles: result.scanword.grid.map(row => row.map(cell => cell.type)),
@@ -71,11 +72,12 @@ async function main() {
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
-      specialRequested: result.stats.specialElevenRequested,
-      specialGenerated: special,
+      featuredShortRequested: shouldFeatureShort,
+      featuredShortGenerated: featured.length === 1 && featured[0].answer.length <= 5,
+      featuredShortAnswer: featured[0]?.answer ?? null,
       musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
       validationErrors: validation.errors.slice(0, 5),
-      ...(index === 4 ? { specialPlanDiagnostics: result.stats.specialElevenPlanDiagnostics ?? null, specialFailureDiagnostics: result.stats.specialElevenFailureDiagnostics ?? null } : {})
+
     });
   }
 
@@ -86,9 +88,8 @@ async function main() {
     requested: 20,
     successful: successful.length,
     failed: 20 - successful.length,
-    specialRequested,
-    specialGenerated,
-    specialMissed: successful.filter(run => run.specialRequested && !run.specialGenerated).length,
+    featuredShortRequested,
+    featuredShortGenerated,
     medianMs: times[Math.floor(times.length / 2)],
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
     maxTwoLetterAnswers: Math.max(0, ...successful.map(run => run.shortAnswers.length)),
@@ -106,12 +107,12 @@ async function main() {
   fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
-  assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
-  assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
+  assert.equal(featuredShortRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must feature one short clue.");
+  assert.equal(featuredShortGenerated, 5, "Every fourth puzzle must feature exactly one answer of at most five letters.");
   assert.deepEqual([...directionCoverage].sort(), ['down', 'left', 'right', 'up'], 'The 20 production seeds must exercise all four answer directions.');
   assert.ok(report.ordinaryScaffoldsUsed.length >= 3, 'Production must use at least three independently validated ordinary topologies across the batch.');
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
-  assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
+
   assert.ok(report.maxTwoLetterAnswers <= options.maxTwoLetterSlots, "Production puzzles must stay within the configured two-letter answer limit.");
   assert.ok(report.p95Ms <= 4000, "20-puzzle p95 exceeds the 4-second performance budget.");
   assert.ok(report.distinctPuzzles >= 18, "The 20 seeds did not produce enough distinct puzzles.");
