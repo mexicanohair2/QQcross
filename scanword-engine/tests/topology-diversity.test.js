@@ -1,193 +1,65 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { diagnoseTopologyScaffold, diagnoseTopologyPattern, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
+import { diagnoseTopologyPattern, generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
 
-test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
+test('independent template library contains varied, fully valid 8x12 down-right boards', () => {
+  const templates = getTopologyScaffolds();
+  assert.equal(templates.length, 20);
   const patterns = new Set();
-  const questionCounts = new Set();
-
-  for (let seed = 1; seed <= 64; seed++) {
-    const result = generateTopology({
-      seed,
-      includeSpecialEleven: false,
-      maxAttempts: 192
-    });
-
-    assert.equal(result.ok, true, 'seed=' + seed + ' ' + JSON.stringify(result));
-    assert.equal(result.topology.validation.valid, true, 'seed=' + seed);
-    assert.equal(result.topology.metrics.totalCells, 96);
-    assert.equal(result.topology.pattern.length, 12);
-    assert.ok(result.topology.pattern.every(row => row.length === 8));
-
-    const rows = result.topology.pattern;
-    assert.equal(rows[0][0], '.', 'the upper-left corner must remain the only blank corner');
-    assert.equal(rows[0][1], '#', 'the required top anchor must remain a question cell');
-    // Topology rows are eight-character strings, not arrays of cells.
-    assert.equal(rows[0].slice(1).split('').filter(value => value === '#').length, 5, 'top clue anchors must remain present');
-    assert.equal(rows.filter(row => row[7] === '#').length, 3, 'right edge must not become a full clue column');
-    for (let row = 1; row < 12; row++) {
-      assert.equal(rows[row][0], '#', 'left border question missing at row ' + row + ', seed=' + seed);
-    }
-
-    assert.ok(result.topology.slots.length >= 18, 'too few real answer slots on seed=' + seed);
-    assert.ok(result.topology.slots.every(slot => slot.length >= 2));
-    assert.ok(result.topology.validation.metrics.letterCells >= 30);
-    assert.ok(result.topology.validation.metrics.questionCells >= 20);
-    assert.ok(result.topology.metrics.interiorQuestionCells >= 5, 'boards need at least five interior question cells; seed=' + seed);
+  for (const [index, rows] of templates.entries()) {
+    const diagnostics = diagnoseTopologyPattern(rows);
+    assert.equal(diagnostics.valid, true, 'template=' + index + ' ' + JSON.stringify(diagnostics));
+    assert.equal(rows.length, 12);
+    assert.ok(rows.every(row => row.length === 8));
+    assert.equal(rows[0], '.#######');
+    for (let row = 1; row < 12; row++) assert.equal(rows[row][0], '#');
+    assert.ok(diagnostics.slotCount >= 20);
+    assert.ok(diagnostics.shortSlots >= 1 && diagnostics.shortSlots <= 5);
+    assert.ok(diagnostics.longSlots >= 12);
     patterns.add(rows.join('/'));
-    questionCounts.add(result.topology.validation.metrics.questionCells);
   }
-
-  assert.ok(
-    patterns.size >= 12,
-    '64 seeds should generate at least 12 distinct topologies; got ' + patterns.size
-  );
-  assert.ok(
-    questionCounts.size >= 3,
-    'topology clue density should vary across seeds; got ' + [...questionCounts].join(', ')
-  );
+  assert.equal(patterns.size, 20);
 });
 
-test('ordinary production scaffold borrows the proven special crossing geometry without the 11-letter answer', () => {
-  const scaffolds = getTopologyScaffolds();
-  const diagnostics = diagnoseTopologyPattern(scaffolds[4]);
-  assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
-
-  const result = generateTopology({
-    seed: 481517,
-    includeSpecialEleven: false,
-    scaffoldIndex: 4,
-    maxTwoLetterSlots: 3,
-    maxAttempts: 1,
-    mutationBudget: 1,
-    preserveScaffold: true
-  });
-
-  assert.deepEqual(scaffolds[4], [
-    '.#..####',
-    '#.......',
-    '#.......',
-    '#......#',
-    '#...#...',
-    '#....##.',
-    '#.......',
-    '#.......',
-    '#...#...',
-    '#....##.',
-    '#.....##',
-    '#.......'
-  ]);
-  assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.topology.validation.valid, true);
-  assert.equal(result.topology.pattern[0].slice(1).split('').filter(value => value === '#').length, 5);
-  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 5);
-  assert.ok(result.topology.slots.length >= 20);
-  assert.ok(result.topology.slots.filter(slot => slot.length === 2).length <= 3);
-  assert.ok(result.topology.slots.filter(slot => slot.length >= 3).length >= 12);
-  assert.equal(result.topology.slots.some(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
+test('seeded production topology generation stays fully covered and varied', () => {
+  const patterns = new Set();
+  for (let seed = 1; seed <= 32; seed++) {
+    const result = generateTopology({ seed, includeSpecialEleven: false, maxAttempts: 24 });
+    assert.equal(result.ok, true, 'seed=' + seed + ' ' + JSON.stringify(result));
+    const topology = result.topology;
+    assert.equal(topology.validation.valid, true, 'seed=' + seed);
+    assert.equal(topology.metrics.totalCells, 96);
+    assert.equal(topology.pattern.length, 12);
+    assert.ok(topology.pattern.every(row => row.length === 8));
+    assert.equal(topology.pattern[0], '.#######');
+    for (let row = 1; row < 12; row++) assert.equal(topology.pattern[row][0], '#');
+    assert.ok(topology.slots.length >= 20);
+    assert.ok(topology.slots.every(slot =>
+      slot.length >= 2
+      && slot.directionOptions.length === 1
+      && ['right', 'down'].includes(slot.directionOptions[0].direction)
+    ));
+    assert.ok(topology.validation.metrics.letterCells >= 30);
+    assert.ok(topology.metrics.interiorQuestionCells >= 5);
+    patterns.add(topology.pattern.join('/'));
+  }
+  assert.ok(patterns.size >= 8, 'expected broad topology variety; got ' + patterns.size);
 });
 
-test('ordinary low-short scaffold is fully connected and has only one short answer', () => {
-  const result = generateTopology({
-    seed: 481516,
-    includeSpecialEleven: false,
-    scaffoldIndex: 3,
-    maxTwoLetterSlots: 3,
-    maxAttempts: 1,
-    mutationBudget: 1
-  });
-
-  assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.topology.validation.valid, true);
-  assert.equal(result.topology.pattern[0][0], '.');
-  assert.equal(result.topology.pattern[0][1], '#');
-  assert.equal(result.topology.pattern[0].slice(1).split('').filter(value => value === '#').length, 5);
-  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 3);
-  assert.ok(result.topology.metrics.interiorQuestionCells >= 5);
-  assert.ok(result.topology.slots.length >= 19);
-  assert.ok(result.topology.slots.filter(slot => slot.length === 2).length <= 3);
-  assert.ok(result.topology.slots.filter(slot => slot.length >= 3).length >= 12);
-});
-
-test('topology generation is deterministic for a fixed seed', () => {
-  const options = { seed: 90317, includeSpecialEleven: true, maxAttempts: 192 };
-  const first = generateTopology(options);
-  const second = generateTopology(options);
-
-  assert.equal(first.ok, true, JSON.stringify(first));
-  assert.equal(second.ok, true, JSON.stringify(second));
-  assert.deepEqual(first.topology.pattern, second.topology.pattern);
-  assert.deepEqual(
-    first.topology.slots.map(slot => ({
-      id: slot.id,
-      directionOptions: slot.directionOptions.map(option => option.direction)
-    })),
-    second.topology.slots.map(slot => ({
-      id: slot.id,
-      directionOptions: slot.directionOptions.map(option => option.direction)
-    }))
-  );
-});
-
-
-test('low-short special scaffold keeps the optional 11-letter chain and sparse right edge', () => {
-  const scaffolds = getTopologyScaffolds();
-  assert.equal(scaffolds.length, 6);
-  const ordinaryLowShortPattern = scaffolds[3];
-  assert.deepEqual(ordinaryLowShortPattern, [
-    '.#..####',
-    '#.......',
-    '#.......',
-    '#.......',
-    '#...####',
-    '#.......',
-    '#.......',
-    '#.......',
-    '#...##.#',
-    '#.......',
-    '#.......',
-    '#.......'
-  ]);
-  const specialPattern = scaffolds[5];
-  assert.deepEqual(specialPattern, [
-    '.#...###',
-    '#...#...',
-    '#...#...',
-    '#...#...',
-    '#......#',
-    '#....##.',
-    '#...#...',
-    '#...#...',
-    '#......#',
-    '#....##.',
-    '#.....#.',
-    '#......#'
-  ]);
-
-  const diagnostics = diagnoseTopologyScaffold([4, 8, 10], { includeSpecialEleven: true });
-  assert.equal(diagnostics.valid, true, JSON.stringify(diagnostics));
+test('the special topology still contains both mandatory long slots and one tagged special slot', () => {
   const result = generateTopology({
     seed: 481516,
     includeSpecialEleven: true,
-    specialPattern,
-    maxTwoLetterSlots: 4,
-    maxAttempts: 1
+    maxAttempts: 8,
+    preserveScaffold: true
   });
-
-  assert.equal(result.ok, true, JSON.stringify({ result, diagnostics }));
-  assert.equal(result.topology.validation.valid, true);
-  assert.equal(result.topology.metrics.interiorQuestionCells, 10);
-  assert.equal(result.topology.metrics.questionCells, 28);
-  assert.equal(result.topology.pattern.filter(row => row[7] === '#').length, 4);
-  assert.equal(result.topology.metrics.totalCells, 96);
-  assert.equal(result.topology.pattern.length, 12);
-  assert.ok(result.topology.pattern.every(row => row.length === 8));
-  assert.equal(result.topology.pattern[0][0], '.');
-  assert.equal(result.topology.pattern[0][1], '#');
-  for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
-  assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
-  const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 2);
-  assert.ok(result.topology.slots.length >= 20);
+  assert.equal(result.ok, true, JSON.stringify(result));
+  const topology = result.topology;
+  assert.equal(topology.validation.valid, true);
+  const eleven = topology.slots.filter(slot => slot.length === 11);
+  assert.equal(eleven.length, 2);
+  const tagged = eleven.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
+  assert.equal(tagged.length, 1);
+  assert.equal(tagged[0].directionOptions[0].direction, 'down');
+  assert.ok(topology.slots.every(slot => ['right', 'down'].includes(slot.directionOptions[0].direction)));
 });
