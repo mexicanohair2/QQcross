@@ -31,20 +31,22 @@ function toRoleGrid(matrix) {
  * Template masks are immutable in production: there are no random role flips
  * that could quietly change the agreed geometry.
  */
-function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots = 5) {
+function inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots = 5, featuredShortQuestion = false) {
   const rows = SCANWORD_TEMPLATES[templateIndex];
   if (!rows || rows.length !== CONFIG.HEIGHT || rows.some(row => row.length !== CONFIG.WIDTH)) return null;
-  if (rows[0] !== '.#######') return null;
+  if (rows[0] !== '.#..#..#') return null;
   if (rows.some((row, index) => index > 0 && row[0] !== '#')) return null;
 
   const matrix = cloneRows(rows);
+  matrix[0] = (featuredShortQuestion ? '.#.....#' : '.#..#..#').split('');
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
-    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireFullTopBorder: false,
+    requireBorderClues: false,
+    allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: false,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
@@ -98,7 +100,7 @@ export function getScanwordTemplates() {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 5) {
   if (!Array.isArray(matrix) || matrix.length !== CONFIG.HEIGHT
     || matrix.some(row => !Array.isArray(row) || row.length !== CONFIG.WIDTH)) return null;
-  if (matrix[0].join('') !== '.#######') return null;
+  if (!['.#..#..#', '.#.....#'].includes(matrix[0].join(''))) return null;
 
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (matrix[row][0] !== '#') return null;
@@ -111,10 +113,11 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
-    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireFullTopBorder: false,
+    requireBorderClues: false,
+    allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
-    allowColumnOneBoundarySlot: !includeSpecialEleven,
+    allowColumnOneBoundarySlot: false,
     minimumOuterBoundaryLength: 2
   };
   const validation = validateTopology(grid, topologyOptions);
@@ -226,7 +229,7 @@ export function generateTopology(options = {}) {
     const templateIndex = options.templateIndex;
     const includeSpecialEleven = options.includeSpecialEleven === true;
     const maxTwoLetterSlots = Math.max(1, Math.min(10, options.maxTwoLetterSlots ?? 3));
-    const candidate = inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots);
+    const candidate = inspectTemplateCandidate(templateIndex, includeSpecialEleven, maxTwoLetterSlots, options.featuredShortQuestion === true);
     if (!candidate) {
       return {
         ok: false,
@@ -270,9 +273,11 @@ export function generateTopology(options = {}) {
     const scaffoldIndex = includeSpecialEleven
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLDS.length);
-    const scaffold = includeSpecialEleven
+      const baseScaffold = includeSpecialEleven
       ? (Array.isArray(options.specialPattern) ? options.specialPattern : LOW_SHORT_SCAFFOLD)
       : SCAFFOLDS[scaffoldIndex];
+    const scaffold = cloneRows(baseScaffold);
+    scaffold[0] = (options.featuredShortQuestion === true ? '.#.....#' : '.#..#..#').split('');
     const mutated = mutateValidatedScaffold(
       scaffold,
       includeSpecialEleven,
@@ -342,8 +347,9 @@ export function diagnoseTopologyScaffold(templateIndex = 0, options = {}) {
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    requireFullTopBorder: true,
-    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireFullTopBorder: false,
+    requireBorderClues: false,
+    allowSpecialElevenBoundary: false,
     allowOuterBoundarySlots: true,
     allowColumnOneBoundarySlot: !includeSpecialEleven,
     minimumOuterBoundaryLength: 2
