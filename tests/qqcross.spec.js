@@ -612,10 +612,12 @@ test("scanword clue cells follow the top-left reference anchors and show directi
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     return row > 0 && col > 0 && col < 7;
   }).length);
-  expect(interiorClues).toBeGreaterThanOrEqual(3);
+  expect(interiorClues).toBeGreaterThanOrEqual(6);
   const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
   expect(rightBoundaries.length).toBeGreaterThan(0);
+  expect(rightBoundaries.length).toBeLessThanOrEqual(2);
   expect(rightBoundaries.every(key => key.endsWith(",7"))).toBeTruthy();
+  expect(rightBoundaries).toContain("11,7");
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
