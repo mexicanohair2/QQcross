@@ -510,10 +510,6 @@ test('assembler and independent validator accept left/up scanword answers', () =
   const assembled = assembleScanword({ seed: 1, words, questions });
   assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
   assert.deepEqual(new Set(assembled.scanword.words.map(word => word.direction)), new Set(['left', 'up']));
-  assert.equal(
-    assembled.scanword.words.some(word => word.clue.row === 0 && word.clue.col === 7 && word.direction !== 'down'),
-    false
-  );
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
@@ -543,4 +539,21 @@ test('assembler and independent validator accept left/up scanword answers', () =
     false,
     JSON.stringify(validation.errors)
   );
+});
+
+test('assembler rejects using the lower-right terminal cell as a clue', () => {
+  const word = {
+    id: 'bottom-right-reverse',
+    entryId: 'cat',
+    answer: 'КОТ',
+    question: 'Домашнее животное из семейства кошачьих.',
+    clue: { row: 11, col: 7 },
+    direction: 'left',
+    coordinates: [
+      { row: 11, col: 6 }, { row: 11, col: 5 }, { row: 11, col: 4 }
+    ]
+  };
+  const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
 });
