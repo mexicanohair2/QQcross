@@ -22,14 +22,13 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
+    reason: 'FIXED_FULL_TOP_AND_LEFT_BORDERS',
     width,
     height,
     requiredTopAnchor: { row: 0, col: 1 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
-    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
     conflicts: [],
-    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
+    message: 'Все клетки верхней строки, кроме пустого угла (0,0), и все клетки левого столбца, кроме угла, обязательны для вопросных клеток.'
   };
 }
 
@@ -90,8 +89,7 @@ export function getAnswerCoordinates(clueCell, direction, length) {
  * Derives geometric candidate slots from a role grid.
  *
  * A normal answer slot is a run of at least two letter cells between two
- * consecutive question cells on one row or column. Both endpoint orientations
- * are retained, allowing the CSP stage to choose right/left/down/up.
+ * consecutive question cells. The only permitted directions are right and down.
  *
  * One-letter gaps are intentionally not promoted to answers.
  */
@@ -347,7 +345,7 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
-  if (options.requireFullTopBorder === true) {
+  if (options.requireBorderClues !== false) {
     for (let col = 1; col < CONFIG.WIDTH; col++) {
       if (grid[0][col].type !== 'question') {
         errors.push({
