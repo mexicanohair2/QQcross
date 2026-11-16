@@ -23,7 +23,7 @@ jobs:
         run: node scripts/diagnose-scanword.cjs
       - name: Audit topology slot lengths before dictionary assignment
         run: node scripts/diagnose-topologies.mjs
-      - name: Validate redesigned low-short-slot 8x12 topology
+      - name: Validate full-border production 8x12 topology
         run: node scripts/diagnose-custom-topology.mjs
       - name: Validate seeded 8x12 topology sampling
         run: node scripts/diagnose-border-compatible-topology.cjs
