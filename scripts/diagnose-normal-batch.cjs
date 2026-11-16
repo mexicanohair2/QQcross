@@ -41,8 +41,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireBorderClues: false,
-      requireTopRowHorizontalRun: true,
+      requireBorderClues: true,
+      requireTopRowHorizontalRun: false,
       requireConnected: true
     });
     const words = result.scanword.words;
