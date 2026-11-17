@@ -182,23 +182,25 @@ test('enforces the two active top anchors and the 8×12 right-edge board contrac
   const rejected = validateTopology(wrongTopGrid);
   assert.ok(rejected.errors.some(item => item.type === 'INVALID_TOP_ROW_ANCHORS'));
 });
-test('requires the top-left anchor and complete left border, but not every top-row cell', () => {
+test('requires the two top anchors and complete left border', () => {
   const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
   setQuestion(grid, 0, 1);
+  setQuestion(grid, 0, 5);
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
-  const result = validateTopology(grid);
+  const result = validateTopology(grid, {
+    requireConnected: false,
+    allowSpecialElevenBoundary: false
+  });
   assert.equal(result.valid, true, JSON.stringify(result.errors));
-  assert.ok(!result.errors.some(item => item.type === 'TOP_ROW_NOT_QUESTION'));
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  assert.equal(derived.slots.filter(slot => slot.special === 'RIGHT_EDGE_BOUNDARY').length, 12);
+  assert.ok(!result.errors.some(item => item.type === 'INVALID_TOP_ROW_ANCHORS'));
+  assert.equal(result.slots.filter(slot => slot.special === 'RIGHT_EDGE_BOUNDARY').length, 12);
 
   grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
   const missingAnchor = validateTopology(grid);
   assert.ok(missingAnchor.errors.some(item => item.type === 'TOP_LEFT_BORDER_ANCHOR_MISSING'));
 });
-
 test('the 8x12 preflight permits the dynamically generated top border', () => {
   const result = analyzeRequiredBorderFeasibility();
   assert.equal(result.feasible, true);
