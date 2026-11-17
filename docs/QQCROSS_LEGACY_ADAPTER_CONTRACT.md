@@ -14,7 +14,8 @@ The existing game expects:
 - h: number of rows, exactly 12.
 - words: array of word records.
 - used: Set of "row,col" keys for letter cells.
-- clueKeys: Set of "row,col" keys for all question/end cells.
+- clueKeys: Set of "row,col" keys for every question cell, including internal terminal-only cells.
+- The rightmost column (7) and penultimate column (6) contain letters only. Every row has exactly one registered RIGHT_EDGE_BOUNDARY answer ending at column 7; its conceptual terminal boundary is column 8 and is not a question cell.
 - reservedKeys: Set containing only "0,0".
 - coverage: exactly 1 for a fully validated board.
 
@@ -45,7 +46,7 @@ The renderer and scoring code consume these fields:
 - makeRandomPuzzle() iterates every word.cells entry and builds expected["row,col"] = answer[index]. Crossing words must have identical letters at shared coordinates.
 - renderGame() builds clueAt from every word's clueCell. Multiple words at one clue cell remain separate records so the popup can show all directions.
 - renderGame() independently computes every answer's terminal question coordinate from the last cell and direction.
-- A terminal-only cell is rendered as a question/end cell using the incoming word. It does not need a second, unrelated clue record.
+- An internal terminal-only cell is rendered as a non-interactive structural boundary using its incoming word. It does not need a second, unrelated clue record. Boundary-ending right-edge answers do not create an in-grid terminal question.
 - If a terminal cell also starts another answer, the renderer combines incoming and outgoing clue behavior.
 - Letter cells are rendered from expected; question cells from clue starts and computed terminals; (0,0) is the only reserved blank. Any remaining cell becomes a visible filler and is rejected by the new validator.
 
@@ -56,9 +57,10 @@ The renderer and scoring code consume these fields:
 3. Map coordinate objects {row, col} to [row, col] without changing answer order.
 4. Preserve every word record, including multiple answers sharing one clue cell.
 5. Preserve image keys and logic flags from dictionary metadata.
-6. Populate used, clueKeys, and reservedKeys from the certified grid.
-7. Never set coverage: 1 on partial or invalid output.
-8. Do not change Supabase or unrelated modes when replacing the scanword source.
+6. Populate used, clueKeys, and reservedKeys from the certified grid; preserve the 8×12 orientation and all four directions without transposing coordinates.
+7. Before local or online resume, validate the serialized 8×12 roles, answer paths, question links, exact 12 right-edge answers and all 96 cell assignments. Leave obsolete saves intact but do not resume an incompatible old topology.
+8. Never set coverage: 1 on partial or invalid output.
+9. Do not change Supabase or unrelated modes when replacing the scanword source.
 
 ## Production integration
 
