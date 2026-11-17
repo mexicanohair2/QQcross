@@ -11,48 +11,68 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * bounded seeded mutations create the production topology variety.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
-  '.#..#...',
+  '.#...#..',
+  '#...#...',
+  '#...#...',
+  '#...#...',
   '#...#...',
   '#....#..',
   '#...#...',
   '#...#...',
-  '#.......',
   '#...#...',
   '#...#...',
   '#...#...',
-  '#....#..',
-  '#.......',
-  '#...#...'
+  '#....#..'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
-  '.#..#...',
+  '.#...#..',
+  '#...#...',
+  '#.......',
   '#...#...',
   '#...#...',
   '#....#..',
   '#...#...',
-  '#...#...',
   '#.......',
   '#...#...',
-  '#....#..',
   '#...#...',
-  '#.......',
-  '#...#...'
+  '#...#...',
+  '#....#..'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
-  '.#..#...',
-  '#.......',
+  '.#...#..',
   '#...#...',
   '#...#...',
   '#.......',
   '#...#...',
   '#....#..',
   '#...#...',
+  '#...#...',
+  '#.......',
+  '#...#...',
+  '#...#...',
+  '#....#..'
+]);
+
+/*
+ * Special 11-letter layout: all rows have a real horizontal right-edge answer.
+ * The c5 anchors connect the upper, middle and lower crossing paths; c1 remains
+ * available for the optional eleven-letter vertical answer.
+ */
+const LOW_SHORT_SCAFFOLD = Object.freeze([
+  '.#...#..',
+  '#...#...',
+  '#.......',
+  '#...#...',
+  '#...#...',
   '#....#..',
   '#...#...',
   '#.......',
-  '#...#...'
+  '#...#...',
+  '#.......',
+  '#...#...',
+  '#....#..'
 ]);
 
 const SCAFFOLD_VARIANTS = Object.freeze([
@@ -61,24 +81,9 @@ const SCAFFOLD_VARIANTS = Object.freeze([
   STANDARD_SCAFFOLD_VARIANT_3
 ]);
 
-/*
- * Retained as a validated special-case seed for the optional eleven-letter
- * answer. It uses only a small number of right-edge clue cells, never a full
- * question column.
- */
-const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...#..',
-  '#...#...',
-  '#.......',
-  '#...#...',
-  '#...#...',
-  '#.......',
-  '#...#...',
-  '#.......',
-  '#...#...',
-  '#....#..',
-  '#...#...',
-  '#.......'
+const SCAFFOLDS = Object.freeze([
+  ...SCAFFOLD_VARIANTS,
+  LOW_SHORT_SCAFFOLD
 ]);
 
 function createScaffold(extraRows) {
@@ -203,7 +208,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
     // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
-    const mutationColumnCount = CONFIG.WIDTH - 2 - minMutationColumn;
+    const mutationColumnCount = 5 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
     const key = row + ',' + col;
     if (touched.has(key)) continue;
