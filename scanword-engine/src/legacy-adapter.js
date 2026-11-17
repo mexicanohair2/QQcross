@@ -50,6 +50,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
         if (cell.type !== 'corner') throw new Error('Клетка (0,0) должна оставаться пустым углом.');
       } else if (cell.type === 'question') {
         if (col === 7) throw new Error('В крайнем правом столбце запрещены вопросные клетки.');
+        if (col === 6) throw new Error('В предпоследнем столбце запрещены вопросные клетки: ответ до правой границы должен содержать минимум две буквы.');
         clueKeys.add(key);
       } else if (cell.type === 'letter') {
         used.add(key);
