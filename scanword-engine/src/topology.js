@@ -378,6 +378,16 @@ export function validateTopology(grid, options = {}) {
       });
     }
   }
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    if (grid[row][CONFIG.WIDTH - 2]?.type === 'question') {
+      errors.push({
+        type: 'RIGHT_EDGE_MINIMUM_LENGTH_BROKEN',
+        message: 'Предпоследний столбец резервируется под буквы, чтобы каждый ответ до правой границы содержал минимум две буквы.',
+        row,
+        col: CONFIG.WIDTH - 2
+      });
+    }
+  }
 
   let questionCells = 0;
   let letterCells = 0;
