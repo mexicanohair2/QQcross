@@ -459,7 +459,7 @@ function mountCody(root,onExit,clues,words){
     const val=valueAt(wi,j),secret=x===CENTER;
     cells+='<button type="button" class="qq-cody-cell '+(secret?"secret":"")+' '+(wi===active?"active":"")+' '+(isSolved(wi)?"solved":"")+' '+(val?"filled":"")+' '+(wi===active&&cursor===j?"cursor":"")+'" data-word="'+wi+'" data-slot="'+j+'" aria-label="Слово '+(wi+1)+', буква '+(j+1)+(val?", "+val:"")+ '">'+(val?escapeHtml(val):secret?"·":"")+'</button>';
    }
-   return '<div class="qq-cody-row" '+(isSolved(wi)?'data-qq-word="'+escapeHtml(item.answer)+'"':'')+'><button type="button" class="qq-cody-row-clue '+(wi===active?"active":"")+' '+(isSolved(wi)?"done":"")+'" data-clue="'+wi+'"><span class="qq-cody-row-meta"><b>'+(wi+1)+'</b><span>'+(isSolved(wi)?"РЕШЕНО":item.answer.length+" БУКВ")+'</span></span><span class="qq-cody-row-clue-text">'+escapeHtml(item.clue)+'</span></button><div class="qq-cody-row-cells">'+cells+'</div></div>';
+   return '<div class="qq-cody-row" '+(isSolved(wi)?'data-qq-word="'+escapeHtml(item.answer)+'"':'')+'><button type="button" class="qq-cody-row-clue '+(wi===active?"active":"")+' '+(isSolved(wi)?"done":"")+'" data-clue="'+wi+'" title="'+escapeHtml(item.clue)+'" aria-label="Вопрос: '+escapeHtml(item.clue)+'. Ответ из '+item.answer.length+' букв."><span class="qq-cody-row-meta"><b>'+(wi+1)+'</b><span>'+(isSolved(wi)?"РЕШЕНО":item.answer.length+" БУКВ")+'</span></span><span class="qq-cody-row-clue-text">'+escapeHtml(item.clue)+'</span></button><div class="qq-cody-row-cells">'+cells+'</div></div>';
   }
   function render(){
    const view=root.querySelector("#qqCodyView");view.className="qq-cody-puzzle-view";root.querySelector(".qq-cody-app").classList.add("qq-cody-playing");const draft=s.drafts[active]||{};
