@@ -22,14 +22,15 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
   }
   return {
     feasible: true,
-    reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
+    reason: 'THREE_TOP_ANCHORS_WITH_OPTIONAL_ELEVEN',
     width,
     height,
     requiredTopAnchor: { row: 0, col: 1 },
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
-    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
+    requiredTopAnchorCols: [1, 4, 7],
+    specialTopAnchorCols: [1, 2, 5, 6, 7],
     conflicts: [],
-    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
+    message: 'Левый столбец остаётся вопросным; обычная верхняя строка использует якоря 1, 4 и 7, а специальная — отдельную схему с ответом из 11 букв.'
   };
 }
 
@@ -50,37 +51,20 @@ function hasValidShape(grid) {
 function makeSlot(axis, first, last, coordinates) {
   const horizontal = axis === 'horizontal';
   const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
-
-  const endsAtLowerRight = last.row === CONFIG.HEIGHT - 1 && last.col === CONFIG.WIDTH - 1;
-  const startsAtTopRight = first.row === 0 && first.col === CONFIG.WIDTH - 1;
-  const requiredDirection = horizontal
-    ? (endsAtLowerRight ? 'right' : null)
-    : (endsAtLowerRight || startsAtTopRight ? 'down' : null);
 
   return {
     id: axis[0] + ':' + keyOf(first) + '>' + keyOf(last),
     axis,
-    requiredDirection,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
@@ -90,6 +74,7 @@ function makeSlot(axis, first, last, coordinates) {
  * The same function is used by the topology layer and future CSP placement.
  */
 export function getAnswerCoordinates(clueCell, direction, length) {
+  if (direction !== 'right' && direction !== 'down') return null;
   const vector = DIRECTIONS[direction];
   if (!vector || !Number.isInteger(length) || length < 1) return null;
 
@@ -203,7 +188,7 @@ export function deriveWordSlots(grid, options = {}) {
 
   // The only permitted answer that ends at the outer board edge:
   // clue (0,1), direction down, exactly eleven letters at (1,1)..(11,1).
-  if (options.allowSpecialElevenBoundary !== false) {
+  if (options.allowSpecialElevenBoundary === true) {
     const clue = grid[0][1];
     const coordinates = Array.from({ length: 11 }, (_, index) => point(index + 1, 1));
     const uninterrupted = clue.type === 'question'
@@ -334,6 +319,23 @@ export function validateTopology(grid, options = {}) {
 
   // The top row is intentionally dynamic. Letter cells are permitted only
   // when a horizontal slot between two question cells covers them.
+  if (options.requireProductionTopLayout === true) {
+    const special = options.allowSpecialElevenBoundary === true;
+    const expectedTopCols = special ? [1, 2, 5, 6, 7] : [1, 4, 7];
+    const actualTopCols = grid[0]
+      .map((cell, col) => cell.type === 'question' ? col : -1)
+      .filter(col => col > 0);
+    if (actualTopCols.length !== expectedTopCols.length
+      || actualTopCols.some((col, index) => col !== expectedTopCols[index])) {
+      errors.push({
+        type: 'INVALID_TOP_ROW_ANCHORS',
+        message: 'Верхняя строка не соответствует производственной схеме обычного или специального сканворда.',
+        expected: expectedTopCols,
+        actual: actualTopCols
+      });
+    }
+  }
+
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
