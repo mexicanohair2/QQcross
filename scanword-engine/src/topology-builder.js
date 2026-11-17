@@ -136,7 +136,7 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
   const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
-  const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
+  const minimumSlots = CONFIG.MIN_WORD_COUNT;
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
