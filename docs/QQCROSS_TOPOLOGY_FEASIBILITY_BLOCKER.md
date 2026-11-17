@@ -8,7 +8,7 @@ Status: **the original geometric proof remains correct for its original assumpti
 - (0,0) is the reserved blank corner.
 - The top row has two active clue anchors: (0,1) and one interior anchor at column 4 or 5.
 - The left border in rows 1–11 consists of question cells.
-- The entire rightmost column (column 7) contains letters only. No clue or terminal-question cell is allowed there.
+- The entire rightmost column (column 7) contains letters only. No clue or terminal-question cell is allowed there. Column 6 is also reserved for letters so a right-edge answer always has at least two letters.
 - Each row has exactly one `RIGHT_EDGE_BOUNDARY` horizontal answer. It starts at that row's final question cell, covers the remaining letters through column 7, and terminates at the outer boundary at column 8. The boundary is not a question cell.
 - Every answer has a real clue at its start and is an actual dictionary entry. Every letter cell belongs to one or more registered answers.
 - All four directions remain supported.
