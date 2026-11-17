@@ -1,3 +1,5 @@
+> **Historical snapshot (2026-11-13).** The measurements below are retained for traceability and are superseded by the current audit in `docs/QQCROSS_DICTIONARY_AUDIT.md` (2026-11-18). Do not use these counts as the present source inventory.
+
 # QQCross dictionary audit — 2026-11-13
 
 Source: `data/scanword-dictionary.json` on `feature/qqcross-scanword-engine`; measurements use the current scanword-engine validation rules, which preserve Ё separately from Е.
