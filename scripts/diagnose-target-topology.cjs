@@ -4,25 +4,13 @@ const { performance } = require("node:perf_hooks");
 
 async function main() {
   const { createEmptyGrid } = await import("../scanword-engine/src/grid.js");
+  const { getTopologyScaffolds } = await import("../scanword-engine/src/topology-builder.js");
   const { deriveWordSlots, validateTopology } = await import("../scanword-engine/src/topology.js");
   const { solveSlotsCsp } = await import("../scanword-engine/src/csp.js");
   const { assembleScanword } = await import("../scanword-engine/src/assembler.js");
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
 
-  const pattern = [
-    ".#..#..#",
-    "#......#",
-    "#.....#.",
-    "#....#..",
-    "#...#...",
-    "#......#",
-    "#.....#.",
-    "#....#..",
-    "#...#..#",
-    "#.....#.",
-    "#.....#.",
-    "#...#..#"
-  ];
+  const pattern = getTopologyScaffolds()[0];
   const grid = createEmptyGrid();
   for (let row = 0; row < 12; row++) {
     for (let col = 0; col < 8; col++) {
@@ -37,9 +25,12 @@ async function main() {
   }
 
   const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
-  const topologyValidation = validateTopology(grid, { requireConnected: true });
+  const topologyValidation = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false });
   const normal = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
   const special = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
+  assert.equal(pattern[0].slice(1).split("").filter(cell => cell === "#").length, 2);
+  assert.equal(normal.slots.filter(slot => slot.special === "RIGHT_EDGE_BOUNDARY").length, 12);
+  assert.ok(pattern.every(row => row[6] === "." && row[7] === "."));
   const slotHistogram = slots => Object.fromEntries(
     [2,3,4,5,6,7,8,9,10,11].map(length => [
       String(length), slots.filter(slot => slot.length === length).length
