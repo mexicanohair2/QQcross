@@ -70,7 +70,7 @@ test('recognizes only the exact eleven-letter bottom boundary exception', () => 
   const grid = makeGrid();
   setQuestion(grid, 0, 1);
 
-  const result = deriveWordSlots(grid);
+  const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
   const special = result.slots.find(item => item.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
 
   assert.ok(special);
@@ -85,7 +85,7 @@ test('does not grant the boundary exception when an intermediate cell is a clue'
   setQuestion(grid, 0, 1);
   setQuestion(grid, 7, 1);
 
-  const result = deriveWordSlots(grid);
+  const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
   assert.equal(result.slots.some(item => item.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
