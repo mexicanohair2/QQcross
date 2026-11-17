@@ -55,6 +55,16 @@ test('placement checks bounds and matching intersections', () => {
   placeWord(grid, clue, {id:'a',answer:'КОТ',question:'Животное'}, 'right', 'w1');
   assert.equal(canPlaceWord(grid, grid[0][1], {answer:'ЛЕС'}, 'down').ok, false);
 });
+test('independent validator enforces the configured production answer-count floor', () => {
+  const fake = { width: 8, height: 12, grid: createEmptyGrid(), words: [], questions: [] };
+  const result = validateScanword(fake, [], { minimumWordCount: 24 });
+  assert.ok(result.errors.some(error =>
+    error.type === 'INSUFFICIENT_WORD_COUNT'
+    && error.expected === 24
+    && error.actual === 0
+  ));
+});
+
 test('validator rejects incomplete grids and reports errors', () => {
   const fake = {width:8,height:12,grid:createEmptyGrid(),words:[],questions:[]};
   const result = validateScanword(fake);
