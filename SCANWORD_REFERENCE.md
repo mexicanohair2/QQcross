@@ -46,7 +46,7 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 - Keep the canonical **8 columns × 12 rows = 96 cells** portrait board.
 - Keep the top-left corner blank. The top row has two active clue anchors: (0,1) and one interior anchor at column 4 or 5.
 - Keep the left-edge clue cells in rows 1–11 and at least six clue cells in the interior.
-- The entire rightmost column (column 7) is letter-only. No active question, clue, or terminal-question cell may appear there. Each row has one independently validated horizontal answer that reaches the right edge; the edge itself is a boundary, not a question cell.
+- The entire rightmost column (column 7) is letter-only. Column 6 is also reserved for letters in the current generator so every right-edge answer has at least two letters. No active question, clue, or terminal-question cell may appear there. Each row has one independently validated horizontal answer that reaches the right edge; the edge itself is a boundary, not a question cell.
 - Every answer must have a real clue at its start. Boundary-ending answers are explicitly registered and validated; they are not unlinked words or filler.
 - On phones, target 95% of viewport width and 85% of viewport height; compact interface controls must fit in the remaining 15%. The remaining screen area is reserved for the score/header, letter rack, timer, inventory, and controls. Keep the complete game inside the viewport without page scrolling.
 
