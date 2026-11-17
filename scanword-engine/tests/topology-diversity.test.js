@@ -1,27 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateTopology, getTopologyScaffolds } from '../src/topology-builder.js';
-import { createEmptyGrid } from '../src/grid.js';
-import { deriveWordSlots, validateTopology } from '../src/topology.js';
 
-test('debug candidate scaffold metrics', () => {
-  for (const [index, pattern] of getTopologyScaffolds().entries()) {
-    const grid = createEmptyGrid();
-    for (let row = 0; row < 12; row++) for (let col = 0; col < 8; col++) {
-      if (row === 0 && col === 0) continue;
-      grid[row][col].type = pattern[row][col] === '#' ? 'question' : 'letter';
-      grid[row][col].letter = grid[row][col].type === 'letter' ? 'А' : null;
-    }
-    const options = { requireConnected: true, allowRightEdgeBoundary: true, allowSpecialElevenBoundary: index === 3 };
-    const validation = validateTopology(grid, options);
-    const slots = deriveWordSlots(grid, options);
-    console.log('SCAFFOLD DEBUG', index, {
-      pattern, valid: validation.valid, errors: validation.errors,
-      warnings: validation.warnings, metrics: validation.metrics,
-      slots: slots.slots.map(slot => ({id:slot.id,length:slot.length,special:slot.special,axis:slot.axis}))
-    });
-  }
-});
 test('seeded topology generation produces broad geometric variety while preserving the playable border contract', () => {
   const patterns = new Set();
   const questionCounts = new Set();
@@ -98,18 +78,18 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
+    '.#...#..',
     '#...#...',
     '#...#...',
     '#...#...',
-    '#......#',
-    '#....##.',
+    '#.......',
+    '#....#..',
     '#...#...',
     '#...#...',
-    '#......#',
-    '#....##.',
-    '#.....#.',
-    '#......#'
+    '#.......',
+    '#...#...',
+    '#.......',
+    '#.......'
   ]);
 
   const result = generateTopology({
