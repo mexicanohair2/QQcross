@@ -1555,8 +1555,12 @@ function matchHistory(){
   return '<h2>История боёв</h2><p class="small muted">Сохранения хранятся только на этом устройстве.</p>'+matches.map(m=>{
     const date=new Date(m.updatedAt||Date.now()).toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
     const completed=m.status==="completed";
+    const compatibilityIssue=completed?"":krossPuzzleContractIssue(m.puzzle,m.expected);
     const done=m.game?.completed?.length||0,total=m.puzzle?.words?.length||0;
-    return '<div class="card match-history-card"><div class="row between"><b>'+esc(m.label||"Сканворд")+'</b><span class="pill">'+(completed?"Завершён":"Не закончен")+'</span></div><p class="small muted">'+date+' · '+done+'/'+total+' слов</p><div class="grid2">'+(completed?'<button class="btn" disabled>Партия завершена</button>':'<button class="btn primary resume-match" data-match-id="'+esc(m.id)+'">Продолжить</button>')+'<button class="btn delete-match" data-match-id="'+esc(m.id)+'">Удалить</button></div></div>';
+    const statusLabel=completed?"Завершён":compatibilityIssue?"Старый формат":"Не закончен";
+    const resumeButton=completed?'<button class="btn" disabled>Партия завершена</button>':compatibilityIssue?'<button class="btn" disabled title="'+esc(compatibilityIssue)+'">Недоступно: старый формат</button>':'<button class="btn primary resume-match" data-match-id="'+esc(m.id)+'">Продолжить</button>';
+    const compatibilityNotice=compatibilityIssue?'<p class="small muted">Это сохранение оставлено в истории, но создано по прежней геометрии. Оно не будет открыто в новом формате.</p>':"";
+    return '<div class="card match-history-card"><div class="row between"><b>'+esc(m.label||"Сканворд")+'</b><span class="pill">'+statusLabel+'</span></div><p class="small muted">'+date+' · '+done+'/'+total+' слов</p>'+compatibilityNotice+'<div class="grid2">'+resumeButton+'<button class="btn delete-match" data-match-id="'+esc(m.id)+'">Удалить</button></div></div>';
   }).join("");
 }
 function rootMatchHistoryBindings(){
