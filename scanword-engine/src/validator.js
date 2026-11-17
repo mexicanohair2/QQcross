@@ -118,6 +118,9 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       } else if (cell.type === 'question') {
         questionCells++;
         if (cell.letter != null) add('QUESTION_HAS_LETTER', 'Вопросная клетка не может одновременно быть буквенной.', { row, col });
+        if (col === CONFIG.WIDTH - 1) {
+          add('RIGHTMOST_COLUMN_QUESTION', 'Крайний правый столбец должен содержать только буквенные клетки.', { row, col });
+        }
       } else if (cell.type === 'letter') {
         letterCells++;
         if (typeof cell.letter !== 'string' || !/^[А-ЯЁ]$/u.test(cell.letter)) {
@@ -139,6 +142,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const registeredNormalSlots = new Set();
   let specialCount = 0;
   const leftBoundaryRows = new Set();
+  const rightBoundaryRows = new Set();
 
   for (const word of words) {
     if (!word || typeof word !== 'object' || !word.id) {
@@ -313,6 +317,29 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         add('INVALID_SPECIAL_BOUNDARY_WORD', 'Исключение допускается только для ответа из 11 букв вниз из (0,1) до нижней границы.', {
           wordId: word.id, answer, clue, direction: word.direction, terminal
         });
+      }
+    } else if (word.special === 'RIGHT_EDGE_BOUNDARY') {
+      const exactCoordinates = word.coordinates.every((coordinate, index) =>
+        coordinate.row === clue.row && coordinate.col === clue.col + index + 1
+      );
+      const validException = answer.length >= 2
+        && answer.length <= CONFIG.WIDTH - 1
+        && clue.col <= CONFIG.WIDTH - 3
+        && word.direction === 'right'
+        && exactCoordinates
+        && terminal.row === clue.row
+        && terminal.col === CONFIG.WIDTH
+        && grid[clue.row][CONFIG.WIDTH - 1]?.type === 'letter';
+      if (!validException) {
+        add('INVALID_RIGHT_EDGE_BOUNDARY_WORD', 'Правый граничный ответ должен идти вправо от настоящего вопроса и заканчиваться за пределами сетки.', {
+          wordId: word.id, answer, clue, direction: word.direction, terminal
+        });
+      } else if (rightBoundaryRows.has(clue.row)) {
+        add('DUPLICATE_RIGHT_EDGE_BOUNDARY_ROW', 'В одной строке может быть только один ответ, заканчивающийся на правой границе.', {
+          wordId: word.id, row: clue.row
+        });
+      } else {
+        rightBoundaryRows.add(clue.row);
       }
     } else if (word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
       const exactCoordinates = word.coordinates.every((coordinate, index) =>
@@ -515,6 +542,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || !word.clue
           || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
+          || word.special === 'RIGHT_EDGE_BOUNDARY'
         ) return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
@@ -537,6 +565,40 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         );
       } else {
         discoveredSlots.add(key);
+      }
+    }
+
+    if (horizontal && positions.length > 0) {
+      const start = positions[positions.length - 1];
+      const length = lineLength - start - 1;
+      if (length >= 2) {
+        const first = { row: fixedIndex, col: start };
+        const terminal = { row: fixedIndex, col: CONFIG.WIDTH };
+        const matches = words.filter(word =>
+          word?.special === 'RIGHT_EDGE_BOUNDARY'
+          && samePoint(word.clue, first)
+          && word.direction === 'right'
+          && word.answer.length === length
+          && word.coordinates.every((coordinate, index) =>
+            coordinate.row === fixedIndex && coordinate.col === start + index + 1
+          )
+        );
+        const key = slotKey('horizontal', first, terminal);
+        if (matches.length !== 1) {
+          add(
+            matches.length === 0 ? 'UNREGISTERED_RIGHT_EDGE_ANSWER' : 'DUPLICATE_RIGHT_EDGE_ANSWER',
+            matches.length === 0
+              ? 'Ответ от последней вопросной клетки до правой границы не зарегистрирован.'
+              : 'Одна правая граничная позиция назначена нескольким ответам.',
+            { row: fixedIndex, first, terminal, length, wordIds: matches.map(word => word.id) }
+          );
+        } else {
+          discoveredSlots.add(key);
+        }
+      } else {
+        add('RIGHT_EDGE_ANSWER_TOO_SHORT', 'До правой границы должен идти ответ длиной не менее двух букв.', {
+          row: fixedIndex, start, length
+        });
       }
     }
   }
