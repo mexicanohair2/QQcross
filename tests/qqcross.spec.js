@@ -85,6 +85,7 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
       positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
       ratio: boardRect.width / boardRect.height,
       width: boardRect.width,
+      height: boardRect.height,
       viewport: document.documentElement.clientWidth,
       viewportHeight: document.documentElement.clientHeight,
       boardWrapHeight: board.parentElement.getBoundingClientRect().height
@@ -103,10 +104,10 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
+  await expect(scanBoard).toHaveAttribute("data-right-edge-answer-count", "12");
   const answerCount = Number(await scanBoard.getAttribute("data-answer-count"));
   const terminalAnswerCount = Number(await scanBoard.getAttribute("data-terminal-answer-count"));
   expect(terminalAnswerCount).toBe(answerCount);
-  await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
