@@ -419,8 +419,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialElevenPlanDiagnostics = [];
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
-    const useSpecial = wantsEleven && attempt < specialAttempts;
+    // A requested one-in-four special board must never silently fall back to
+    // a normal topology. Exhaust the compatible special plans, then fail.
+    if (wantsEleven && attempt >= specialAttempts) break;
+    const useSpecial = wantsEleven;
     const specialPlan = useSpecial ? specialPlanSequence[specialPlanOffset + attempt] ?? null : null;
+    if (useSpecial && !specialPlan) break;
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
