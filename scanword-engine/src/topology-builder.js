@@ -60,18 +60,18 @@ const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
  * available for the optional eleven-letter vertical answer.
  */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#..#...',
+  '.#...#..',
   '#...#...',
-  '#.......',
   '#...#...',
   '#...#...',
   '#....#..',
   '#...#...',
   '#.......',
-  '#...#...',
   '#.......',
-  '#...#...',
-  '#....#..'
+  '#.......',
+  '#.......',
+  '#.......',
+  '#...#...'
 ]);
 
 const SCAFFOLD_VARIANTS = Object.freeze([
