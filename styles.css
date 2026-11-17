@@ -2421,33 +2421,10 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 }
 
 
-/* Wide QQCross scanword: validated 8×12 topology displayed as 12×8. */
-.game-screen .scanword-board{
-  grid-template-columns:repeat(12,minmax(0,1fr))!important;
-  grid-template-rows:repeat(8,minmax(0,1fr))!important;
-  width:min(90vw,calc((100dvh - 220px)*1.5),900px)!important;
-  height:auto!important;
-  aspect-ratio:3/2!important;
-  max-width:90vw!important;
-  max-height:calc(100dvh - 220px)!important;
-}
+/* Keep the upward direction indicator available in clue cells. */
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow-up{
   display:grid!important;
 }
-@media(max-height:700px){
-  .game-screen .scanword-board{
-    width:min(90vw,calc((100dvh - 190px)*1.5),900px)!important;
-    max-width:90vw!important;
-    max-height:calc(100dvh - 190px)!important;
-  }
-}
-@media(max-width:420px){
-  .game-screen .scanword-board{
-    width:min(90vw,calc((100dvh - 220px)*1.5))!important;
-    max-width:90vw!important;
-  }
-}
-
 
 /* Kross acceptance layout: the scanword itself owns 95% of width and 85% of viewport height. */
 .game-screen{
