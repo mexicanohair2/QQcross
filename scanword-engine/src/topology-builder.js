@@ -140,8 +140,8 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
   if (derived.errors.length || derived.slots.length < minimumSlots) return null;
-  // Production uses a cap of four short answers; the low-short scaffold starts
-  // at two and allows seeded, validator-approved mutations for variety.
+  // Ordinary masks allow up to five approved two-letter answers; the
+  // dedicated eleven-letter scaffold is invoked with a stricter cap of four.
   if (twoLetterSlots < 2 || twoLetterSlots > maxTwoLetterSlots || longSlots < 12) return null;
 
   return {
@@ -186,7 +186,7 @@ function countCenterQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 5) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
