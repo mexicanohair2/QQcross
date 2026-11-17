@@ -62,8 +62,12 @@ function validateSlotGeometry(slot) {
       || slot.endpoints[1]?.row !== slot.endpoints[0]?.row
       || slot.endpoints[1]?.col !== CONFIG.WIDTH
       || slot.endpoints[1]?.boundary !== true
-      || slot.endpoints[0]?.col < 0
-      || slot.endpoints[0]?.col > CONFIG.WIDTH - 3
+      || !Number.isInteger(slot.endpoints[0]?.row)
+      || slot.endpoints[0].row < 0
+      || slot.endpoints[0].row >= CONFIG.HEIGHT
+      || !Number.isInteger(slot.endpoints[0]?.col)
+      || slot.endpoints[0].col < 0
+      || slot.endpoints[0].col > CONFIG.WIDTH - 3
       || slot.length !== CONFIG.WIDTH - slot.endpoints[0].col - 1
       || slot.requiredDirection !== 'right'
     ) return false;
