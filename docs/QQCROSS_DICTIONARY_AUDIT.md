@@ -1,28 +1,32 @@
-# QQCross dictionary audit and normalization — Stages 3–4
+# QQCross dictionary audit — current snapshot (2026-11-18)
 
-Audit source: data/scanword-dictionary.json on feature/qqcross-scanword-engine. The source JSON was inspected and is not modified by the audit or normalizer.
+Source: `data/scanword-dictionary.json` on the Kross working branch. Counts below were recomputed from the current source file. This is a structural/content-integrity audit, not a human review of every clue.
 
-## Verified source inventory
+## Source inventory
 
-- Raw records: 2,287.
-- Unique playable answers after normalization and deduplication: 2,032.
-- Valid source variants retained for alternate clue selection: 2,214.
-- Rejected records: 73.
-- Rejection reasons: 71 answer-length violations and 2 exact whole-word answer leaks.
-- Empty answers: 0.
-- Empty clues: 0.
-- Invalid Russian answer characters: 0.
-- Picture records: 46, each with a distinct imageKey.
-- Records marked as logic clues: 710.
-- Clues shorter than 15 characters: 266 raw records; these are review warnings, not automatic rejections.
-- Clues longer than 110 characters: 0.
+- Raw records: **2,289**.
+- Records with 2–11 letters and a non-empty clue: **2,218**.
+- Unique playable answers with the default Ё-preserving normalization: **2,036**.
+- Unique playable answers if Ё is explicitly folded to Е: **2,034**.
+- Unique answers across the complete raw file, including non-playable lengths: **2,105** with Ё preserved; **2,103** when folded to Е.
+- Repeated answer groups in the raw file: **161**, with **184** extra raw records beyond one record per unique answer.
+- Repeated answer groups in the playable-length subset: **159**, with **182** additional valid clue variants.
+- Rejected by the current 2–11 letter range: **71** records — 32 one-letter answers and 39 twelve-letter answers.
+- Empty answers, empty clues, and invalid answer characters: **0**.
+- Exact duplicate answer/clue pairs: **0**.
+- Ambiguous non-image clue texts shared by different answers: **0**.
+- Answer leakage detected in clue/clueShort/question variants: **0** after the current content fixes.
+- Picture records and distinct image keys: **46 / 46**.
+- Records tagged as logic clues: **709**; distinct playable answers with a logic variant: **622**.
+- Records with exactly 11 answer letters: **83**.
+- Clues shorter than 15 characters: **266** review warnings; clues longer than 110 characters: **0**.
 
-## Answer-length distribution in the unchanged source file
+## Answer-length distribution
 
-| Length | Records |
+| Length | Raw records |
 |---:|---:|
 | 1 | 32 |
-| 2 | 17 |
+| 2 | 19 |
 | 3 | 87 |
 | 4 | 227 |
 | 5 | 404 |
@@ -34,41 +38,26 @@ Audit source: data/scanword-dictionary.json on feature/qqcross-scanword-engine. 
 | 11 | 83 |
 | 12 | 39 |
 
-The 32 one-letter records and 39 twelve-letter records remain in the original source JSON but are not accepted as playable answers by the current 2–11 letter engine contract. Nothing was deleted from the user's dictionary.
+The source retains all records; the production engine only accepts 2–11 letter answers. Nothing was silently deleted.
 
-## Duplicate handling
+## Duplicate and image handling
 
-The source has 161 answer groups containing repeated answers, with 184 extra raw records beyond one record per unique answer.
+The source intentionally retains multiple clue variants for some answers. The runtime groups by normalized answer, retains valid clue variants for CSP selection, and enforces one use of each answer per generated board. The generic image prompt “Что изображено на картинке?” is allowed only with distinct image keys; the validator does not treat it as an ambiguous ordinary clue.
 
-The normalizer:
-- retains every valid clue variant in the variants collection;
-- exposes one best candidate per normalized answer in entries, preventing duplicate answers within a generated board;
-- prefers a valid picture-answer variant when one exists, so imageKey metadata is not lost;
-- gives logic clues a quality preference;
-- records duplicate and short-clue warnings rather than silently deleting source data.
+## Answer-leakage check
 
-The source repeats the generic prompt “Что изображено на картинке?” across distinct image answers. That is intentional: each record has its own distinct imageKey. The normalizer treats distinct image-backed prompts as valid rather than reporting them as semantic duplicate clues.
+The production data validator now checks each displayed `clue`, `clueShort`, and `question` variant for the normalized answer inside individual Russian/Latin word tokens. This catches direct and inflected/compound leaks such as an answer embedded in a clue word, without producing false positives by concatenating adjacent words. The nine affected clue variants found during this audit were rewritten; the remaining СУД short clue was synchronized as well. Current scan result: **0 leaks**.
 
-## Implemented schema compatibility
+## Runtime normalization
 
-The production source uses answer, clue, clueShort, imageKey and logic. The original isolated prototype expected answer and question and therefore could not read the live dictionary correctly.
+- Ё remains distinct from Е by default.
+- Folding Ё to Е is an explicit option, not an implicit mutation.
+- All 46 picture assets have distinct image keys.
+- The 83 eleven-letter records remain available for the optional special topology, subject to crossing and CSP constraints.
 
-The updated normalizer accepts both question and clue fields, maps clue to the internal question field, and preserves clueShort, imageKey, logic and image metadata. It assigns deterministic source-position IDs when the source record has no id.
+## Limits and outstanding work
 
-Answer leakage checks compare whole Russian word tokens, not arbitrary substrings. This avoids rejecting valid definitions merely because the answer occurs as part of an inflected word (for example, ЧАЙ inside ЧАЙНЫХ).
-
-Е and Ё remain distinct by default. Folding Ё to Е is an explicit option, not an implicit mutation.
-
-## Indexing for CSP
-
-The index layer now builds:
-- byLength: candidates grouped by normalized answer length;
-- byLetter: positional buckets keyed by position and letter;
-- byId: direct entry lookup;
-- byAnswer: normalized answer lookup.
-
-findCandidates() intersects positional buckets and scans the smallest bucket first. This is the minimum-remaining-values foundation for the later CSP stage: a slot with more crossing letters should have a smaller candidate list and be selected earlier.
-
-## Validation status
-
-The isolated engine workflow has reported 24 passing tests before the latest indexing and picture-prompt regression additions. The latest changes are awaiting their next CI result at the time this document was added. Do not treat this document as a semantic human review of every clue; heuristic checks identify structural problems and review warnings, not guaranteed linguistic correctness.
+- The separate scanword clue bank is **2,289 records**, not 25,000 or 50,000. The general Russian lexicons are larger, but words without verified definitions are not automatically converted into scanword/CodyCross clues.
+- The dictionary audit cannot certify factual accuracy, ambiguity, or naturalness of every clue. The 266 short-clue warnings and semantic review remain open.
+- The current topology still produces only 24–26 answer slots in its base masks; the 34+ meaningful-answer target is not met. See `docs/QQCROSS_TOPOLOGY_FEASIBILITY_BLOCKER.md`.
+- No current-head CI result is available yet. Do not treat the code or data changes as fully verified until the current branch's dictionary, engine, seeded generator, and browser checks run successfully.
