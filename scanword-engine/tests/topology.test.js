@@ -114,19 +114,19 @@ test('coordinate helper permits only rightward and downward answers', () => {
   assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), null);
 });
 
-test('supports dynamic top-row clue omissions while covering all 96 cells', () => {
+test('supports the optional 11-letter top row without creating two outgoing arrows', () => {
   const rows = [
-    '.#..#..#',
-    '#..#.##.',
-    '#..#....',
+    '.##..###',
+    '#...#...',
+    '#...#...',
+    '#...#...',
     '#......#',
-    '#...#..#',
-    '#...#.##',
-    '#..#..#.',
     '#....##.',
-    '#..#...#',
-    '#....#..',
-    '#..#..#.',
+    '#...#...',
+    '#...#...',
+    '#......#',
+    '#....##.',
+    '#.....#.',
     '#......#'
   ];
   const grid = makeGrid('letter');
@@ -140,13 +140,17 @@ test('supports dynamic top-row clue omissions while covering all 96 cells', () =
     }
   }
 
-  const result = validateTopology(grid, { requireConnected: true });
+  const result = validateTopology(grid, {
+    requireConnected: true,
+    allowSpecialElevenBoundary: true,
+    requireProductionTopLayout: true
+  });
   assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.equal(result.metrics.totalCells, 96);
-  assert.equal(result.metrics.questionCells, 34);
-  assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 25);
-  assert.ok(result.slots.some(slot => slot.axis === 'horizontal' && slot.endpoints[0].row === 0));
-  assert.ok(result.errors.length === 0);
+  assert.equal(result.metrics.questionCells, 29);
+  assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 20);
+  assert.equal(result.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
+  assert.equal(result.errors.length, 0);
 });
 
 test('requires the top-left anchor and complete left border, but not every top-row cell', () => {
