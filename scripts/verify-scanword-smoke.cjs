@@ -38,7 +38,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      allowRightEdgeBoundary: true
     });
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
