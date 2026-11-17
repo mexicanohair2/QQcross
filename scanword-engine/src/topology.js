@@ -26,10 +26,13 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
     width,
     height,
     requiredTopAnchor: { row: 0, col: 1 },
+    allowedTopAnchorPairs: [[1, 4], [1, 5]],
     requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
-    optionalTopCells: Array.from({ length: width - 2 }, (_, index) => ({ row: 0, col: index + 2 })),
+    rightmostColumn: 'letter-only',
+    penultimateColumn: 'letter-only',
+    rightEdgeBoundaryAnswers: height,
     conflicts: [],
-    message: 'Верхняя строка может содержать буквы между корректными горизонтальными вопросными границами; расположение внутренних вопросных клеток генерируется динамически.'
+    message: 'Верхний ряд содержит ровно два якоря: (0,1) и один внутренний в колонке 4 или 5. Крайние два правых столбца буквенные; каждая строка завершается зарегистрированным ответом до правой границы.'
   };
 }
 
