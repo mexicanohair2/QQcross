@@ -237,6 +237,13 @@ export function assembleScanword(assignments, options = {}) {
       });
     }
   }
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    if (grid[row][CONFIG.WIDTH - 2]?.type === 'question') {
+      fail('RIGHT_EDGE_MINIMUM_LENGTH_BROKEN', 'Предпоследний столбец должен оставаться буквенным, чтобы правый граничный ответ содержал минимум две буквы.', {
+        row, col: CONFIG.WIDTH - 2
+      });
+    }
+  }
 
   const questionCells = grid.flat().filter(cell => cell.type === 'question').length;
   const letterCells = grid.flat().filter(cell => cell.type === 'letter').length;
