@@ -37,7 +37,8 @@ function questionContainsWholeAnswer(question, answer) {
     .toLocaleUpperCase('ru-RU')
     .replace(/Ё/gu, 'Е')
     .match(/[А-ЯЕ]+/gu) ?? [];
-  return tokens.includes(normalizedAnswer);
+  if (normalizedAnswer.length < 3) return tokens.includes(normalizedAnswer);
+  return tokens.some(token => token.includes(normalizedAnswer));
 }
 
 function clueQuality(entry) {
@@ -81,7 +82,11 @@ export function validateEntry(raw, index = 0, options = {}) {
   if (!question) errors.push('EMPTY_QUESTION');
   // Grammar-only entries (pronouns, prepositions and interjections) make weak filler clues in this scanword format.
   if (/местоимени|предлог|междомет/iu.test(question)) errors.push('FUNCTION_WORD_CLUE');
-  if (questionContainsWholeAnswer(question, answer)) errors.push('ANSWER_LEAKS_INTO_QUESTION');
+  const clueVariants = [question, clueShort, raw.clue]
+    .filter(value => typeof value === 'string' && value.trim());
+  if (clueVariants.some(variant => questionContainsWholeAnswer(variant, answer))) {
+    errors.push('ANSWER_LEAKS_INTO_QUESTION');
+  }
 
   const entry = {
     id: String(raw.id ?? ('dictionary_' + String(index + 1).padStart(4, '0'))),
