@@ -1,4 +1,5 @@
-# QQCross scanword engine audit — 2026-11-12
+# Historical QQCross scanword engine audit — 2026-11-12
+> **Historical snapshot only.** The findings below describe the repository before the current scanword engine was integrated. In particular, the old W=6/H=12 builder and the prototype status are not descriptions of the current branch. Use `SCANWORD_REFERENCE.md`, `docs/QQCROSS_SCANWORD_ENGINE_MASTER_PROMPT.md`, `docs/QQCROSS_WORK_PROTOCOL.md`, and `scanword-engine/README.md` for the active 8×12 contract.
 
 Repository: mexicanohair2/QQCross (canonical GitHub name is mexicanohair2/QQcross), default branch main.
 Published site: https://mexicanohair2.github.io/QQCross/.
