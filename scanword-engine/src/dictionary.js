@@ -30,7 +30,7 @@ export function normalizeQuestion(value) {
     .trim();
 }
 
-function questionContainsWholeAnswer(question, answer) {
+function questionContainsAnswerLeak(question, answer) {
   if (!answer || answer.length < 2) return false;
   const normalizedAnswer = normalizeAnswer(answer, { foldYo: true });
   const tokens = String(question ?? '')
@@ -59,7 +59,7 @@ function clueQuality(entry) {
 
   if (/первая буква слова|последняя буква слова|начинается на букву|заканчивается на букву/iu.test(question)) score -= 30;
   if (/сколько будет|чему равно|вычисли|посчитай/iu.test(question)) score -= 12;
-  if (questionContainsWholeAnswer(question, entry.answer)) score -= 100;
+  if (questionContainsAnswerLeak(question, entry.answer)) score -= 100;
 
   return score;
 }
@@ -84,7 +84,7 @@ export function validateEntry(raw, index = 0, options = {}) {
   if (/местоимени|предлог|междомет/iu.test(question)) errors.push('FUNCTION_WORD_CLUE');
   const clueVariants = [question, clueShort, raw.clue]
     .filter(value => typeof value === 'string' && value.trim());
-  if (clueVariants.some(variant => questionContainsWholeAnswer(variant, answer))) {
+  if (clueVariants.some(variant => questionContainsAnswerLeak(variant, answer))) {
     errors.push('ANSWER_LEAKS_INTO_QUESTION');
   }
 
