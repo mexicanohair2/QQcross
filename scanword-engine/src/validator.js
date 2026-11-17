@@ -121,6 +121,9 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         if (col === CONFIG.WIDTH - 1) {
           add('RIGHTMOST_COLUMN_QUESTION', 'Крайний правый столбец должен содержать только буквенные клетки.', { row, col });
         }
+        if (col === CONFIG.WIDTH - 2) {
+          add('RIGHT_EDGE_MINIMUM_LENGTH_BROKEN', 'Предпоследний столбец резервируется под буквы: правый граничный ответ не может состоять из одной буквы.', { row, col });
+        }
       } else if (cell.type === 'letter') {
         letterCells++;
         if (typeof cell.letter !== 'string' || !/^[А-ЯЁ]$/u.test(cell.letter)) {
