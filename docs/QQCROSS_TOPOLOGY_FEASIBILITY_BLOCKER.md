@@ -34,6 +34,12 @@ This proof is a geometric constraint, not a search-budget or dictionary issue. I
 - Independently validate all answer paths, crossings, right-edge boundary registrations, question links, images, logic clues, and cell coverage before gameplay.
 - Render terminal-only internal endpoints as structural markers, not duplicate clue prompts.
 
+## Current answer-count gap
+
+The user's earlier quality target is at least **34 meaningful answers/questions per board**. The current four base masks derive 26, 24, 24, and 24 registered answer slots respectively; the 11-letter slot is included in the special mask's count. The old topology acceptance threshold of 19 was too permissive, so the active branch now enforces an interim minimum of 24 in both topology selection and the production independent validator.
+
+This does **not** satisfy the 34+ target. A topology search must increase the number of real, distinct, fully clued answers without exceeding the approved short-answer allowance or creating one-letter gaps, orphan letters, duplicate answers, unlinked words, or right-edge violations. No formal impossibility proof has been established; do not silently weaken any of those rules to reach the count.
+
 ## Validation requirements
 
 - Reject every question cell in column 7.
