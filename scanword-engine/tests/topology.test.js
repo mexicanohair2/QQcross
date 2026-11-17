@@ -131,7 +131,7 @@ test('coordinate helper obeys the canonical four-direction table', () => {
   assert.equal(getAnswerCoordinates({ row: 0, col: 0 }, 'up', 1), null);
 });
 
-test('supports dynamic top-row clue omissions while covering all 96 cells', () => {
+test('enforces the two active top anchors and the 8×12 right-edge board contract', () => {
   const rows = [
     '.#...#..',
     '#...#...',
@@ -157,15 +157,31 @@ test('supports dynamic top-row clue omissions while covering all 96 cells', () =
     }
   }
 
-  const result = validateTopology(grid, { requireConnected: false });
+  const result = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false });
   assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.equal(result.metrics.totalCells, 96);
   assert.equal(result.metrics.questionCells, 24);
-  assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 24);
-  assert.ok(result.slots.some(slot => slot.axis === 'horizontal' && slot.endpoints[0].row === 0));
-  assert.ok(result.errors.length === 0);
-});
+  assert.equal(result.metrics.letterCells, 71);
+  assert.ok(result.metrics.horizontalSlots + result.metrics.verticalSlots >= 25);
+  assert.equal(result.slots.filter(slot => slot.special === 'RIGHT_EDGE_BOUNDARY').length, 12);
+  assert.ok(result.slots.every(slot => slot.length >= 2));
+  assert.equal(result.errors.length, 0);
 
+  const wrongTop = rows.map(row => row.split(''));
+  wrongTop[0][2] = '#';
+  const wrongTopGrid = makeGrid('letter');
+  for (let row = 0; row < 12; row++) {
+    for (let col = 0; col < 8; col++) {
+      if (row === 0 && col === 0) {
+        wrongTopGrid[row][col] = { row, col, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+      } else if (wrongTop[row][col] === '#') {
+        setQuestion(wrongTopGrid, row, col);
+      }
+    }
+  }
+  const rejected = validateTopology(wrongTopGrid);
+  assert.ok(rejected.errors.some(item => item.type === 'INVALID_TOP_ROW_ANCHORS'));
+});
 test('requires the top-left anchor and complete left border, but not every top-row cell', () => {
   const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
