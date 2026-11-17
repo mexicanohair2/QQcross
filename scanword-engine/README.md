@@ -43,3 +43,7 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 ## Dynamic topology sampling (seeded bridge patterns)
 
 The production sampler now proposes seeded 8×12 role masks directly instead of mutating a single fixed scaffold. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
+
+## QQCross brand tile integration
+
+The universal brand assets are local repository files: `icon.svg`, `assets/qqcross-logo.svg`, `assets/brand-tile.svg`, styled through `brand.css`. The scanword's reserved top-left coordinate (0,0) remains a logical `corner` cell; the renderer may display the signature tile there as decorative, non-interactive art. This is strictly presentation-only: it must never become a clue, answer, letter, word slot, image clue, hint target or scoring cell. Never put the tile into arbitrary empty cells or use it to hide topology gaps. Keep the 8×12/96-cell contract, all 95 other logical cell roles, validator rules, five-picture-clue quota and every game mechanic unchanged. Missing SVGs must gracefully fall back to the normal corner background. Use the same universal icon/logo family across all game modes and adapt only surrounding theme colors/contrast.
