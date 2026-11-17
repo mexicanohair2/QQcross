@@ -449,6 +449,16 @@ function krossPuzzleContractIssue(puzzleData, expectedLetters) {
     return fail("В сохранении повреждена зарезервированная угловая клетка.");
   }
   if (!clueKeys.has("0,1")) return fail("В сохранении отсутствует обязательный верхний вопрос.");
+  const topQuestionColumns = [...clueKeys]
+    .map(key => parseKey(key))
+    .filter(point => point?.row === 0)
+    .map(point => point.col)
+    .sort((a, b) => a - b);
+  if (topQuestionColumns.length !== 2
+    || topQuestionColumns[0] !== 1
+    || ![4, 5].includes(topQuestionColumns[1])) {
+    return fail("В сохранении нарушено расположение двух верхних вопросных якорей.");
+  }
   for (let row = 1; row < 12; row++) {
     if (!clueKeys.has(row + ",0")) return fail("В сохранении повреждён левый край сканворда.");
   }
