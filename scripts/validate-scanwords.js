@@ -108,5 +108,9 @@ for (let i = 0; i < dictionary.length; i++) {
   const clue = String(item?.clue || item?.question || item?.emoji || item?.flag || item?.clueShort || "").trim();
   if (!answer || answer.length > 12 || !clue) fail(`Dictionary entry ${i + 1} is incomplete or outside the 1–12 letter range`);
   else valid++;
+  const clueTokens = clue.toLocaleUpperCase("ru-RU").replace(/Ё/g, "Е").match(/[А-ЯA-Z0-9]+/g) || [];
+  if (answer.length >= 3 && clueTokens.some(token => token.includes(answer))) {
+    fail(`Answer leakage in clue for ${answer}: ${clue}`);
+  }
 }
 if (!process.exitCode) console.log(`Validated ${valid} dictionary entries and all ${Object.keys(expectedPictures).length} unique picture clue assets.`);
