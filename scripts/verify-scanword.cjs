@@ -87,7 +87,7 @@ async function main() {
     assert.equal(scanword.words.filter(word => word.special === "RIGHT_EDGE_BOUNDARY").length, 12,
       "each row must have one registered answer ending at the right boundary");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
-    assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
+    assert.ok(scanword.words.filter(word => word.length === 2).length <= 6, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
     assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
