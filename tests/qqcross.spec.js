@@ -590,6 +590,12 @@ test("portrait scanword keeps the right edge letter-only and fills the available
   expect(geometry.height).toBeGreaterThanOrEqual(Math.min(geometry.viewportHeight * 0.85, geometry.wrapHeight) - 2);
   expect(geometry.width / geometry.height).toBeLessThan(1.2);
   expect(geometry.rightEdgeAnswers).toBe(12);
+  const topAnchorColumns = await board.locator('.scan-clue[data-clue-cell^="0,"]').evaluateAll(nodes =>
+    nodes.map(node => Number(node.dataset.clueCell.split(",")[1])).sort((a, b) => a - b)
+  );
+  expect(topAnchorColumns.length).toBe(2);
+  expect(topAnchorColumns[0]).toBe(1);
+  expect([4, 5]).toContain(topAnchorColumns[1]);
   await expect(board.locator(".scan-empty")).toHaveCount(1);
   await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
