@@ -2485,6 +2485,6 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   }
 }
 @media(max-width:420px){
-  .game-screen .scanword-board{width:95vw!important;height:85%!important}
+  .game-screen .scanword-board{width:95vw!important;height:85dvh!important}
   .game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{font-size:clamp(6px,1.8vw,8px)!important}
 }
