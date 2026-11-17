@@ -430,6 +430,132 @@ async function loadLobbyFriends(){
   out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b></label>').join("");
  }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
 }
+function krossPuzzleContractIssue(puzzleData, expectedLetters) {
+  const fail = message => message;
+  if (!puzzleData || puzzleData.w !== 8 || puzzleData.h !== 12) {
+    return fail("Это сохранение создано для старой геометрии. Оно оставлено в истории, но продолжить его в новом формате нельзя.");
+  }
+  if (!Array.isArray(puzzleData.words) || !puzzleData.words.length) {
+    return fail("В сохранённом сканворде нет списка ответов.");
+  }
+  const clueKeys = new Set(Array.isArray(puzzleData.clueKeys) ? puzzleData.clueKeys : []);
+  const reservedKeys = new Set(Array.isArray(puzzleData.reservedKeys) ? puzzleData.reservedKeys : []);
+  const parseKey = value => {
+    if (typeof value !== "string" || !/^(?:[0-9]|1[01]),[0-7]$/.test(value)) return null;
+    const [row, col] = value.split(",").map(Number);
+    return { row, col };
+  };
+  if (!reservedKeys.has("0,0") || reservedKeys.size !== 1) {
+    return fail("В сохранении повреждена зарезервированная угловая клетка.");
+  }
+  if (!clueKeys.has("0,1")) return fail("В сохранении отсутствует обязательный верхний вопрос.");
+  for (let row = 1; row < 12; row++) {
+    if (!clueKeys.has(row + ",0")) return fail("В сохранении повреждён левый край сканворда.");
+  }
+  for (const key of clueKeys) {
+    const point = parseKey(key);
+    if (!point || point.col >= 6) {
+      return fail("В сохранении обнаружен вопрос в запрещённом правом краю.");
+    }
+  }
+
+  const vectors = {
+    right: [0, 1],
+    left: [0, -1],
+    down: [1, 0],
+    up: [-1, 0]
+  };
+  const reconstructedLetters = Object.create(null);
+  const clueEndpoints = new Set();
+  const rightBoundaryRows = new Set();
+
+  for (const word of puzzleData.words) {
+    const clue = word?.clueCell;
+    const answer = String(word?.answer ?? "");
+    const vector = vectors[word?.dir];
+    if (!Array.isArray(clue) || clue.length !== 2 || !vector
+      || !Number.isInteger(clue[0]) || !Number.isInteger(clue[1])
+      || clue[0] < 0 || clue[0] > 11 || clue[1] < 0 || clue[1] > 5
+      || !clueKeys.has(clue[0] + "," + clue[1])
+      || answer.length < 2 || answer.length > 11
+      || !String(word?.clue ?? "").trim()
+      || !Array.isArray(word?.cells) || word.cells.length !== answer.length) {
+      return fail("В сохранении найден ответ без корректного вопроса или пути букв.");
+    }
+
+    const clueKey = clue[0] + "," + clue[1];
+    clueEndpoints.add(clueKey);
+    let previous = null;
+    for (let index = 0; index < answer.length; index++) {
+      const cell = word.cells[index];
+      const row = clue[0] + vector[0] * (index + 1);
+      const col = clue[1] + vector[1] * (index + 1);
+      if (!Array.isArray(cell) || cell[0] !== row || cell[1] !== col
+        || row < 0 || row > 11 || col < 0 || col > 7) {
+        return fail("В сохранении обнаружены некорректные координаты ответа.");
+      }
+      const key = row + "," + col;
+      if (clueKeys.has(key) || reservedKeys.has(key)) {
+        return fail("Ответ пересекает вопросную или пустую клетку.");
+      }
+      if (reconstructedLetters[key] !== undefined && reconstructedLetters[key] !== answer[index]) {
+        return fail("В сохранении обнаружено несовпадение букв на пересечении.");
+      }
+      reconstructedLetters[key] = answer[index];
+      previous = cell;
+    }
+
+    const terminal = [clue[0] + vector[0] * (answer.length + 1),
+      clue[1] + vector[1] * (answer.length + 1)];
+    if (word.special === "RIGHT_EDGE_BOUNDARY") {
+      if (word.dir !== "right" || terminal[0] !== clue[0] || terminal[1] !== 8
+        || previous?.[1] !== 7 || answer.length !== 7 - clue[1]
+        || rightBoundaryRows.has(clue[0])) {
+        return fail("Правый граничный ответ сохранён с неправильной длиной или направлением.");
+      }
+      rightBoundaryRows.add(clue[0]);
+    } else if (word.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY") {
+      if (word.dir !== "down" || answer.length !== 11
+        || clue[0] !== 0 || clue[1] !== 1
+        || terminal[0] !== 12 || terminal[1] !== 1) {
+        return fail("Специальный ответ из 11 букв сохранён с неправильной геометрией.");
+      }
+    } else {
+      if (word.special != null || terminal[0] < 0 || terminal[0] > 11
+        || terminal[1] < 0 || terminal[1] > 7) {
+        return fail("В сохранении обнаружено неподдерживаемое граничное исключение.");
+      }
+      const terminalKey = terminal[0] + "," + terminal[1];
+      if (!clueKeys.has(terminalKey)) {
+        return fail("У ответа отсутствует корректная конечная вопросная клетка.");
+      }
+      clueEndpoints.add(terminalKey);
+    }
+  }
+
+  if (rightBoundaryRows.size !== 12) {
+    return fail("Сохранение не содержит по одному ответу до правой границы в каждой строке.");
+  }
+  if ([...clueKeys].some(key => !clueEndpoints.has(key))) {
+    return fail("В сохранении есть вопросная клетка, не связанная ни с одним словом.");
+  }
+  const savedLetterKeys = new Set(Object.keys(expectedLetters || {}));
+  const generatedLetterKeys = new Set(Object.keys(reconstructedLetters));
+  if (savedLetterKeys.size !== generatedLetterKeys.size
+    || [...generatedLetterKeys].some(key => !savedLetterKeys.has(key))) {
+    return fail("Состав букв в сохранении не совпадает со словами.");
+  }
+  for (const key of generatedLetterKeys) {
+    if (String(expectedLetters[key]) !== reconstructedLetters[key]) {
+      return fail("Буквы сохранения не совпадают с ответами сканворда.");
+    }
+  }
+  if (clueKeys.size + generatedLetterKeys.size + reservedKeys.size !== 96) {
+    return fail("В сохранении есть нераспределённые клетки.");
+  }
+  return null;
+}
+
 function puzzleSnapshot(){
  return {puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),clueKeys:[...(puzzle.clueKeys||[])],reservedKeys:[...(puzzle.reservedKeys||[])]},expected:{...expected},letterBag:[...letterBag]};
 }
@@ -448,7 +574,10 @@ async function createOnlineMatch(){
   if(!window.QQCROSS_DICTIONARY?.length)await preloadScanwordDictionary();
   if(!preparedScanword)await prepareNextScanword();
   if(!loadPuzzle())throw new Error("Не удалось собрать сканворд");
-  const {data,error}=await supabaseClient.rpc("create_qqcross_match",{invited_user_ids:ids,puzzle_data:puzzleSnapshot()});
+  const snapshot=puzzleSnapshot();
+  const compatibilityIssue=krossPuzzleContractIssue(snapshot.puzzle,snapshot.expected);
+  if(compatibilityIssue)throw new Error(compatibilityIssue);
+  const {data,error}=await supabaseClient.rpc("create_qqcross_match",{invited_user_ids:ids,puzzle_data:snapshot});
   if(error)throw error;state.pendingMatchId=data;renderLobby($("#app"));
  }catch(e){toast(e.message||"Не удалось создать партию");button.disabled=false;button.textContent="Создать партию и пригласить"}
 }
@@ -464,7 +593,10 @@ async function startOnlineMatch(){
  const b=$("#startOnlineMatch");if(b){b.disabled=true;b.textContent="Запускаем…"}
  try{
   const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
-  const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||s.puzzle.words.map(w=>w.clueCell.join(","))),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
+  const s=data.puzzle_snapshot;
+  const compatibilityIssue=krossPuzzleContractIssue(s?.puzzle,s?.expected);
+  if(compatibilityIssue)throw new Error(compatibilityIssue);
+  puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||[]),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
   state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(7));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
@@ -517,7 +649,9 @@ function subscribeOnlineMatch(id){
 function applyOnlineMatch(m){
  const alreadyInThisMatch=state.onlineMatchId===m.match_id&&state.screen==="game";
  const s=m.puzzle_snapshot,g=m.game_state;
- puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
+ const compatibilityIssue=krossPuzzleContractIssue(s?.puzzle,s?.expected);
+ if(compatibilityIssue)throw new Error(compatibilityIssue);
+ puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||[]),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
  Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(g.letterBag||s.letterBag||[])];
  state.onlineMatchId=m.match_id;state.matchId=m.match_id;state.onlinePlayers=m.players||[];state.onlineVersion=m.state_version;state.partySize=state.onlinePlayers.length;
  state.turn=Math.max(0,state.onlinePlayers.findIndex(p=>p.id===m.current_turn_user_id));
@@ -1371,7 +1505,7 @@ function persistCurrentMatch(status="active"){
   const id=state.matchId||(state.matchId="match-"+Date.now());
   const snapshot={
     id,status,updatedAt:Date.now(),label:state.aiMatch?"Сканворд с ChatGPT":state.partySize>1?"Партия с друзьями · "+state.partySize+" игрока":"Одиночный сканворд",aiMatch:!!state.aiMatch,
-    puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])})),reservedKeys:[...(puzzle.reservedKeys||[])]},
+    puzzle:{id:puzzle.id,title:puzzle.title,w:puzzle.w,h:puzzle.h,words:puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),clueKeys:[...(puzzle.clueKeys||[])],reservedKeys:[...(puzzle.reservedKeys||[])]},
     expected:{...expected},letterBag:[...letterBag],
     game:{
       partySize:state.partySize,aiMatch:!!state.aiMatch,filled:{...state.filled},owners:{...state.owners},feedback:{...state.feedback},hints:{...state.hints},
@@ -1389,7 +1523,9 @@ function pushGameHistoryEntry(){
 function restoreLocalMatch(id){
   const match=matchesForThisDevice().find(m=>m.id===id&&m.status!=="completed");
   if(!match)return;
-  puzzle={...match.puzzle,words:match.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c])})),used:new Set(),clueKeys:new Set(),reservedKeys:new Set(match.puzzle.reservedKeys||[])};
+  const compatibilityIssue=krossPuzzleContractIssue(match.puzzle,match.expected);
+  if(compatibilityIssue){toast(compatibilityIssue);return}
+  puzzle={...match.puzzle,words:match.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(match.puzzle.clueKeys||[]),reservedKeys:new Set(match.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,match.expected||{});
   letterBag=[...(match.letterBag||[])];
   const g=match.game||{};
