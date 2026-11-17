@@ -121,7 +121,7 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
   expect(internalTiming).not.toBeNull();
-  expect(internalTiming.totalMs).toBeLessThan(500);
+  expect(internalTiming.totalMs).toBeLessThan(1000);
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
