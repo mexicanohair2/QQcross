@@ -13,14 +13,14 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 const STANDARD_SCAFFOLD = Object.freeze([
   '.#..#...',
   '#.......',
-  '#...#...',
-  '#...#...',
-  '#...#...',
+  '#....#..',
+  '#....#..',
+  '#....#..',
   '#.......',
   '#.......',
   '#...#...',
   '#...#...',
-  '#...#...',
+  '#....#..',
   '#.......',
   '#...#...'
 ]);
@@ -28,14 +28,14 @@ const STANDARD_SCAFFOLD = Object.freeze([
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
   '.#..#...',
   '#.......',
-  '#...#...',
-  '#...#...',
+  '#....#..',
+  '#....#..',
   '#...#...',
   '#.......',
   '#.......',
   '#...#...',
   '#...#...',
-  '#...#...',
+  '#....#..',
   '#.......',
   '#...#...'
 ]);
@@ -44,14 +44,14 @@ const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
   '.#..#...',
   '#.......',
   '#.......',
+  '#....#..',
   '#...#...',
   '#...#...',
-  '#...#...',
-  '#...#...',
-  '#...#...',
+  '#....#..',
+  '#....#..',
   '#.......',
   '#...#...',
-  '#...#...',
+  '#....#..',
   '#.......'
 ]);
 
@@ -110,7 +110,7 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 6) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 6, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
   if (countTopQuestions(matrix) !== 2) return null;
@@ -241,7 +241,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(2, Math.min(5, options.maxTwoLetterSlots ?? 5));
+  const maxTwoLetterSlots = Math.max(2, Math.min(6, options.maxTwoLetterSlots ?? 6));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
     && options.scaffoldIndex < SCAFFOLD_VARIANTS.length
