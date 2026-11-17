@@ -24,7 +24,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
     const rect = node.getBoundingClientRect();
     const trackCount = value => {
       const match = String(value).match(/^repeat\((\d+)\s*,/);
-      return match ? Number(match[1]) : String(value).trim().split(/\\s+/).length;
+      return match ? Number(match[1]) : String(value).trim().split(/\s+/).length;
     };
     const clues = [...node.querySelectorAll(".scan-clue")].map(clue => {
       const [row, col] = clue.dataset.clueCell.split(",").map(Number);
@@ -34,7 +34,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
       columns: trackCount(style.gridTemplateColumns),
       rows: trackCount(style.gridTemplateRows),
       rightmostClues: clues.filter(clue => clue.col === 7),
-      rightmostLetters: node.querySelectorAll('.scan-grid-cell.cell[data-cell$=\",7\"]').length,
+      rightmostLetters: node.querySelectorAll('.scan-grid-cell.cell[data-cell$=",7"]').length,
       emptyCount: node.querySelectorAll(".scan-empty").length,
       fillerCount: node.querySelectorAll(".scan-filler").length,
       invalidClues: clues.filter(clue => !clue.content),
