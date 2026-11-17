@@ -1,3 +1,5 @@
+> **Historical plan snapshot (2026-11-17).** This plan records findings from an earlier branch and an earlier repository state. Some listed issues have since been addressed or superseded; use the current Kross protocol and current branch audit rather than treating this file as a live bug list.
+
 # QQCross — полная проверка и исправление сканворда
 
 Дата: 2026-11-17
