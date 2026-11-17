@@ -203,7 +203,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
     // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
-    const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
+    const mutationColumnCount = CONFIG.WIDTH - 2 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
     const key = row + ',' + col;
     if (touched.has(key)) continue;
