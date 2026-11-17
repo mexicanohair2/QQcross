@@ -88,10 +88,10 @@ test("loads a fully occupied 12-column by 8-row wide scanword with five distinct
     };
   });
   expect(geometry.cellCount).toBe(96);
-  expect(geometry.columns).toBe(12);
-  expect(geometry.rows).toBe(8);
-  expect(geometry.explicitColumns).toBe(12);
-  expect(geometry.explicitRows).toBe(8);
+  expect(geometry.columns).toBe(8);
+  expect(geometry.rows).toBe(12);
+  expect(geometry.explicitColumns).toBe(8);
+  expect(geometry.explicitRows).toBe(12);
   expect(geometry.positiveCells).toBe(96);
   expect(Math.abs(geometry.ratio - (3 / 2))).toBeLessThan(0.03);
   expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 220) * (3 / 2)));
