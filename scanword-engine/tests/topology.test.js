@@ -94,6 +94,25 @@ test('does not grant the boundary exception when an intermediate cell is a clue'
   assert.equal(result.slots.some(item => item.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'), false);
 });
 
+test('right-edge answers end at the boundary without a question cell in the last column', () => {
+  const grid = makeGrid();
+  setQuestion(grid, 2, 0);
+  setQuestion(grid, 2, 4);
+  const result = deriveWordSlots(grid, {
+    allowSpecialElevenBoundary: false,
+    allowRightEdgeBoundary: true
+  });
+  const edge = result.slots.find(slot => slot.special === 'RIGHT_EDGE_BOUNDARY' && slot.endpoints[0].row === 2);
+  assert.ok(edge);
+  assert.equal(edge.length, 3);
+  assert.deepEqual(edge.endpoints[0], { row: 2, col: 4 });
+  assert.deepEqual(edge.endpoints[1], { row: 2, col: 8, boundary: true });
+  assert.deepEqual(edge.directionOptions.map(option => option.direction), ['right']);
+  assert.deepEqual(edge.coordinates, [
+    { row: 2, col: 5 }, { row: 2, col: 6 }, { row: 2, col: 7 }
+  ]);
+});
+
 test('validates borders and reports unassigned and orphan cells independently', () => {
   const grid = makeGrid('letter');
   grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
