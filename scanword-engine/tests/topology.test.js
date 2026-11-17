@@ -223,7 +223,7 @@ test('generates varied, connected topologies rather than one fixed board layout'
     assert.equal(result.topology.validation.valid, true);
     assert.equal(result.topology.metrics.totalCells, 96);
     assert.equal(result.topology.pattern.length, 12);
-    assert.ok(result.topology.slots.length >= 19);
+    assert.ok(result.topology.slots.length >= 24);
     assert.ok(result.topology.slots.filter(slot => slot.length === 2).length <= 8);
     assert.ok(result.topology.metrics.questionCells >= 20);
     assert.ok(result.topology.metrics.centerQuestionCells >= 3);
