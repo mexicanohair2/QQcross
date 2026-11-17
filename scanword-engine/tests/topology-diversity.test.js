@@ -31,11 +31,13 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
     assert.ok(result.topology.metrics.interiorQuestionCells >= 6, 'boards need at least six interior question cells; seed=' + seed);
-    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 3, 'top row must carry the three main clue anchors');
-    for (let row = 1; row < 11; row++) {
-      assert.equal(rows[row][7], '.', 'the right edge must not remain a full clue column; row=' + row + ', seed=' + seed);
+    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 2, 'top row must carry two active clue anchors');
+    for (let row = 0; row < 12; row++) {
+      assert.equal(rows[row][6], '.', 'the penultimate column remains letter-only to provide a multi-letter boundary slot; row=' + row + ', seed=' + seed);
+      assert.equal(rows[row][7], '.', 'the rightmost column must contain no question cells; row=' + row + ', seed=' + seed);
     }
-    assert.equal(rows[11][7], '#', 'the lower-right terminal cell must close the long vertical answer');
+    assert.equal(result.topology.slots.filter(slot => slot.special === 'RIGHT_EDGE_BOUNDARY').length, 12,
+      'each row must terminate in one registered right-edge answer slot');
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
