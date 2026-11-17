@@ -48,8 +48,8 @@ async function main() {
     if (answer.length !== 2) return true;
     return answer === "ЁЖ" && Boolean(entry.imageKey);
   });
-  const topology = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false });
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
+  const topology = validateTopology(grid, { requireConnected: true, allowSpecialElevenBoundary: false, allowRightEdgeBoundary: true });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false, allowRightEdgeBoundary: true });
   const lengths = Object.fromEntries([2,3,4,5,6,7,8,9,10,11].map(length => [
     String(length), derived.slots.filter(slot => slot.length === length).length
   ]));
@@ -75,7 +75,7 @@ async function main() {
       lastDeadEnd: solved.lastDeadEnd ?? null
     };
     if (solved.ok) {
-      const assembled = assembleScanword({ seed, words: solved.words, questions: solved.questions });
+      const assembled = assembleScanword({ seed, words: solved.words, questions: solved.questions }, { allowRightEdgeBoundary: true });
       item.assembled = assembled.ok;
       if (assembled.ok) {
         const validation = validateScanword(assembled.scanword, sourceDictionary, {
@@ -83,7 +83,8 @@ async function main() {
           minimumLogicClueCells: 3,
           requireLeftBorderClues: true,
           requireTopAnchor: true,
-          requireConnected: true
+          requireConnected: true,
+          allowRightEdgeBoundary: true
         });
         item.valid = validation.valid;
         item.errors = validation.errors.slice(0, 16);
