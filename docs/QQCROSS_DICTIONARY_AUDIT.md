@@ -46,7 +46,7 @@ The source intentionally retains multiple clue variants for some answers. The ru
 
 ## Answer-leakage check
 
-The production data validator now checks each displayed `clue`, `clueShort`, and `question` variant for the normalized answer inside individual Russian/Latin word tokens. This catches direct and inflected/compound leaks such as an answer embedded in a clue word, without producing false positives by concatenating adjacent words. The nine affected clue variants found during this audit were rewritten; the remaining СУД short clue was synchronized as well. Current scan result: **0 leaks**.
+Both the CI data validator and the runtime dictionary validator check displayed `clue`, `clueShort`, and `question` variants for the normalized answer inside individual word tokens. For answers of three or more letters they catch inflected/compound leaks; for two-letter answers the runtime check requires an exact token to avoid broad substring false positives. This does not concatenate adjacent words. The nine affected clue records found during this audit were rewritten, and the СУД short clue was synchronized. Current source scan: **0 leaks**.
 
 ## Runtime normalization
 
