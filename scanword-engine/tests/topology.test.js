@@ -215,3 +215,53 @@ test('offers the exact optional eleven-letter vertical boundary slot', () => {
   assert.deepEqual(special.coordinates[0], { row: 1, col: 1 });
   assert.deepEqual(special.coordinates[10], { row: 11, col: 1 });
 });
+
+
+test('rejects every question cell in the rightmost canonical column', () => {
+  const grid = makeGrid('letter');
+  grid[0][0] = { row: 0, col: 0, type: 'corner', letter: null, questionIds: [], wordIds: [] };
+  setQuestion(grid, 0, 1);
+  for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
+  setQuestion(grid, 6, 7);
+
+  const result = validateTopology(grid);
+  assert.ok(result.errors.some(item => item.type === 'RIGHTMOST_COLUMN_QUESTION'));
+});
+
+test('derives a named right-edge answer from the final real clue to column 7', () => {
+  const grid = makeGrid('letter');
+  setQuestion(grid, 5, 0);
+  setQuestion(grid, 5, 5);
+
+  const result = deriveWordSlots(grid);
+  const edge = result.slots.find(slot => slot.special === 'RIGHT_EDGE_BOUNDARY');
+
+  assert.ok(edge, 'the final two letters must form an anchored right-edge answer');
+  assert.equal(edge.length, 2);
+  assert.deepEqual(edge.endpoints[0], { row: 5, col: 5 });
+  assert.deepEqual(edge.endpoints[1], { row: 5, col: 8, boundary: true });
+  assert.deepEqual(edge.directionOptions.map(option => option.direction), ['right']);
+  assert.deepEqual(edge.coordinates, [
+    { row: 5, col: 6 },
+    { row: 5, col: 7 }
+  ]);
+});
+
+test('generated topologies keep the rightmost column letter-only and anchor every row to a boundary answer', () => {
+  for (let seed = 1; seed <= 32; seed++) {
+    const result = generateTopology({ seed, includeSpecialEleven: false, maxAttempts: 192 });
+    assert.equal(result.ok, true, 'seed=' + seed + ' ' + JSON.stringify(result));
+
+    for (let row = 0; row < 12; row++) {
+      assert.notEqual(result.topology.pattern[row][7], '#', 'rightmost question at row=' + row + ', seed=' + seed);
+      assert.ok(
+        result.topology.slots.some(slot =>
+          slot.special === 'RIGHT_EDGE_BOUNDARY'
+          && slot.endpoints[0].row === row
+          && slot.endpoints[1].col === 8
+        ),
+        'missing right-edge answer at row=' + row + ', seed=' + seed
+      );
+    }
+  }
+});
