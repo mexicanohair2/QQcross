@@ -28,7 +28,7 @@ Centralize:
 - HEIGHT = 12
 - TOTAL_CELLS = 96
 
-Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. (0,1)..(0,7) are question cells. (1,0)..(11,0) are question cells. All other cells must be assigned as meaningful question or letter cells. No unassigned cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues.
+Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. The top row has exactly two active clue anchors: (0,1) and one interior anchor at column 4 or 5. (1,0)..(11,0) are question cells. The entire rightmost column (column 7) is letter-only: no question, clue, or terminal-question cell may appear there. Every row has exactly one registered RIGHT_EDGE_BOUNDARY answer, beginning at the last question cell in that row and ending with its final letter at column 7; the boundary at column 8 is not a question cell. All other cells must be assigned as meaningful question or letter cells. No unassigned cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues.
 
 Cell types:
 - corner: only (0,0), empty and non-interactive;
@@ -39,13 +39,13 @@ Every clue has a stable id, clue text, answer/word id, clue coordinate, directio
 
 Supported directions: right, left, down, up. Use one canonical direction-vector table for placement, validation, rendering arrows and traversal.
 
-Question cells are part of the grid, not a separate detached list. Additional question cells must be distributed across the center and vary between boards; do not use a single rigid template.
+Question cells are part of the grid, not a separate detached list. Additional question cells must be distributed across the center and vary between boards; do not use a single rigid template. No question cell is allowed in column 7, including terminal-only endpoints. Terminal-only internal endpoints are structural markers and must not display a duplicate clue.
 
 ## 3. Eleven-letter mechanic and geometry
 
 Set specialElevenLetterChance = 0.25. Across a sufficiently large batch of successful boards, target approximately 25%; do not force the feature if no valid answer or valid topology exists. No artificial words, appended letters or fake suffixes.
 
-The intended special clue is at (0,1), with an 11-letter answer running down through (1,1)..(11,1). This exactly consumes the 11 cells below the clue. Therefore this one special answer must be explicitly allowed to terminate at the bottom board edge without a separate terminal clue cell. This is a narrow, named boundary-answer exception, not a global relaxation of normal terminal rules. If the current engine assumes every answer has an in-board terminal question cell, redesign the data model to support this exception correctly.
+The intended special clue is at (0,1), with an 11-letter answer running down through (1,1)..(11,1). This exactly consumes the 11 cells below the clue. Therefore this one special answer must be explicitly allowed to terminate at the bottom board edge without a separate terminal clue cell. This is a narrow, named boundary-answer exception, not a global relaxation of normal terminal rules. It coexists with the separately registered RIGHT_EDGE_BOUNDARY horizontal answer in each row. Neither boundary is represented by a question cell in the grid.
 
 Check answer length after normalization and before placement. Preserve Ё unless a configured dictionary policy explicitly folds Ё to Е. Use the same normalization policy for dictionary indexes, intersections, display and validation.
 
@@ -160,21 +160,23 @@ Fixtures: broad valid Russian dictionary, duplicates, invalid characters, empty/
 
 Test:
 1. exact 8×12 and all 96 cells;
-2. all top/left clues and empty corner;
-3. central clues in multiple quadrants;
-4. all four directions;
-5. multiple questions in one clue cell in distinct directions;
-6. no same-direction conflict;
-7. exact intersections and complete word references;
-8. no orphan/unassigned cells;
-9. no accidental unregistered runs;
-10. every word/question/dictionary record matches;
-11. special 11-letter coordinates and exact length;
-12. 25% special frequency across at least 400 successful boards, reporting success denominator separately from failed attempts;
-13. batches of 1, 10, 100 and 400+ seeded boards;
-14. same-seed determinism and different-seed diversity;
-15. history penalties and bounded memory;
-16. insufficient/incompatible dictionary fails safely and quickly;
+2. two top-row anchors, complete left clue border, empty corner, and zero question cells in column 7;
+3. exactly one valid RIGHT_EDGE_BOUNDARY answer per row, with every column-7 letter covered;
+4. board width 95% and height 85% of the available board area, with all interface controls visible;
+5. central clues in multiple quadrants;
+6. all four directions;
+7. multiple questions in one clue cell in distinct directions;
+8. no same-direction conflict;
+9. exact intersections and complete word references;
+10. no orphan/unassigned cells;
+11. no accidental unregistered runs;
+12. every word/question/dictionary record matches;
+13. special 11-letter coordinates and exact length;
+14. 25% special frequency across at least 400 successful boards, reporting success denominator separately from failed attempts;
+15. batches of 1, 10, 100 and 400+ seeded boards;
+16. same-seed determinism and different-seed diversity;
+17. history penalties and bounded memory;
+18. insufficient/incompatible dictionary fails safely and quickly;
 17. time/node budget and cancellation;
 18. JSON round-trip/import/export;
 19. existing primary gameplay and all unrelated game modes;
