@@ -42,5 +42,5 @@ This proof is a geometric constraint, not a search-budget or dictionary issue. I
 - Reconstruct every ordinary horizontal/vertical slot and every boundary slot independently.
 - Verify direction, answer spelling, crossings, duplicate answers, clue links, image and logic constraints.
 - Verify 8×12 dimensions and all 96 cell roles.
-- On phones, target 95% viewport width and 85% of the available board-area height, leaving the remaining area for the score/header, letter rack, timer, inventory and controls.
+- On phones, target 95% viewport width and 85% viewport height, with the score/header, letter rack, timer, inventory and controls compacted into the remaining 15%.
 - Measure actual 11-letter frequency across deterministic seed batches; do not infer it from the configured random probability.
