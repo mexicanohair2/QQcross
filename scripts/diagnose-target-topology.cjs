@@ -37,9 +37,9 @@ async function main() {
   }
 
   const dictionary = JSON.parse(fs.readFileSync("data/scanword-dictionary.json", "utf8"));
-  const topologyValidation = validateTopology(grid, { requireConnected: true });
-  const normal = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  const special = deriveWordSlots(grid, { allowSpecialElevenBoundary: true });
+  const topologyValidation = validateTopology(grid, { requireConnected: true, allowRightEdgeBoundary: true });
+  const normal = deriveWordSlots(grid, { allowSpecialElevenBoundary: false, allowRightEdgeBoundary: true });
+  const special = deriveWordSlots(grid, { allowSpecialElevenBoundary: true, allowRightEdgeBoundary: true });
   const slotHistogram = slots => Object.fromEntries(
     [2,3,4,5,6,7,8,9,10,11].map(length => [
       String(length), slots.filter(slot => slot.length === length).length
@@ -67,7 +67,7 @@ async function main() {
     });
     const result = { name, ok: solved.ok, reason: solved.reason ?? null, nodes: solved.nodes, deepest: solved.deepest, elapsedMs: Math.round(performance.now() - started), lastDeadEnd: solved.lastDeadEnd ?? null };
     if (solved.ok) {
-      const assembled = assembleScanword({ seed, words: solved.words, questions: solved.questions });
+      const assembled = assembleScanword({ seed, words: solved.words, questions: solved.questions }, { allowRightEdgeBoundary: true });
       result.assembled = assembled.ok;
       if (assembled.ok) {
         const validation = validateScanword(assembled.scanword, dictionary, {
@@ -75,7 +75,8 @@ async function main() {
           minimumLogicClueCells: 3,
           requireLeftBorderClues: true,
           requireTopAnchor: true,
-          requireConnected: true
+          requireConnected: true,
+          allowRightEdgeBoundary: true
         });
         result.valid = validation.valid;
         result.errors = validation.errors.slice(0, 12);
