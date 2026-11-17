@@ -11,7 +11,7 @@ The scanword engine is the only production path for creating scanword boards in 
 - Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
 - Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
 - Production answers use only right and down, with one outgoing answer per clue cell.
-- Normal boards use top anchors at columns 1, 4 and 7; special 11-letter boards use the dedicated top-row mask `.#...` as encoded by the topology builder.
+- Normal boards use top anchors at columns 1, 4 and 7 (`.#..#..#`). Special 11-letter boards use the dedicated top-row mask `.##..###`, so the first anchor starts downward and the separate anchor at column 2 starts rightward.
 - The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
 ## Pipeline
