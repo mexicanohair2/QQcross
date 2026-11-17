@@ -47,8 +47,9 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
   await expect(page.locator(".scan-clue")).not.toHaveCount(0);
   const scanBoard = page.locator(".scanword-board");
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(1);
-  await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
+  await expect(page.locator('.scan-grid-cell[data-clue-cell$=",0"], .scan-grid-cell[data-boundary-cell$=",0"]')).toHaveCount(11);
   await expect(page.locator('.scan-clue[data-clue-cell$=",7"]')).toHaveCount(0);
+  await expect(page.locator('.scan-grid-cell.cell[data-cell$=",7"]')).toHaveCount(12);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
