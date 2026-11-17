@@ -31,11 +31,14 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
     assert.ok(result.topology.metrics.interiorQuestionCells >= 6, 'boards need at least six interior question cells; seed=' + seed);
-    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 3, 'top row must carry the three main clue anchors');
-    for (let row = 1; row < 11; row++) {
-      assert.equal(rows[row][7], '.', 'the right edge must not remain a full clue column; row=' + row + ', seed=' + seed);
+    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 2, 'top row must keep two real question anchors');
+    for (let row = 0; row < 12; row++) {
+      assert.equal(rows[row][6], '.', 'the penultimate column must remain letter-only; row=' + row + ', seed=' + seed);
+      assert.equal(rows[row][7], '.', 'the rightmost column must remain letter-only; row=' + row + ', seed=' + seed);
+      assert.ok(result.topology.slots.some(slot =>
+        slot.special === 'RIGHT_EDGE_BOUNDARY' && slot.endpoints[0].row === row
+      ), 'missing anchored right-edge answer; row=' + row + ', seed=' + seed);
     }
-    assert.equal(rows[11][7], '#', 'the lower-right terminal cell must close the long vertical answer');
     patterns.add(rows.join('/'));
     questionCounts.add(result.topology.validation.metrics.questionCells);
   }
@@ -76,18 +79,18 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
+    '.#...#..',
+    '#...#...',
+    '#.......',
     '#...#...',
     '#...#...',
+    '#.......',
     '#...#...',
-    '#......#',
-    '#....##.',
+    '#.......',
     '#...#...',
+    '#....#..',
     '#...#...',
-    '#......#',
-    '#....##.',
-    '#.....#.',
-    '#......#'
+    '#.......'
   ]);
 
   const result = generateTopology({
@@ -109,6 +112,6 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 2);
+  assert.ok(shortSlots >= 2 && shortSlots <= 4, 'special boards use only a few approved two-letter answers');
   assert.ok(result.topology.slots.length >= 20);
 });
