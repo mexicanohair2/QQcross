@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260">
+<defs><linearGradient id="q" x2="0" y2="1"><stop stop-color="#fff4ff"/><stop offset=".55" stop-color="#dcb7f1"/><stop offset="1" stop-color="#9864c8"/></linearGradient><linearGradient id="r" x2="1" y2="1"><stop stop-color="#f6a1df"/><stop offset="1" stop-color="#8c315c"/></linearGradient></defs>
+<g fill="none" stroke="url(#r)" stroke-width="17" stroke-linecap="round"><path d="M35 202c125-150 230-170 340-91 112 80 224 91 490-57"/><path d="M25 218c128-139 242-151 350-76 118 81 234 82 495-44" opacity=".45"/></g>
+<g font-family="Arial,sans-serif" font-weight="900" text-anchor="middle"><text x="450" y="151" font-size="150" letter-spacing="-10" fill="#180c1c" stroke="#180c1c" stroke-width="20" paint-order="stroke">QQCross</text><text x="450" y="145" font-size="150" letter-spacing="-10" fill="url(#q)" stroke="#8751a6" stroke-width="3" paint-order="stroke">QQCross</text></g>
+<g transform="translate(750 16)"><rect width="112" height="112" rx="24" fill="#2b1732" stroke="url(#r)" stroke-width="7"/><rect x="13" y="13" width="86" height="86" rx="18" fill="url(#q)"/><path d="M41 40c0-20 31-22 33-2 1 12-14 17-19 25-2 4-2 7-2 10" fill="none" stroke="#351840" stroke-width="9" stroke-linecap="round"/><circle cx="53" cy="85" r="5" fill="#351840"/></g>
+</svg>
