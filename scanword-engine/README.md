@@ -29,6 +29,13 @@ The scanword engine is the only production path for creating scanword boards in 
 
 The engine has seed-based randomness and explicit limits for topology attempts, CSP nodes and CSP time. It returns structured failure diagnostics rather than a partial board. The module worker keeps generation off the UI thread. There are no new runtime dependencies and no Supabase schema changes.
 
+## Answer-count acceptance gap
+
+- The production topology builder and independent validator now enforce an interim floor of **24 registered answers** per board.
+- The four current base masks derive 26, 24, 24, and 24 answer slots respectively (the special mask count includes its 11-letter boundary answer).
+- The user's earlier target of **34+ meaningful answers** is not yet met or proven feasible under the current constraints. The 24-answer floor is a safety guard against underfilled mutations, not a replacement for that target.
+- Do not inflate counts with one-letter answers, duplicate answers, unlinked words, filler clues, or invalid edge cells. A future topology redesign must demonstrate the 34+ count with the independent validator and seeded batches before this gap can be closed.
+
 ## Production dictionary status
 
 The repository dictionary currently has 2,287 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
