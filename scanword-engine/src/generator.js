@@ -553,6 +553,7 @@ export function generateScanword(inputDictionary, options = {}) {
     const validation = validateScanword(scanword, inputDictionary, {
       foldYo: options.foldYo === true,
       requiredImageCount,
+      maximumImageCount: 4,
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
