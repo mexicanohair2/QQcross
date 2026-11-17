@@ -35,8 +35,14 @@ async function main() {
     assert.equal(grid[0][0].type, "corner");
     assert.equal(grid[0][1].type, "question");
     for (let row = 1; row < 12; row++) assert.equal(grid[row][0].type, "question");
+    for (let row = 0; row < 12; row++) {
+      assert.equal(grid[row][6].type, "letter", "penultimate column must remain letter-only");
+      assert.equal(grid[row][7].type, "letter", "rightmost column must remain letter-only");
+    }
     const slots = deriveWordSlots(grid, { allowSpecialElevenBoundary: special });
     assert.equal(slots.errors.length, 0);
+    assert.equal(slots.slots.filter(slot => slot.special === "RIGHT_EDGE_BOUNDARY").length, 12,
+      "every row must have one registered answer ending at the right boundary");
     if (special) {
       assert.equal(slots.slots.filter(slot => slot.special === "ELEVEN_LETTER_BOTTOM_BOUNDARY").length, 1);
       specialSamples++;
