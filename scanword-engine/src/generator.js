@@ -137,9 +137,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     })
   })).filter(item => item.result.ok);
 
-  // The independently audited two-short-slot layout is valid only when its
-  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
-  // candidate instead of trying to use it for ordinary disconnected boards.
+  // The independently audited low-short layout uses four approved
+  // two-letter slots and is valid only with its eleven-letter boundary answer.
+  // Keep it as a dedicated CSP candidate rather than using it for ordinary boards.
   const lowShortPattern = getTopologyScaffolds()[3];
   const lowShortTopology = generateTopology({
     seed: 1,
