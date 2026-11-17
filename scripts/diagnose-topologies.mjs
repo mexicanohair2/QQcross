@@ -39,16 +39,16 @@ function metrics(rows, includeSpecialEleven = false) {
 const targetPattern = [
   ".#...#..",
   "#...#...",
-  "#.......",
   "#...#...",
   "#...#...",
   "#....#..",
   "#...#...",
   "#.......",
-  "#...#...",
   "#.......",
-  "#...#...",
-  "#....#.."
+  "#.......",
+  "#.......",
+  "#.......",
+  "#...#..."
 ];
 const targetMetrics = metrics(targetPattern, true);
 const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows,index===3)}));
