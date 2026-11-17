@@ -6,10 +6,11 @@ The scanword engine is the only production path for creating scanword boards in 
 
 - Exactly 8 columns × 12 rows = 96 cells.
 - The upper-left cell (0,0) is the only reserved blank corner.
-- The left border (rows 1–11, column 0) contains question/end cells.
-- (0,1) is the required top-left anchor.
-- Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
-- Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
+- The top row has two active clue anchors: (0,1) and one interior anchor at column 4 or 5.
+- The left border (rows 1–11, column 0) contains question cells.
+- Columns 6 and 7 are letter-only. No question, clue, or terminal-question cell may appear in the rightmost column (7).
+- Each row has exactly one registered `RIGHT_EDGE_BOUNDARY` horizontal answer, starting at the last question cell and ending with its final letter in column 7. The boundary at column 8 is not a question cell.
+- Every answer has a real clue at its start; terminal-only internal endpoints are structural markers and must not duplicate clue text.
 - Horizontal and vertical answers are supported in both directions.
 - The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
