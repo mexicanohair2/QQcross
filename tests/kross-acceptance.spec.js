@@ -46,6 +46,12 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   expect(details.columns).toBe(8);
   expect(details.rows).toBe(12);
   expect(details.rightmostClues).toEqual([]);
+  const topAnchorColumns = await board.locator('.scan-clue[data-clue-cell^="0,"]').evaluateAll(nodes =>
+    nodes.map(node => Number(node.dataset.clueCell.split(",")[1])).sort((a, b) => a - b)
+  );
+  expect(topAnchorColumns).toHaveLength(2);
+  expect(topAnchorColumns[0]).toBe(1);
+  expect([4, 5]).toContain(topAnchorColumns[1]);
   expect(details.rightmostLetters).toBe(12);
   expect(details.emptyCount).toBe(1);
   expect(details.fillerCount).toBe(0);
