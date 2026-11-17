@@ -385,6 +385,10 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   expect(await page.locator(".qq-cody-secret span").count()).toBeGreaterThanOrEqual(4);
   await expect(page.locator(".qq-cody-key-row button[data-letter]")).toHaveCount(32);
   await expect(page.locator(".qq-cody-row-clue-text")).toHaveCount(await page.locator(".qq-cody-secret span").count());
+  const clueAccessibility = await page.locator(".qq-cody-row-clue").evaluateAll(nodes =>
+    nodes.every(node => !!node.getAttribute("title") && !!node.getAttribute("aria-label"))
+  );
+  expect(clueAccessibility).toBeTruthy();
   await expect(page.locator(".qq-cody-row")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   expect(await page.locator(".qq-cody-row").count()).toBeGreaterThanOrEqual(9);
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
