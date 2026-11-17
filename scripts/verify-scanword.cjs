@@ -72,7 +72,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      allowRightEdgeBoundary: true
     });
     assert.equal(validation.valid, true, "Independent validator rejected seed " + seed + ": " + JSON.stringify(validation.errors.slice(0, 8)));
     assert.equal(scanword.width, 8);
@@ -82,6 +83,9 @@ async function main() {
     assert.equal(scanword.grid.flat().length, 96);
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
+    assert.ok(scanword.grid.every(row => row[7].type === "letter"), "rightmost column must be letter-only");
+    assert.equal(scanword.words.filter(word => word.special === "RIGHT_EDGE_BOUNDARY").length, 12,
+      "each row must have one registered answer ending at the right boundary");
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
