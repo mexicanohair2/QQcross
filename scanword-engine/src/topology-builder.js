@@ -5,10 +5,9 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * Production layout: clue starts run across the top and left borders, with
- * several interior clue cells. The former full right-hand clue boundary is
- * replaced by one vertical answer that ends at the lower-right corner.
- * The three regular entries intentionally share this validated seed mask;
- * bounded seeded mutations create the production topology variety.
+ * several interior clue cells. The rightmost two columns are letters and
+ * each row has a named horizontal answer reaching the right boundary.
+ * Seeded mutations vary only the safe interior clue positions.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
   '.#...#..',
@@ -61,7 +60,7 @@ const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
  * available for the optional eleven-letter vertical answer.
  */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...#..',
+  '.#..#...',
   '#...#...',
   '#.......',
   '#...#...',
