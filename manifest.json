@@ -5,11 +5,11 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "background_color": "#170b2d",
-  "theme_color": "#241044",
+  "background_color": "#190d20",
+  "theme_color": "#32152e",
   "icons": [
     {
-      "src": "./icon.svg",
+      "src": "./icon.svg?v=qqcross-brand-20261117",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
