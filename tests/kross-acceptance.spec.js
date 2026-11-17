@@ -1,7 +1,8 @@
 const { test, expect } = require("@playwright/test");
 
 async function startGuestGame(page) {
-  page.on("pageerror", error => { throw error; });
+  const pageErrors = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
   await page.goto("/?debugTiming=1");
   await expect(page).toHaveTitle(/QQCross/);
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -11,11 +12,12 @@ async function startGuestGame(page) {
   await expect(page.locator("#practice")).toBeVisible();
   await page.locator("#practice").click();
   await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  return { pageErrors };
 }
 
 test("Kross contract: canonical 8×12 board has no clue in the rightmost column and uses 95% × 85% of the screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await startGuestGame(page);
+  const { pageErrors } = await startGuestGame(page);
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible();
   await expect(board.locator(".scan-grid-cell")).toHaveCount(96);
@@ -67,6 +69,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   ));
   expect(cellRoles.filter(role => role === "invalid")).toEqual([]);
   expect(cellRoles).toHaveLength(96);
+  expect(pageErrors).toEqual([]);
 });
 
 test("Kross save/restore keeps the 8×12 board, clue keys and right-edge answers", async ({ page }) => {
