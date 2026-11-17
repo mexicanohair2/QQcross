@@ -11,48 +11,48 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * bounded seeded mutations create the production topology variety.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
-  '#....#..',
-  '#....#..',
-  '#....#..',
-  '#.....#.',
-  '#.....#.',
-  '#...#...',
+  '.#..#...',
   '#...#...',
   '#....#..',
-  '#.....#.',
-  '#...#..#'
+  '#...#...',
+  '#...#...',
+  '#.......',
+  '#...#...',
+  '#...#...',
+  '#...#...',
+  '#....#..',
+  '#.......',
+  '#...#...'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
-  '#....#..',
-  '#....#..',
+  '.#..#...',
   '#...#...',
-  '#.....#.',
-  '#.....#.',
-  '#...#.#.',
   '#...#...',
   '#....#..',
-  '#.....#.',
-  '#...#..#'
+  '#...#...',
+  '#...#...',
+  '#.......',
+  '#...#...',
+  '#....#..',
+  '#...#...',
+  '#.......',
+  '#...#...'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
-  '#.....#.',
-  '#....#..',
+  '.#..#...',
+  '#.......',
   '#...#...',
   '#...#...',
-  '#....#..',
-  '#....#..',
-  '#.....#.',
+  '#.......',
   '#...#...',
   '#....#..',
-  '#.....##'
+  '#...#...',
+  '#....#..',
+  '#...#...',
+  '#.......',
+  '#...#...'
 ]);
 
 const SCAFFOLD_VARIANTS = Object.freeze([
@@ -67,18 +67,18 @@ const SCAFFOLD_VARIANTS = Object.freeze([
  * question column.
  */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
+  '.#...#..',
+  '#...#...',
+  '#.......',
   '#...#...',
   '#...#...',
+  '#.......',
   '#...#...',
-  '#......#',
-  '#....##.',
+  '#.......',
   '#...#...',
+  '#....#..',
   '#...#...',
-  '#......#',
-  '#....##.',
-  '#.....#.',
-  '#......#'
+  '#.......'
 ]);
 
 function createScaffold(extraRows) {
@@ -113,7 +113,7 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 3) return null;
+  if (countTopQuestions(matrix) !== 2) return null;\n  if (matrix.some(row => row[CONFIG.WIDTH - 2] === '#' || row[CONFIG.WIDTH - 1] === '#')) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   const centerQuestionCells = countCenterQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
