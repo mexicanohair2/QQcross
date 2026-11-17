@@ -196,6 +196,60 @@ export function deriveWordSlots(grid, options = {}) {
 
       slots.push(makeSlot(axis, first, last, coordinates));
     }
+
+    if (horizontal && questionPositions.length > 0) {
+      const from = questionPositions[questionPositions.length - 1];
+      const length = lineLength - from - 1;
+      if (length === 1) {
+        warnings.push({
+          type: 'SINGLE_LETTER_RIGHT_EDGE_TAIL',
+          message: 'Одна буква у правой границы не образует самостоятельного ответа и должна входить в пересекающий ответ.',
+          axis,
+          first: point(fixedIndex, from),
+          coordinates: [point(fixedIndex, from + 1)]
+        });
+      } else if (length >= 2) {
+        const first = point(fixedIndex, from);
+        const terminal = { row: fixedIndex, col: CONFIG.WIDTH, boundary: true };
+        const coordinates = Array.from({ length }, (_, index) => point(fixedIndex, from + index + 1));
+        const malformed = coordinates.some(item => grid[item.row][item.col]?.type !== 'letter');
+        if (malformed) {
+          errors.push({
+            type: 'NON_LETTER_INSIDE_RIGHT_EDGE_SLOT',
+            message: 'Правый граничный ответ должен проходить только по буквенным клеткам.',
+            row: fixedIndex,
+            col: from + 1
+          });
+        } else if (length > CONFIG.MAX_WORD_LENGTH) {
+          errors.push({
+            type: 'RIGHT_EDGE_SLOT_TOO_LONG',
+            message: 'Длина правого граничного ответа превышает максимальную длину словаря.',
+            row: fixedIndex,
+            length
+          });
+        } else {
+          const legacyLeftBoundary = options.allowLeftBorderRightBoundary === true
+            && [1, 2].includes(fixedIndex)
+            && from === 0;
+          slots.push({
+            id: 'right-edge:' + fixedIndex + ',' + from + '>boundary',
+            axis: 'horizontal',
+            requiredDirection: 'right',
+            length,
+            endpoints: [first, terminal],
+            coordinates,
+            directionOptions: [{
+              clueCell: { ...first },
+              terminalCell: { ...terminal },
+              direction: 'right',
+              coordinates: coordinates.map(item => ({ ...item }))
+            }],
+            special: legacyLeftBoundary ? 'LEFT_BORDER_RIGHT_BOUNDARY' : 'RIGHT_EDGE_BOUNDARY'
+          });
+        }
+      }
+    }
+
   }
 
   for (let row = 0; row < CONFIG.HEIGHT; row++) scanLine('horizontal', row);
@@ -227,37 +281,6 @@ export function deriveWordSlots(grid, options = {}) {
         }],
         special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
       });
-    }
-  }
-
-  // Opt-in exception for the two forced horizontal answers from the left edge.
-  // It is disabled by default and is accepted only for rows 1 and 2.
-  if (options.allowLeftBorderRightBoundary === true) {
-    for (const row of [1, 2]) {
-      const clue = grid[row][0];
-      const coordinates = Array.from({ length: CONFIG.WIDTH - 1 }, (_, index) => point(row, index + 1));
-      const uninterrupted = clue.type === 'question'
-        && coordinates.every(item => grid[item.row][item.col].type === 'letter');
-
-      if (uninterrupted) {
-        slots.push({
-          id: 'special-left-right:' + row + ',0>right-boundary',
-          axis: 'horizontal',
-          length: CONFIG.WIDTH - 1,
-          endpoints: [
-            point(row, 0),
-            { row, col: CONFIG.WIDTH, boundary: true }
-          ],
-          coordinates,
-          directionOptions: [{
-            clueCell: point(row, 0),
-            terminalCell: { row, col: CONFIG.WIDTH, boundary: true },
-            direction: 'right',
-            coordinates: coordinates.map(item => ({ ...item }))
-          }],
-          special: 'LEFT_BORDER_RIGHT_BOUNDARY'
-        });
-      }
     }
   }
 
@@ -341,6 +364,17 @@ export function validateTopology(grid, options = {}) {
         message: 'Весь левый столбец, кроме (0,0), должен содержать вопросные клетки.',
         row,
         col: 0
+      });
+    }
+  }
+
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    if (grid[row][CONFIG.WIDTH - 1]?.type === 'question') {
+      errors.push({
+        type: 'RIGHTMOST_COLUMN_QUESTION',
+        message: 'Крайний правый столбец должен оставаться буквенным: вопросные клетки здесь запрещены.',
+        row,
+        col: CONFIG.WIDTH - 1
       });
     }
   }
