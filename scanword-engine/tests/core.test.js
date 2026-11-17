@@ -63,6 +63,17 @@ test('validator rejects incomplete grids and reports errors', () => {
   assert.ok(result.errors.some(e => e.type === 'IMAGE_COUNT_MISMATCH'));
   assert.ok(result.errors.some(e => e.type === 'INSUFFICIENT_LOGIC_CLUES'));
 });
+
+test('independent validator rejects a clue that leaves only one letter before the right boundary', () => {
+  const grid = createEmptyGrid();
+  grid[0][0].type = 'corner';
+  grid[3][6].type = 'question';
+  grid[3][6].letter = null;
+  const result = validateScanword({
+    width: 8, height: 12, grid, words: [], questions: []
+  }, [], { requireBorderClues: false, requireConnected: false });
+  assert.ok(result.errors.some(item => item.type === 'RIGHT_EDGE_MINIMUM_LENGTH_BROKEN'));
+});
 test('seeded random generator is reproducible', () => {
   const a = createRng(123), b = createRng(123);
   assert.deepEqual([a(),a(),a()], [b(),b(),b()]);
