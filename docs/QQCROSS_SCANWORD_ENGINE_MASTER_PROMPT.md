@@ -28,7 +28,7 @@ Centralize:
 - HEIGHT = 12
 - TOTAL_CELLS = 96
 
-Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. The top row has exactly two active clue anchors: (0,1) and one interior anchor at column 4 or 5. (1,0)..(11,0) are question cells. The entire rightmost column (column 7) is letter-only: no question, clue, or terminal-question cell may appear there. Every row has exactly one registered RIGHT_EDGE_BOUNDARY answer, beginning at the last question cell in that row and ending with its final letter at column 7; the boundary at column 8 is not a question cell. All other cells must be assigned as meaningful question or letter cells. No unassigned cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues.
+Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. The top row has exactly two active clue anchors: (0,1) and one interior anchor at column 4 or 5. (1,0)..(11,0) are question cells. The entire rightmost column (column 7) is letter-only: no question, clue, or terminal-question cell may appear there. Column 6 is also reserved for letters in the current generator so no boundary answer can collapse to one letter. Every row has exactly one registered RIGHT_EDGE_BOUNDARY answer, beginning at the last question cell in that row and ending with its final letter at column 7; the boundary at column 8 is not a question cell. All other cells must be assigned as meaningful question or letter cells. No unassigned cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues.
 
 Cell types:
 - corner: only (0,0), empty and non-interactive;
