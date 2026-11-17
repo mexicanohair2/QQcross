@@ -17,10 +17,10 @@ The scanword engine is the only production path for creating scanword boards in 
 
 1. dictionary.js normalizes Russian answers and questions, rejects malformed records and answer leakage, preserves meaningful clue variants, and builds positional-letter indexes.
 2. topology-builder.js generates a seeded role mask from multiple validated geometric seeds, applies randomized transforms and cell mutations, and independently rejects masks with uncovered letters, question cells without slots, or disconnected geometry.
-3. topology.js derives every horizontal and vertical slot from consecutive question cells. It checks actual 8×12 geometry rather than forcing a complete top row.
+3. topology.js derives horizontal/vertical slots from consecutive question cells and registers the one right-edge boundary slot for each row. It checks actual 8×12 geometry and forbids question cells in column 7.
 4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, five distinct image assets and at least three distinct logic-clue cells.
 5. assembler.js reconstructs the cell grid and word/question links.
-6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
+6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks that column 7 contains only covered letters, verifies exactly 12 right-edge boundary answers, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
 7. scoring.js evaluates completeness, crossings, clue length/clarity proxies, direction variety, answer-length variety, theme diversity, picture count and logic clues. A score never overrides a validation failure.
 8. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
@@ -36,10 +36,10 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 
 - npm --prefix scanword-engine test runs isolated engine tests.
 - npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
-- Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
+- Playwright checks the actual GitHub Pages app, portrait 8×12 geometry, all 96 cells, zero question cells in the rightmost column, picture/logic quotas, clue interaction, 95% viewport width and 85% available board-area height.
 - A puzzle is accepted into the game only after the independent validator reports success.
 
 
 ## Dynamic topology sampling (seeded bridge patterns)
 
-The production sampler now proposes seeded 8×12 role masks directly instead of mutating a single fixed scaffold. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
+The production sampler proposes seeded 8×12 role masks and applies bounded mutations. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, right-edge boundary registration, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
