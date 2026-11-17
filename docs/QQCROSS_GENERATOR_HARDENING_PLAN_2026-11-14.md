@@ -1,3 +1,5 @@
+**Superseded historical plan (2026-11-14).** Its topology assumptions and PR #30 workflow predate the current 95% × 85% portrait layout and letter-only right edge. Do not treat its old top-border/right-down feasibility notes as current requirements. The active plan is `docs/QQCROSS_WORK_PROTOCOL.md`; the active generator contract is `docs/QQCROSS_SCANWORD_ENGINE_MASTER_PROMPT.md`.
+
 # QQCross generator hardening plan — 2026-11-14
 
 ## Goal
