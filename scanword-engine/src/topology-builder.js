@@ -93,11 +93,6 @@ function createScaffold(extraRows) {
   return SCAFFOLD_VARIANTS[variantIndex].map(row => row);
 }
 
-const SCAFFOLDS = Object.freeze([
-  ...SCAFFOLD_VARIANTS,
-  LOW_SHORT_SCAFFOLD
-]);
-
 function cloneRows(rows) {
   return rows.map(row => row.split(''));
 }
