@@ -321,7 +321,7 @@ export function validateTopology(grid, options = {}) {
   // when a horizontal slot between two question cells covers them.
   if (options.requireProductionTopLayout === true) {
     const special = options.allowSpecialElevenBoundary === true;
-    const expectedTopCols = special ? [1, 2, 5, 6, 7] : [1, 4, 7];
+    const expectedTopCols = special ? [1, 2, 5, 6, 7] : [1, 4, 5, 6, 7];
     const actualTopCols = grid[0]
       .map((cell, col) => cell.type === 'question' ? col : -1)
       .filter(col => col > 0);
