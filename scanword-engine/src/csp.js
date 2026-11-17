@@ -53,6 +53,36 @@ function validateSlotGeometry(slot) {
     );
   }
 
+  if (slot.special === 'RIGHT_EDGE_BOUNDARY') {
+    const clue = slot.endpoints[0];
+    const terminal = slot.endpoints[1];
+    const expectedLength = CONFIG.WIDTH - clue.col - 1;
+    if (
+      !Number.isInteger(clue.row) || clue.row < 0 || clue.row >= CONFIG.HEIGHT
+      || !Number.isInteger(clue.col) || clue.col < 0 || clue.col > CONFIG.WIDTH - 3
+      || slot.length !== expectedLength
+      || terminal?.row !== clue.row
+      || terminal?.col !== CONFIG.WIDTH
+      || terminal?.boundary !== true
+      || slot.directionOptions.length !== 1
+    ) return false;
+    const option = slot.directionOptions[0];
+    if (
+      pointKey(option.clueCell) !== pointKey(clue)
+      || option.direction !== 'right'
+      || option.terminalCell?.row !== clue.row
+      || option.terminalCell?.col !== CONFIG.WIDTH
+      || option.terminalCell?.boundary !== true
+      || option.coordinates.length !== expectedLength
+    ) return false;
+    return option.coordinates.every((coordinate, index) =>
+      coordinate.row === clue.row
+      && coordinate.col === clue.col + index + 1
+      && slot.coordinates[index]?.row === coordinate.row
+      && slot.coordinates[index]?.col === coordinate.col
+    );
+  }
+
   if (slot.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
     if (
       slot.length !== CONFIG.WIDTH - 1
