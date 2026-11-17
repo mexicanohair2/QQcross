@@ -65,3 +65,38 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   expect(cellRoles.filter(role => role === "invalid")).toEqual([]);
   expect(cellRoles).toHaveLength(96);
 });
+
+test("Kross save/restore keeps the 8×12 board, clue keys and right-edge answers", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { pageErrors } = await startGuestGame(page);
+  const saved = await page.evaluate(() => {
+    const profile = JSON.parse(localStorage.getItem("qqcross_profile_v2") || "null");
+    const all = JSON.parse(localStorage.getItem("qqcross_local_matches_v1") || "{}");
+    const match = profile ? all[profile.id]?.[0] : null;
+    return match ? {
+      width: match.puzzle?.w,
+      height: match.puzzle?.h,
+      clueKeys: match.puzzle?.clueKeys,
+      reservedKeys: match.puzzle?.reservedKeys,
+      rightEdges: match.puzzle?.words?.filter(word => word.special === "RIGHT_EDGE_BOUNDARY").map(word => word.clueCell?.[0]),
+      answersHaveClues: match.puzzle?.words?.every(word => !!word.clue?.trim() && Array.isArray(word.clueCell) && Array.isArray(word.cells))
+    } : null;
+  });
+  expect(saved).not.toBeNull();
+  expect(saved.width).toBe(8);
+  expect(saved.height).toBe(12);
+  expect(saved.clueKeys).toContain("0,1");
+  expect(saved.reservedKeys).toEqual(["0,0"]);
+  expect(saved.rightEdges).toEqual(Array.from({ length: 12 }, (_, row) => row));
+  expect(saved.answersHaveClues).toBeTruthy();
+
+  await page.evaluate(() => history.back());
+  await expect(page.locator(".resume-match").first()).toBeVisible();
+  await page.locator(".resume-match").first().click();
+  await expect(page.locator(".game-screen")).toBeVisible();
+  const board = page.locator(".scanword-board");
+  await expect(board.locator(".scan-grid-cell")).toHaveCount(96);
+  await expect(board.locator('.scan-clue[data-clue-cell$=",7"]')).toHaveCount(0);
+  await expect(board.locator('.scan-grid-cell.cell[data-cell$=",7"]')).toHaveCount(12);
+  expect(pageErrors).toEqual([]);
+});
