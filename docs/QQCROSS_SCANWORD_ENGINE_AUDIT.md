@@ -1,3 +1,5 @@
+**Historical audit (2026-11-12).** This document describes the legacy `app.js` generator and the early prototype before the modular engine became production-active. Its findings about the prototype being incomplete and the legacy 6×12 builder are not current implementation facts. Use `scanword-engine/README.md` and `docs/QQCROSS_SCANWORD_ENGINE_MASTER_PROMPT.md` for current architecture and acceptance rules.
+
 # QQCross scanword engine audit — 2026-11-12
 
 Repository: mexicanohair2/QQCross (canonical GitHub name is mexicanohair2/QQcross), default branch main.
