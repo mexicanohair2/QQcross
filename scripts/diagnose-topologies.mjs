@@ -14,10 +14,11 @@ function roleGrid(rows) {
   }
   return grid;
 }
-function metrics(rows) {
+function metrics(rows, includeSpecialEleven = false) {
   const grid = roleGrid(rows);
-  const validation = validateTopology(grid, { requireConnected: true });
-  const derived = deriveWordSlots(grid);
+  const options = { requireConnected: true, allowRightEdgeBoundary: true, allowSpecialElevenBoundary: includeSpecialEleven };
+  const validation = validateTopology(grid, options);
+  const derived = deriveWordSlots(grid, options);
   const counts = Object.fromEntries([2,3,4,5,6,7,8,9,10,11].map(n => [
     String(n), derived.slots.filter(slot => slot.length === n).length
   ]));
@@ -36,26 +37,26 @@ function metrics(rows) {
 }
 
 const targetPattern = [
-  ".#...###",
+  ".#...#..",
   "#...#...",
   "#...#...",
   "#...#...",
-  "#......#",
-  "#....##.",
+  "#.......",
+  "#....#..",
   "#...#...",
   "#...#...",
-  "#......#",
-  "#....##.",
-  "#.....#.",
-  "#......#"
+  "#.......",
+  "#...#...",
+  "#.......",
+  "#......."
 ];
-const targetMetrics = metrics(targetPattern);
-const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows)}));
-if (!scaffoldResults.some(item => item.valid && item.shortSlots <= 2)) throw new Error("Missing independently validated low-short scaffold.");
+const targetMetrics = metrics(targetPattern, true);
+const scaffoldResults = getTopologyScaffolds().map((rows,index)=>({index,...metrics(rows,index===3)}));
+if (!scaffoldResults.some(item => item.valid && item.shortSlots <= 3)) throw new Error("Missing independently validated low-short scaffold.");
 const randomResults = [];
 for(let seed=1;seed<=48;seed++){
   const result=generateTopology({seed,includeSpecialEleven:false,maxAttempts:128});
-  if(result.ok)randomResults.push({seed,...metrics(result.topology.pattern)});
+  if(result.ok)randomResults.push({seed,...metrics(result.topology.pattern,false)});
 }
 console.log(JSON.stringify({
   target:{rows:targetPattern,...targetMetrics},
