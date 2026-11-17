@@ -67,7 +67,14 @@ test('does not turn a one-letter gap into an answer', () => {
   setQuestion(grid, 2, 2);
 
   const result = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
-  assert.equal(result.slots.some(item => item.axis === 'horizontal' && item.endpoints[0].row === 2), false);
+  assert.equal(result.slots.some(item =>
+    item.axis === 'horizontal'
+    && item.special !== 'RIGHT_EDGE_BOUNDARY'
+    && item.endpoints[0].row === 2
+  ), false, 'the one-letter gap between adjacent clue cells must not become an answer');
+  assert.ok(result.slots.some(item =>
+    item.special === 'RIGHT_EDGE_BOUNDARY' && item.endpoints[0].row === 2
+  ), 'the separate right-edge answer must remain registered');
   assert.ok(result.warnings.some(item => item.type === 'SINGLE_LETTER_GAP'));
 });
 
@@ -166,8 +173,10 @@ test('requires the top-left anchor and complete left border, but not every top-r
   for (let row = 1; row < 12; row++) setQuestion(grid, row, 0);
 
   const result = validateTopology(grid);
-  assert.ok(result.errors.some(item => item.type === 'QUESTION_WITHOUT_SLOT'));
+  assert.equal(result.valid, true, JSON.stringify(result.errors));
   assert.ok(!result.errors.some(item => item.type === 'TOP_ROW_NOT_QUESTION'));
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: false });
+  assert.equal(derived.slots.filter(slot => slot.special === 'RIGHT_EDGE_BOUNDARY').length, 12);
 
   grid[0][1] = { row: 0, col: 1, type: 'letter', letter: 'А', questionIds: [], wordIds: [] };
   const missingAnchor = validateTopology(grid);
