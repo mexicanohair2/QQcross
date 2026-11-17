@@ -31,7 +31,8 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
     assert.ok(result.topology.metrics.interiorQuestionCells >= 6, 'boards need at least six interior question cells; seed=' + seed);
-    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 3, 'top row must carry the three main clue anchors');
+    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 5, 'top row must retain three main anchors plus terminal/start junction cells');
+    assert.deepEqual(rows[0].split('').flatMap((cell, col) => cell === '#' ? [col] : []), [1,4,5,6,7]);
     for (let row = 1; row < 11; row++) {
       assert.equal(rows[row][7], '.', 'the right edge must not remain a full clue column; row=' + row + ', seed=' + seed);
     }
