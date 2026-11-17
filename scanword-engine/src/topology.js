@@ -201,6 +201,37 @@ export function deriveWordSlots(grid, options = {}) {
   for (let row = 0; row < CONFIG.HEIGHT; row++) scanLine('horizontal', row);
   for (let col = 0; col < CONFIG.WIDTH; col++) scanLine('vertical', col);
 
+  // Every row may finish with one registered answer whose final letter is
+  // in the rightmost column. The boundary itself is not a clue cell.
+  if (options.allowRightEdgeBoundary === true) {
+    for (let row = 0; row < CONFIG.HEIGHT; row++) {
+      let lastQuestionCol = -1;
+      for (let col = 0; col < CONFIG.WIDTH; col++) {
+        if (grid[row][col].type === 'question') lastQuestionCol = col;
+      }
+      const length = CONFIG.WIDTH - lastQuestionCol - 1;
+      if (lastQuestionCol < 0 || length < MIN_ANSWER_LENGTH || length > CONFIG.MAX_WORD_LENGTH) continue;
+      const coordinates = Array.from({ length }, (_, index) => point(row, lastQuestionCol + index + 1));
+      if (!coordinates.every(item => grid[item.row][item.col].type === 'letter')) continue;
+      const clueCell = point(row, lastQuestionCol);
+      const terminalCell = { row, col: CONFIG.WIDTH, boundary: true };
+      slots.push({
+        id: 'right-edge:' + keyOf(clueCell) + '>boundary',
+        axis: 'horizontal',
+        length,
+        endpoints: [clueCell, terminalCell],
+        coordinates,
+        directionOptions: [{
+          clueCell,
+          terminalCell,
+          direction: 'right',
+          coordinates: coordinates.map(item => ({ ...item }))
+        }],
+        special: 'RIGHT_EDGE_BOUNDARY'
+      });
+    }
+  }
+
   // The only permitted answer that ends at the outer board edge:
   // clue (0,1), direction down, exactly eleven letters at (1,1)..(11,1).
   if (options.allowSpecialElevenBoundary !== false) {
@@ -332,8 +363,21 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
+  if (options.allowRightEdgeBoundary === true) {
+    for (let row = 0; row < CONFIG.HEIGHT; row++) {
+      if (grid[row][CONFIG.WIDTH - 1]?.type !== 'letter') {
+        errors.push({
+          type: 'RIGHT_EDGE_QUESTION_FORBIDDEN',
+          message: 'В крайнем правом столбце не должно быть вопросных клеток.',
+          row,
+          col: CONFIG.WIDTH - 1
+        });
+      }
+    }
+  }
+
   // The top row is intentionally dynamic. Letter cells are permitted only
-  // when a horizontal slot between two question cells covers them.
+  // when a horizontal slot between two question cells or the right boundary covers them.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
     if (grid[row][0].type !== 'question') {
       errors.push({
