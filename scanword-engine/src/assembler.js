@@ -166,6 +166,22 @@ export function assembleScanword(assignments, options = {}) {
           wordId: sourceWord.id, terminal
         });
       }
+    } else if (sourceWord.special === 'RIGHT_EDGE_BOUNDARY') {
+      const exactCoordinates = sourceWord.coordinates.every((point, index) =>
+        point.row === clue.row && point.col === clue.col + index + 1
+      );
+      const validException = answer.length >= 2
+        && answer.length <= CONFIG.WIDTH - 1
+        && clue.col <= CONFIG.WIDTH - 3
+        && sourceWord.direction === 'right'
+        && exactCoordinates
+        && terminal.row === clue.row
+        && terminal.col === CONFIG.WIDTH;
+      if (!validException) {
+        fail('INVALID_RIGHT_EDGE_BOUNDARY_WORD', 'Правый граничный ответ должен начинаться из реальной вопросной клетки и заканчиваться за правой границей сетки.', {
+          wordId: sourceWord.id, answer, clue, direction: sourceWord.direction, terminal
+        });
+      }
     } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
       const exactCoordinates = sourceWord.coordinates.every((point, index) =>
         point.row === clue.row && point.col === index + 1
@@ -212,6 +228,14 @@ export function assembleScanword(assignments, options = {}) {
       length: answer.length,
       imageKey: sourceWord.imageKey ?? supplied?.imageKey ?? null
     });
+  }
+
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    if (grid[row][CONFIG.WIDTH - 1]?.type === 'question') {
+      fail('RIGHTMOST_COLUMN_QUESTION', 'Крайний правый столбец должен содержать только буквы, а не вопросные клетки.', {
+        row, col: CONFIG.WIDTH - 1
+      });
+    }
   }
 
   const questionCells = grid.flat().filter(cell => cell.type === 'question').length;
