@@ -165,13 +165,14 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
     const board = document.querySelector(".scanword-board").getBoundingClientRect();
     const tools = document.querySelector(".game-tools").getBoundingClientRect();
     const viewport = { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight };
-    return { board, tools, viewport, scrollWidth: document.documentElement.scrollWidth };
+    return { board, tools, viewport, boardWrapHeight: document.querySelector(".board-wrap").getBoundingClientRect().height, scrollWidth: document.documentElement.scrollWidth };
   });
   expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
-  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
-  expect(Math.abs(layout.board.width / layout.board.height - (3 / 2))).toBeLessThan(0.03);
+  expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.95 - 1);
+  expect(layout.board.height).toBeGreaterThanOrEqual(Math.min(layout.viewport.height * 0.85, layout.boardWrapHeight) - 2);
+  expect(layout.board.width / layout.board.height).toBeLessThan(1.2);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
     node.classList.add("letter-enter");
@@ -564,39 +565,39 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 });
 
 
-test("wide scanword moves right-edge clues to the top row and preserves central clues", async ({ page }) => {
+test("portrait scanword keeps the right edge letter-only and fills the available screen", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
   await expect(board).toBeVisible({ timeout: 20_000 });
-  const grid = await board.evaluate(node => {
-    const trackCount = template => {
-      const value = String(template || "");
-      if (value.startsWith("repeat(")) return Number(value.slice(7).split(",")[0]);
-      return value.trim().split(" ").filter(Boolean).length;
-    };
+  const geometry = await board.evaluate(node => {
+    const countTracks = value => String(value || "").trim().split(" ").filter(Boolean).length;
+    const rect = node.getBoundingClientRect();
+    const wrap = node.parentElement.getBoundingClientRect();
     return {
-    columns: trackCount(getComputedStyle(node).gridTemplateColumns),
-    rows: trackCount(getComputedStyle(node).gridTemplateRows),
-    width: node.getBoundingClientRect().width,
-    height: node.getBoundingClientRect().height,
-    viewportWidth: document.documentElement.clientWidth,
-    viewportHeight: document.documentElement.clientHeight
+      columns: countTracks(getComputedStyle(node).gridTemplateColumns),
+      rows: countTracks(getComputedStyle(node).gridTemplateRows),
+      width: rect.width,
+      height: rect.height,
+      wrapHeight: wrap.height,
+      viewportWidth: document.documentElement.clientWidth,
+      viewportHeight: document.documentElement.clientHeight,
+      rightEdgeAnswers: Number(node.dataset.rightEdgeAnswerCount || 0)
     };
   });
-  expect(grid.columns).toBe(12);
-  expect(grid.rows).toBe(8);
-  expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.91);
-  expect(Math.abs(grid.width / grid.height - (3 / 2))).toBeLessThan(0.03);
-  expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
-  await expect(board.locator('.scan-clue[data-clue-cell="6,0"]')).toHaveCount(1);
-  await expect(board.locator('.scan-clue[data-clue-cell="0,0"]')).toHaveCount(1);
-  await expect(board.locator('.scan-clue[data-clue-cell="3,0"]')).toHaveCount(1);
+  expect(geometry.columns).toBe(8);
+  expect(geometry.rows).toBe(12);
+  expect(geometry.width).toBeGreaterThanOrEqual(geometry.viewportWidth * 0.95 - 1);
+  expect(geometry.height).toBeGreaterThanOrEqual(Math.min(geometry.viewportHeight * 0.85, geometry.wrapHeight) - 2);
+  expect(geometry.width / geometry.height).toBeLessThan(1.2);
+  expect(geometry.rightEdgeAnswers).toBe(12);
   await expect(board.locator(".scan-empty")).toHaveCount(1);
-  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "7,0");
-  await expect(board.locator('.scan-clue[data-clue-cell="0,0"]')).toHaveCount(1);
-  await expect(board.locator(".scan-clue-count")).toHaveCount(0);
+  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
+  await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell$=",7"]')).toHaveCount(0);
+  await expect(board.locator('.scan-grid-cell.cell[data-cell$=",7"]')).toHaveCount(12);
+  await expect(board.locator('.scan-clue[data-clue-cell^="0,"]')).toHaveCount(2);
+  await expect(board.locator('.scan-grid-cell[data-clue-cell$=",0"], .scan-grid-cell[data-boundary-cell$=",0"]')).toHaveCount(11);
   const arrows = board.locator(".scan-arrow");
   await expect(arrows).not.toHaveCount(0);
   const arrowDetails = await arrows.evaluateAll(nodes => nodes.map(node => ({
@@ -604,34 +605,14 @@ test("wide scanword moves right-edge clues to the top row and preserves central 
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
   expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
-  const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
-    const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    if (row === 0) counts.top++;
-    if (col === 0 && row > 0) counts.left++;
-    return counts;
-  }, { top: 0, left: 0 }));
-  expect(edgeCounts.top).toBeGreaterThanOrEqual(1);
-  expect(edgeCounts.left).toBeGreaterThanOrEqual(2);
-  const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
-    const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    return row > 0 && row < 7 && col > 0 && col < 11;
-  }).length);
-  expect(interiorClues).toBeGreaterThanOrEqual(5);
-  const centerClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
-    const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    return row >= 2 && row <= 4 && col >= 3 && col <= 8;
-  }).length);
-  expect(centerClues).toBeGreaterThanOrEqual(3);
-  const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
-  expect(rightBoundaries.length).toBeLessThanOrEqual(2);
-  expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 7 || col === 0 || col === 11; })).toBeTruthy();
-  await expect(board.locator('.scan-clue[data-clue-cell="0,11"]')).toHaveCount(1);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
-  expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  expect(clueCells.every(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  const boundaryMarkers = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
+  expect(boundaryMarkers.every(key => Number(key.split(",")[1]) !== 7)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
     height: Math.max(document.documentElement.scrollHeight, document.body.scrollHeight),
