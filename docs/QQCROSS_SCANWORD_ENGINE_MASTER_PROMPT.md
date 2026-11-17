@@ -96,7 +96,7 @@ Solve the central hard problem explicitly: all 96 cells must form a coherent sca
 The validator must not call generator placement internals or trust generator flags. Independently reconstruct expected cell memberships from words/questions and compare them cell by cell.
 
 Verify:
-- exact 12×8 shape and 96 cells;
+- exact 12 rows × 8 columns and 96 cells;
 - correct corner and required border clues;
 - valid cell types only;
 - unique question/word ids and complete links;
@@ -180,8 +180,9 @@ Test:
 17. time/node budget and cancellation;
 18. JSON round-trip/import/export;
 19. existing primary gameplay and all unrelated game modes;
-20. mobile 360×800 and 390×844: no horizontal overflow, board fits agreed viewport constraints, clues readable, controls and rack usable;
-21. no uncaught page errors, no boot timeout and no startup regression.
+20. mobile 360×800 and 390×844: no horizontal overflow, board occupies 95% width and 85% height, clues remain readable, controls and rack remain usable;
+21. local saves and online puzzle snapshots preserve 8×12 dimensions, clue keys, all 12 right-edge answers and answer/question ownership; reject legacy-incompatible saves without deleting them;
+22. no uncaught page errors, no boot timeout and no startup regression.
 
 A test that only checks valid=true is insufficient. Inspect actual words, clues, coordinates, crossings and every cell. Run the full existing suite. Fix root causes and rerun.
 
