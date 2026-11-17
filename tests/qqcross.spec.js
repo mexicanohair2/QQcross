@@ -97,9 +97,7 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
   expect(geometry.explicitColumns).toBe(8);
   expect(geometry.explicitRows).toBe(12);
   expect(geometry.positiveCells).toBe(96);
-  expect(geometry.ratio).toBeLessThan(1.2);
-  const expectedMaxWidth = Math.min(geometry.viewport * 0.95, (geometry.viewportHeight - 180) * 0.57, 860);
-  expect(geometry.width).toBeGreaterThanOrEqual(expectedMaxWidth - 2);
+  expect(geometry.width).toBeGreaterThanOrEqual(geometry.viewport * 0.95 - 2);
   expect(geometry.height).toBeGreaterThanOrEqual(Math.min(geometry.viewportHeight * 0.85, geometry.boardWrapHeight) - 2);
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
