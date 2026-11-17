@@ -88,7 +88,7 @@ function validateSlotGeometry(slot) {
       || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
       || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
     )
-    || slot.directionOptions.length !== 2
+    || slot.directionOptions.length !== 1
   ) return false;
 
   const [start, end] = slot.endpoints;
@@ -111,45 +111,30 @@ function validateSlotGeometry(slot) {
     ) return false;
   }
 
-  const expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
-  if (
-    slot.directionOptions.length !== expectedDirections.size
-    || slot.directionOptions.some(option => !expectedDirections.has(option.direction))
-  ) return false;
+  const option = slot.directionOptions[0];
+  const expectedDirection = horizontal ? 'right' : 'down';
+  const vector = DIRECTIONS[expectedDirection];
+  if (!vector || option.direction !== expectedDirection
+    || pointKey(option.clueCell) !== firstKey
+    || pointKey(option.terminalCell) !== lastKey
+    || !Array.isArray(option.coordinates)
+    || option.coordinates.length !== slot.length
+    || slot.coordinates.some((coordinate, index) =>
+      pointKey(coordinate) !== pointKey(option.coordinates[index]))) return false;
 
-  for (const option of slot.directionOptions ?? []) {
-    const vector = DIRECTIONS[option.direction];
-    if (!vector || !option.clueCell || !option.terminalCell) return false;
-
-    const clueKey = pointKey(option.clueCell);
-    const terminalKey = pointKey(option.terminalCell);
-    if (!(
-      (clueKey === firstKey && terminalKey === lastKey)
-      || (clueKey === lastKey && terminalKey === firstKey)
-    )) return false;
-
-    if (!Array.isArray(option.coordinates) || option.coordinates.length !== slot.length) return false;
-    const baseCoordinates = new Set(slot.coordinates.map(pointKey));
-    if (option.coordinates.some(coordinate => !baseCoordinates.has(pointKey(coordinate)))) return false;
-    for (let index = 0; index < option.coordinates.length; index++) {
-      const expectedRow = option.clueCell.row + vector.dr * (index + 1);
-      const expectedCol = option.clueCell.col + vector.dc * (index + 1);
-      if (
-        option.coordinates[index].row !== expectedRow
-        || option.coordinates[index].col !== expectedCol
-        || expectedRow < 0
-        || expectedCol < 0
-        || expectedRow >= CONFIG.HEIGHT
-        || expectedCol >= CONFIG.WIDTH
-      ) return false;
-    }
-    const last = option.coordinates[option.coordinates.length - 1];
-    const terminalRow = last.row + vector.dr;
-    const terminalCol = last.col + vector.dc;
-    if (terminalRow !== option.terminalCell.row || terminalCol !== option.terminalCell.col) return false;
+  for (let index = 0; index < option.coordinates.length; index++) {
+    const expectedRow = option.clueCell.row + vector.dr * (index + 1);
+    const expectedCol = option.clueCell.col + vector.dc * (index + 1);
+    if (option.coordinates[index].row !== expectedRow
+      || option.coordinates[index].col !== expectedCol
+      || expectedRow < 0 || expectedCol < 0
+      || expectedRow >= CONFIG.HEIGHT || expectedCol >= CONFIG.WIDTH) return false;
   }
+  const lastCoordinate = option.coordinates[option.coordinates.length - 1];
+  if (lastCoordinate.row + vector.dr !== option.terminalCell.row
+    || lastCoordinate.col + vector.dc !== option.terminalCell.col) return false;
 
-  return slot.directionOptions.length > 0;
+  return true;
 }
 
 function calculateSlotDegrees(slots) {
@@ -205,7 +190,6 @@ function prioritizeSpecialElevenCandidates(candidates, specialSlot, allSlots, in
       let bestVariants = 0;
       let bestAnswers = 0;
       for (const orientation of slot.directionOptions) {
-        if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
         if (allowedDirections instanceof Set && !allowedDirections.has(orientation.direction)) continue;
         const constraints = crossingConstraints(orientation, imposedLetters);
         if (!constraints.length) continue;
@@ -246,15 +230,14 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   // Only a curated set of real, familiar Russian two-letter words is allowed.
   // Pronouns and other filler entries are intentionally excluded.
   const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
+    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     // Production may restrict directions; generic CSP tests can retain all valid orientations.
-    if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
     const usedDirections = state.directionUse.get(clueKey);
-    if (usedDirections?.has(orientation.direction)) continue;
+    if (usedDirections?.size) continue;
 
     const constraints = crossingConstraints(orientation, state.letters);
     const candidates = findCandidates(indexes, slot.length, constraints);
@@ -324,7 +307,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const prepared = options.preparedDictionary ?? prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
   const maxNodes = options.maxNodes ?? CONFIG.MAX_SEARCH_NODES;
   const maxTimeMs = options.maxTimeMs ?? CONFIG.MAX_GENERATION_MS;
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requiredImageCount = options.requiredImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const requireEveryClueStarts = options.requireEveryClueStarts !== false;
   const allowedDirections = Array.isArray(options.allowedDirections)
@@ -388,7 +371,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   }));
 
   const questionKeys = [...new Set(slots.flatMap(slot =>
-    slot.endpoints.filter(point => !point.boundary).map(pointKey)
+    slot.directionOptions.map(option => pointKey(option.clueCell))
   ))];
 
   const state = {
