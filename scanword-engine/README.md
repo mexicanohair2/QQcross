@@ -40,7 +40,7 @@ The repository also contains `data/scanwords-1000.json`, but it is a legacy 13×
 
 ## Production dictionary status
 
-The repository dictionary currently has 2,287 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
+The repository dictionary currently has 2,289 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
 
 ## Verification
 
