@@ -84,6 +84,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   if (options.requireTopAnchor !== false && grid[0][1]?.type !== 'question') {
     add('TOP_LEFT_BORDER_ANCHOR_MISSING', 'Клетка (0,1) должна быть вопросной.', { row: 0, col: 1 });
   }
+  if (options.requireTopAnchor !== false) {
+    const topQuestionColumns = grid[0]
+      .map((cell, col) => cell?.type === 'question' ? col : -1)
+      .filter(col => col >= 0);
+    if (topQuestionColumns.length !== 2
+      || topQuestionColumns[0] !== 1
+      || ![4, 5].includes(topQuestionColumns[1])) {
+      add('INVALID_TOP_ROW_ANCHORS', 'Верхний ряд должен содержать ровно два вопросных якоря: (0,1) и один внутренний якорь в колонке 4 или 5.', {
+        columns: topQuestionColumns
+      });
+    }
+  }
   const requireLeftBorderClues = options.requireLeftBorderClues
     ?? (options.requireBorderClues !== false);
   if (requireLeftBorderClues) {
