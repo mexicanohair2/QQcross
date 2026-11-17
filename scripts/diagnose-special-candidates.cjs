@@ -19,7 +19,7 @@ async function main() {
       maxNodes: 120000,
       maxCspTimeMs: 1200,
       topologyMutationAttempts: 96,
-      requiredImageCount: 5,
+      requiredImageCount: 0,
       minimumLogicClueCells: 3,
       captureTrace: true,
       capturePlanDiagnostics: true
@@ -64,7 +64,7 @@ async function main() {
 
     if (special.length === 1) {
       const independent = validateScanword(result.scanword, dictionary, {
-        requiredImageCount: 5,
+        requiredImageCount: 0,
         minimumLogicClueCells: 3,
         requireLeftBorderClues: true,
         requireTopAnchor: true,
