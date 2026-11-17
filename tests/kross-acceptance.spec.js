@@ -84,7 +84,7 @@ test("Kross save/restore keeps the 8×12 board, clue keys and right-edge answers
       height: match.puzzle?.h,
       clueKeys: match.puzzle?.clueKeys,
       reservedKeys: match.puzzle?.reservedKeys,
-      rightEdges: match.puzzle?.words?.filter(word => word.special === "RIGHT_EDGE_BOUNDARY").map(word => word.clueCell?.[0]),
+      rightEdges: match.puzzle?.words?.filter(word => word.special === "RIGHT_EDGE_BOUNDARY").map(word => word.clueCell?.[0]).sort((a, b) => a - b),
       answersHaveClues: match.puzzle?.words?.every(word => !!word.clue?.trim() && Array.isArray(word.clueCell) && Array.isArray(word.cells))
     } : null;
   });
