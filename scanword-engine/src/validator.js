@@ -439,6 +439,13 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       count: specialCount
     });
   }
+  if (rightBoundaryRows.size !== CONFIG.HEIGHT) {
+    add('RIGHT_EDGE_BOUNDARY_ROW_COUNT', 'Каждая из 12 строк должна иметь ровно один ответ до правой границы.', {
+      expected: CONFIG.HEIGHT,
+      actual: rightBoundaryRows.size,
+      rows: [...rightBoundaryRows].sort((a, b) => a - b)
+    });
+  }
   if (leftBoundaryRows.size > 2) {
     add('TOO_MANY_LEFT_BORDER_BOUNDARY_WORDS', 'Допускается не более двух ответов левого граничного исключения.', {
       rows: [...leftBoundaryRows]
