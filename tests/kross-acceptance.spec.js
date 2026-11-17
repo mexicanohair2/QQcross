@@ -34,6 +34,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
       columns: trackCount(style.gridTemplateColumns),
       rows: trackCount(style.gridTemplateRows),
       rightmostClues: clues.filter(clue => clue.col === 7),
+      rightmostLetters: node.querySelectorAll('.scan-grid-cell.cell[data-cell$=\",7\"]').length,
       emptyCount: node.querySelectorAll(".scan-empty").length,
       fillerCount: node.querySelectorAll(".scan-filler").length,
       invalidClues: clues.filter(clue => !clue.content),
@@ -45,6 +46,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   expect(details.columns).toBe(8);
   expect(details.rows).toBe(12);
   expect(details.rightmostClues).toEqual([]);
+  expect(details.rightmostLetters).toBe(12);
   expect(details.emptyCount).toBe(1);
   expect(details.fillerCount).toBe(0);
   expect(details.invalidClues).toEqual([]);
@@ -55,7 +57,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   expect(details.page.width).toBeLessThanOrEqual(details.viewport.width + 1);
   expect(details.page.height).toBeLessThanOrEqual(details.viewport.height + 1);
   const cellRoles = await board.locator(".scan-grid-cell").evaluateAll(nodes => nodes.map(node =>
-    node.classList.contains("scan-clue") ? "question"
+    node.classList.contains("scan-clue") || node.classList.contains("scan-boundary") ? "question"
       : node.classList.contains("cell") ? "letter"
         : node.classList.contains("scan-empty") ? "corner"
           : "invalid"
