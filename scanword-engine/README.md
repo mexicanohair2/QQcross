@@ -6,10 +6,11 @@ The scanword engine is the only production path for creating scanword boards in 
 
 - Exactly 8 columns × 12 rows = 96 cells.
 - The upper-left cell (0,0) is the only reserved blank corner.
-- The left border (rows 1–11, column 0) contains question/end cells.
-- (0,1) is the required top-left anchor.
-- Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
-- Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
+- The top row has two active clue anchors: (0,1) and one interior anchor at column 4 or 5.
+- The left border (rows 1–11, column 0) contains question cells.
+- Columns 6 and 7 are letter-only. No question, clue, or terminal-question cell may appear in the rightmost column (7).
+- Each row has exactly one registered `RIGHT_EDGE_BOUNDARY` horizontal answer, starting at the last question cell and ending with its final letter in column 7. The boundary at column 8 is not a question cell.
+- Every answer has a real clue at its start; terminal-only internal endpoints are structural markers and must not duplicate clue text.
 - Horizontal and vertical answers are supported in both directions.
 - The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
@@ -17,10 +18,10 @@ The scanword engine is the only production path for creating scanword boards in 
 
 1. dictionary.js normalizes Russian answers and questions, rejects malformed records and answer leakage, preserves meaningful clue variants, and builds positional-letter indexes.
 2. topology-builder.js generates a seeded role mask from multiple validated geometric seeds, applies randomized transforms and cell mutations, and independently rejects masks with uncovered letters, question cells without slots, or disconnected geometry.
-3. topology.js derives every horizontal and vertical slot from consecutive question cells. It checks actual 8×12 geometry rather than forcing a complete top row.
+3. topology.js derives horizontal/vertical slots from consecutive question cells and registers the one right-edge boundary slot for each row. It checks actual 8×12 geometry and forbids question cells in column 7.
 4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, five distinct image assets and at least three distinct logic-clue cells.
 5. assembler.js reconstructs the cell grid and word/question links.
-6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
+6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks that column 7 contains only covered letters, verifies exactly 12 right-edge boundary answers, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
 7. scoring.js evaluates completeness, crossings, clue length/clarity proxies, direction variety, answer-length variety, theme diversity, picture count and logic clues. A score never overrides a validation failure.
 8. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
@@ -36,10 +37,10 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 
 - npm --prefix scanword-engine test runs isolated engine tests.
 - npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
-- Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
+- Playwright checks the actual GitHub Pages app, portrait 8×12 geometry, all 96 cells, zero question cells in the rightmost column, picture/logic quotas, clue interaction, 95% viewport width and 85% viewport height, with all interface controls in the remaining 15%.
 - A puzzle is accepted into the game only after the independent validator reports success.
 
 
 ## Dynamic topology sampling (seeded bridge patterns)
 
-The production sampler now proposes seeded 8×12 role masks directly instead of mutating a single fixed scaffold. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
+The production sampler proposes seeded 8×12 role masks and applies bounded mutations. Each candidate is accepted only after slot derivation, full-cell coverage, clue-cell degree checks, right-edge boundary registration, and connected-topology validation. The 11-letter boundary path is enabled only for runs that explicitly request that optional feature. Rejected masks are discarded; the generator never emits a partial board.
