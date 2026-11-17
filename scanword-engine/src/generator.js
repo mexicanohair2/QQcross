@@ -570,6 +570,7 @@ export function generateScanword(inputDictionary, options = {}) {
       foldYo: options.foldYo === true,
       requiredImageCount,
       minimumLogicClueCells,
+      minimumWordCount: CONFIG.MIN_WORD_COUNT,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
       requireConnected: true
