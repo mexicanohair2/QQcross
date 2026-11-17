@@ -1,0 +1,40 @@
+/* QQCross brand layer — 2026-11-17 */
+:root{
+ --qq-brand-bg:#190d20;
+ --qq-brand-panel:#241326;
+ --qq-brand-panel2:#321a31;
+ --qq-brand-line:#633b60;
+ --qq-brand-accent:#d878bd;
+ --qq-brand-lilac:#dcb7f1;
+ --qq-brand-text:#fff4ff;
+}
+html[data-qq-theme="burgundy"] body,
+html[data-qq-theme="purple"] body{
+ background:radial-gradient(ellipse at 50% -12%,#45203f 0%,#241326 38%,#160d19 76%,#0d080f 100%) fixed!important;
+}
+html[data-qq-theme="burgundy"] .card,
+html[data-qq-theme="purple"] .card{
+ border-color:#57344f;
+}
+html[data-qq-theme="burgundy"] .logo,
+html[data-qq-theme="burgundy"] .home-mark,
+html[data-qq-theme="purple"] .logo,
+html[data-qq-theme="purple"] .home-mark{
+ background-image:url("./icon.svg?v=qqcross-brand-20261117")!important;
+ background-size:cover!important;background-position:center!important;
+ color:transparent!important;text-shadow:none!important;
+ box-shadow:0 7px 22px #8e3e7755!important;
+}
+.qq-cody-cell.secret{
+ color:transparent!important;
+ background-color:#2b1732!important;
+ background-image:url("./assets/brand-tile.svg")!important;
+ background-size:cover!important;background-position:center!important;
+ border:1px solid #d878bd!important;
+ box-shadow:0 0 0 1px #6c3b68,inset 0 0 10px #d878bd22!important;
+}
+.qq-cody-cell.secret.active{filter:brightness(1.12);border-color:#f1b9e4!important}
+html[data-qq-theme="light"] .qq-cody-cell.secret{
+ background-image:url("./assets/brand-tile.svg")!important;
+ border-color:#b77ac7!important;
+}
