@@ -1,3 +1,5 @@
+**Historical evidence only.** These metrics describe PR #30 and its earlier topology. They do not validate the current rightmost-column boundary design or the 95% × 85% screen layout. Re-run the current first-gate, stress, special-frequency and browser suites before using any figures as release evidence. The active requirements are in `docs/QQCROSS_SCANWORD_ENGINE_MASTER_PROMPT.md` and `scanword-engine/README.md`.
+
 # QQCross generator validation — 2026-11-14
 
 ## Tested revision
