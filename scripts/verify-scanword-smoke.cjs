@@ -13,8 +13,7 @@ async function main() {
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
-    maxTwoLetterSlots: 5,
-    requiredImageCount: 5,
+    maxTwoLetterSlots: 6,
     minimumLogicClueCells: 3,
   };
   const runs = [];
@@ -24,8 +23,9 @@ async function main() {
 
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
+    const requiredImageCount = index % 5;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
+    const result = generateScanword(dictionary, { ...options, requiredImageCount, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
@@ -34,7 +34,8 @@ async function main() {
     }
 
     const validation = validateScanword(result.scanword, dictionary, {
-      requiredImageCount: 5,
+      requiredImageCount,
+      maximumImageCount: 4,
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
@@ -65,6 +66,7 @@ async function main() {
       crossings: validation.metrics.crossings,
       shortAnswers: shortAnswers.map(word => word.answer),
       imageCount: validation.metrics.imageCount,
+      requiredImageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
       specialRequested: result.stats.specialElevenRequested,
