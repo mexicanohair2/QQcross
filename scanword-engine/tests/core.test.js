@@ -504,9 +504,9 @@ test('assembler and independent validator accept left/up scanword answers', () =
   const upWord = {
     id: 'up-word', entryId: 'dog', answer: 'ПЁС',
     question: 'Домашнее животное, которое лает.',
-    clue: { row: 4, col: 6 }, direction: 'up',
+    clue: { row: 4, col: 5 }, direction: 'up',
     coordinates: [
-      { row: 3, col: 6 }, { row: 2, col: 6 }, { row: 1, col: 6 }
+      { row: 3, col: 5 }, { row: 2, col: 5 }, { row: 1, col: 5 }
     ]
   };
   const words = [leftWord, upWord];
