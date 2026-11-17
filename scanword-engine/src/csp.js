@@ -53,6 +53,38 @@ function validateSlotGeometry(slot) {
     );
   }
 
+  if (slot.special === 'RIGHT_EDGE_BOUNDARY') {
+    if (
+      slot.directionOptions.length !== 1
+      || slot.length < 2
+      || slot.length > CONFIG.WIDTH - 1
+      || slot.endpoints[0]?.boundary === true
+      || slot.endpoints[1]?.row !== slot.endpoints[0]?.row
+      || slot.endpoints[1]?.col !== CONFIG.WIDTH
+      || slot.endpoints[1]?.boundary !== true
+      || slot.endpoints[0]?.col < 0
+      || slot.endpoints[0]?.col > CONFIG.WIDTH - 3
+      || slot.length !== CONFIG.WIDTH - slot.endpoints[0].col - 1
+      || slot.requiredDirection !== 'right'
+    ) return false;
+    const clue = slot.endpoints[0];
+    const option = slot.directionOptions[0];
+    if (
+      pointKey(option.clueCell) !== pointKey(clue)
+      || option.direction !== 'right'
+      || !option.terminalCell?.boundary
+      || option.terminalCell.row !== clue.row
+      || option.terminalCell.col !== CONFIG.WIDTH
+      || option.coordinates.length !== slot.length
+    ) return false;
+    return option.coordinates.every((coordinate, index) =>
+      coordinate.row === clue.row
+      && coordinate.col === clue.col + index + 1
+      && slot.coordinates[index]?.row === coordinate.row
+      && slot.coordinates[index]?.col === coordinate.col
+    );
+  }
+
   if (slot.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
     if (
       slot.length !== CONFIG.WIDTH - 1
