@@ -534,7 +534,8 @@ export function generateScanword(inputDictionary, options = {}) {
       words: solved.words,
       questions: solved.questions
     }, {
-      foldYo: options.foldYo === true
+      foldYo: options.foldYo === true,
+      allowRightEdgeBoundary: true
     });
 
     if (!assembled.ok) {
@@ -572,7 +573,8 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      allowRightEdgeBoundary: true
     });
 
     if (!validation.valid) {
