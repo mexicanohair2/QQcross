@@ -162,7 +162,7 @@ Test:
 1. exact 8×12 and all 96 cells;
 2. two top-row anchors, complete left clue border, empty corner, and zero question cells in column 7;
 3. exactly one valid RIGHT_EDGE_BOUNDARY answer per row, with every column-7 letter covered;
-4. board width 95% and height 85% of the available board area, with all interface controls visible;
+4. board width 95% of the viewport and height 85% of the screen; the remaining 15% is reserved for compact interface controls;
 5. central clues in multiple quadrants;
 6. all four directions;
 7. multiple questions in one clue cell in distinct directions;
