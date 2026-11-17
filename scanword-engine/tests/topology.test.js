@@ -274,3 +274,13 @@ test('generated topologies keep the rightmost column letter-only and anchor ever
     }
   }
 });
+
+
+test('rejects a clue in the penultimate column because it creates a one-letter edge answer', () => {
+  const grid = makeGrid('letter');
+  setQuestion(grid, 4, 0);
+  setQuestion(grid, 4, 6);
+
+  const result = validateTopology(grid);
+  assert.ok(result.errors.some(item => item.type === 'RIGHT_EDGE_MINIMUM_LENGTH_BROKEN'));
+});
