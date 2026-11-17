@@ -604,7 +604,7 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.cell.answer-end-down{
   overflow-wrap:anywhere!important;
   word-break:normal!important;
   -webkit-box-orient:vertical!important;
-  -webkit-line-clamp:4!important;
+  -webkit-line-clamp:3!important;
   font-size:clamp(6px,1.45vw,10px)!important;
   line-height:1.08!important;
   text-align:center!important;
