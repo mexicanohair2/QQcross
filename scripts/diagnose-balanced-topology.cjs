@@ -3,25 +3,13 @@ const { performance } = require("node:perf_hooks");
 
 async function main() {
   const { createEmptyGrid } = await import("../scanword-engine/src/grid.js");
+  const { getTopologyScaffolds } = await import("../scanword-engine/src/topology-builder.js");
   const { deriveWordSlots, validateTopology } = await import("../scanword-engine/src/topology.js");
   const { solveSlotsCsp } = await import("../scanword-engine/src/csp.js");
   const { assembleScanword } = await import("../scanword-engine/src/assembler.js");
   const { validateScanword } = await import("../scanword-engine/src/validator.js");
 
-  const pattern = [
-    ".#..#..#",
-    "#......#",
-    "#......#",
-    "#......#",
-    "#...#..#",
-    "#......#",
-    "#......#",
-    "#......#",
-    "#...#..#",
-    "#......#",
-    "#......#",
-    "#...#..#"
-  ];
+  const pattern = getTopologyScaffolds()[3];
   const grid = createEmptyGrid();
   for (let row = 0; row < 12; row++) {
     for (let col = 0; col < 8; col++) {
@@ -112,7 +100,12 @@ async function main() {
     modes
   };
   console.log(JSON.stringify(report, null, 2));
-  if (!topology.valid || derived.slots.length !== 19 || derived.slots.filter(slot => slot.length === 2).length !== 6) throw new Error("Balanced topology failed geometry checks.");
-  if (!modes.some(item => item.ok && item.valid)) throw new Error("No independently valid puzzle solved from the balanced 8x12 topology.");
+  if (!topology.valid
+    || pattern[0].slice(1).split("").filter(cell => cell === "#").length !== 2
+    || derived.slots.filter(slot => slot.special === "RIGHT_EDGE_BOUNDARY").length !== 12
+    || pattern.some(row => row[6] !== "." || row[7] !== ".")) {
+    throw new Error("Special 11-letter topology failed the current Kross geometry checks.");
+  }
+  if (!modes.some(item => item.ok && item.valid)) throw new Error("No independently valid puzzle solved from the special 8x12 topology.");
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
