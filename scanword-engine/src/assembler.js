@@ -166,6 +166,24 @@ export function assembleScanword(assignments, options = {}) {
           wordId: sourceWord.id, terminal
         });
       }
+    } else if (sourceWord.special === 'RIGHT_EDGE_BOUNDARY') {
+      const exactCoordinates = sourceWord.coordinates.every((point, index) =>
+        point.row === clue.row && point.col === clue.col + index + 1
+      );
+      const enabled = options.allowRightEdgeBoundary === true;
+      if (
+        !enabled
+        || sourceWord.direction !== 'right'
+        || clue.col > CONFIG.WIDTH - 3
+        || answer.length !== CONFIG.WIDTH - clue.col - 1
+        || !exactCoordinates
+        || terminal.row !== clue.row
+        || terminal.col !== CONFIG.WIDTH
+      ) {
+        fail('INVALID_RIGHT_EDGE_BOUNDARY_WORD', 'Ответ правой границы должен идти вправо от вопроса и завершаться последней буквой в крайнем правом столбце.', {
+          wordId: sourceWord.id, clue, terminal, enabled
+        });
+      }
     } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
       const exactCoordinates = sourceWord.coordinates.every((point, index) =>
         point.row === clue.row && point.col === index + 1
@@ -228,6 +246,7 @@ export function assembleScanword(assignments, options = {}) {
       metadata: {
         seed: assignments?.seed ?? null,
         specialElevenLetterQuestion: words.some(word => word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'),
+        rightEdgeBoundaryWords: words.filter(word => word.special === 'RIGHT_EDGE_BOUNDARY').length,
         complete: grid.every(row => row.every(cell => cell.type !== 'unassigned'))
       }
     },
