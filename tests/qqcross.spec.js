@@ -391,6 +391,27 @@ test("opens the rebuilt Cody-style crossword with a real secret column, level ma
   expect(clueAccessibility).toBeTruthy();
   await expect(page.locator(".qq-cody-row")).toHaveCount(await page.locator(".qq-cody-secret span").count());
   expect(await page.locator(".qq-cody-row").count()).toBeGreaterThanOrEqual(9);
+  const codyFit = await page.evaluate(() => {
+    const layout = document.querySelector(".qq-cody-play-layout");
+    const rows = [...document.querySelectorAll(".qq-cody-row")];
+    return {
+      viewportWidth: document.documentElement.clientWidth,
+      viewportHeight: document.documentElement.clientHeight,
+      scrollWidth: document.documentElement.scrollWidth,
+      scrollHeight: document.documentElement.scrollHeight,
+      layoutClientHeight: layout?.clientHeight || 0,
+      layoutScrollHeight: layout?.scrollHeight || 0,
+      rowGeometry: rows.map(row => {
+        const clue = row.querySelector(".qq-cody-row-clue").getBoundingClientRect();
+        const cells = row.querySelector(".qq-cody-row-cells").getBoundingClientRect();
+        return clue.left < cells.left && clue.right <= cells.left + 2;
+      })
+    };
+  });
+  expect(codyFit.scrollWidth).toBeLessThanOrEqual(codyFit.viewportWidth + 1);
+  expect(codyFit.scrollHeight).toBeLessThanOrEqual(codyFit.viewportHeight + 1);
+  expect(codyFit.layoutScrollHeight).toBeLessThanOrEqual(codyFit.layoutClientHeight + 1);
+  expect(codyFit.rowGeometry.every(Boolean)).toBeTruthy();
   await expect(page.locator("#qqCodyLoupe")).toContainText("Лупа");
   await expect(page.locator("#qqCodyHint")).toContainText("Подсказка");
   await expect(page.locator("input")).toHaveCount(0);
