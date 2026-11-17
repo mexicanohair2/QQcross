@@ -355,6 +355,19 @@ export function validateTopology(grid, options = {}) {
     });
   }
 
+  const topQuestionColumns = grid[0]
+    .map((cell, col) => cell?.type === 'question' ? col : -1)
+    .filter(col => col >= 0);
+  if (topQuestionColumns.length !== 2
+    || topQuestionColumns[0] !== 1
+    || ![4, 5].includes(topQuestionColumns[1])) {
+    errors.push({
+      type: 'INVALID_TOP_ROW_ANCHORS',
+      message: 'Верхний ряд должен содержать ровно два вопросных якоря: (0,1) и один внутренний якорь в колонке 4 или 5.',
+      columns: topQuestionColumns
+    });
+  }
+
   // The top row is intentionally dynamic. Letter cells are permitted only
   // when a horizontal slot between two question cells covers them.
   for (let row = 1; row < CONFIG.HEIGHT; row++) {
