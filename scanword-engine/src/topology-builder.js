@@ -11,7 +11,7 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * bounded seeded mutations create the production topology variety.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#....#..',
   '#....#..',
@@ -26,7 +26,7 @@ const STANDARD_SCAFFOLD = Object.freeze([
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#....#..',
   '#....#..',
@@ -41,7 +41,7 @@ const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#.....#.',
   '#....#..',
@@ -113,9 +113,9 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.') return null;
-  const expectedTopRow = includeSpecialEleven ? '.##..###' : '.#..#..#';
+  const expectedTopRow = includeSpecialEleven ? '.##..###' : '.#..####';
   if (matrix[0].join('') !== expectedTopRow) return null;
-  if (countTopQuestions(matrix) !== (includeSpecialEleven ? 5 : 3)) return null;
+  if (countTopQuestions(matrix) !== 5) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   const centerQuestionCells = countCenterQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
