@@ -42,6 +42,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const warnings = [];
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
+  const minimumWordCount = options.minimumWordCount ?? 0;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
 
   if (!scanword || typeof scanword !== 'object') {
@@ -73,6 +74,12 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const grid = scanword.grid;
   const words = Array.isArray(scanword.words) ? scanword.words : [];
   const questions = Array.isArray(scanword.questions) ? scanword.questions : [];
+  if (minimumWordCount > 0 && words.length < minimumWordCount) {
+    add('INSUFFICIENT_WORD_COUNT', 'Сканворд содержит меньше зарегистрированных ответов, чем требует производственный минимум.', {
+      expected: minimumWordCount,
+      actual: words.length
+    });
+  }
   const prepared = prepareDictionary(dictionary, { foldYo: options.foldYo === true });
   warnings.push(...prepared.warnings);
   const dictionaryById = new Map(prepared.variants.map(entry => [entry.id, entry]));
