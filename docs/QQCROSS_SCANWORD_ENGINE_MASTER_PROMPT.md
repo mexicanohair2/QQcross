@@ -216,3 +216,23 @@ The user works only from an Android phone and expects repository-side execution 
 10. Merge/deploy only after all gates pass.
 
 The only acceptable success is a real, fully playable, fully validated 8×12 QQCross scanword — never a decorative grid, random filler, partial board or unverified demo.
+
+## 14. QQCross brand assets and scanword signature tile (mandatory)
+
+The QQCross visual identity is part of the product contract. Use the repository-owned assets; do not redraw them with emoji, text approximations, remote image URLs, or unrelated stock art:
+- `/icon.svg`: universal app/PWA icon and compact brand mark;
+- `/assets/qqcross-logo.svg`: horizontal QQCross logo for splash/brand placements;
+- `/assets/brand-tile.svg`: compact signature tile used as decorative art in the scanword's reserved blank corner.
+- `/brand.css`: shared visual layer; preserve theme-specific contrast and keep the brand recognizable in burgundy, purple, graphite and light themes.
+
+### Generator and board-model rules
+1. The signature tile is presentation-only. It must never become a dictionary entry, clue, answer, letter, image clue, word slot, crossing, hint target, selectable cell, or scoring unit.
+2. Keep the immutable board topology unchanged: exactly 8×12; coordinate (0,0) remains the sole `corner` role and has no clue/answer ownership. The logo artwork may be painted inside this reserved corner by the renderer, but the serialized generator model must still report `corner`, not `question`, `letter`, or a new gameplay cell type.
+3. Do not place the signature tile into arbitrary empty cells, unassigned cells, holes, or valid answer paths. Never use it to disguise an invalid or incomplete topology. All other 95 cells must continue to satisfy the existing cell-role, clue-link, answer, connectivity and validator rules.
+4. The independent validator must ignore visual decoration and validate the underlying corner role and all 96 logical cell roles exactly as before. Decorative assets must not change cell counts, answer coordinates, board dimensions, generation success rates or the five-distinct-picture-clue quota.
+5. The scanword renderer should show the signature tile only in the reserved (0,0) corner. Keep it non-interactive and accessible as decorative content (empty alt/aria-hidden); do not attach click, keyboard, drag, selection or hint handlers.
+6. Missing or failed SVG loading must degrade to the normal reserved-corner background without breaking generation, validation, gameplay, offline startup or other themes.
+7. Keep all assets local and cache-versioned for GitHub Pages/PWA. Avoid external requests. Verify the SVG files resolve with the exact case-sensitive paths on the deployed site.
+8. Theme changes may adjust surrounding surfaces, borders and contrast, but must not replace the universal symbol with a different mode-specific logo. Use the same recognizable brand asset across Wordle, letter search, classic word search, CodyCross and scanword; mode-specific controls may have their own labels/icons.
+
+Acceptance checks: assert the generated JSON still marks only (0,0) as `corner`; all logical topology tests remain unchanged; the rendered first cell displays the local brand tile without becoming interactive; the 8×12/96-cell tests and picture-clue quota still pass; and mobile/light/dark theme screenshots show no overflow or unreadable contrast.
