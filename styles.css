@@ -2459,7 +2459,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
   grid-template-columns:repeat(8,minmax(0,1fr))!important;
   grid-template-rows:repeat(12,minmax(0,1fr))!important;
   width:min(95vw,860px)!important;
-  height:85%!important;
+  height:85dvh!important;
   aspect-ratio:auto!important;
   max-width:95vw!important;max-height:100%!important;
   min-width:0!important;min-height:0!important;
