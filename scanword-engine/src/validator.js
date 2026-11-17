@@ -93,6 +93,15 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
+  if (options.allowRightEdgeBoundary === true) {
+    for (let row = 0; row < CONFIG.HEIGHT; row++) {
+      if (grid[row][CONFIG.WIDTH - 1]?.type === 'question') {
+        add('RIGHT_EDGE_QUESTION_FORBIDDEN', 'В крайнем правом столбце запрещены вопросные клетки.', {
+          row, col: CONFIG.WIDTH - 1
+        });
+      }
+    }
+  }
   // Top-row question placement is deliberately dynamic. Any non-question
   // cell must still be covered by a reconstructed answer slot below.
 
@@ -139,6 +148,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const registeredNormalSlots = new Set();
   let specialCount = 0;
   const leftBoundaryRows = new Set();
+  const rightBoundaryRows = new Set();
 
   for (const word of words) {
     if (!word || typeof word !== 'object' || !word.id) {
@@ -314,6 +324,31 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           wordId: word.id, answer, clue, direction: word.direction, terminal
         });
       }
+    } else if (word.special === 'RIGHT_EDGE_BOUNDARY') {
+      const exactCoordinates = word.coordinates.every((coordinate, index) =>
+        coordinate.row === clue.row && coordinate.col === clue.col + index + 1
+      );
+      const expectedLength = CONFIG.WIDTH - clue.col - 1;
+      const validException = options.allowRightEdgeBoundary === true
+        && word.direction === 'right'
+        && clue.col >= 0
+        && clue.col <= CONFIG.WIDTH - 3
+        && answer.length === expectedLength
+        && exactCoordinates
+        && terminal.row === clue.row
+        && terminal.col === CONFIG.WIDTH;
+      if (!validException) {
+        add('INVALID_RIGHT_EDGE_BOUNDARY_WORD', 'Ответ правой границы должен идти вправо от вопроса и заканчиваться буквой в последнем столбце.', {
+          wordId: word.id, answer, clue, direction: word.direction, terminal,
+          enabled: options.allowRightEdgeBoundary === true
+        });
+      } else if (rightBoundaryRows.has(clue.row)) {
+        add('DUPLICATE_RIGHT_EDGE_BOUNDARY_ROW', 'В каждой строке допускается только один ответ, завершающийся у правой границы.', {
+          wordId: word.id, row: clue.row
+        });
+      } else {
+        rightBoundaryRows.add(clue.row);
+      }
     } else if (word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
       const exactCoordinates = word.coordinates.every((coordinate, index) =>
         coordinate.row === clue.row && coordinate.col === index + 1
@@ -395,6 +430,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   if (specialCount > 1) {
     add('MULTIPLE_SPECIAL_BOUNDARY_WORDS', 'На одном поле допускается не более одного специального ответа из 11 букв.', {
       count: specialCount
+    });
+  }
+  if (options.allowRightEdgeBoundary === true && rightBoundaryRows.size !== CONFIG.HEIGHT) {
+    add('INCOMPLETE_RIGHT_EDGE_BOUNDARY_WORDS', 'Каждая строка должна иметь ровно один ответ, доходящий до крайнего правого столбца.', {
+      expected: CONFIG.HEIGHT, actual: rightBoundaryRows.size, rows: [...rightBoundaryRows].sort((a, b) => a - b)
     });
   }
   if (leftBoundaryRows.size > 2) {
@@ -515,6 +555,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || !word.clue
           || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
           || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
+          || word.special === 'RIGHT_EDGE_BOUNDARY'
         ) return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
@@ -544,9 +585,38 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   for (let row = 0; row < CONFIG.HEIGHT; row++) inspectLine('horizontal', row);
   for (let col = 0; col < CONFIG.WIDTH; col++) inspectLine('vertical', col);
 
+  if (options.allowRightEdgeBoundary === true) {
+    for (let row = 0; row < CONFIG.HEIGHT; row++) {
+      let lastQuestionCol = -1;
+      for (let col = 0; col < CONFIG.WIDTH; col++) {
+        if (grid[row][col]?.type === 'question') lastQuestionCol = col;
+      }
+      const length = CONFIG.WIDTH - lastQuestionCol - 1;
+      const first = { row, col: lastQuestionCol };
+      const last = { row, col: CONFIG.WIDTH, boundary: true };
+      const key = slotKey('horizontal', first, last);
+      const matches = words.filter(word =>
+        word?.special === 'RIGHT_EDGE_BOUNDARY'
+        && samePoint(word.clue, first)
+        && word.direction === 'right'
+        && word.answer.length === length
+      );
+      if (length < 2 || matches.length !== 1) {
+        add(
+          matches.length === 0 ? 'UNREGISTERED_RIGHT_EDGE_SLOT' : 'DUPLICATE_RIGHT_EDGE_SLOT',
+          'Ответный слот крайнего правого края должен быть закрыт ровно одним зарегистрированным словом.',
+          { row, first, last, length, wordIds: matches.map(word => word.id) }
+        );
+      } else {
+        discoveredSlots.add(key);
+      }
+    }
+  }
+
   for (const word of words) {
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-      || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') continue;
+      || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
+      || word.special === 'RIGHT_EDGE_BOUNDARY') continue;
     const vector = DIRECTIONS[word.direction];
     if (!vector || !word.clue) continue;
     const terminal = {
@@ -640,7 +710,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     for (const word of words) {
       const endpoints = [word.clue];
       if (word.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-        && word.special !== 'LEFT_BORDER_RIGHT_BOUNDARY') {
+        && word.special !== 'LEFT_BORDER_RIGHT_BOUNDARY'
+        && word.special !== 'RIGHT_EDGE_BOUNDARY') {
         const vector = DIRECTIONS[word.direction];
         if (vector) {
           endpoints.push({
@@ -737,6 +808,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       imageCount: imageWords.length,
       logicClueCells: new Set(words.filter(word => word.logic).map(word => pointKey(word.clue))).size,
       specialElevenLetterWords: specialCount,
+      rightEdgeBoundaryWords: rightBoundaryRows.size,
       registeredNormalSlots: registeredNormalSlots.size,
       reconstructedSlots: discoveredSlots.size
     }
