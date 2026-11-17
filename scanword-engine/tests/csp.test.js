@@ -52,7 +52,7 @@ test('solves a connected right/down topology with one outgoing answer per clue c
 
   assert.equal(result.ok, true, result.message);
   assert.equal(result.words.length, 3);
-  assert.equal(new Set(result.words.map(word => word.answer)).size, 4);
+  assert.equal(new Set(result.words.map(word => word.answer)).size, 3);
   for (const key of ['1,1', '1,5', '5,1']) {
     assert.ok(result.clueDirections.get(key)?.size > 0, 'missing outgoing clue at ' + key);
   }
