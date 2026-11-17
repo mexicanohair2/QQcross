@@ -12,7 +12,7 @@ test('debug candidate scaffold metrics', () => {
       grid[row][col].type = pattern[row][col] === '#' ? 'question' : 'letter';
       grid[row][col].letter = grid[row][col].type === 'letter' ? 'А' : null;
     }
-    const options = { requireConnected: true, allowRightEdgeBoundary: true, allowSpecialElevenBoundary: false };
+    const options = { requireConnected: true, allowRightEdgeBoundary: true, allowSpecialElevenBoundary: index === 3 };
     const validation = validateTopology(grid, options);
     const slots = deriveWordSlots(grid, options);
     console.log('SCAFFOLD DEBUG', index, {
