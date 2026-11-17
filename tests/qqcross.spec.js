@@ -1,6 +1,11 @@
 const { test, expect } = require("@playwright/test");
-async function startGuestGame(page) {
+async function startGuestGame(page, options = {}) {
   const pageErrors = [];
+  if (Number.isInteger(options.requiredImageCount)) {
+    await page.addInitScript(count => {
+      window.__QQCROSS_TEST_OVERRIDES__ = { requiredImageCount: count };
+    }, options.requiredImageCount);
+  }
   const consoleErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
   page.on("console", message => {
@@ -125,7 +130,7 @@ test("three scanword hint levels are available and successful hints are counted"
 });
 
 test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
-  await startGuestGame(page);
+  await startGuestGame(page, { requiredImageCount: 1 });
   const pictureClue = page.locator(".scan-clue-picture").first();
   await pictureClue.click();
   const pictureChoice = page.locator(".clue-popup-choice").filter({ hasText: /изображено/i }).first();
@@ -635,7 +640,7 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 
 test("scanword uses zero to four pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await startGuestGame(page);
+  await startGuestGame(page, { requiredImageCount: 2 });
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
   expect(await images.count()).toBeLessThanOrEqual(4);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
