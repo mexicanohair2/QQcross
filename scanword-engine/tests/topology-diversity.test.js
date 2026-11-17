@@ -26,7 +26,7 @@ test('seeded topology generation produces broad geometric variety while preservi
       assert.equal(rows[row][0], '#', 'left border question missing at row ' + row + ', seed=' + seed);
     }
 
-    assert.ok(result.topology.slots.length >= 18, 'too few real answer slots on seed=' + seed);
+    assert.ok(result.topology.slots.length >= 24, 'too few real answer slots on seed=' + seed);
     assert.ok(result.topology.slots.every(slot => slot.length >= 2));
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
@@ -113,5 +113,5 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
   assert.ok(shortSlots >= 2 && shortSlots <= 4, 'special boards use only a few approved two-letter answers');
-  assert.ok(result.topology.slots.length >= 20);
+  assert.ok(result.topology.slots.length >= 24);
 });
