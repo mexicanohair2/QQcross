@@ -404,6 +404,27 @@ export function validateTopology(grid, options = {}) {
   errors.push(...derived.errors);
   warnings.push(...derived.warnings);
 
+  // A clue cell may start exactly one answer. Terminal-only cells are not
+  // counted as starts; a terminal cell may also start its own perpendicular
+  // answer, but a start cannot branch into both right and down.
+  const outgoingByClue = new Map();
+  for (const slot of derived.slots) {
+    const option = slot.directionOptions?.[0];
+    if (!option?.clueCell) continue;
+    const key = keyOf(option.clueCell);
+    outgoingByClue.set(key, (outgoingByClue.get(key) ?? 0) + 1);
+  }
+  for (const [key, count] of outgoingByClue) {
+    if (count > 1) {
+      errors.push({
+        type: 'MULTIPLE_OUTGOING_SLOTS_FROM_ONE_CLUE',
+        message: 'Одна вопросная клетка не может начинать более одного ответа.',
+        clue: key,
+        outgoingSlots: count
+      });
+    }
+  }
+
   const coverage = collectSlotCoverage(derived.slots);
 
   for (let row = 0; row < CONFIG.HEIGHT; row++) {
