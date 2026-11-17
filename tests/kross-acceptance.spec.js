@@ -22,10 +22,7 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   const details = await board.evaluate(node => {
     const style = getComputedStyle(node);
     const rect = node.getBoundingClientRect();
-    const trackCount = value => {
-      const match = String(value).match(/^repeat\((\d+)\s*,/);
-      return match ? Number(match[1]) : String(value).trim().split(/\s+/).length;
-    };
+    const trackCount = value => String(value).trim().split(/\s+/).length;
     const clues = [...node.querySelectorAll(".scan-clue")].map(clue => {
       const [row, col] = clue.dataset.clueCell.split(",").map(Number);
       return { row, col, content: !!clue.querySelector(".scan-clue-text, .scan-clue-image") };
