@@ -113,7 +113,8 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) !== 2) return null;\n  if (matrix.some(row => row[CONFIG.WIDTH - 2] === '#' || row[CONFIG.WIDTH - 1] === '#')) return null;
+  if (countTopQuestions(matrix) !== 2) return null;
+  if (matrix.some(row => row[CONFIG.WIDTH - 2] === '#' || row[CONFIG.WIDTH - 1] === '#')) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   const centerQuestionCells = countCenterQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
