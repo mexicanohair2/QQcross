@@ -29,6 +29,8 @@ The scanword engine is the only production path for creating scanword boards in 
 
 The engine has seed-based randomness and explicit limits for topology attempts, CSP nodes and CSP time. It returns structured failure diagnostics rather than a partial board. The module worker keeps generation off the UI thread. There are no new runtime dependencies and no Supabase schema changes.
 
+The repository also contains `data/scanwords-1000.json`, but it is a legacy 13×13 template set and is not referenced by the active game. It does not satisfy the current 8×12 production puzzle target.
+
 ## Answer-count acceptance gap
 
 - The production topology builder and independent validator now enforce an interim floor of **24 registered answers** per board.
