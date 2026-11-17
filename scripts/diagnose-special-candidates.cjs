@@ -68,7 +68,8 @@ async function main() {
         minimumLogicClueCells: 3,
         requireLeftBorderClues: true,
         requireTopAnchor: true,
-        requireConnected: true
+        requireConnected: true,
+        allowRightEdgeBoundary: true
       });
       if (independent.valid) {
         successful = { seed, result, independent, special: special[0] };
