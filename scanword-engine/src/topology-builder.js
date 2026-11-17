@@ -5,54 +5,54 @@ import { deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * Production layout: clue starts run across the top and left borders, with
- * several interior clue cells. The former full right-hand clue boundary is
- * replaced by one vertical answer that ends at the lower-right corner.
+ * several interior clue cells. The rightmost column is letter-only; horizontal
+ * answers end at the outer edge without placing a question cell there.
  * The three regular entries intentionally share this validated seed mask;
  * bounded seeded mutations create the production topology variety.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
+  '.#..#...',
+  '#.......',
   '#....#..',
   '#....#..',
   '#....#..',
-  '#.....#.',
-  '#.....#.',
+  '#.......',
+  '#.......',
   '#...#...',
   '#...#...',
   '#....#..',
-  '#.....#.',
-  '#...#..#'
+  '#.......',
+  '#...#...'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
+  '.#..#...',
+  '#.......',
   '#....#..',
   '#....#..',
   '#...#...',
-  '#.....#.',
-  '#.....#.',
-  '#...#.#.',
+  '#.......',
+  '#.......',
+  '#...#...',
   '#...#...',
   '#....#..',
-  '#.....#.',
-  '#...#..#'
+  '#.......',
+  '#...#...'
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
-  '.#..#..#',
-  '#.....#.',
-  '#.....#.',
+  '.#..#...',
+  '#.......',
+  '#.......',
   '#....#..',
   '#...#...',
   '#...#...',
   '#....#..',
   '#....#..',
-  '#.....#.',
+  '#.......',
   '#...#...',
   '#....#..',
-  '#.....##'
+  '#.......'
 ]);
 
 const SCAFFOLD_VARIANTS = Object.freeze([
@@ -63,22 +63,22 @@ const SCAFFOLD_VARIANTS = Object.freeze([
 
 /*
  * Retained as a validated special-case seed for the optional eleven-letter
- * answer. It uses only a small number of right-edge clue cells, never a full
- * question column.
+ * answer. It preserves the letter-only right edge and uses validated boundary
+ * answers instead of right-edge question cells.
  */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
+  '.#...#..',
   '#...#...',
   '#...#...',
   '#...#...',
-  '#......#',
-  '#....##.',
+  '#.......',
+  '#....#..',
   '#...#...',
   '#...#...',
-  '#......#',
-  '#....##.',
-  '#.....#.',
-  '#......#'
+  '#.......',
+  '#....#..',
+  '#.......',
+  '#.......'
 ]);
 
 function createScaffold(extraRows) {
@@ -113,7 +113,8 @@ function toRoleGrid(matrix) {
 function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
   if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 3) return null;
+  if (countTopQuestions(matrix) !== 2) return null;
+  if (matrix.some(row => row[CONFIG.WIDTH - 2] === '#' || row[CONFIG.WIDTH - 1] === '#')) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   const centerQuestionCells = countCenterQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
@@ -129,13 +130,14 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    allowRightEdgeBoundary: true
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
   if (validation.metrics.questionCells < 20 || validation.metrics.letterCells < 30) return null;
 
-  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven });
+  const derived = deriveWordSlots(grid, { allowSpecialElevenBoundary: includeSpecialEleven, allowRightEdgeBoundary: true });
   const minimumSlots = 19 + (includeSpecialEleven ? 1 : 0);
   const twoLetterSlots = derived.slots.filter(slot => slot.length === 2).length;
   const longSlots = derived.slots.filter(slot => slot.length >= 3).length;
@@ -169,7 +171,7 @@ function countTopQuestions(matrix) {
 
 function countInteriorQuestions(matrix) {
   return matrix.slice(1).reduce(
-    (total, row) => total + row.slice(1, CONFIG.WIDTH - 1).filter(value => value === '#').length,
+    (total, row) => total + row.slice(1, CONFIG.WIDTH - 2).filter(value => value === '#').length,
     0
   );
 }
@@ -202,7 +204,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
     // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
-    const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
+    const mutationColumnCount = CONFIG.WIDTH - 2 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
     const key = row + ',' + col;
     if (touched.has(key)) continue;
