@@ -276,10 +276,24 @@ test("opens the 100-level Russian word-search map with at least 12 words per lev
   await expect(page.locator(".qq-search-cell")).toHaveCount(144);
   await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (1[2-9]|2[0-9]|30)/);
   await expect(page.locator(".qq-word-list")).toHaveCount(0);
-  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector(".qq-search-hint").getBoundingClientRect().bottom }));
+  const fit = await page.evaluate(() => { const screen = document.querySelector(".qq-search-screen").getBoundingClientRect(); const grid = document.querySelector(".qq-search-grid").getBoundingClientRect(); return { h: document.documentElement.clientHeight, w: document.documentElement.clientWidth, s: document.documentElement.scrollHeight, b: document.querySelector(".qq-search-hint").getBoundingClientRect().bottom, screenW: screen.width, screenH: screen.height, gridW: grid.width }; });
+  expect(fit.screenW).toBeGreaterThanOrEqual(fit.w * .94);
+  expect(fit.screenH).toBeGreaterThanOrEqual(fit.h * .89);
+  expect(fit.gridW).toBeGreaterThanOrEqual(fit.w * .94);
   expect(fit.b).toBeLessThanOrEqual(fit.h + 1);
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
   expect(errors).toEqual([]);
+});
+
+test("seasonal ambience renders detailed snowflakes and leaves instead of old oval overlays", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.evaluate(() => { document.documentElement.dataset.qqAmbience = "forest"; });
+  await expect(page.locator(".qq-atmo-snow")).toHaveCount(68);
+  await page.evaluate(() => { document.documentElement.dataset.qqAmbience = "autumn"; });
+  await expect(page.locator(".qq-atmo-leaf")).toHaveCount(38);
+  const oldLayer = await page.evaluate(() => getComputedStyle(document.body, "::before").display);
+  expect(oldLayer).toBe("none");
 });
 
 test("opens the rebuilt Cody-style crossword with a real secret column, level map and letter keyboard", async ({ page }) => {
