@@ -36,8 +36,8 @@ test("selected background presets change the actual page background", async ({ p
     image: getComputedStyle(document.body).backgroundImage
   }));
   expect(after.id).toBe("ocean-shore");
-  expect(after.color).not.toBe(before);
-  expect(after.image).toContain("color(srgb");
+  expect(after.color).not.toBe(before.color);
+  expect(after.image).not.toBe(before.image);
 });
 
 test("seasonal ambience uses distinct, slow, non-dust animation layers", async ({ page }) => {
