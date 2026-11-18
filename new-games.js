@@ -114,11 +114,11 @@ function buildSearchPuzzle(words,level){
  if(chosen.length<count){const fallback=shuffle([...new Set(words.filter(w=>w.length>=4&&w.length<=12))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
- for(let grow=0;grow<8;grow++){
+ for(let grow=0;grow<14;grow++){
   grid=Array.from({length:size},()=>Array(size).fill(""));placed=[];
   for(const word of [...chosen].sort((a,b)=>b.length-a.length)){
    let done=false;
-   for(let attempt=0;attempt<500&&!done;attempt++){
+   for(let attempt=0;attempt<900&&!done;attempt++){
     const d=dirs[Math.floor(Math.random()*dirs.length)],x=Math.floor(Math.random()*size),y=Math.floor(Math.random()*size),ex=x+d[0]*(word.length-1),ey=y+d[1]*(word.length-1);
     if(ex<0||ex>=size||ey<0||ey>=size)continue;
     let ok=true;for(let i=0;i<word.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==word[i]){ok=false;break;}}
@@ -127,7 +127,7 @@ function buildSearchPuzzle(words,level){
     placed.push({word,cells,found:false});done=true;
    }
   }
-  if(placed.length>=Math.min(chosen.length,Math.max(5,count-2))||size>=25)break;
+  if(placed.length===chosen.length||size>=25)break;
   size++;
  }
  const targets=new Set(placed.map(p=>p.word));let decoy="";
