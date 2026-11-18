@@ -249,3 +249,9 @@ html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
   .game-screen .scanword-board>.scan-cell{transition:none!important}
 }
 html[data-qq-reduce-motion="true"] body::before{animation:none!important}
+
+
+/* Additional deep burgundy atmospheric backgrounds. */
+html[data-qq-background="burgundy-velvet"] body{background:radial-gradient(ellipse at 50% 0%,#542333 0%,#28101a 48%,#0e070b 100%) fixed!important;}
+html[data-qq-background="wine-dusk"] body{background:radial-gradient(ellipse at 18% 20%,#683044 0%,transparent 48%),radial-gradient(ellipse at 82% 78%,#351724 0%,#10070c 72%) fixed!important;}
+html[data-qq-background="rose-night"] body{background:radial-gradient(ellipse at 70% 0%,#49202f 0%,#24101a 48%,#0b0609 100%) fixed!important;}
