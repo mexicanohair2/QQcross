@@ -259,21 +259,22 @@ test("Wordle supports 4, 6, 7 and 8 letter modes on a phone viewport", async ({ 
   expect(dimensions.s).toBeLessThanOrEqual(dimensions.h + 1);
 });
 
-test("opens the 100-level Russian word-search map and mobile board", async ({ page }) => {
+test("opens the 100-level Russian word-search map with at least 12 words per level", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
-  await expect(page.locator(".qq-game-launch")).toHaveCount(4);
+  await expect(page.locator(".qq-game-launch")).toHaveCount(3);
   await page.locator('[data-extra-game="search"]').click();
   await expect(page.locator(".qq-level-dot")).toHaveCount(100);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
   await expect(page.locator('[data-level="2"]')).toBeDisabled();
   await page.locator('[data-level="1"]').click();
   await expect(page.locator(".qq-search-grid")).toBeVisible();
-  await expect(page.locator(".qq-search-cell")).toHaveCount(81);
+  await expect(page.locator(".qq-search-cell")).toHaveCount(144);
+  await expect(page.locator("#qqProgress")).toHaveText(/Найдено: 0 \/ (1[2-9]|2[0-9]|30)/);
   await expect(page.locator(".qq-word-list")).toHaveCount(0);
   const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector(".qq-search-hint").getBoundingClientRect().bottom }));
   expect(fit.b).toBeLessThanOrEqual(fit.h + 1);
@@ -281,51 +282,6 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   expect(errors).toEqual([]);
 });
 
-test("opens the 100-level Word of Wonders map and joins the wheel letters by dragging", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
-  await page.locator("#guestPlay").click();
-  await page.locator('[data-extra-game="wheel"]').click();
-  await expect(page.locator(".qq-level-dot")).toHaveCount(100);
-  await page.locator('[data-level="1"]').click();
-  await expect(page.locator("#qqWheel")).toBeVisible();
-  const count = await page.locator("#qqWheelBoard").getAttribute("data-word-count");
-  await expect(page.locator("#qqWheelProgress")).toContainText("/ " + count);
-  const letters = page.locator(".qq-wheel-letter");
-  const target = await page.locator("#qqWowClues .qq-wow-clue").first().getAttribute("data-wow-clue");
-  const available = await letters.allTextContents();
-  const used = new Set();
-  const indexes = [...target].map(char => {
-    const index = available.findIndex((letter, i) => letter === char && !used.has(i));
-    used.add(index);
-    return index;
-  });
-  expect(indexes.every(index => index >= 0)).toBeTruthy();
-  await page.evaluate((path) => {
-    const wheel = document.querySelector("#qqWheel");
-    const buttons = [...wheel.querySelectorAll(".qq-wheel-letter")];
-    const points = path.map(index => {
-      const rect = buttons[index].getBoundingClientRect();
-      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-    });
-    const send = (target, type, point) => target.dispatchEvent(new PointerEvent(type, {
-      bubbles: true, cancelable: true, pointerId: 77, pointerType: "touch", isPrimary: true,
-      clientX: point.x, clientY: point.y, buttons: type === "pointerup" ? 0 : 1
-    }));
-    send(buttons[path[0]], "pointerdown", points[0]);
-    for (let i = 1; i < points.length; i++) send(wheel, "pointermove", points[i]);
-    send(wheel, "pointerup", points[points.length - 1]);
-  }, indexes);
-  await expect(page.locator("#qqWheelProgress")).toContainText("Найдено: 1 / " + count);
-  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight, b: document.querySelector("#qqWheelBoard").getBoundingClientRect(), c: document.querySelector(".qq-wow-controls").getBoundingClientRect() }));
-  expect(fit.b.width).toBeGreaterThan(250);
-  expect(fit.c.bottom).toBeLessThanOrEqual(fit.h + 1);
-  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
-  expect(errors).toEqual([]);
-});
 test("difficulty grows through level 100 in Word of Wonders and word search", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
