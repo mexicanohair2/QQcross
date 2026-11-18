@@ -108,10 +108,10 @@ function levelComplete(root,key,level,next){
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
  const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w])));
- const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
- let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
- let chosen=pool.slice(0,count);
- if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w]))).slice(0,Math.max(5,count));
+ const count=Math.min(30,Math.max(12,level<=20?12+Math.floor((level-1)/2):20+Math.floor((level-20)/30)));
+ let size=Math.min(25,Math.max(12,level<=20?12+Math.floor((level-1)/2):18+Math.floor((level-20)/100)));
+ let chosen=[...new Set(pool)].slice(0,count);
+ if(chosen.length<count){const fallback=shuffle([...new Set(words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
  for(let grow=0;grow<8;grow++){
