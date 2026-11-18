@@ -103,6 +103,21 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
   }
+  // Every question cell must actually launch at least one answer. A clue
+  // that is only the terminal of somebody else's answer is not a usable clue.
+  for (let row = 0; row < CONFIG.HEIGHT; row++) {
+    for (let col = 0; col < CONFIG.WIDTH; col++) {
+      if (grid[row][col]?.type !== 'question') continue;
+      const hasStartingAnswer = words.some(word =>
+        word?.clue?.row === row && word?.clue?.col === col
+      );
+      if (!hasStartingAnswer) {
+        add('INACTIVE_QUESTION_CELL', 'Каждая вопросная клетка должна начинать хотя бы один ответ.', {
+          row, col
+        });
+      }
+    }
+  }
   if (options.requireTopAnchor !== false) {
     // A top-row role is active only when an answer actually starts there.
     const topQuestionColumns = grid[0]

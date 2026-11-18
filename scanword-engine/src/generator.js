@@ -499,7 +499,7 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: false,
+      requireEveryClueStarts: true,
       allowedDirections: ['right', 'down', 'left', 'up'],
       history: options.history,
       signal: options.signal,
