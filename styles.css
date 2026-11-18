@@ -2360,3 +2360,12 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 .nav .ni svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
 .qq-game-icon{width:42px!important;height:42px!important;border-radius:14px!important;display:grid!important;place-items:center!important;background:linear-gradient(145deg,#5c3a49,#2c1b24)!important;color:#f3dfe6!important;font-size:0!important;box-shadow:inset 0 1px 0 #ffffff22,0 5px 12px #0004!important;}
 .qq-game-icon svg{width:25px;height:25px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;}
+
+
+/* Search board uses 95% of screen width; the game surface occupies 90% of screen height. */
+.qq-search-screen{width:95vw!important;height:90dvh!important;max-height:90dvh!important;min-height:90dvh!important;margin:5dvh auto!important;overflow:hidden!important;padding:6px 0!important;box-sizing:border-box!important;}
+.qq-search-screen .qq-search-grid{width:min(95vw,90dvh)!important;max-width:95vw!important;max-height:90dvh!important;flex:0 0 auto!important;}
+.qq-search-screen .qq-search-targets-wrap{width:95vw!important;max-width:95vw!important;margin:2px auto!important;}
+.qq-search-screen .qq-search-targets{max-height:16vh!important;}
+.qq-search-screen .qq-search-word{min-height:28px!important;padding:6px 10px!important;font-size:12px!important;border-radius:12px!important;}
+.nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;}
