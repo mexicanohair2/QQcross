@@ -1,0 +1,221 @@
+/* QQCross visual system: Burgundy + Purple, soft rounded surfaces and touch feedback. */
+:root{
+  --qq-motion-fast:220ms;
+  --qq-motion-smooth:380ms;
+  --qq-motion-ease:cubic-bezier(.22,.72,.24,1);
+}
+html[data-qq-theme="burgundy"]{
+  --qq-theme-page:linear-gradient(155deg,#2b1018 0%,#1b0d13 55%,#10080c 100%);
+  --qq-theme-card:linear-gradient(145deg,#40121f 0%,#2b1018 100%);
+  --qq-theme-panel:linear-gradient(145deg,#35131f 0%,#241018 100%);
+  --qq-theme-panel-strong:linear-gradient(135deg,#842b42 0%,#541526 100%);
+  --qq-theme-border:#5b2b3a;
+  --qq-theme-accent:#b18eae;
+  --qq-theme-icon:#a98bb8;
+  --qq-theme-text:#f5e9ee;
+  --qq-theme-muted:#c7acb9;
+  --qq-theme-cell:linear-gradient(145deg,#40202c,#2b1721);
+  --qq-theme-block:linear-gradient(145deg,#1b0e15,#10080d);
+  --qq-theme-filled:linear-gradient(145deg,#6a3448,#482331);
+  --qq-theme-pending:linear-gradient(145deg,#603044,#3e202f);
+  --qq-theme-clue:linear-gradient(145deg,#681b30,#431524);
+  --qq-theme-chip:#3a1c29;
+  --qq-theme-field:#1b0d14;
+  --qq-theme-press-glow:rgba(178,133,183,.42);
+  --qq-theme-press-border:rgba(201,158,199,.55);
+}
+html[data-qq-theme="purple"]{
+  --qq-theme-page:linear-gradient(155deg,#24152f 0%,#171020 56%,#0d0913 100%);
+  --qq-theme-card:linear-gradient(145deg,#301a40 0%,#24132f 100%);
+  --qq-theme-panel:linear-gradient(145deg,#2b1838 0%,#1d1228 100%);
+  --qq-theme-panel-strong:linear-gradient(135deg,#713b83 0%,#49245e 100%);
+  --qq-theme-border:#50385f;
+  --qq-theme-accent:#c0a2d1;
+  --qq-theme-icon:#c0a2d1;
+  --qq-theme-text:#f0e8f5;
+  --qq-theme-muted:#c2b1d0;
+  --qq-theme-cell:linear-gradient(145deg,#352244,#241630);
+  --qq-theme-block:linear-gradient(145deg,#171020,#100b18);
+  --qq-theme-filled:linear-gradient(145deg,#58376b,#392348);
+  --qq-theme-pending:linear-gradient(145deg,#4b2e5e,#301d3d);
+  --qq-theme-clue:linear-gradient(145deg,#633078,#3d2055);
+  --qq-theme-chip:#30203c;
+  --qq-theme-field:#171020;
+  --qq-theme-press-glow:rgba(176,142,207,.42);
+  --qq-theme-press-border:rgba(202,173,226,.55);
+}
+
+/* Rounded, layered surfaces. Keep the actual scanword cells square for readability. */
+html[data-qq-theme] body,
+html[data-qq-theme] .screen,
+html[data-qq-theme] .game-screen,
+html[data-qq-theme] .nav,
+html[data-qq-theme] .card,
+html[data-qq-theme] .notice,
+html[data-qq-theme] .hero,
+html[data-qq-theme] .register-card,
+html[data-qq-theme] .settings-card,
+html[data-qq-theme] .theme-choice,
+html[data-qq-theme] .background-choice,
+html[data-qq-theme] .ambience-choice,
+html[data-qq-theme] .qq-daily-task,
+html[data-qq-theme] .friend-pick,
+html[data-qq-theme] .item,
+html[data-qq-theme] .btn,
+html[data-qq-theme] .input,
+html[data-qq-theme] .clue-popup,
+html[data-qq-theme] .clue-popup-close{
+  transition:
+    background-color var(--qq-motion-smooth) var(--qq-motion-ease),
+    background var(--qq-motion-smooth) var(--qq-motion-ease),
+    color var(--qq-motion-smooth) var(--qq-motion-ease),
+    border-color var(--qq-motion-smooth) var(--qq-motion-ease),
+    box-shadow var(--qq-motion-smooth) var(--qq-motion-ease),
+    transform var(--qq-motion-fast) var(--qq-motion-ease),
+    filter var(--qq-motion-fast) ease;
+}
+html[data-qq-theme] .card,
+html[data-qq-theme] .notice,
+html[data-qq-theme] .hero,
+html[data-qq-theme] .register-card,
+html[data-qq-theme] .settings-card{
+  border-radius:22px!important;
+  border-color:var(--qq-theme-border)!important;
+  box-shadow:0 10px 28px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+html[data-qq-theme] .theme-choice,
+html[data-qq-theme] .background-choice,
+html[data-qq-theme] .ambience-choice,
+html[data-qq-theme] .qq-daily-task,
+html[data-qq-theme] .friend-pick{
+  border-radius:20px!important;
+  border-color:var(--qq-theme-border)!important;
+}
+html[data-qq-theme] .theme-choice{
+  min-height:70px;
+  padding:12px 14px!important;
+  background:var(--qq-theme-panel)!important;
+}
+html[data-qq-theme] .theme-choice.selected{
+  border-color:var(--qq-theme-accent)!important;
+  box-shadow:0 0 0 1px var(--qq-theme-accent),0 8px 22px rgba(0,0,0,.2)!important;
+}
+html[data-qq-theme] .btn,
+html[data-qq-theme] .clue-popup-close{
+  border-radius:16px!important;
+}
+html[data-qq-theme] .input{border-radius:16px!important}
+html[data-qq-theme] .item{border-radius:15px!important}
+html[data-qq-theme] .pill,
+html[data-qq-theme] .coins,
+html[data-qq-theme] .timer{border-radius:999px!important}
+html[data-qq-theme] .nav{
+  border-radius:22px 22px 0 0!important;
+  border-top-color:var(--qq-theme-border)!important;
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+html[data-qq-theme] .ni,
+html[data-qq-theme] .qq-settings-gear,
+html[data-qq-theme] .qq-header-hat,
+html[data-qq-theme] .qq-daily-task-icon,
+html[data-qq-theme] .theme-check,
+html[data-qq-theme] .ambience-preview,
+html[data-qq-theme] .qq-active-title{
+  color:var(--qq-theme-icon)!important;
+}
+html[data-qq-theme] .nav button.active,
+html[data-qq-theme] .nav button.active .ni{
+  color:var(--qq-theme-accent)!important;
+}
+html[data-qq-theme] .btn.primary,
+html[data-qq-theme] .btn.blue,
+html[data-qq-theme] .party-option.selected,
+html[data-qq-theme] .theme-choice.selected{
+  background:var(--qq-theme-panel-strong)!important;
+  border-color:var(--qq-theme-accent)!important;
+}
+html[data-qq-theme] .muted,
+html[data-qq-theme] .small.muted,
+html[data-qq-theme] .theme-copy small,
+html[data-qq-theme] .letter-label,
+html[data-qq-theme] .game-hint{
+  color:var(--qq-theme-muted)!important;
+}
+html[data-qq-theme="burgundy"] .theme-swatch-burgundy{
+  background:linear-gradient(145deg,#842b42,#40121f 58%,#160b10)!important;
+}
+html[data-qq-theme="purple"] .theme-swatch-purple{
+  background:linear-gradient(145deg,#713b83,#301a40 58%,#171020)!important;
+}
+html[data-qq-theme] .boot-splash{
+  background:var(--qq-theme-page)!important;
+  color:var(--qq-theme-muted)!important;
+}
+
+/* Soft halo follows the rounded edge while a tile is being pressed. */
+html[data-qq-theme] .btn,
+html[data-qq-theme] .theme-choice,
+html[data-qq-theme] .background-choice,
+html[data-qq-theme] .ambience-choice,
+html[data-qq-theme] .qq-daily-task,
+html[data-qq-theme] .friend-pick,
+html[data-qq-theme] .item,
+html[data-qq-theme] .nav button,
+html[data-qq-theme] .avatar-choice,
+html[data-qq-theme] .party-option,
+html[data-qq-theme] .letter{
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+  will-change:transform,filter;
+}
+html[data-qq-theme] .btn:active,
+html[data-qq-theme] .theme-choice:active,
+html[data-qq-theme] .background-choice:active,
+html[data-qq-theme] .ambience-choice:active,
+html[data-qq-theme] .qq-daily-task:active,
+html[data-qq-theme] .friend-pick:active,
+html[data-qq-theme] .item:active,
+html[data-qq-theme] .nav button:active,
+html[data-qq-theme] .avatar-choice:active,
+html[data-qq-theme] .party-option:active,
+html[data-qq-theme] .letter:active{
+  transform:translateY(1px) scale(.985)!important;
+  filter:drop-shadow(0 0 9px var(--qq-theme-press-glow))!important;
+  box-shadow:0 0 0 1px var(--qq-theme-press-border),0 0 18px var(--qq-theme-press-glow),inset 0 1px 0 rgba(255,255,255,.09)!important;
+}
+html[data-qq-theme] button:focus-visible{
+  outline:2px solid var(--qq-theme-accent)!important;
+  outline-offset:3px;
+}
+@media(hover:hover){
+  html[data-qq-theme] .theme-choice:hover,
+  html[data-qq-theme] .background-choice:hover,
+  html[data-qq-theme] .ambience-choice:hover,
+  html[data-qq-theme] .qq-daily-task:hover,
+  html[data-qq-theme] .friend-pick:hover{
+    transform:translateY(-2px);
+    filter:brightness(1.045);
+  }
+}
+
+/* A short soft dissolve prevents an abrupt full-screen palette swap. */
+html.qq-theme-transition #app{
+  animation:qq-theme-soft-in 480ms var(--qq-motion-ease) both;
+}
+@keyframes qq-theme-soft-in{
+  from{opacity:.82;filter:blur(2px);transform:translateY(3px)}
+  to{opacity:1;filter:blur(0);transform:translateY(0)}
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-qq-theme] *,
+  html.qq-theme-transition #app{
+    transition:none!important;
+    animation:none!important;
+  }
+}
+html[data-qq-reduce-motion="true"] *,
+html[data-qq-reduce-motion="true"].qq-theme-transition #app{
+  transition:none!important;
+  animation:none!important;
+}
