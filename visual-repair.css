@@ -274,3 +274,8 @@ html[data-qq-ambience="forest"] .home-hero::after,html[data-qq-ambience="forest"
 html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:transparent!important}
 
 html[data-qq-ambience] body::before{display:none!important}
+
+/* Disable the old CSS oval/dust layers; the SVG particle system below replaces them. */
+html[data-qq-ambience] body::before{display:none!important;content:none!important;}
+html[data-qq-ambience] body::after{display:none!important;content:none!important;}
+#app,.nav,.qq-extra-screen,.modal,.toast{position:relative;z-index:1;}
