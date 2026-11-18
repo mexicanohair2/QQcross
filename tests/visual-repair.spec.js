@@ -28,7 +28,7 @@ test("Burgundy and Purple backgrounds are visibly distinct", async ({ page }) =>
 
 test("selected background presets change the actual page background", async ({ page }) => {
   await openSettings(page);
-  const before = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--qq-bg-a").trim());
+  const before = await page.evaluate(() => ({ color: getComputedStyle(document.documentElement).getPropertyValue("--qq-bg-a").trim(), image: getComputedStyle(document.body).backgroundImage }));
   await page.locator('[data-background-choice="ocean-shore"]').click();
   const after = await page.evaluate(() => ({
     id: document.documentElement.dataset.qqBackground,
