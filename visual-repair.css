@@ -270,3 +270,5 @@ html[data-qq-background="rose-night"] body{background:radial-gradient(ellipse at
 @keyframes qqAtmoFog{0%{transform:translate3d(-12vw,0,0) scale(.9)}50%{transform:translate3d(8vw,8vh,0) scale(1.12)}100%{transform:translate3d(20vw,0,0) scale(.95)}}
 html[data-qq-ambience="forest"] .home-hero::after,html[data-qq-ambience="forest"] .home-hero::before,html[data-qq-ambience="sakura"] body::before,html[data-qq-ambience="autumn"] body::before{display:none!important}
 @media(prefers-reduced-motion:reduce){.qq-atmo-particle{animation:none!important;opacity:.12!important}}
+
+html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:transparent!important}
