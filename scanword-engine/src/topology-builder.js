@@ -200,10 +200,11 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
-    // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
-    const minMutationColumn = includeSpecialEleven ? 4 : 3;
-    const mutationColumnCount = 5 - minMutationColumn;
-    const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
+    // Preserve columns 1 and 2 for the mandatory left-border answer.
+    // Standard boards may use all three interior anchor columns; special
+    // eleven-letter boards keep column 3 reserved for the crossing chain.
+    const mutationColumns = includeSpecialEleven ? [4, 5] : [3, 4, 5];
+    const col = mutationColumns[Math.floor(random() * mutationColumns.length)];
     const key = row + ',' + col;
     if (touched.has(key)) continue;
     touched.add(key);
