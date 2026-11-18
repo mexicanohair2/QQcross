@@ -54,8 +54,6 @@ html[data-qq-theme] .notice,
 html[data-qq-theme] .hero,
 html[data-qq-theme] .settings-card{
   background:var(--qq-glass)!important;
-  -webkit-backdrop-filter:blur(10px);
-  backdrop-filter:blur(10px);
 }
 
 /* One ambient layer, behind content, with larger natural shapes instead of dust-like dots. */
