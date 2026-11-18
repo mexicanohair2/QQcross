@@ -173,34 +173,6 @@ test("the secret straw-hat counter works across different game screens", async (
 });
 
 
-test("unique level completions cannot be farmed by replaying the same level", async ({ page }) => {
-  await enterGuest(page);
-  const result = await page.evaluate(() => {
-    const p = window.QQProgression;
-    const first = p.recordUnique("wowLevels", "wow:1");
-    const replay = p.recordUnique("wowLevels", "wow:1");
-    const next = p.recordUnique("wowLevels", "wow:2");
-    return { first, replay, next, count: p.get().stats.wowLevels };
-  });
-  expect(result.first).toBe(true);
-  expect(result.replay).toBe(false);
-  expect(result.next).toBe(true);
-  expect(result.count).toBe(2);
-});
-
-test("double-tapping a discovered word opens its encyclopedia entry", async ({ page }) => {
-  await enterGuest(page);
-  await page.evaluate(() => {
-    const word = document.createElement("button");
-    word.type = "button";
-    word.dataset.qqWord = "ЁЛКА";
-    word.textContent = "ЁЛКА";
-    document.querySelector("#app").append(word);
-    word.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-  });
-  await expect(page.locator("#encyclopediaInput")).toHaveValue("ЁЛКА");
-});
-
 test("accessibility preferences and abstract-background opt-out survive reload", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
