@@ -29,6 +29,8 @@ jobs:
         run: node scripts/diagnose-custom-topology.mjs
       - name: Validate seeded 8x12 topology sampling
         run: node scripts/diagnose-border-compatible-topology.cjs
+      - name: Search for 34-answer topologies and prove dictionary solvability
+        run: node scripts/diagnose-34-topology.cjs
       - name: First gate — 20 seeded puzzles with independent validation
         run: node scripts/verify-scanword-smoke.cjs
       - name: Stress-test 100 consecutive full 8x12 scanwords with a production search budget
