@@ -1,0 +1,251 @@
+/* QQCross visual repair: real theme separation, visible ambience, calmer scanword. */
+html[data-qq-theme="burgundy"]{
+  --qq-base:#1a0a10;
+  --qq-base-deep:#0d060a;
+  --qq-glass:rgba(42,17,27,.90);
+  --qq-theme-border:#51303a;
+  --qq-theme-accent:#a77b88;
+  --qq-theme-muted:#c2aeb4;
+  --qq-theme-cell:linear-gradient(145deg,#302129,#251820);
+  --qq-theme-block:linear-gradient(145deg,#1b1116,#140b10);
+  --qq-theme-filled:linear-gradient(145deg,#55404a,#40313a);
+  --qq-theme-pending:linear-gradient(145deg,#4b3540,#352630);
+  --qq-theme-clue:linear-gradient(145deg,#4d2936,#39202a);
+  --qq-theme-chip:#34202a;
+  --qq-theme-field:#1b1016;
+  --qq-theme-press-glow:rgba(167,123,136,.28);
+  --qq-theme-press-border:rgba(183,139,151,.42);
+}
+html[data-qq-theme="purple"]{
+  --qq-base:#170e20;
+  --qq-base-deep:#090610;
+  --qq-glass:rgba(37,24,49,.90);
+  --qq-theme-border:#4b3a58;
+  --qq-theme-accent:#b09abe;
+  --qq-theme-muted:#c1b5ca;
+  --qq-theme-cell:linear-gradient(145deg,#302638,#251d2d);
+  --qq-theme-block:linear-gradient(145deg,#19131f,#120d17);
+  --qq-theme-filled:linear-gradient(145deg,#51435d,#3c3046);
+  --qq-theme-pending:linear-gradient(145deg,#493953,#33273d);
+  --qq-theme-clue:linear-gradient(145deg,#4a3158,#352440);
+  --qq-theme-chip:#2e2338;
+  --qq-theme-field:#19131f;
+  --qq-theme-press-glow:rgba(176,154,190,.28);
+  --qq-theme-press-border:rgba(193,174,207,.42);
+}
+
+/* The theme supplies the undertone; the selected background supplies the atmosphere. */
+html[data-qq-theme="burgundy"] body{
+  background:radial-gradient(ellipse at 50% 0%,#3b1725 0%,#1a0a10 52%,#0d060a 100%) fixed!important;
+}
+html[data-qq-theme="purple"] body{
+  background:radial-gradient(ellipse at 50% 0%,#342044 0%,#170e20 52%,#090610 100%) fixed!important;
+}
+html[data-qq-background] body{
+  background:
+    radial-gradient(ellipse at 16% 14%,color-mix(in srgb,var(--qq-bg-c) 48%,var(--qq-base) 52%) 0%,transparent 57%),
+    radial-gradient(ellipse at 88% 78%,color-mix(in srgb,var(--qq-bg-b) 42%,var(--qq-base) 58%) 0%,transparent 59%),
+    linear-gradient(142deg,color-mix(in srgb,var(--qq-bg-a) 55%,var(--qq-base) 45%),var(--qq-base-deep) 76%) fixed!important;
+}
+#app{position:relative;z-index:1;background:transparent!important}
+.screen,.game-screen{background:transparent!important}
+html[data-qq-theme] .card,
+html[data-qq-theme] .notice,
+html[data-qq-theme] .hero,
+html[data-qq-theme] .settings-card{
+  background:var(--qq-glass)!important;
+}
+
+/* One ambient layer, behind content, with larger natural shapes instead of dust-like dots. */
+body::before{
+  content:"";
+  position:fixed;
+  inset:-18% -8%;
+  z-index:0;
+  pointer-events:none;
+  opacity:0;
+  transform:translate3d(0,0,0);
+  will-change:transform,background-position,opacity;
+}
+html[data-qq-ambience="forest"] body::before{
+  opacity:.20;
+  background-image:
+    radial-gradient(ellipse 3px 5px at 12% 10%,#e7edf0 60%,transparent 78%),
+    radial-gradient(ellipse 4px 6px at 72% 24%,#d9e4e9 58%,transparent 78%),
+    radial-gradient(ellipse 3px 5px at 42% 66%,#f0f3f4 58%,transparent 78%),
+    radial-gradient(ellipse 4px 6px at 88% 78%,#dce7eb 58%,transparent 78%);
+  background-size:310px 360px,390px 430px,350px 390px,420px 470px;
+  animation:qq-ambience-snow 24s linear infinite;
+}
+html[data-qq-ambience="sakura"] body::before{
+  opacity:.24;
+  background-image:
+    radial-gradient(ellipse 11px 5px at 18% 12%,#e6a9bf 55%,#d58fa9 70%,transparent 78%),
+    radial-gradient(ellipse 9px 5px at 70% 28%,#f0c1d0 55%,#d997b2 70%,transparent 78%),
+    radial-gradient(ellipse 12px 5px at 42% 66%,#e8b0c4 55%,#cb89a5 70%,transparent 78%),
+    radial-gradient(ellipse 9px 5px at 88% 82%,#f0c7d4 55%,#d99bb3 70%,transparent 78%);
+  background-size:390px 330px,470px 390px,430px 370px,510px 430px;
+  animation:qq-ambience-petals 30s linear infinite;
+}
+html[data-qq-ambience="autumn"] body::before{
+  opacity:.22;
+  background-image:
+    linear-gradient(135deg,transparent 38%,#c7834b 40% 58%,transparent 60%),
+    linear-gradient(35deg,transparent 38%,#d5a15b 40% 58%,transparent 60%),
+    linear-gradient(145deg,transparent 38%,#a85f3b 40% 58%,transparent 60%),
+    linear-gradient(25deg,transparent 38%,#c18a4d 40% 58%,transparent 60%);
+  background-size:18px 30px,15px 26px,20px 32px,16px 28px;
+  background-position:12% 8%,68% 18%,38% 54%,86% 72%;
+  background-repeat:repeat;
+  animation:qq-ambience-leaves 28s ease-in-out infinite;
+}
+html[data-qq-ambience="rain"] body::before{
+  opacity:.14;
+  background-image:repeating-linear-gradient(108deg,transparent 0 42px,#b6ccd8 43px,#b6ccd8 44px,transparent 45px 78px);
+  background-size:100% 220px;
+  animation:qq-ambience-rain 2.8s linear infinite;
+}
+html[data-qq-ambience="fireflies"] body::before{
+  opacity:.32;
+  background-image:
+    radial-gradient(circle at 14% 22%,#e7e2a0 0 3px,rgba(231,226,160,.25) 4px,transparent 11px),
+    radial-gradient(circle at 68% 16%,#c9df9a 0 3px,rgba(201,223,154,.22) 4px,transparent 12px),
+    radial-gradient(circle at 82% 72%,#eadc9c 0 3px,rgba(234,220,156,.2) 4px,transparent 12px),
+    radial-gradient(circle at 36% 82%,#c9dfa4 0 3px,rgba(201,223,164,.2) 4px,transparent 11px);
+  background-size:390px 360px,470px 420px,420px 390px,510px 450px;
+  animation:qq-ambience-fireflies 9s ease-in-out infinite alternate;
+}
+html[data-qq-ambience="stars"] body::before{
+  opacity:.25;
+  background-image:
+    radial-gradient(circle at 12% 20%,#f4edf8 0 1px,transparent 2px),
+    radial-gradient(circle at 64% 12%,#e5d9f1 0 1.5px,transparent 2.5px),
+    radial-gradient(circle at 82% 64%,#f4edf8 0 1px,transparent 2px),
+    radial-gradient(circle at 32% 78%,#e5d9f1 0 1.5px,transparent 2.5px);
+  background-size:240px 220px,330px 300px,290px 260px,370px 340px;
+  animation:qq-ambience-stars 8s ease-in-out infinite alternate;
+}
+html[data-qq-ambience="fog"] body::before{
+  opacity:.18;
+  filter:blur(28px);
+  background:
+    radial-gradient(ellipse at 18% 45%,rgba(193,204,205,.42),transparent 38%),
+    radial-gradient(ellipse at 78% 58%,rgba(165,181,194,.34),transparent 42%),
+    radial-gradient(ellipse at 48% 86%,rgba(196,185,202,.22),transparent 40%);
+  background-size:150% 120%;
+  animation:qq-ambience-fog 34s ease-in-out infinite alternate;
+}
+html[data-qq-ambience="none"] body::before{display:none}
+@keyframes qq-ambience-snow{
+  from{background-position:0 -360px,0 -430px,0 -390px,0 -470px;transform:translate3d(-1%,0,0)}
+  to{background-position:24px 100vh,-32px 110vh,18px 105vh,-24px 115vh;transform:translate3d(1%,0,0)}
+}
+@keyframes qq-ambience-petals{
+  0%{background-position:0 -330px,0 -390px,0 -370px,0 -430px;transform:translate3d(-1%,0,0) rotate(-1deg)}
+  50%{transform:translate3d(1%,0,0) rotate(1deg)}
+  100%{background-position:110px 110vh,-90px 120vh,130px 115vh,-120px 125vh;transform:translate3d(-1%,0,0) rotate(-1deg)}
+}
+@keyframes qq-ambience-leaves{
+  0%{background-position:12% -40px,68% -90px,38% -70px,86% -120px;transform:translate3d(-1%,0,0) rotate(-2deg)}
+  50%{transform:translate3d(1%,0,0) rotate(2deg)}
+  100%{background-position:22% 110vh,58% 120vh,48% 115vh,76% 125vh;transform:translate3d(-1%,0,0) rotate(-2deg)}
+}
+@keyframes qq-ambience-rain{from{background-position:0 -220px}to{background-position:-35px 220px}}
+@keyframes qq-ambience-fireflies{from{opacity:.12;transform:translate3d(-1%,1%,0)}to{opacity:.36;transform:translate3d(1%,-1%,0)}}
+@keyframes qq-ambience-stars{from{opacity:.12;transform:scale(.995)}to{opacity:.27;transform:scale(1.01)}}
+@keyframes qq-ambience-fog{from{background-position:0 0;transform:translateX(-3%) scale(1)}to{background-position:100% 0;transform:translateX(3%) scale(1.08)}}
+
+/* Scanword: preserve the current wide 12×8 layout while calming contrast and improving legibility. */
+.game-screen .board-wrap.scanword-wrap{
+  background:transparent!important;border:0!important;box-shadow:none!important;
+  width:100%!important;min-height:0!important;padding:0!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  overflow:hidden!important;
+}
+.game-screen .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:repeat(8,minmax(0,1fr))!important;
+  width:min(90vw,calc((100dvh - 220px)*1.5),900px)!important;
+  height:auto!important;aspect-ratio:3/2!important;
+  max-width:calc(100vw - 8px)!important;
+  max-height:calc(100dvh - 220px)!important;
+  min-width:0!important;min-height:0!important;
+  gap:2px!important;margin:0 auto!important;padding:0!important;
+  box-sizing:border-box!important;flex:0 0 auto!important;overflow:hidden!important;
+}
+.game-screen .scanword-board>.scan-cell{
+  min-width:0!important;min-height:0!important;
+  border-radius:4px!important;
+  border:1px solid var(--qq-theme-border)!important;
+  box-shadow:none!important;
+  transition:background-color 180ms ease,border-color 180ms ease!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-empty,
+.game-screen .scanword-board>.scan-cell.scan-filler{
+  background:var(--qq-theme-block)!important;
+  border-color:color-mix(in srgb,var(--qq-theme-border) 55%,transparent)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue{
+  background:var(--qq-theme-clue)!important;
+  border-color:color-mix(in srgb,var(--qq-theme-accent) 72%,var(--qq-theme-border))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035)!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
+  color:var(--qq-theme-text)!important;
+  font-size:clamp(8px,2.25vw,11px)!important;
+  line-height:1.12!important;
+  font-weight:700!important;
+  text-shadow:none!important;
+  padding:2px 2px 7px!important;
+}
+.game-screen .scanword-board>.scan-cell.cell{
+  background:var(--qq-theme-cell)!important;
+  color:var(--qq-theme-text)!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.filled{
+  background:var(--qq-theme-filled)!important;
+  border-color:var(--qq-theme-accent)!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell{
+  background:var(--qq-theme-pending)!important;
+  border-color:var(--qq-theme-accent)!important;
+}
+.game-screen .scanword-board>.scan-cell .cell-letter{
+  color:var(--qq-theme-text)!important;
+  font-size:clamp(17px,4.3vw,26px)!important;
+  font-weight:750!important;
+  text-shadow:none!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
+  color:var(--qq-theme-muted)!important;
+  background:rgba(20,14,20,.56)!important;
+  box-shadow:none!important;
+  border-radius:3px!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.correct{
+  background:linear-gradient(145deg,#355447,#293f36)!important;
+  border-color:#789a87!important;
+  box-shadow:none!important;
+  animation:none!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.wrong{animation:none!important}
+.game-screen .scanword-board>.scan-cell.cell .cell-letter{animation:none!important}
+html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
+@media(max-width:420px){
+  .game-screen .scanword-board{
+    width:min(90vw,calc((100dvh - 220px)*1.5))!important;
+    max-width:calc(100vw - 8px)!important;
+  }
+}
+@media(max-height:700px){
+  .game-screen .scanword-board{
+    width:min(90vw,calc((100dvh - 190px)*1.5),900px)!important;
+    max-height:calc(100dvh - 190px)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body::before{animation:none!important}
+  .game-screen .scanword-board>.scan-cell{transition:none!important}
+}
+html[data-qq-reduce-motion="true"] body::before{animation:none!important}
