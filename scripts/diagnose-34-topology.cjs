@@ -156,11 +156,26 @@ async function main() {
     resultSummary.push(mode);
   }
 
-  console.log(JSON.stringify({
+  const report = {
     targetAnswersPerBoard: 34,
     dictionaryRecords: dictionary.length,
     search: { normalRestarts: 120, specialRestarts: 120, stepsPerRestart: 260 },
     modes: resultSummary
-  }, null, 2));
+  };
+  const serialized = JSON.stringify(report, null, 2);
+  fs.mkdirSync("artifacts", { recursive: true });
+  fs.writeFileSync("artifacts/qqcross-34-topology-search.json", serialized + "\\n");
+  console.log(serialized);
+
+  for (const mode of resultSummary) {
+    assert.ok(mode.highestTopology?.words >= 34,
+      (mode.specialEleven ? "Special" : "Normal") + " topology search found only "
+      + (mode.highestTopology?.words ?? 0) + " answer slots; required at least 34.");
+    assert.equal(mode.solver?.ok, true, "34-answer topology did not solve: " + JSON.stringify(mode.solver));
+    assert.equal(mode.solver?.assembled, true, "34-answer topology could not be assembled.");
+    assert.equal(mode.solver?.valid, true,
+      "Independent validator rejected the 34-answer topology: " + JSON.stringify(mode.solver?.validationErrors));
+    assert.ok(mode.solver?.metrics?.words >= 34, "Validated board has fewer than 34 answers.");
+  }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
