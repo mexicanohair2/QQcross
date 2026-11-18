@@ -207,7 +207,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             }
             candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
-              coordinates: orientation.coordinates
+              coordinates: orientation.coordinates,
+              clueCell: { ...orientation.clueCell },
+              direction: orientation.direction
             });
           }
         }
@@ -218,6 +220,39 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           break;
         }
         domains.push({ slot, options: candidates });
+      }
+
+      // The final CSP is required to launch an answer from every question
+      // cell. Reject plans that have no candidate orientation starting from
+      // one of those cells before spending the expensive backtracking budget.
+      const startableClueKeys = new Set(['0,1']); // mandatory eleven-letter vertical answer
+      for (const domain of domains) {
+        for (const option of domain.options) {
+          startableClueKeys.add(option.clueCell.row + ',' + option.clueCell.col);
+        }
+      }
+      let inactiveQuestion = null;
+      for (let row = 0; row < CONFIG.HEIGHT && !inactiveQuestion; row++) {
+        for (let col = 0; col < CONFIG.WIDTH; col++) {
+          if (topology.result.topology.grid[row][col]?.type !== 'question') continue;
+          const key = row + ',' + col;
+          if (!startableClueKeys.has(key)) {
+            inactiveQuestion = { row, col };
+            break;
+          }
+        }
+      }
+      if (inactiveQuestion) {
+        planDiagnostics.inactiveQuestionStartsRejected =
+          (planDiagnostics.inactiveQuestionStartsRejected ?? 0) + 1;
+        if (!planDiagnostics.firstInactiveQuestion) {
+          planDiagnostics.firstInactiveQuestion = {
+            answer: entry.answer,
+            rows: topology.rows,
+            clue: inactiveQuestion
+          };
+        }
+        continue;
       }
 
       // Independent word domains can all look valid while their crossing
@@ -311,7 +346,31 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
-  const rankedPlans = plans.map(plan => ({
+
+  // Keep high-quality plans first while interleaving different 11-letter
+  // answers. The former flat ranking could spend every bounded retry on the
+  // same answer with several nearly identical topologies.
+  const plansByAnswer = new Map();
+  for (const plan of plans) {
+    const key = canonicalAnswerKey(plan.answer, { foldYo });
+    const group = plansByAnswer.get(key) ?? [];
+    group.push(plan);
+    plansByAnswer.set(key, group);
+  }
+  const answerGroups = [...plansByAnswer.values()]
+    .sort((a, b) => b[0].score - a[0].score || a[0].tie - b[0].tie);
+  const diversifiedPlans = [];
+  for (let round = 0; diversifiedPlans.length < plans.length; round++) {
+    let added = false;
+    for (const group of answerGroups) {
+      if (round >= group.length) continue;
+      diversifiedPlans.push(group[round]);
+      added = true;
+    }
+    if (!added) break;
+  }
+
+  const rankedPlans = diversifiedPlans.map(plan => ({
     answer: plan.answer,
     rows: plan.rows,
     patternKey: plan.patternKey,
