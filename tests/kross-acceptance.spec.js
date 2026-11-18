@@ -106,3 +106,17 @@ test("Kross save/restore keeps the 8×12 board, clue keys and right-edge answers
   await expect(board.locator('.scan-grid-cell.cell[data-cell$=",7"]')).toHaveCount(12);
   expect(pageErrors).toEqual([]);
 });
+
+test("Kross gameplay: a rack letter can be dragged onto a real scanword cell", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const { pageErrors } = await startGuestGame(page);
+  const rackLetter = page.locator(".hand .letter").first();
+  const targetCell = page.locator(".scanword-board .scan-grid-cell.cell:not(.filled)").first();
+  await expect(rackLetter).toBeVisible();
+  await expect(targetCell).toBeVisible();
+  const letter = (await rackLetter.innerText()).trim();
+  await rackLetter.dragTo(targetCell);
+  await expect(targetCell).toHaveClass(/pending-cell/);
+  await expect(targetCell.locator(".cell-letter")).toHaveText(letter);
+  expect(pageErrors).toEqual([]);
+});
