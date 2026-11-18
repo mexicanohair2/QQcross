@@ -967,10 +967,8 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 @media(max-width:390px){.qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,42%) minmax(0,58%)!important;gap:2px!important}}
 
 
-/* Word of Wonders: place every letter evenly around a real circular wheel. */
 
 
-/* Word of Wonders: compact mobile-first board and functional letter-wheel. */
 
 /* New level maps and mobile-first puzzle layouts */
 .qq-level-screen{height:100dvh!important;max-height:100dvh!important;overflow:hidden!important;display:flex!important;flex-direction:column!important;box-sizing:border-box!important;padding:4px 8px max(4px,env(safe-area-inset-bottom))!important}
@@ -1149,7 +1147,6 @@ html[data-qq-ambience="fireflies"] body::before{opacity:.45;background-image:rad
 html[data-qq-ambience="stars"] body::before{opacity:.38;background-image:radial-gradient(2px 2px at 15% 20%,#fff 55%,transparent 75%),radial-gradient(1px 1px at 70% 30%,#e7dfff 55%,transparent 75%),radial-gradient(2px 2px at 42% 70%,#fff 55%,transparent 75%),radial-gradient(1px 1px at 85% 80%,#e7dfff 55%,transparent 75%);background-size:190px 170px;animation:qqTwinkle 4s ease-in-out infinite alternate}
 html[data-qq-ambience="fog"] body::before{opacity:.22;background:linear-gradient(110deg,transparent 20%,#c7d3d8 48%,transparent 72%);background-size:220% 100%;animation:qqFog 24s ease-in-out infinite alternate}
 @keyframes qqRain{from{background-position:0 -60px}to{background-position:0 260px}}@keyframes qqFireflies{from{opacity:.12;transform:translateY(0)}to{opacity:.5;transform:translateY(-8px)}}@keyframes qqTwinkle{from{opacity:.15}to{opacity:.5}}@keyframes qqFog{from{background-position:0 0}to{background-position:100% 0}}
-.qq-encyclopedia-search form{display:flex;gap:8px;align-items:center}.qq-encyclopedia-search input{min-width:0;flex:1}.qq-encyclopedia-extract{line-height:1.6}.qq-word-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}.qq-word-correction{color:var(--muted);font-size:13px}.qq-word-correction button{border:0;background:transparent;color:var(--purple);font-weight:700}.qq-word-stress{font-size:13px;color:var(--muted)}.qq-related{margin:14px 0}.qq-wiki-link{color:var(--purple);font-weight:700;font-size:13px}.qq-achievement{min-width:0}.nav{grid-template-columns:repeat(7,minmax(0,1fr))}@media(max-width:390px){.nav button{font-size:9px;padding:5px 1px}.background-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.qq-encyclopedia-search form{flex-direction:column;align-items:stretch}}
 
 .scanword-smart-hints{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .scanword-smart-hints button{border:1px solid var(--qq-border,var(--line));background:var(--qq-card,var(--panel));color:var(--qq-text,var(--text));border-radius:9px;padding:7px 9px;font-size:11px;font-weight:700}
@@ -1158,11 +1155,6 @@ html[data-qq-ambience="fog"] body::before{opacity:.22;background:linear-gradient
 .scanword-hint-message:empty{display:none}
 .qq-word-discovery-list{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .qq-word-discovery-list button{border:1px solid var(--qq-border,var(--line));background:var(--qq-card,var(--panel));color:var(--qq-text,var(--text));border-radius:999px;padding:5px 9px;font-size:11px}
-.qq-encyclopedia-search{padding:14px}
-.qq-encyclopedia-search form{margin:8px 0 12px}
-.qq-encyclopedia-search .input{width:100%}
-.qq-encyclopedia-search #encyclopediaResult{min-height:12px}
-@media(max-width:420px){.scanword-smart-hints button{flex:1;min-width:0}.scanword-hint-message{font-size:10px}.qq-encyclopedia-search form .btn{width:100%}}
 
 /* Полный каталог титулов: компактная прокручиваемая сетка для мобильных экранов. */
 .qq-title-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:280px;overflow:auto;overscroll-behavior:contain;padding:2px 4px 4px 0;margin-top:12px;scrollbar-width:thin}
@@ -1218,7 +1210,6 @@ html[data-qq-theme="burgundy"] .qq-cody-keyboard button{background:#593846!impor
 @media(max-width:480px){.nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;padding-left:4px;padding-right:4px}.nav button{font-size:10px!important}.nav .ni{font-size:19px}}
 
 
-/* Word of Wonders: читаемое поле, не ужимаем кроссворд до миниатюры */
 
 
 
@@ -1313,8 +1304,6 @@ html[data-qq-theme] textarea::placeholder{color:var(--qq-theme-muted)!important;
 html[data-qq-theme] .nav button.active,
 html[data-qq-theme] a,
 html[data-qq-theme] .theme-check,
-html[data-qq-theme] .qq-word-correction button,
-html[data-qq-theme] .qq-wiki-link{color:var(--qq-theme-accent)!important}
 html[data-qq-theme] .muted,
 html[data-qq-theme] .small.muted,
 html[data-qq-theme] .letter-label,
@@ -1826,21 +1815,6 @@ html[data-qq-theme="black"] .boot-splash{background:radial-gradient(ellipse at 5
 .boot-mark img{
   display:block;width:100%;height:100%;object-fit:cover;
   border-radius:inherit;
-}
-
-
-/* Word of Wonders: larger letter wheel on mobile without enlarging the crossword board. */
-  width:clamp(164px,46vw,184px)!important;
-  height:clamp(164px,46vw,184px)!important;
-  flex:0 0 auto!important;
-}
-  width:clamp(40px,10vw,46px)!important;
-  height:clamp(40px,10vw,46px)!important;
-  font-size:19px!important;
-}
-  transform:translate(-50%,-50%) rotate(calc(360deg / var(--qq-count) * var(--qq-index))) translateY(-68px) rotate(calc(-360deg / var(--qq-count) * var(--qq-index)))!important;
-}
-@media(max-height:680px){
 }
 
 
