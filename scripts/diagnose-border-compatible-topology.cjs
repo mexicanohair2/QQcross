@@ -25,7 +25,8 @@ async function main() {
     const grid = generated.topology.grid;
     const validation = validateTopology(grid, {
       requireConnected: true,
-      allowSpecialElevenBoundary: special
+      allowSpecialElevenBoundary: special,
+      requireProductionTopLayout: true
     });
     assert.equal(validation.valid, true, "Independent topology check failed for seed " + seed + ": " + JSON.stringify(validation.errors));
     assert.equal(validation.metrics.totalCells, CONFIG.TOTAL_CELLS);
@@ -34,6 +35,9 @@ async function main() {
     assert.equal(grid.flat().length, 96);
     assert.equal(grid[0][0].type, "corner");
     assert.equal(grid[0][1].type, "question");
+    const expectedTop = special ? [1, 2, 5, 6, 7] : [1, 4, 7];
+    const actualTop = grid[0].map((cell, col) => cell.type === "question" ? col : -1).filter(col => col > 0);
+    assert.deepEqual(actualTop, expectedTop, "wrong top anchor layout for seed " + seed);
     for (let row = 1; row < 12; row++) assert.equal(grid[row][0].type, "question");
     const slots = deriveWordSlots(grid, { allowSpecialElevenBoundary: special });
     assert.equal(slots.errors.length, 0);

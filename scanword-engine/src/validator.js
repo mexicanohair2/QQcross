@@ -40,7 +40,7 @@ function makeError(type, message, extra = {}) {
 export function validateScanword(scanword, dictionary = [], options = {}) {
   const errors = [];
   const warnings = [];
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const maximumImageCount = options.maximumImageCount ?? 4;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
 
@@ -73,6 +73,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const grid = scanword.grid;
   const words = Array.isArray(scanword.words) ? scanword.words : [];
   const questions = Array.isArray(scanword.questions) ? scanword.questions : [];
+  const expectsSpecialEleven = words.some(word => word?.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY');
   const prepared = prepareDictionary(dictionary, { foldYo: options.foldYo === true });
   warnings.push(...prepared.warnings);
   const dictionaryById = new Map(prepared.variants.map(entry => [entry.id, entry]));
@@ -93,8 +94,19 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       }
     }
   }
-  // Top-row question placement is deliberately dynamic. Any non-question
-  // cell must still be covered by a reconstructed answer slot below.
+  if (options.requireTopAnchor !== false) {
+    const expectedTopCols = expectsSpecialEleven ? [1, 2, 5, 6, 7] : [1, 4, 7];
+    const actualTopCols = grid[0]
+      .map((cell, col) => cell?.type === 'question' ? col : -1)
+      .filter(col => col > 0);
+    if (actualTopCols.length !== expectedTopCols.length
+      || actualTopCols.some((col, index) => col !== expectedTopCols[index])) {
+      add('INVALID_TOP_ROW_ANCHORS', 'Верхняя строка не соответствует утверждённой схеме обычного или специального сканворда.', {
+        expected: expectedTopCols,
+        actual: actualTopCols
+      });
+    }
+  }
 
   let questionCells = 0;
   let letterCells = 0;
@@ -166,7 +178,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
     const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
+      'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС', 'ДО', 'РЕ', 'МИ', 'ФА', 'ЛЯ', 'СИ'
     ]).map(canonicalAnswerKey));
     if (answer.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(answer))) {
       add('UNAPPROVED_SHORT_ANSWER', 'Двухбуквенный ответ входит в утверждённый список коротких русских слов.', {
@@ -196,18 +208,11 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (!['right', 'left', 'down', 'up'].includes(word.direction)) {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
+    if (word.direction !== 'right' && word.direction !== 'down') {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
         wordId: word.id, direction: word.direction
       });
       continue;
-    }
-    if (
-      word.clue?.row === CONFIG.HEIGHT - 1 && word.clue?.col === CONFIG.WIDTH - 1
-    ) {
-      add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Нижняя правая терминальная клетка должна оставаться концом ответов, а не началом слова.', {
-        wordId: word.id, clue: word.clue, direction: word.direction
-      });
     }
 
     const clue = word.clue;
@@ -222,10 +227,30 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
         wordId: word.id, row: clue.row, col: clue.col
       });
     }
+    if (clue.row === 0) {
+      const expectedDirection = expectsSpecialEleven
+        ? ({ 1: 'down', 2: 'right', 5: 'down', 6: 'down', 7: 'down' })[clue.col]
+        : ({ 1: 'right', 4: 'down', 7: 'down' })[clue.col];
+      if (!expectedDirection || word.direction !== expectedDirection) {
+        add('INVALID_TOP_ANCHOR_DIRECTION', 'Верхняя вопросная клетка использует неверное направление.', {
+          wordId: word.id, clue, expectedDirection: expectedDirection ?? null, actualDirection: word.direction
+        });
+      }
+    }
+    if (clue.col === 0 && clue.row > 0 && word.direction !== 'right') {
+      add('INVALID_LEFT_BORDER_DIRECTION', 'Вопросы левого столбца должны вести вправо.', {
+        wordId: word.id, clue, actualDirection: word.direction
+      });
+    }
+    if (answer.length === 11 && word.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
+      add('UNMARKED_ELEVEN_LETTER_ANSWER', 'Ответ из 11 букв разрешён только как специальный ответ из (0,1) вниз.', {
+        wordId: word.id, answer, clue, direction: word.direction
+      });
+    }
 
-    const directionKey = pointKey(clue) + '|' + word.direction;
+    const directionKey = pointKey(clue);
     if (clueDirectionUse.has(directionKey)) {
-      add('DUPLICATE_CLUE_DIRECTION', 'Одна вопросная клетка не может иметь два ответа в одном направлении.', {
+      add('MULTIPLE_ANSWERS_FROM_ONE_CLUE', 'Одна вопросная клетка может задавать только один ответ и одно направление.', {
         wordId: word.id, otherWordId: clueDirectionUse.get(directionKey), row: clue.row, col: clue.col, direction: word.direction
       });
     } else {
@@ -290,11 +315,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       row: clue.row + vector.dr * (answer.length + 1),
       col: clue.col + vector.dc * (answer.length + 1)
     };
-    if (word.direction === 'up' && terminal.row === 0 && terminal.col === CONFIG.WIDTH - 1) {
-      add('INVALID_LOWER_RIGHT_TERMINAL_DIRECTION', 'Верхняя правая вопросная клетка должна быть началом вертикального ответа вниз.', {
-        wordId: word.id, clue, direction: word.direction, terminal
-      });
-    }
 
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
       specialCount++;
@@ -690,16 +710,23 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const imageWords = words.filter(word => word.imageKey);
   const imageKeys = imageWords.map(word => word.imageKey);
   const imageClueCells = imageWords.map(word => pointKey(word.clue));
-  if (imageWords.length !== requiredImageCount) {
-    add('IMAGE_COUNT_MISMATCH', 'Количество картинок не совпадает с обязательным значением.', {
-      expected: requiredImageCount, actual: imageWords.length
+  if (imageWords.length > maximumImageCount) {
+    add('IMAGE_COUNT_EXCEEDED', 'На одном сканворде допускается не более четырёх изображений.', {
+      maximum: maximumImageCount, actual: imageWords.length
+    });
+  }
+  if (Number.isInteger(options.requiredImageCount)
+    && imageWords.length !== options.requiredImageCount) {
+    add('IMAGE_COUNT_MISMATCH', 'Количество изображений не совпадает с запрошенной квотой генерации.', {
+      expected: options.requiredImageCount,
+      actual: imageWords.length
     });
   }
   if (new Set(imageKeys).size !== imageKeys.length) {
     add('DUPLICATE_IMAGE_KEY', 'Одно изображение использовано более одного раза.', { imageKeys });
   }
   if (new Set(imageClueCells).size !== imageClueCells.length) {
-    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку: игрок должен видеть пять отдельных изображений.', {
+    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку.', {
       imageClueCells
     });
   }

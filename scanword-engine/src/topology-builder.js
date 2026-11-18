@@ -11,7 +11,7 @@ import { deriveWordSlots, validateTopology } from './topology.js';
  * bounded seeded mutations create the production topology variety.
  */
 const STANDARD_SCAFFOLD = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#....#..',
   '#....#..',
@@ -26,7 +26,7 @@ const STANDARD_SCAFFOLD = Object.freeze([
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#....#..',
   '#....#..',
@@ -41,7 +41,7 @@ const STANDARD_SCAFFOLD_VARIANT_2 = Object.freeze([
 ]);
 
 const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
-  '.#..#..#',
+  '.#..####',
   '#.....#.',
   '#.....#.',
   '#....#..',
@@ -67,7 +67,7 @@ const SCAFFOLD_VARIANTS = Object.freeze([
  * question column.
  */
 const LOW_SHORT_SCAFFOLD = Object.freeze([
-  '.#...###',
+  '.##..###',
   '#...#...',
   '#...#...',
   '#...#...',
@@ -110,10 +110,12 @@ function toRoleGrid(matrix) {
   return grid;
 }
 
-function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, minimumInteriorQuestionCells = 6) {
+function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 8, minimumInteriorQuestionCells = 6) {
   if (matrix.length !== CONFIG.HEIGHT || matrix.some(row => row.length !== CONFIG.WIDTH)) return null;
-  if (matrix[0][0] !== '.' || matrix[0][1] !== '#') return null;
-  if (countTopQuestions(matrix) < 3) return null;
+  if (matrix[0][0] !== '.') return null;
+  const expectedTopRow = includeSpecialEleven ? '.##..###' : '.#..####';
+  if (matrix[0].join('') !== expectedTopRow) return null;
+  if (countTopQuestions(matrix) !== 5) return null;
   const interiorQuestionCells = countInteriorQuestions(matrix);
   const centerQuestionCells = countCenterQuestions(matrix);
   if (interiorQuestionCells < minimumInteriorQuestionCells || centerQuestionCells < 3) return null;
@@ -129,7 +131,8 @@ function inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots = 5, m
   const grid = toRoleGrid(matrix);
   const topologyOptions = {
     requireConnected: true,
-    allowSpecialElevenBoundary: includeSpecialEleven
+    allowSpecialElevenBoundary: includeSpecialEleven,
+    requireProductionTopLayout: true
   };
   const validation = validateTopology(grid, topologyOptions);
   if (!validation.valid || validation.metrics.totalCells !== CONFIG.TOTAL_CELLS) return null;
@@ -191,8 +194,8 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // The special 11-letter layout keeps its crossing rows intact. Ordinary
-  // layouts receive a bounded number of seeded mutations.
+  // The special 11-letter mask is deliberately stable until its answer domains
+  // are proven across the production dictionary. Ordinary masks vary by seed.
   const targetMutations = includeSpecialEleven ? 0 : 5 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
@@ -239,7 +242,7 @@ export function generateTopology(options = {}) {
   const includeSpecialEleven = options.includeSpecialEleven === true;
   const maxAttempts = Math.max(1, Math.min(512, options.maxAttempts ?? 96));
   const mutationBudget = Math.max(1, Math.min(512, options.mutationBudget ?? 96));
-  const maxTwoLetterSlots = Math.max(2, Math.min(5, options.maxTwoLetterSlots ?? 5));
+  const maxTwoLetterSlots = Math.max(2, Math.min(8, options.maxTwoLetterSlots ?? 8));
   const requestedScaffoldIndex = Number.isInteger(options.scaffoldIndex)
     && options.scaffoldIndex >= 0
     && options.scaffoldIndex < SCAFFOLD_VARIANTS.length
@@ -259,7 +262,7 @@ export function generateTopology(options = {}) {
       ? -1
       : requestedScaffoldIndex ?? Math.floor(random() * SCAFFOLD_VARIANTS.length);
     const scaffold = includeSpecialEleven
-      ? (Array.isArray(options.specialPattern) ? options.specialPattern : createScaffold(specialRows))
+      ? (Array.isArray(options.specialPattern) ? options.specialPattern : LOW_SHORT_SCAFFOLD)
       : SCAFFOLDS[scaffoldIndex];
     const mutated = mutateValidatedScaffold(
       scaffold,

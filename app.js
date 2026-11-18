@@ -907,6 +907,11 @@ function buildScanwordInWorker(entries, overrides={}){
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
+  const testOverrides=window.__QQCROSS_TEST_OVERRIDES__;
+  if(testOverrides&&Number.isInteger(testOverrides.requiredImageCount)
+    &&testOverrides.requiredImageCount>=0&&testOverrides.requiredImageCount<=4){
+    generationOptions.requiredImageCount=testOverrides.requiredImageCount;
+  }
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});

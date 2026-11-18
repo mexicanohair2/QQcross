@@ -10,7 +10,8 @@ The scanword engine is the only production path for creating scanword boards in 
 - (0,1) is the required top-left anchor.
 - Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
 - Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
-- Horizontal and vertical answers are supported in both directions.
+- Production answers use only right and down, with one outgoing answer per clue cell.
+- Normal boards use top anchors at columns 1, 4 and 7 (`.#..#..#`). Special 11-letter boards use the dedicated top-row mask `.##..###`, so the first anchor starts downward and the separate anchor at column 2 starts rightward.
 - The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
 ## Pipeline
@@ -18,10 +19,10 @@ The scanword engine is the only production path for creating scanword boards in 
 1. dictionary.js normalizes Russian answers and questions, rejects malformed records and answer leakage, preserves meaningful clue variants, and builds positional-letter indexes.
 2. topology-builder.js generates a seeded role mask from multiple validated geometric seeds, applies randomized transforms and cell mutations, and independently rejects masks with uncovered letters, question cells without slots, or disconnected geometry.
 3. topology.js derives every horizontal and vertical slot from consecutive question cells. It checks actual 8×12 geometry rather than forcing a complete top row.
-4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, five distinct image assets and at least three distinct logic-clue cells.
+4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, zero to four distinct image assets and at least three distinct logic-clue cells.
 5. assembler.js reconstructs the cell grid and word/question links.
 6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
-7. scoring.js evaluates completeness, crossings, clue length/clarity proxies, direction variety, answer-length variety, theme diversity, picture count and logic clues. A score never overrides a validation failure.
+7. scoring.js evaluates completeness, crossings, clue length/clarity proxies, direction variety, answer-length variety, theme diversity, 0–4 picture count and logic clues. A score never overrides a validation failure.
 8. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
 ## Bounded generation
@@ -36,7 +37,7 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 
 - npm --prefix scanword-engine test runs isolated engine tests.
 - npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
-- Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
+- Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, 0–4 picture and logic quotas, clue interaction and mobile viewport constraints.
 - A puzzle is accepted into the game only after the independent validator reports success.
 
 

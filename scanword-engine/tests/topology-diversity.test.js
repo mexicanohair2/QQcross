@@ -31,7 +31,8 @@ test('seeded topology generation produces broad geometric variety while preservi
     assert.ok(result.topology.validation.metrics.letterCells >= 30);
     assert.ok(result.topology.validation.metrics.questionCells >= 20);
     assert.ok(result.topology.metrics.interiorQuestionCells >= 6, 'boards need at least six interior question cells; seed=' + seed);
-    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 3, 'top row must carry the three main clue anchors');
+    assert.equal(rows[0].slice(1).split('').filter(cell => cell === '#').length, 5, 'top row must retain three main anchors plus terminal/start junction cells');
+    assert.deepEqual(rows[0].split('').flatMap((cell, col) => cell === '#' ? [col] : []), [1,4,5,6,7]);
     for (let row = 1; row < 11; row++) {
       assert.equal(rows[row][7], '.', 'the right edge must not remain a full clue column; row=' + row + ', seed=' + seed);
     }
@@ -76,7 +77,7 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   assert.equal(scaffolds.length, 4);
   const specialPattern = scaffolds[3];
   assert.deepEqual(specialPattern, [
-    '.#...###',
+    '.##..###',
     '#...#...',
     '#...#...',
     '#...#...',
@@ -109,6 +110,6 @@ test('low-short scaffold is accepted only with its mandatory 11-letter crossing 
   for (let row = 1; row < 12; row++) assert.equal(result.topology.pattern[row][0], '#');
   assert.equal(result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length, 1);
   const shortSlots = result.topology.slots.filter(slot => slot.length === 2).length;
-  assert.equal(shortSlots, 2);
+  assert.equal(shortSlots, 3);
   assert.ok(result.topology.slots.length >= 20);
 });

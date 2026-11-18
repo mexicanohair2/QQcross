@@ -7,28 +7,19 @@ function entry(id, answer, question) {
   return { id, answer, clue: question };
 }
 
-function slot(id, first, last, coordinates, forwardDirection, reverseDirection) {
+function slot(id, first, last, coordinates, forwardDirection) {
   const forward = coordinates.map(point => ({ ...point }));
-  const reverse = [...coordinates].reverse().map(point => ({ ...point }));
   return {
     id,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse
-      }
-    ]
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward
+    }]
   };
 }
 
@@ -39,17 +30,16 @@ const fourWords = [
   entry('forest', 'ЛЕС', 'Большая территория, покрытая деревьями.')
 ];
 
-test('solves a cyclic four-clue topology and assigns all clue cells an outgoing answer', () => {
+test('solves a connected right/down topology with one outgoing answer per clue cell', () => {
   const a = { row: 1, col: 1 };
   const b = { row: 1, col: 5 };
   const c = { row: 5, col: 1 };
   const d = { row: 5, col: 5 };
 
   const slots = [
-    slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right', 'left'),
-    slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down', 'up'),
-    slot('dc', d, c, [{ row: 5, col: 4 }, { row: 5, col: 3 }, { row: 5, col: 2 }], 'left', 'right'),
-    slot('ca', c, a, [{ row: 4, col: 1 }, { row: 3, col: 1 }, { row: 2, col: 1 }], 'up', 'down')
+    slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right'),
+    slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down'),
+    slot('cd', c, d, [{ row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 }], 'right')
   ];
 
   const result = solveSlotsCsp(slots, fourWords, {
@@ -61,9 +51,9 @@ test('solves a cyclic four-clue topology and assigns all clue cells an outgoing 
   });
 
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.words.length, 4);
-  assert.equal(new Set(result.words.map(word => word.answer)).size, 4);
-  for (const key of ['1,1', '1,5', '5,1', '5,5']) {
+  assert.equal(result.words.length, 3);
+  assert.equal(new Set(result.words.map(word => word.answer)).size, 3);
+  for (const key of ['1,1', '1,5', '5,1']) {
     assert.ok(result.clueDirections.get(key)?.size > 0, 'missing outgoing clue at ' + key);
   }
 });
@@ -77,10 +67,10 @@ test('propagates crossing letters into positional candidate indexes', () => {
   const slots = [
     slot('horizontal', horizontalA, horizontalB, [
       { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 }
-    ], 'right', 'left'),
+    ], 'right'),
     slot('vertical', verticalA, verticalB, [
       { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 3 }
-    ], 'down', 'up')
+    ], 'down')
   ];
 
   const dictionary = [
@@ -348,16 +338,16 @@ test('allows the shared picture prompt only for distinct image keys', () => {
   ];
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 17,
-    requiredImageCount: 5,
+    requiredImageCount: 4,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     maxNodes: 500,
     maxTimeMs: 1000
   });
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.metrics.distinctImages, 5);
+  assert.equal(result.metrics.distinctImages, 4);
   assert.equal(new Set(result.words.map(word => word.question)).size, 1);
-  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 5);
+  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 4);
 });
 
 
@@ -593,7 +583,7 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
   assert.equal(result.lastDeadEnd.reason, 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS');
 });
 
-test('CSP places answers in all four directions when each orientation is allowed', () => {
+test('CSP never places answers to the left or upward even when reverse orientations are available', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
   ], 'right', 'left');
@@ -603,42 +593,21 @@ test('CSP places answers in all four directions when each orientation is allowed
   const dictionary = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
 
   for (let seed = 1; seed <= 64; seed++) {
-    const left = solveSlotsCsp([horizontal], dictionary, {
+    const h = solveSlotsCsp([horizontal], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['left'],
+      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
       maxNodes: 100, maxTimeMs: 500
     });
-    const up = solveSlotsCsp([vertical], dictionary, {
+    const v = solveSlotsCsp([vertical], dictionary, {
       seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['up'],
+      requireEveryClueStarts: false, allowedDirections: ['right', 'down'],
       maxNodes: 100, maxTimeMs: 500
     });
-    assert.equal(left.ok, true, left.message);
-    assert.equal(up.ok, true, up.message);
-    assert.equal(left.words[0].direction, 'left', 'seed=' + seed);
-    assert.equal(up.words[0].direction, 'up', 'seed=' + seed);
+    assert.equal(h.ok, true, h.message);
+    assert.equal(v.ok, true, v.message);
+    assert.equal(h.words[0].direction, 'right', 'seed=' + seed);
+    assert.equal(v.words[0].direction, 'down', 'seed=' + seed);
   }
-});
-
-test('CSP preserves the fixed downward lower-right terminal slot', () => {
-  const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 4, col: 7 },
-    Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
-    'down', 'up'
-  );
-  terminalSlot.requiredDirection = 'down';
-  const result = solveSlotsCsp([terminalSlot], [
-    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')
-  ], {
-    seed: 7,
-    requiredImageCount: 0,
-    minimumLogicClueCells: 0,
-    requireEveryClueStarts: false,
-    allowedDirections: ['right', 'left', 'down', 'up'],
-    maxNodes: 100,
-    maxTimeMs: 500
-  });
-  assert.equal(result.ok, true, result.message);
-  assert.equal(result.words[0].direction, 'down');
 });
 
 

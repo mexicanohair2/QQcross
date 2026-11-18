@@ -22,26 +22,9 @@ function hasEmoji(value) {
   return /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(String(value ?? ''));
 }
 
-function rotatePoint(point) {
-  return [7 - point[1], point[0]];
-}
-
-function rotateDirection(direction) {
-  const rotated = { right: 'up', down: 'right', left: 'down', up: 'left' };
-  return rotated[direction] ?? null;
-}
-
-function rotateKeySet(source) {
-  return new Set([...source].map(key => {
-    const [row, col] = key.split(',').map(Number);
-    return rotatePoint([row, col]).join(',');
-  }));
-}
-
 /**
  * Converts the certified engine format into the shape consumed by the
- * existing QQCross game renderer. The validated 8×12 engine grid is displayed
- * counter-clockwise as a wide 12-column × 8-row game board.
+ * existing QQCross game renderer. The validated 8×12 engine grid is passed through without changing its dimensions.
  */
 export function toLegacyPuzzle(scanword, options = {}) {
   if (!scanword || scanword.width !== 8 || scanword.height !== 12) {
@@ -76,7 +59,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
   }
 
   const words = scanword.words.map(word => {
-    if (!DIRECTION_INDEX.hasOwnProperty(word.direction)) {
+    if (word.direction !== 'right' && word.direction !== 'down') {
       throw new Error('У ответа ' + word.id + ' неизвестное направление.');
     }
     if (!Array.isArray(word.coordinates) || word.coordinates.length !== word.answer.length) {
@@ -93,10 +76,10 @@ export function toLegacyPuzzle(scanword, options = {}) {
       isEmoji: hasEmoji(clue),
       logic: word.logic === true,
       imageKey: word.imageKey ?? null,
-      dir: rotateDirection(word.direction),
-      dirIndex: DIRECTION_INDEX[rotateDirection(word.direction)],
-      cells: word.coordinates.map(point => rotatePoint([point.row, point.col])),
-      clueCell: rotatePoint([word.clue.row, word.clue.col]),
+      dir: word.direction,
+      dirIndex: DIRECTION_INDEX[word.direction],
+      cells: word.coordinates.map(point => [point.row, point.col]),
+      clueCell: [word.clue.row, word.clue.col],
       special: word.special ?? null
     };
   });
@@ -106,12 +89,12 @@ export function toLegacyPuzzle(scanword, options = {}) {
   return {
     id,
     title: 'Сканворд',
-    w: 12,
-    h: 8,
+    w: 8,
+    h: 12,
     words,
-    used: rotateKeySet(used),
-    clueKeys: rotateKeySet(clueKeys),
-    reservedKeys: rotateKeySet(reservedKeys),
+    used,
+    clueKeys,
+    reservedKeys,
     coverage: 1
   };
 }

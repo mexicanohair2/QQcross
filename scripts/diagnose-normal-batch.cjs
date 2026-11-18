@@ -13,8 +13,7 @@ async function main() {
     specialMaxCspTimeMs: 1500,
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
-    maxTwoLetterSlots: 5,
-    requiredImageCount: 5,
+    maxTwoLetterSlots: 6,
     minimumLogicClueCells: 3,
   };
   const runs = [];
@@ -23,8 +22,9 @@ async function main() {
   const specialElevenMisses = [];
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
+    const requiredImageCount = index % 5;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index });
+    const result = generateScanword(dictionary, { ...options, requiredImageCount, seed, sequenceIndex: index });
     const elapsedMs = Math.round(performance.now() - started);
     if (!result.ok) {
       runs.push({
@@ -36,7 +36,8 @@ async function main() {
       continue;
     }
     const validation = validateScanword(result.scanword, dictionary, {
-      requiredImageCount: 5,
+      requiredImageCount,
+      maximumImageCount: 4,
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
@@ -45,7 +46,11 @@ async function main() {
     const words = result.scanword.words;
     const imageWords = words.filter(word => word.imageKey);
     const distinctImageClueCells = new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size;
-    if (distinctImageClueCells !== 5) {
+    if (imageWords.length !== requiredImageCount || imageWords.length > 4) {
+      runs.push({ seed, ok: false, reason: 'IMAGE_COUNT_MISMATCH', elapsedMs, requiredImageCount, actualImageCount: imageWords.length });
+      continue;
+    }
+    if (distinctImageClueCells !== imageWords.length) {
       runs.push({ seed, ok: false, reason: 'IMAGE_CLUE_CELL_COLLISION', elapsedMs, distinctImageClueCells });
       continue;
     }
@@ -73,6 +78,7 @@ async function main() {
       musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
       weakPronouns: words.filter(word => ["МЫ","ВЫ","ТЫ","ОН","ЕЕ","ЕЙ"].includes(word.answer)).map(word => word.answer),
       images: validation.metrics.imageCount,
+      requiredImageCount,
       distinctImageClueCells,
       logicCells: validation.metrics.logicClueCells,
       crossings: validation.metrics.crossings,

@@ -10,7 +10,7 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
-  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const directionCounts = { right: 0, down: 0 };
   const generationOptions = {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
@@ -18,7 +18,6 @@ async function main() {
     specialTopologyAttempts: 2,
     maxTwoLetterSlots: 5,
     topologyMutationAttempts: 96,
-    requiredImageCount: 5,
     minimumLogicClueCells: 3
   };
 
@@ -43,9 +42,11 @@ async function main() {
 
   for (let run = 1; run <= 100; run++) {
     const seed = 10000 + run * 7919;
+    const requiredImageCount = run % 5;
     const started = performance.now();
     const result = generateScanword(dictionary, {
       ...generationOptions,
+      requiredImageCount,
       seed,
       sequenceIndex: run
     });
@@ -68,7 +69,8 @@ async function main() {
 
     const scanword = result.scanword;
     const validation = validateScanword(scanword, dictionary, {
-      requiredImageCount: 5,
+      requiredImageCount,
+      maximumImageCount: 4,
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
@@ -91,10 +93,11 @@ async function main() {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
     }
     const imageWords = scanword.words.filter(word => word.imageKey);
-    assert.equal(imageWords.length, 5);
-    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
-    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, 5,
-      'five picture answers must occupy five visible clue cells on seed ' + seed);
+    assert.equal(imageWords.length, requiredImageCount, 'picture quota mismatch on run ' + run);
+    assert.ok(imageWords.length <= 4);
+    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, imageWords.length);
+    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, imageWords.length,
+      'picture answers must occupy distinct visible clue cells on seed ' + seed);
     assert.ok(new Set(scanword.words.filter(word => word.logic).map(word => word.clue.row + "," + word.clue.col)).size >= 3);
     assert.ok(scanword.metadata.valid);
     assert.ok(scanword.metadata.score >= 0 && scanword.metadata.score <= 100);
@@ -104,6 +107,7 @@ async function main() {
     if (run <= 3) {
       const repeated = generateScanword(dictionary, {
         ...generationOptions,
+        requiredImageCount,
         seed,
         sequenceIndex: run
       });
@@ -150,7 +154,7 @@ async function main() {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
-  for (const direction of ['right', 'down', 'left', 'up']) {
+  for (const direction of ['right', 'down']) {
     assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
   }
 }

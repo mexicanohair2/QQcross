@@ -12,7 +12,7 @@ function now() {
 }
 
 const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
-  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
+  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'АС', 'УС'
 ].map(answer => canonicalAnswerKey(answer)));
 
 function canAssignDistinctShortAnswers(domains) {
@@ -112,34 +112,11 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
-  const requiredImageCount = requirements.requiredImageCount ?? 5;
+  const requiredImageCount = requirements.requiredImageCount ?? 0;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
-
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
-      includeSpecialEleven: true,
-      specialSplitRows: rows,
-      maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
-    })
-  })).filter(item => item.result.ok);
-
-  // The independently audited two-short-slot layout is valid only when its
-  // eleven-letter boundary answer is present. Keep it as a dedicated CSP
-  // candidate instead of trying to use it for ordinary disconnected boards.
+  // The special puzzle uses a separate top-row mask: (0,1) starts the
+  // eleven-letter downward answer; (0,2) starts the short rightward bridge.
+  // This prevents one clue cell from accidentally starting two answers.
   const lowShortPattern = getTopologyScaffolds()[3];
   const lowShortTopology = generateTopology({
     seed: 1,
@@ -148,14 +125,12 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxAttempts: 1,
     maxTwoLetterSlots: 4
   });
-  if (lowShortTopology.ok) {
-    topologies.push({
-      rows: [3, 7, 11],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
-      result: lowShortTopology
-    });
-  }
+  const topologies = lowShortTopology.ok ? [{
+    rows: [3, 7, 11],
+    patternKey: 'low-short',
+    specialPattern: lowShortPattern,
+    result: lowShortTopology
+  }] : [];
 
   const plans = [];
   const uniqueAnswers = new Set();
@@ -191,8 +166,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
-          if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
-          if (!['right', 'down', 'left', 'up'].includes(orientation.direction)) continue;
+          if (orientation.direction !== 'right' && orientation.direction !== 'down') continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -205,7 +179,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
-            candidatesById.set(candidate.id + '|' + orientation.direction, {
+            candidatesById.set(candidate.id, {
               entry: candidate,
               coordinates: orientation.coordinates
             });
@@ -363,7 +337,9 @@ export function generateScanword(inputDictionary, options = {}) {
     maxCspTimeMs,
     Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
   );
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requiredImageCount = Number.isInteger(options.requiredImageCount)
+    ? Math.max(0, Math.min(4, options.requiredImageCount))
+    : Math.floor(random() * 5);
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
@@ -403,6 +379,8 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialPlanPool = wantsEleven
     ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
+        requiredImageCount,
+        minimumLogicClueCells,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
@@ -416,6 +394,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialPlanSequence = firstLowShortPlan
     ? [firstLowShortPlan, ...conventionalSpecialPlans]
     : specialPlanPool;
+  if (wantsEleven && specialPlanSequence.length === 0) {
+    return fail('NO_SPECIAL_ELEVEN_PLAN', seed, started, attempts, rejectedReasons, {
+      dictionaryStats: prepared.stats,
+      specialPlanDiagnostics
+    });
+  }
   if (options.capturePlanDiagnostics) {
     specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
   }
@@ -435,8 +419,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialElevenPlanDiagnostics = [];
 
   for (let attempt = 0; attempt < maxTopologies; attempt++) {
-    const useSpecial = wantsEleven && attempt < specialAttempts;
+    // A requested one-in-four special board must never silently fall back to
+    // a normal topology. Exhaust the compatible special plans, then fail.
+    if (wantsEleven && attempt >= specialAttempts) break;
+    const useSpecial = wantsEleven;
     const specialPlan = useSpecial ? specialPlanSequence[specialPlanOffset + attempt] ?? null : null;
+    if (useSpecial && !specialPlan) break;
     if (useSpecial && options.capturePlanDiagnostics) {
       specialElevenPlanDiagnostics.push({
         attempt: attempt + 1,
@@ -460,8 +448,8 @@ export function generateScanword(inputDictionary, options = {}) {
       specialPattern: specialPlan?.specialPattern,
       maxAttempts: options.topologyMutationAttempts ?? 96,
       maxTwoLetterSlots: useSpecialTopology
-        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 5)
-        : (options.maxTwoLetterSlots ?? 5)
+        ? (specialPlan?.patternKey === 'low-short' ? 4 : options.specialMaxTwoLetterSlots ?? 6)
+        : (options.maxTwoLetterSlots ?? 6)
     });
 
     if (!topologyResult.ok) {
@@ -499,8 +487,8 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down', 'left', 'up'],
+      requireEveryClueStarts: true,
+      allowedDirections: ['right', 'down'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
@@ -569,6 +557,7 @@ export function generateScanword(inputDictionary, options = {}) {
     const validation = validateScanword(scanword, inputDictionary, {
       foldYo: options.foldYo === true,
       requiredImageCount,
+      maximumImageCount: 4,
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
