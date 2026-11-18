@@ -164,7 +164,7 @@ async function main() {
   };
   const serialized = JSON.stringify(report, null, 2);
   fs.mkdirSync("artifacts", { recursive: true });
-  fs.writeFileSync("artifacts/qqcross-34-topology-search.json", serialized + "\\n");
+  fs.writeFileSync("artifacts/qqcross-34-topology-search.json", serialized + "\n");
   console.log(serialized);
 
   for (const mode of resultSummary) {
