@@ -59,8 +59,9 @@ function makeSlot(axis, first, last, coordinates) {
 
   const endsAtLowerRight = last.row === CONFIG.HEIGHT - 1 && last.col === CONFIG.WIDTH - 1;
   const startsAtTopRight = first.row === 0 && first.col === CONFIG.WIDTH - 1;
+  const startsAtTopLeftAnchor = horizontal && first.row === 0 && first.col === 1;
   const requiredDirection = horizontal
-    ? (endsAtLowerRight ? 'right' : null)
+    ? (endsAtLowerRight || startsAtTopLeftAnchor ? 'right' : null)
     : (endsAtLowerRight || startsAtTopRight ? 'down' : null);
 
   return {

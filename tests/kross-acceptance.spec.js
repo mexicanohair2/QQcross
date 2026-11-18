@@ -56,7 +56,8 @@ test("Kross contract: canonical 8×12 board has no clue in the rightmost column 
   expect(details.fillerCount).toBe(0);
   expect(details.invalidClues).toEqual([]);
   expect(details.board.width).toBeGreaterThanOrEqual(details.viewport.width * 0.95);
-  expect(details.board.height).toBeGreaterThanOrEqual(details.viewport.height * 0.85);
+  // Chromium quantizes viewport units to fractional CSS pixels.
+  expect(details.board.height).toBeGreaterThanOrEqual(details.viewport.height * 0.85 - 0.5);
   expect(details.board.left).toBeGreaterThanOrEqual(-1);
   expect(details.board.right).toBeLessThanOrEqual(details.viewport.width + 1);
   expect(details.page.width).toBeLessThanOrEqual(details.viewport.width + 1);

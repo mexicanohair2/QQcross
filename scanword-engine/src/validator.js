@@ -103,6 +103,22 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
     }
   }
+  if (options.requireTopAnchor !== false) {
+    // A top-row role is active only when an answer actually starts there.
+    const topQuestionColumns = grid[0]
+      .map((cell, col) => cell?.type === 'question' ? col : -1)
+      .filter(col => col >= 0);
+    for (const col of topQuestionColumns) {
+      const hasStartingAnswer = words.some(word =>
+        word?.clue?.row === 0 && word?.clue?.col === col
+      );
+      if (!hasStartingAnswer) {
+        add('INACTIVE_TOP_ROW_ANCHOR', 'Каждый верхний якорь должен начинать хотя бы один реальный ответ.', {
+          row: 0, col
+        });
+      }
+    }
+  }
   const requireLeftBorderClues = options.requireLeftBorderClues
     ?? (options.requireBorderClues !== false);
   if (requireLeftBorderClues) {
