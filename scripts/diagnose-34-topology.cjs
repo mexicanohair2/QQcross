@@ -40,10 +40,10 @@ async function main() {
     const top = [...rows[0]].map((value, col) => value === "#" ? col : -1).filter(col => col >= 0);
     if (top.length !== 2 || top[0] !== 1 || ![4,5].includes(top[1])) return null;
     for (let r = 1; r < 12; r++) {
-      if (rows[r][0] !== "#" || rows[r][1] !== "." || rows[r][2] !== ".") return null;
+      if (rows[r][0] !== "#") return null;
+      if (special && rows[r][1] !== ".") return null;
       if (rows[r][6] !== "." || rows[r][7] !== ".") return null;
     }
-    if (special && rows.some(row => row[3] === "#")) return null;
     const interior = rows.slice(1).reduce((sum, row) => sum + row.slice(1,7).filter(ch => ch === "#").length, 0);
     const center = rows.slice(3,9).reduce((sum, row) => sum + row.slice(3,6).filter(ch => ch === "#").length, 0);
     if (interior < 6 || center < 3) return null;
@@ -80,7 +80,7 @@ async function main() {
   function clone(rows) { return rows.map(row => [...row]); }
 
   function search(special, attempts, stepsPerAttempt) {
-    const allowedColumns = special ? [4,5] : [3,4,5];
+    const allowedColumns = special ? [2,3,4,5] : [1,2,3,4,5];
     let best = null;
     const topScores = new Map();
     for (let restart = 0; restart < attempts; restart++) {
@@ -113,7 +113,7 @@ async function main() {
   }
 
   for (const special of [false, true]) {
-    const searched = search(special, 120, 260);
+    const searched = search(special, 240, 800);
     const best = searched.best;
     const mode = {
       specialEleven: special,
@@ -126,7 +126,7 @@ async function main() {
       const solved = solveSlotsCsp(best.slots, dictionary, {
         seed: special ? 891011 : 881122,
         maxNodes: 250000,
-        maxTimeMs: 3500,
+        maxTimeMs: 6000,
         requiredImageCount: 5,
         minimumLogicClueCells: 3,
         requireEveryClueStarts: false
@@ -159,7 +159,7 @@ async function main() {
   const report = {
     targetAnswersPerBoard: 34,
     dictionaryRecords: dictionary.length,
-    search: { normalRestarts: 120, specialRestarts: 120, stepsPerRestart: 260 },
+    search: { normalRestarts: 240, specialRestarts: 240, stepsPerRestart: 800 },
     modes: resultSummary
   };
   const serialized = JSON.stringify(report, null, 2);
