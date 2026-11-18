@@ -279,3 +279,7 @@ html[data-qq-ambience] body::before{display:none!important}
 html[data-qq-ambience] body::before{display:none!important;content:none!important;}
 html[data-qq-ambience] body::after{display:none!important;content:none!important;}
 #app,.nav,.qq-extra-screen,.modal,.toast{position:relative;z-index:1;}
+
+@keyframes qqAtmoGlow{0%,100%{transform:translate3d(0,0,0) scale(.7);opacity:.18}45%{transform:translate3d(var(--float-x),-12px,0) scale(1.25);opacity:.85}70%{transform:translate3d(calc(var(--float-x)*-.5),8px,0) scale(.9);opacity:.42}}
+@keyframes qqAtmoTwinkle{0%,100%{transform:scale(.65) rotate(-12deg);opacity:.18}50%{transform:scale(1.25) rotate(18deg);opacity:.9}}
+html[data-qq-reduce-motion="true"] .qq-atmo-particle{animation:none!important;opacity:.12!important}
