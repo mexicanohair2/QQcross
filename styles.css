@@ -2369,3 +2369,7 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 .qq-search-screen .qq-search-targets{max-height:16vh!important;}
 .qq-search-screen .qq-search-word{min-height:28px!important;padding:6px 10px!important;font-size:12px!important;border-radius:12px!important;}
 .nav{grid-template-columns:repeat(5,minmax(0,1fr))!important;}
+
+.background-preview[data-background-preview="burgundy-velvet"]{background:radial-gradient(ellipse at 22% 18%,#8a4056,#421a2b 55%,#150910)!important}
+.background-preview[data-background-preview="wine-dusk"]{background:radial-gradient(ellipse at 20% 30%,#9a5366,transparent 50%),linear-gradient(140deg,#542333,#180a12)!important}
+.background-preview[data-background-preview="rose-night"]{background:radial-gradient(ellipse at 72% 12%,#784053,transparent 45%),linear-gradient(145deg,#351522,#0d070b)!important}
