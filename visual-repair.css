@@ -166,7 +166,7 @@ html[data-qq-ambience="none"] body::before{display:none}
   display:grid!important;
   grid-template-columns:repeat(12,minmax(0,1fr))!important;
   grid-template-rows:repeat(8,minmax(0,1fr))!important;
-  width:min(96vw,calc((100dvh - 220px)*1.5),900px)!important;
+  width:min(90vw,calc((100dvh - 220px)*1.5),900px)!important;
   height:auto!important;aspect-ratio:3/2!important;
   max-width:calc(100vw - 8px)!important;
   max-height:calc(100dvh - 220px)!important;
@@ -234,13 +234,13 @@ html[data-qq-ambience="none"] body::before{display:none}
 html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
 @media(max-width:420px){
   .game-screen .scanword-board{
-    width:min(96vw,calc((100dvh - 220px)*1.5))!important;
+    width:min(90vw,calc((100dvh - 220px)*1.5))!important;
     max-width:calc(100vw - 8px)!important;
   }
 }
 @media(max-height:700px){
   .game-screen .scanword-board{
-    width:min(96vw,calc((100dvh - 190px)*1.5),900px)!important;
+    width:min(90vw,calc((100dvh - 190px)*1.5),900px)!important;
     max-height:calc(100dvh - 190px)!important;
   }
 }
