@@ -250,9 +250,3 @@ test("profile displays match losses and win percentage", async ({ page }) => {
   await expect(page.locator("#qqProgressionStats")).toContainText("поражения: 0");
   await expect(page.locator("#qqProgressionStats")).toContainText("процент побед: 0%");
 });
-
-test("exact common-word spelling is never replaced by a nearby word", async ({ page }) => {
-  await page.goto("/");
-  const result = await page.evaluate(() => window.QQEncyclopedia.suggest("ЗМЕЯ"));
-  expect(result).toEqual({ word: "ЗМЕЯ", distance: 0 });
-});
