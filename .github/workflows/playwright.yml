@@ -6,7 +6,7 @@ concurrency:
 
 on:
   push:
-    branches: [main]
+    branches: [main, work/kross-ci-verify-20261118]
   pull_request:
     branches: [main]
   workflow_dispatch:

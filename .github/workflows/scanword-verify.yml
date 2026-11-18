@@ -5,7 +5,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [main, feature/qqcross-scanword-engine]
+    branches: [main, feature/qqcross-scanword-engine, work/kross-ci-verify-20261118]
   pull_request:
     branches: [main]
 jobs:
