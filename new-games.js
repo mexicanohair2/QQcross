@@ -111,6 +111,7 @@ function buildSearchPuzzle(words,level){
  const count=Math.min(30,Math.max(12,level<=20?12+Math.floor((level-1)/2):20+Math.floor((level-20)/30)));
  let size=Math.min(25,Math.max(12,level<=20?12+Math.floor((level-1)/2):18+Math.floor((level-20)/100)));
  let chosen=[...new Set(pool)].slice(0,count);
+ if(chosen.length<count){const thematic=SEARCH_THEMES.flatMap(item=>item.words),fallback=shuffle([...new Set(thematic.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
  if(chosen.length<count){const fallback=shuffle([...new Set(words.filter(w=>w.length>=4&&w.length<=12))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
