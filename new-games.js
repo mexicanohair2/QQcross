@@ -126,6 +126,17 @@ function buildSearchPuzzle(words,level){
     const cells=[];for(let i=0;i<word.length;i++){const p={x:x+d[0]*i,y:y+d[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
     placed.push({word,cells,found:false});done=true;
    }
+   // Deterministic full-grid fallback: never silently drop a target word after random attempts.
+   if(!done){
+    for(let y=0;y<size&&!done;y++)for(let x=0;x<size&&!done;x++)for(const d of dirs){
+     const ex=x+d[0]*(word.length-1),ey=y+d[1]*(word.length-1);
+     if(ex<0||ex>=size||ey<0||ey>=size)continue;
+     let ok=true;for(let i=0;i<word.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==word[i]){ok=false;break;}}
+     if(!ok)continue;
+     const cells=[];for(let i=0;i<word.length;i++){const p={x:x+d[0]*i,y:y+d[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
+     placed.push({word,cells,found:false});done=true;break;
+    }
+   }
   }
   if(placed.length===chosen.length||size>=25)break;
   size++;
@@ -150,6 +161,7 @@ function buildSearchPuzzle(words,level){
   }
  }
  for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!grid[y][x])grid[y][x]=LETTERS[Math.floor(Math.random()*LETTERS.length)];
+ if(placed.length<12)throw new Error("Не удалось разместить минимум 12 слов. Повтори уровень.");
  return {size,grid,placed,theme:theme.name,decoy};
 }
 function mountSearch(root,onExit,words){
