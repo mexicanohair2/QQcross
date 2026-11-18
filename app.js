@@ -5,18 +5,26 @@ const $=s=>document.querySelector(s);
 const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
 const MATCHES_KEY="qqcross_local_matches_v1";
-const THEME_PRESETS={burgundy:"Бордовая",purple:"Фиолетовая",dark:"Графитовая",light:"Светлая"};
-let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return Object.prototype.hasOwnProperty.call(THEME_PRESETS,saved)?saved:"burgundy"}catch{return "burgundy"}})();
+const THEME_PRESETS={burgundy:"Бордовая",purple:"Фиолетовая"};
+let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return saved==="purple"||saved==="dark"?"purple":"burgundy"}catch{return "burgundy"}})();
 function applyTheme(theme=activeTheme){
-  activeTheme=THEME_PRESETS[theme]?theme:"burgundy";
   const root=document.documentElement;
+  const previousTheme=root.dataset.qqTheme;
+  activeTheme=theme==="purple"?"purple":"burgundy";
   root.dataset.qqTheme=activeTheme;
-  const mode=activeTheme==="light"?"light":"dark";
-  root.dataset.qqMode=mode;
-  root.style.colorScheme=mode;
+  root.dataset.qqMode="dark";
+  root.style.colorScheme="dark";
   try{localStorage.setItem(THEME_KEY,activeTheme)}catch{}
   const meta=document.querySelector('meta[name="theme-color"]');
-  if(meta)meta.setAttribute("content",({burgundy:"#1b0e13",purple:"#100b19",dark:"#11151c",light:"#eef6fc"})[activeTheme]);
+  if(meta)meta.setAttribute("content",activeTheme==="burgundy"?"#160b10":"#171020");
+  const reduceMotion=root.dataset.qqReduceMotion==="true"||window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if(previousTheme&&previousTheme!==activeTheme&&!reduceMotion){
+    root.classList.remove("qq-theme-transition");
+    void root.offsetWidth;
+    root.classList.add("qq-theme-transition");
+    window.clearTimeout(root._qqThemeTransitionTimer);
+    root._qqThemeTransitionTimer=window.setTimeout(()=>root.classList.remove("qq-theme-transition"),520);
+  }
 }
 applyTheme(activeTheme);
 const BACKGROUNDS=[["misty-forest","Туманный лес","nature"],["sakura-dawn","Сакуровый рассвет","nature"],["starry-night","Звёздная ночь","nature"],["autumn-grove","Осенняя роща","nature"],["winter-pines","Зимние ели","nature"],["mountain-lake","Горное озеро","nature"],["ocean-shore","Морской берег","nature"],["spring-rain","Весенний дождь","nature"],["golden-dusk","Золотые сумерки","nature"],["coral-sunset","Коралловый закат","nature"],["desert-dawn","Рассвет в пустыне","nature"],["waterfall","Тихий водопад","nature"],["blue-orbits","Синие орбиты","abstract"],["mint-mist","Мятный туман","abstract"],["peach-light","Персиковый свет","abstract"],["lagoon-glow","Бирюзовая лагуна","abstract"],["warm-amber","Тёплый янтарь","abstract"],["ink-night","Чернильная ночь","abstract"],["rose-quartz","Розовый кварц","abstract"],["watercolor","Акварель","abstract"]];
@@ -383,7 +391,7 @@ function profile(){
  '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
 }
 function settings(){
- const themes=[["burgundy","Бордовая","Глубокий винный оттенок"],["purple","Фиолетовая","Затемнённый сливовый оттенок"],["dark","Графитовая","Спокойный тёмно-серый оттенок"],["light","Светлая","Мягкая бело-голубая тема"]];
+ const themes=[["burgundy","Burgundy","Бордовая основа, приглушённые фиолетовые иконки"],["purple","Purple","Фиолетовая основа, мягкие сливовые акценты"]];
  const audio=window.QQAudio?.getSettings?.()||{music:true,effects:true};
  const choices=BACKGROUNDS;
  const ambiences=[["forest","Зимний лес","Снег и тихие деревья","❄"],["sakura","Сакура","Падающие лепестки","🌸"],["autumn","Осень","Медленные листья клёна","🍁"],["rain","Дождь","Тихие дождевые линии","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
@@ -1603,7 +1611,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261114-release-hardening-v3",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261119-theme-polish-v1",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
