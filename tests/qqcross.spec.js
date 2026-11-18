@@ -75,11 +75,22 @@ test("loads a fully occupied 8-column by 12-row scanword with a clue-free right 
     const explicitColumns = new Set(cells.map(cell => Number(cell.style.gridColumn)));
     const explicitRows = new Set(cells.map(cell => Number(cell.style.gridRow)));
     const rects = cells.map(cell => cell.getBoundingClientRect());
+    const distinctTracks = values => {
+      const sorted = values.slice().sort((a, b) => a - b);
+      const tracks = [];
+      for (const value of sorted) {
+        if (!tracks.length || Math.abs(value - tracks[tracks.length - 1]) > 1) tracks.push(value);
+      }
+      return tracks.length;
+    };
     const boardRect = board.getBoundingClientRect();
     return {
       cellCount: cells.length,
-      columns: countTracks(style.gridTemplateColumns),
-      rows: countTracks(style.gridTemplateRows),
+      // Verify rendered tracks by their actual screen positions. Some mobile
+      // Chromium builds expose an empty computed template for implicit tracks.
+      columns: distinctTracks(rects.map(rect => rect.left)),
+      rows: distinctTracks(rects.map(rect => rect.top)),
+      cssDisplay: style.display,
       explicitColumns: explicitColumns.size,
       explicitRows: explicitRows.size,
       positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
@@ -637,10 +648,19 @@ test("portrait scanword keeps the right edge letter-only and fills the available
   expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
-    return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
+    const image = node.querySelector(".scan-clue-image");
+    const content = text?.textContent.trim() || image?.alt.trim() || "";
+    const visibleNode = text || image;
+    const rect = visibleNode?.getBoundingClientRect();
+    return {
+      starts: Number(node.dataset.clueStartCount || 0),
+      hasContent: !!content,
+      visible: !!visibleNode && getComputedStyle(visibleNode).display !== "none"
+        && rect.width > 0 && rect.height > 0
+    };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
-  expect(clueCells.every(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
+  expect(clueCells.every(cell => cell.starts > 0 && cell.hasContent && cell.visible)).toBeTruthy();
   const boundaryMarkers = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
   expect(boundaryMarkers.every(key => Number(key.split(",")[1]) !== 7)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
