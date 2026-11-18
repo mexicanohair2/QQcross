@@ -272,3 +272,5 @@ html[data-qq-ambience="forest"] .home-hero::after,html[data-qq-ambience="forest"
 @media(prefers-reduced-motion:reduce){.qq-atmo-particle{animation:none!important;opacity:.12!important}}
 
 html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:transparent!important}
+
+html[data-qq-ambience] body::before{display:none!important}
