@@ -19,7 +19,8 @@ function makeParticle(type){
  const duration=type==="snow"?9+Math.random()*13:type==="leaf"?12+Math.random()*15:type==="petal"?10+Math.random()*14:type==="rain"?1.1+Math.random()*.8:type==="fog"?22+Math.random()*18:8+Math.random()*12;
  el.style.left=Math.random()*100+"%";el.style.width=size+"px";el.style.height=(type==="fog"?size*.4:type==="rain"?size*2.5:size)+"px";
  el.style.setProperty("--drift",(Math.random()*160-80)+"px");el.style.setProperty("--spin",(Math.random()*900-450)+"deg");el.style.setProperty("--sway",(Math.random()*2-1)*30+"px");
- el.style.animationDuration=duration+"s";el.style.animationDelay=(-Math.random()*duration)+"s";el.style.opacity=String(type==="fog"?.12:.28+Math.random()*.55);return el;
+ if(type==="glow"||type==="star"){el.style.top=Math.random()*88+"%";el.style.animationName=type==="glow"?"qqAtmoGlow":"qqAtmoTwinkle";el.style.animationDuration=(6+Math.random()*9)+"s";el.style.setProperty("--float-x",(Math.random()*34-17)+"px");}else if(type==="fog"){el.style.top=(8+Math.random()*70)+"%";} 
+ el.style.animationDuration=el.style.animationDuration||duration+"s";el.style.animationDelay=(-Math.random()*duration)+"s";el.style.opacity=String(type==="fog"?.12:.28+Math.random()*.55);return el;
 }
 let last="";
 function render(){const mode=root.dataset.qqAmbience||"none";if(mode===last)return;last=mode;layer.replaceChildren();if(mode==="none")return;
