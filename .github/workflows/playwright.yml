@@ -15,6 +15,20 @@ permissions:
   contents: write
 
 jobs:
+  scanword-topology-search:
+    name: Search real 34-answer scanword layouts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Search viable 34-answer topologies and solve with production dictionary
+        run: node scripts/diagnose-34-topology.cjs
+
   prepare-wordle:
     name: Build expanded Russian Wordle dictionary
     runs-on: ubuntu-latest
