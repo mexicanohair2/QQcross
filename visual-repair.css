@@ -155,7 +155,7 @@ html[data-qq-ambience="none"] body::before{display:none}
 @keyframes qq-ambience-stars{from{opacity:.12;transform:scale(.995)}to{opacity:.27;transform:scale(1.01)}}
 @keyframes qq-ambience-fog{from{background-position:0 0;transform:translateX(-3%) scale(1)}to{background-position:100% 0;transform:translateX(3%) scale(1.08)}}
 
-/* Scanword: preserve the current wide 12×8 layout while calming contrast and improving legibility. */
+/* Scanword: keep the canonical portrait 8-column × 12-row board. */
 .game-screen .board-wrap.scanword-wrap{
   background:transparent!important;border:0!important;box-shadow:none!important;
   width:100%!important;min-height:0!important;padding:0!important;
@@ -164,10 +164,10 @@ html[data-qq-ambience="none"] body::before{display:none}
 }
 .game-screen .scanword-board{
   display:grid!important;
-  grid-template-columns:repeat(12,minmax(0,1fr))!important;
-  grid-template-rows:repeat(8,minmax(0,1fr))!important;
-  width:min(90vw,calc((100dvh - 220px)*1.5),900px)!important;
-  height:auto!important;aspect-ratio:3/2!important;
+  grid-template-columns:repeat(8,minmax(0,1fr))!important;
+  grid-template-rows:repeat(12,minmax(0,1fr))!important;
+  width:min(90vw,calc((100dvh - 220px)*.666667),600px)!important;
+  height:auto!important;aspect-ratio:2/3!important;
   max-width:calc(100vw - 8px)!important;
   max-height:calc(100dvh - 220px)!important;
   min-width:0!important;min-height:0!important;
@@ -234,13 +234,13 @@ html[data-qq-ambience="none"] body::before{display:none}
 html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
 @media(max-width:420px){
   .game-screen .scanword-board{
-    width:min(90vw,calc((100dvh - 220px)*1.5))!important;
+    width:min(90vw,calc((100dvh - 220px)*.666667))!important;
     max-width:calc(100vw - 8px)!important;
   }
 }
 @media(max-height:700px){
   .game-screen .scanword-board{
-    width:min(90vw,calc((100dvh - 190px)*1.5),900px)!important;
+    width:min(90vw,calc((100dvh - 190px)*.666667),600px)!important;
     max-height:calc(100dvh - 190px)!important;
   }
 }
