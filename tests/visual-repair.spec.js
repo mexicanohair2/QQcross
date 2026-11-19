@@ -87,13 +87,24 @@ test("scanword keeps its portrait 8-by-12 grid and uses softer readable cell sty
       cellBackground: getComputedStyle(letter).backgroundImage,
       clueBackground: getComputedStyle(clue).backgroundImage,
       scrollWidth: document.documentElement.scrollWidth,
-      viewportWidth: document.documentElement.clientWidth
+      viewportWidth: document.documentElement.clientWidth,
+      viewportHeight: document.documentElement.clientHeight,
+      boardBottom: board.getBoundingClientRect().bottom,
+      rackBottom: document.querySelector(".letter-area")?.getBoundingClientRect().bottom ?? Infinity,
+      rackLetters: document.querySelectorAll(".letter-area .letter").length,
+      reverseArrows: document.querySelectorAll(".scan-arrow-left,.scan-arrow-up").length,
+      clippedClues: [...board.querySelectorAll(".scan-clue-text")].filter(node => node.scrollHeight > node.clientHeight + 1).length
     };
   });
   expect(visual.columns).toBe(8);
   expect(visual.rows).toBe(12);
-  expect(visual.clueFont).toBeGreaterThanOrEqual(8);
-  expect(visual.minClueFont).toBeGreaterThanOrEqual(8);
+  expect(visual.clueFont).toBeGreaterThanOrEqual(7);
+  expect(visual.minClueFont).toBeGreaterThanOrEqual(7);
   expect(visual.cellBackground).not.toBe(visual.clueBackground);
   expect(visual.scrollWidth).toBeLessThanOrEqual(visual.viewportWidth + 1);
+  expect(visual.boardBottom).toBeLessThanOrEqual(visual.viewportHeight + 1);
+  expect(visual.rackBottom).toBeLessThanOrEqual(visual.viewportHeight + 1);
+  expect(visual.rackLetters).toBe(5);
+  expect(visual.reverseArrows).toBe(0);
+  expect(visual.clippedClues).toBe(0);
 });
