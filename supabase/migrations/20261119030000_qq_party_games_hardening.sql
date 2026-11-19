@@ -196,12 +196,6 @@ begin
   select p.username,p.avatar into v_username,v_avatar
     from public.profiles p where p.id=v_uid;
   if length(trim(coalesce(p_code,'')))<>6 then raise exception 'INVALID_ROOM_CODE'; end if;
-  select * into v_room
-    from public.qq_party_rooms r
-    where r.code=upper(trim(p_code))
-      and r.status='waiting'
-      and r.expires_at>now()
-    for update;
   select r.* into v_room
     from public.qq_party_rooms r
     join public.qq_party_players p on p.room_id=r.id
