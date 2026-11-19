@@ -298,6 +298,10 @@ async function watchSocialUpdates(){
       if(state.tab==="Главная")loadMatchInbox();
       if(state.screen==="lobby"&&state.pendingMatchId)refreshPartyLobby();
     })
+    .on("postgres_changes",{event:"INSERT",schema:"public",table:"qq_party_invites",filter:"recipient_id=eq."+state.profile.id},()=>{
+      if(state.tab==="Главная")loadMatchInbox();
+      else toast("Тебя пригласили в Team Word или QQ Draw");
+    })
     .subscribe((status)=>{
       if(status==="CHANNEL_ERROR"||status==="TIMED_OUT")console.warn("QQCross social realtime:",status);
     });
