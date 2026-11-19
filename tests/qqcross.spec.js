@@ -266,7 +266,10 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
-  await expect(page.locator(".qq-game-launch")).toHaveCount(4);
+  await expect(page.locator(".qq-game-launch")).toHaveCount(6);
+  await expect(page.locator(".qq-game-launch-grid > button.qq-game-launch")).toHaveCount(4);
+  await expect(page.locator('.qq-game-launch-grid > a[href="https://qqcross-team-word.vercel.app/"]')).toBeVisible();
+  await expect(page.locator('.qq-game-launch-grid > a[href="https://qqcross-qq-draw.vercel.app/"]')).toBeVisible();
   await page.locator('[data-extra-game="search"]').click();
   await expect(page.locator(".qq-level-dot")).toHaveCount(100);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
