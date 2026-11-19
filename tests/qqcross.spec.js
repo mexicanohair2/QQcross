@@ -38,7 +38,7 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 12-column by 8-row wide scanword with five distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 8-column by 12-row scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -88,13 +88,13 @@ test("loads a fully occupied 12-column by 8-row wide scanword with five distinct
     };
   });
   expect(geometry.cellCount).toBe(96);
-  expect(geometry.columns).toBe(12);
-  expect(geometry.rows).toBe(8);
-  expect(geometry.explicitColumns).toBe(12);
-  expect(geometry.explicitRows).toBe(8);
+  expect(geometry.columns).toBe(8);
+  expect(geometry.rows).toBe(12);
+  expect(geometry.explicitColumns).toBe(8);
+  expect(geometry.explicitRows).toBe(12);
   expect(geometry.positiveCells).toBe(96);
-  expect(Math.abs(geometry.ratio - (3 / 2))).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 220) * (3 / 2)));
+  expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
+  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 220) * (2 / 3)));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
@@ -583,11 +583,11 @@ test("wide scanword moves right-edge clues to the top row and preserves central 
     viewportHeight: document.documentElement.clientHeight
     };
   });
-  expect(grid.columns).toBe(12);
-  expect(grid.rows).toBe(8);
+  expect(grid.columns).toBe(8);
+  expect(grid.rows).toBe(12);
   expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
   expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.91);
-  expect(Math.abs(grid.width / grid.height - (3 / 2))).toBeLessThan(0.03);
+  expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="6,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="0,0"]')).toHaveCount(1);
