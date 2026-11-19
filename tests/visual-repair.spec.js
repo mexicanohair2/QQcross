@@ -69,9 +69,12 @@ test("scanword keeps its portrait 8-by-12 grid and uses softer readable cell sty
   await page.locator("#play-toggle").click();
   await page.locator("#practice").click();
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator(".scanword-board .scan-clue-text").first()).toBeAttached();
+  await expect(page.locator(".scanword-board .cell").first()).toBeAttached();
   const visual = await page.evaluate(() => {
     const board = document.querySelector(".scanword-board");
-    const clue = board.querySelector(".scan-clue");
+    const clueText = board.querySelector(".scan-clue-text");
+    const clue = clueText?.closest(".scan-clue");
     const letter = board.querySelector(".cell");
     const clueFonts = [...board.querySelectorAll(".scan-clue-text")]
       .filter(node => !node.closest(".scan-clue-emoji"))
@@ -79,7 +82,7 @@ test("scanword keeps its portrait 8-by-12 grid and uses softer readable cell sty
     return {
       columns: getComputedStyle(board).gridTemplateColumns.split(" ").length,
       rows: getComputedStyle(board).gridTemplateRows.split(" ").length,
-      clueFont: parseFloat(getComputedStyle(clue.querySelector(".scan-clue-text")).fontSize),
+      clueFont: parseFloat(getComputedStyle(clueText).fontSize),
       minClueFont: clueFonts.length ? Math.min(...clueFonts) : 0,
       cellBackground: getComputedStyle(letter).backgroundImage,
       clueBackground: getComputedStyle(clue).backgroundImage,
