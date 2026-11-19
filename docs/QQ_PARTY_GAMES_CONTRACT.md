@@ -113,7 +113,7 @@ GitHub Pages приложения имеют разные origins. Браузе�
 
 - Team Word: https://mexicanohair2.github.io/Team-Word/
 - QQ Draw: https://mexicanohair2.github.io/QQ-Draw/
-- QQCross: https://mexicanohair2.github.io/QQCross/
+- QQCross: https://mexicanohair2.github.io/QQcross/
 
 GitHub Pages для новых репозиториев должен быть включён в настройках репозитория: **Settings → Pages → Build and deployment → Source → GitHub Actions**. GitHub Actions не может создать Pages site автоматически, если интеграции не выданы права на управление настройкой Pages.
 
