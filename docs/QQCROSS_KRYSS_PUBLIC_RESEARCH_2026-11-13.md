@@ -45,7 +45,7 @@ The public maker page says:
 - Grid is created by dragging to create cells.
 - Its product description advertises language and difficulty selection, text or picture clues, then play/share/print/embed.
 
-This independently corroborates QQCross's agreed **8 columns × 12 rows = 96 cells** target. In the maker UI wording, “Across 8 / Down 12” means 8 columns and 12 rows, not 8 rows by 12 columns.
+This independently corroborates QQCross's agreed **8 columns × 12 rows = 96 cells** target.
 
 The maker page embeds an editor iframe from `https://crosswordtool-canvas.vercel.app/`. The iframe's public page describes itself as a crossword maker. The public evidence does not establish that this third-party editor is Kryss's proprietary mobile generator or that its code is the same as Kryss's code. Do not use its branding/code/assets in QQCross.
 
