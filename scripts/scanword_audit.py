@@ -46,7 +46,8 @@ def main() -> int:
         return 1
 
     errors: list[str] = []
-    clues: dict[str, str] = {}
+    clues: dict[str, dict[str, str | None]] = {}
+    shared_clue_groups: dict[str, list[tuple[str, str, bool]]] = defaultdict(list)
     seen_pairs: set[tuple[str, str]] = set()
     by_answer: dict[str, list[str]] = defaultdict(list)
     one_letter = 0
@@ -68,13 +69,34 @@ def main() -> int:
         if pair in seen_pairs:
             errors.append(f"entry {index}: duplicate answer/clue pair {answer}: {clue}")
         seen_pairs.add(pair)
+        shared_group = str(item.get("sharedClueGroup") or "").strip() or None
+        if shared_group:
+            if not re.fullmatch(r"[a-z0-9_-]{3,80}", shared_group):
+                errors.append(f"entry {index}: invalid sharedClueGroup identifier {shared_group}")
+            shared_clue_groups[shared_group].append((answer, key, bool(item.get("imageKey"))))
         if key and key != "что изображено на картинке":
             previous = clues.get(key)
-            if previous and previous != answer:
-                errors.append(f"same clue used for {previous} and {answer}: {clue}")
-            clues[key] = answer
+            same_declared_pair = bool(
+                previous
+                and shared_group
+                and previous.get("shared_group") == shared_group
+            )
+            if previous and previous.get("answer") != answer and not same_declared_pair:
+                errors.append(
+                    f"same clue used for {previous.get('answer')} and {answer}: {clue}"
+                )
+            if not previous:
+                clues[key] = {"answer": answer, "shared_group": shared_group}
         if not item.get("imageKey"):
             by_answer[answer].append(clue)
+
+    for group_id, records in shared_clue_groups.items():
+        unique_answers = {answer for answer, _, _ in records}
+        if len(records) != 2 or len(unique_answers) != 2 or any(has_image for _, _, has_image in records):
+            errors.append(
+                f"shared clue group {group_id} must contain exactly two different text answers "
+                f"and no image clues; got {len(records)} records"
+            )
 
     if one_letter > 33:
         errors.append(f"too many one-letter answers: {one_letter} (maximum 33)")
