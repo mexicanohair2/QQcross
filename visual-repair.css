@@ -283,3 +283,6 @@ html[data-qq-ambience] body::after{display:none!important;content:none!important
 @keyframes qqAtmoGlow{0%,100%{transform:translate3d(0,0,0) scale(.7);opacity:.18}45%{transform:translate3d(var(--float-x),-12px,0) scale(1.25);opacity:.85}70%{transform:translate3d(0,8px,0) scale(.9);opacity:.42}}
 @keyframes qqAtmoTwinkle{0%,100%{transform:scale(.65) rotate(-12deg);opacity:.18}50%{transform:scale(1.25) rotate(18deg);opacity:.9}}
 html[data-qq-reduce-motion="true"] .qq-atmo-particle{animation:none!important;opacity:.12!important}
+
+/* Keep multi-direction clue text readable on narrow phone boards. */
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-multi:not(.scan-clue-picture) .scan-clue-text{font-size:clamp(8px,2.1vw,10px)!important;line-height:1.04!important}
