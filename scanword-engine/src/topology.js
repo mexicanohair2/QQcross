@@ -50,9 +50,7 @@ function hasValidShape(grid) {
 function makeSlot(axis, first, last, coordinates) {
   const horizontal = axis === 'horizontal';
   const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   const endsAtLowerRight = last.row === CONFIG.HEIGHT - 1 && last.col === CONFIG.WIDTH - 1;
   const startsAtTopRight = first.row === 0 && first.col === CONFIG.WIDTH - 1;
@@ -67,20 +65,12 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
@@ -107,8 +97,8 @@ export function getAnswerCoordinates(clueCell, direction, length) {
  * Derives geometric candidate slots from a role grid.
  *
  * A normal answer slot is a run of at least two letter cells between two
- * consecutive question cells on one row or column. Both endpoint orientations
- * are retained, allowing the CSP stage to choose right/left/down/up.
+ * consecutive question cells on one row or column. Only forward orientation
+ * is retained: horizontal answers go right and vertical answers go down.
  *
  * One-letter gaps are intentionally not promoted to answers.
  */

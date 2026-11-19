@@ -7,28 +7,19 @@ function entry(id, answer, question) {
   return { id, answer, clue: question };
 }
 
-function slot(id, first, last, coordinates, forwardDirection, reverseDirection) {
+function slot(id, first, last, coordinates, forwardDirection) {
   const forward = coordinates.map(point => ({ ...point }));
-  const reverse = [...coordinates].reverse().map(point => ({ ...point }));
   return {
     id,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse
-      }
-    ]
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward
+    }]
   };
 }
 
@@ -46,10 +37,10 @@ test('solves a cyclic four-clue topology and assigns all clue cells an outgoing 
   const d = { row: 5, col: 5 };
 
   const slots = [
-    slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right', 'left'),
-    slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down', 'up'),
-    slot('dc', d, c, [{ row: 5, col: 4 }, { row: 5, col: 3 }, { row: 5, col: 2 }], 'left', 'right'),
-    slot('ca', c, a, [{ row: 4, col: 1 }, { row: 3, col: 1 }, { row: 2, col: 1 }], 'up', 'down')
+    slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right'),
+    slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down'),
+    slot('dc', c, d, [{ row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 }], 'right'),
+    slot('ca', a, c, [{ row: 2, col: 1 }, { row: 3, col: 1 }, { row: 4, col: 1 }], 'down')
   ];
 
   const result = solveSlotsCsp(slots, fourWords, {
@@ -77,10 +68,10 @@ test('propagates crossing letters into positional candidate indexes', () => {
   const slots = [
     slot('horizontal', horizontalA, horizontalB, [
       { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 }
-    ], 'right', 'left'),
+    ], 'right'),
     slot('vertical', verticalA, verticalB, [
       { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 3 }
-    ], 'down', 'up')
+    ], 'down')
   ];
 
   const dictionary = [
@@ -118,10 +109,10 @@ test('rejects impossible intersections instead of inventing letters', () => {
   const slots = [
     slot('horizontal', a, b, [
       { row: 2, col: 2 }, { row: 2, col: 3 }, { row: 2, col: 4 }
-    ], 'right', 'left'),
+    ], 'right'),
     slot('vertical', c, d, [
       { row: 1, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 3 }
-    ], 'down', 'up')
+    ], 'down')
   ];
 
   const result = solveSlotsCsp(slots, [
@@ -145,7 +136,7 @@ test('stops safely when the search budget is exhausted', () => {
   const slots = [
     slot('ab', a, b, [
       { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }
-    ], 'right', 'left')
+    ], 'right')
   ];
 
   const result = solveSlotsCsp(slots, fourWords, {
@@ -199,7 +190,7 @@ test('rejects a slot whose direction does not match its coordinates', () => {
   const b = { row: 1, col: 5 };
   const bad = slot('wrong-direction', a, b, [
     { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }
-  ], 'down', 'up');
+  ], 'down');
 
   const result = solveSlotsCsp([bad], fourWords, {
     requiredImageCount: 0,
@@ -215,10 +206,10 @@ test('does not reuse the same normalized clue text for different answers', () =>
   const slots = [
     slot('first', { row: 1, col: 0 }, { row: 1, col: 4 }, [
       { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-    ], 'right', 'left'),
+    ], 'right'),
     slot('second', { row: 5, col: 0 }, { row: 5, col: 4 }, [
       { row: 5, col: 1 }, { row: 5, col: 2 }, { row: 5, col: 3 }
-    ], 'right', 'left')
+    ], 'right')
   ];
   const dictionary = [
     entry('cat', 'КОТ', '  Домашнее   животное! '),
@@ -241,7 +232,7 @@ test('does not reuse the same normalized clue text for different answers', () =>
 test('CSP result is deterministic for an identical seed and input', () => {
   const slots = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-  ], 'right', 'left')];
+  ], 'right')];
   const dictionary = [
     entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.'),
     entry('home', 'ДОМ', 'Место, где живут люди.'),
@@ -272,7 +263,7 @@ test('CSP respects an already-aborted cancellation signal', () => {
   const result = solveSlotsCsp([
     slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
       { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-    ], 'right', 'left')
+    ], 'right')
   ], fourWords, {
     signal: controller.signal,
     requiredImageCount: 0,
@@ -287,7 +278,7 @@ test('history penalizes recently used answers and avoids an exact recent structu
   const history = new GenerationHistory(10);
   const slotPlan = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-  ], 'right', 'left')];
+  ], 'right')];
   const dictionary = [
     entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.'),
     entry('home', 'ДОМ', 'Место, где живут люди.')
@@ -337,7 +328,7 @@ test('allows the shared picture prompt only for distinct image keys', () => {
     const row = index * 2 + 1;
     return slot('picture-' + index, { row, col: 0 }, { row, col: 4 }, [
       { row, col: 1 }, { row, col: 2 }, { row, col: 3 }
-    ], 'right', 'left');
+    ], 'right');
   });
   const dictionary = [
     { id: 'cat', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
@@ -530,7 +521,7 @@ test('allows curated two-letter Russian words and rejects pronoun filler', () =>
   const clueB = { row: 1, col: 4 };
   const shortSlot = slot('short-word', clueA, clueB, [
     { row: 1, col: 2 }, { row: 1, col: 3 }
-  ], 'right', 'left');
+  ], 'right');
   const options = {
     seed: 71,
     requiredImageCount: 0,
@@ -574,7 +565,7 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
   };
   const horizontal = slot('crossing', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-  ], 'right', 'left');
+  ], 'right');
   const result = solveSlotsCsp([special, horizontal], [
     entry('long', 'АБВГДЕЖЗИЙК', 'Длинный тестовый ответ из одиннадцати букв.'),
     entry('wrong-prefix', 'КОТ', 'Домашнее животное из семейства кошачьих.')
@@ -596,10 +587,10 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
 test('CSP places answers in all four directions when each orientation is allowed', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
-  ], 'right', 'left');
+  ], 'right');
   const vertical = slot('vertical-forward', { row: 0, col: 6 }, { row: 4, col: 6 }, [
     { row: 1, col: 6 }, { row: 2, col: 6 }, { row: 3, col: 6 }
-  ], 'down', 'up');
+  ], 'down');
   const dictionary = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
 
   for (let seed = 1; seed <= 64; seed++) {

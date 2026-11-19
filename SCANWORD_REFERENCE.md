@@ -52,9 +52,9 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 ## Implementation guardrails
 
 - Never change the agreed **8×12** dimensions.
-- Keep the native 8-column × 12-row portrait play surface large and centered in the available phone game area; it must not shrink to a small tile or force horizontal scrolling. Preserve row/column coordinates and answer directions unchanged from the validated model.
+- Keep the native 8-column × 12-row portrait play surface large and centered in the available phone game area; it must not shrink to a small tile or force horizontal scrolling. Fit the board, five-letter rack and tools within the viewport, using the available height to calculate board size. Clue text must wrap inside each square clue cell without truncation.
 - Preserve the visual clue-cell language, small direction indicators and compact composition from the screenshot. The live playable board uses the same 8-column × 12-row portrait orientation as its validated source topology.
-- QQCross supports all four answer directions: right, left, down and up. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's visible arrows are a visual reference, not a restriction on production directions.
+- QQCross production answers use only two directions: right and down. Leftward and upward placements are forbidden by topology, CSP, assembler and independent validator. Every rendered arrow must therefore point right or down.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note
