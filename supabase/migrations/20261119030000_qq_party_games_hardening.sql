@@ -202,13 +202,23 @@ begin
       and r.status='waiting'
       and r.expires_at>now()
     for update;
-  if not found then raise exception 'ROOM_NOT_FOUND'; end if;
-  if exists(select 1 from public.qq_party_players p where p.room_id=v_room.id and p.user_id=v_uid) then
+  select r.* into v_room
+    from public.qq_party_rooms r
+    join public.qq_party_players p on p.room_id=r.id
+    where r.code=upper(trim(p_code)) and r.expires_at>now() and p.user_id=v_uid;
+  if found then
     return jsonb_build_object(
       'room_id',v_room.id,'code',v_room.code,'game',v_room.game,'status',v_room.status,
       'player_limit',v_room.player_limit
     );
   end if;
+  select * into v_room
+    from public.qq_party_rooms r
+    where r.code=upper(trim(p_code))
+      and r.status='waiting'
+      and r.expires_at>now()
+    for update;
+  if not found then raise exception 'ROOM_NOT_FOUND'; end if;
   select s into v_seat
     from generate_series(1,v_room.player_limit) s
     where not exists(
@@ -476,7 +486,7 @@ declare
 begin
   select * into v_room from public.qq_party_rooms r where r.id=p_room_id for update;
   if not found or v_room.host_id<>v_uid then raise exception 'HOST_ONLY'; end if;
-  if v_room.game<>'crocodile' or v_room.status not in ('waiting','finished') then
+  if v_room.game<>'crocodile' or v_room.status<>'waiting' then
     raise exception 'INVALID_GAME_STATE';
   end if;
   if (select count(*) from public.qq_party_players p where p.room_id=p_room_id)<2 then
@@ -684,7 +694,9 @@ begin
   end if;
   if p_stroke->>'playerId' is distinct from v_uid::text then raise exception 'INVALID_DRAW_ACTOR'; end if;
   v_event_type:=p_stroke->>'type';
-  if v_event_type not in ('begin','move','end') then raise exception 'INVALID_DRAW_EVENT_TYPE'; end if;
+  if v_event_type is null or v_event_type not in ('begin','move','end') then
+    raise exception 'INVALID_DRAW_EVENT_TYPE';
+  end if;
   if coalesce(p_stroke->>'sequence','') !~ '^[1-9][0-9]{0,8}$'
      or coalesce(p_stroke->>'strokeId','') !~ '^[1-9][0-9]{0,8}$'
      or jsonb_typeof(p_stroke->'x') is distinct from 'number'
@@ -711,7 +723,7 @@ begin
     where e.room_id=p_room_id and e.round_no=v_room.round_no
       and e.event_type='begin' and e.stroke_id=v_stroke_id
   ) then raise exception 'STROKE_NOT_STARTED'; end if;
-  if v_event_type='move' and exists(
+  if v_event_type in ('move','end') and exists(
     select 1 from public.qq_party_draw_events e
     where e.room_id=p_room_id and e.round_no=v_room.round_no
       and e.event_type in ('end','undo') and e.stroke_id=v_stroke_id
