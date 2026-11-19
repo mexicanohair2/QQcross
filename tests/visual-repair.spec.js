@@ -61,7 +61,7 @@ test("seasonal ambience uses distinct, slow, non-dust animation layers", async (
   expect(fireflies.animation).not.toBe(sakura.animation);
 });
 
-test("scanword keeps its wide grid and uses softer readable cell styling", async ({ page }) => {
+test("scanword keeps its portrait grid and uses softer readable cell styling", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
@@ -87,8 +87,8 @@ test("scanword keeps its wide grid and uses softer readable cell styling", async
       viewportWidth: document.documentElement.clientWidth
     };
   });
-  expect(visual.columns).toBe(12);
-  expect(visual.rows).toBe(8);
+  expect(visual.columns).toBe(8);
+  expect(visual.rows).toBe(12);
   expect(visual.clueFont).toBeGreaterThanOrEqual(8);
   expect(visual.minClueFont).toBeGreaterThanOrEqual(8);
   expect(visual.cellBackground).not.toBe(visual.clueBackground);

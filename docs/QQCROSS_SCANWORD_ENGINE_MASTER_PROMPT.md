@@ -15,7 +15,7 @@ Before editing:
 2. Inspect index.html, app.js, new-games.js, styles.css, package scripts, GitHub Actions, all scanword tests/scripts, data/scanword-dictionary.json, and image assets.
 3. Map every consumer of the current puzzle object: board renderer, expected-letter map, clueAt, wordTerminals, used cells, clueKeys, reservedKeys, arrows, popup, hints, validation/checkmark, saves/restores, daily mode, solo, multiplayer and ChatGPT opponent mode.
 4. Verify the real coordinate convention and convert only at the compatibility boundary. Never mix row/column and x/y internally.
-5. Resolve contradictory old test assertions. The latest approved primary board is 8 columns × 12 rows, not 8×13, 12×8, 6×12 or any other size.
+5. Resolve contradictory old test assertions. The latest approved primary board is 8 columns × 12 rows, not 8×13, 6×12 or any other size.
 6. Preserve all unrelated gameplay. Do not rewrite app.js wholesale.
 7. Keep main and the published site unchanged until all acceptance gates pass.
 
@@ -96,7 +96,7 @@ Solve the central hard problem explicitly: all 96 cells must form a coherent sca
 The validator must not call generator placement internals or trust generator flags. Independently reconstruct expected cell memberships from words/questions and compare them cell by cell.
 
 Verify:
-- exact 12×8 shape and 96 cells;
+- exact 8 columns × 12 rows and 96 cells;
 - correct corner and required border clues;
 - valid cell types only;
 - unique question/word ids and complete links;
