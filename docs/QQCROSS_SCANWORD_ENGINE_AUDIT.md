@@ -9,7 +9,7 @@ Existing browser regression tests are in tests/qqcross.spec.js; scanword verific
 ## Critical findings
 
 1. The current app.js builder declares W=6, H=12, TOTAL=W*H. This conflicts with the latest immutable requirement: 8 columns × 12 rows = 96 cells.
-2. The test suite contains assertions from different layout revisions: one expects 12 columns × 8 rows, while a later test expects 8 columns × 12 rows. Reconcile tests to the latest 8×12 contract before claiming CI correctness.
+2. The test suite must consistently assert the approved 8-column × 12-row layout and 96 cells across generator, adapter and browser rendering.
 3. The current production builder's direction list contains only right and down. The requested engine must support right, left, down and up, without breaking rendering, arrows, answer traversal or hints.
 4. The current builder requires a terminal clue cell after every answer. An 11-letter answer from top-row clue (0,1) cannot fit in 12 rows if a separate terminal clue cell is mandatory. The special mechanic needs an explicit boundary exception: clue at (0,1), letters at (1,1)..(11,1), no terminal cell outside the board. Do not relax ordinary word rules.
 5. The current builder contains rules for picture and logic clues; existing tests have expected five distinct picture clues. Reconcile that compatibility requirement with the new specification's optional image support rather than silently removing existing content.
