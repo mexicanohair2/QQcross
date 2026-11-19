@@ -2450,3 +2450,31 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
 
 .qq-party-open-link{display:block;text-align:center;text-decoration:none;margin-top:8px}
 .qq-party-invite-card .grid2{gap:8px}
+
+
+/* QQCross live board contract: 8×12 engine model, rotated 12×8 play surface. */
+.game-screen .scanword-board{
+  display:grid!important;
+  grid-template-columns:repeat(12,minmax(0,1fr))!important;
+  grid-template-rows:repeat(8,minmax(0,1fr))!important;
+  width:min(90vw,calc((100dvh - 220px)*1.5),900px)!important;
+  height:auto!important;
+  aspect-ratio:3/2!important;
+  max-width:calc(100vw - 8px)!important;
+  max-height:calc(100dvh - 220px)!important;
+  min-width:0!important;
+  min-height:0!important;
+  gap:2px!important;
+  margin:0 auto!important;
+  box-sizing:border-box!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-clue-text{
+  font-size:clamp(8px,2.1vw,10px)!important;
+  line-height:1.08!important;
+  overflow-wrap:anywhere!important;
+}
+@media(max-width:420px){
+  .game-screen .scanword-board{
+    width:min(90vw,calc((100dvh - 220px)*1.5))!important;
+  }
+}
