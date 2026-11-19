@@ -1,4 +1,5 @@
 import { normalizeAnswer, canonicalAnswerKey, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { createRng, shuffle } from './rng.js';
 
 const DEFAULT_SHORT_ANSWERS = Object.freeze(['ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС']);
 const IMAGE_PROMPT = /изображено на картинке|показано на картинке/iu;
@@ -22,6 +23,7 @@ function sameImagePrompt(question) {
 export function solveEtalonV22Slots(slots, dictionary, options = {}) {
   const started = Date.now();
   const seed = Number.isInteger(options.seed) ? options.seed >>> 0 : 1;
+  const random = createRng(seed);
   const maxNodes = Math.max(1, options.maxNodes ?? 180000);
   const maxTimeMs = Math.max(1, options.maxTimeMs ?? 4000);
   const requiredImageCount = options.requiredImageCount ?? 5;
@@ -60,7 +62,9 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
     assignments: new Map()
   };
 
-  const orderedSlots = [...slots];
+  // Seed tie-breaking between equally constrained slots so retries explore
+  // genuinely different CSP paths while remaining reproducible.
+  const orderedSlots = shuffle(slots, random);
   let nodes = 0;
   let deepest = 0;
   let budgetExceeded = false;
@@ -133,18 +137,27 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
 
     // Content quota is a hard constraint, but candidates satisfying currently
     // missing picture/logic quotas are tried first for faster bounded search.
-    result.sort((a, b) => {
-      const aImage = a.imageKey && !state.images.has(a.imageKey) ? 1 : 0;
-      const bImage = b.imageKey && !state.images.has(b.imageKey) ? 1 : 0;
-      const aLogic = a.logic && !state.logicClues.has(clueKey) ? 1 : 0;
-      const bLogic = b.logic && !state.logicClues.has(clueKey) ? 1 : 0;
-      return (bImage * (state.images.size < requiredImageCount ? 1000 : 0)
-        + bLogic * (state.logicClues.size < minimumLogicClueCells ? 100 : 0)
-        - Number(b.difficulty || 1))
-        - (aImage * (state.images.size < requiredImageCount ? 1000 : 0)
-        + aLogic * (state.logicClues.size < minimumLogicClueCells ? 100 : 0)
-        - Number(a.difficulty || 1));
-    });
+    const candidateScore = entry => {
+      const image = entry.imageKey && !state.images.has(entry.imageKey) ? 1 : 0;
+      const logic = entry.logic && !state.logicClues.has(clueKey) ? 1 : 0;
+      return image * (state.images.size < requiredImageCount ? 1000 : 0)
+        + logic * (state.logicClues.size < minimumLogicClueCells ? 100 : 0)
+        + Number(entry.difficulty || 1);
+    };
+    result.sort((a, b) => candidateScore(b) - candidateScore(a));
+
+    // Keep hard quota priorities and difficulty ranking, but randomize exact
+    // ties using the caller's seed instead of repeating the same failed path.
+    for (let start = 0; start < result.length;) {
+      const score = candidateScore(result[start]);
+      let end = start + 1;
+      while (end < result.length && candidateScore(result[end]) === score) end++;
+      if (end - start > 1) {
+        const tied = shuffle(result.slice(start, end), random);
+        result.splice(start, tied.length, ...tied);
+      }
+      start = end;
+    }
     return result;
   }
 
