@@ -482,14 +482,88 @@ async function startOnlineMatch(){
 }
 async function loadMatchInbox(){
  const invites=$("#matchInvites"),matches=$("#myOnlineMatches");
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){if(invites)invites.textContent="Войди в аккаунт, чтобы получать приглашения.";if(matches)matches.textContent="Онлайн-игра доступна после входа.";return}
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){
+  if(invites)invites.textContent="Войди в аккаунт, чтобы получать приглашения.";
+  if(matches)matches.textContent="Онлайн-игра доступна после входа.";
+  return;
+ }
  try{
-  const [ir,mr]=await Promise.all([supabaseClient.rpc("list_qqcross_match_invites"),supabaseClient.rpc("list_qqcross_my_matches")]);
-  if(ir.error)throw ir.error;if(mr.error)throw mr.error;
-  if(invites)invites.innerHTML=ir.data?.length?ir.data.map(x=>'<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>').join(""):'<p class="small muted">Новых приглашений нет.</p>';
+  const [ir,mr,pr]=await Promise.all([
+    supabaseClient.rpc("list_qqcross_match_invites"),
+    supabaseClient.rpc("list_qqcross_my_matches"),
+    supabaseClient.rpc("qq_party_list_my_invites")
+  ]);
+  if(ir.error)throw ir.error;
+  if(mr.error)throw mr.error;
+  if(pr.error)throw pr.error;
+
+  const classicInvites=ir.data?.length?ir.data.map(x=>
+    '<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
+  ).join(""):"";
+
+  const partyInvites=pr.data?.length?pr.data.map(x=>{
+    const gameName=x.game==="team_word"?"Team Word":"QQ Draw";
+    return '<div class="card qq-party-invite-card" data-invite-id="'+esc(x.invite_id)+'">'+
+      '<b>'+esc(x.sender_username)+'</b>'+
+      '<p class="small muted">Приглашает в '+gameName+' · '+x.player_limit+' мест</p>'+
+      '<div class="grid2"><button class="btn primary party-invite-accept" data-id="'+esc(x.invite_id)+'">Принять</button><button class="btn party-invite-decline" data-id="'+esc(x.invite_id)+'">Отклонить</button></div>'+
+      '</div>';
+  }).join(""):"";
+
+  if(invites){
+    const combined=classicInvites+partyInvites;
+    invites.innerHTML=combined||'<p class="small muted">Новых приглашений нет.</p>';
+  }
+
   if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
-  document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});if(error)throw error;await loadMatchInbox();toast("Приглашение принято")}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
-  document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{b.disabled=true;try{const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});if(error)throw error;await loadMatchInbox()}catch(e){toast(e.message||"Ошибка");b.disabled=false}});
+
+  document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{
+      const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:true});
+      if(error)throw error;
+      await loadMatchInbox();
+      toast("Приглашение принято");
+    }catch(e){toast(e.message||"Ошибка");b.disabled=false}
+  });
+  document.querySelectorAll(".match-reject").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{
+      const {error}=await supabaseClient.rpc("respond_qqcross_match_invite",{target_match_id:b.dataset.id,accept_invite:false});
+      if(error)throw error;
+      await loadMatchInbox();
+    }catch(e){toast(e.message||"Ошибка");b.disabled=false}
+  });
+  document.querySelectorAll(".party-invite-accept").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;b.textContent="Подключаем…";
+    try{
+      const {data,error}=await supabaseClient.rpc("qq_party_respond_invite",{
+        p_invite_id:b.dataset.id,p_accept:true
+      });
+      if(error)throw error;
+      if(!data?.accepted||!data.code)throw new Error("Не удалось принять приглашение.");
+      const isTeamWord=data.game==="team_word";
+      const gameUrl=isTeamWord?"https://qqcross-team-word.vercel.app/":"https://qqcross-qq-draw.vercel.app/";
+      const title=isTeamWord?"Открыть Team Word":"Открыть QQ Draw";
+      const card=b.closest(".qq-party-invite-card");
+      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Комната '+esc(data.code)+'</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room='+encodeURIComponent(data.code)+'" target="_blank" rel="noopener">'+title+'</a>';
+      toast("Ты присоединился к комнате. Открой игру по кнопке.");
+    }catch(e){
+      b.disabled=false;b.textContent="Принять";
+      toast(e.message||"Не удалось принять приглашение");
+    }
+  });
+  document.querySelectorAll(".party-invite-decline").forEach(b=>b.onclick=async()=>{
+    b.disabled=true;
+    try{
+      const {error}=await supabaseClient.rpc("qq_party_respond_invite",{
+        p_invite_id:b.dataset.id,p_accept:false
+      });
+      if(error)throw error;
+      b.closest(".qq-party-invite-card")?.remove();
+      if(invites&&!invites.querySelector(".card"))invites.innerHTML='<p class="small muted">Новых приглашений нет.</p>';
+    }catch(e){toast(e.message||"Не удалось отклонить приглашение");b.disabled=false}
+  });
   document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
   document.querySelectorAll(".delete-online-match").forEach(b=>b.onclick=async()=>{
    const id=b.dataset.id;
@@ -502,7 +576,9 @@ async function loadMatchInbox(){
     toast(data==="deleted"?"Партия удалена":data==="left"?"Партия убрана из твоего списка":"Партия уже не найдена");
    }catch(e){toast(e.message||"Не удалось удалить партию");b.disabled=false}
   });
- }catch(e){if(invites)invites.textContent=e.message||"Не удалось загрузить приглашения"}
+ }catch(e){
+  if(invites)invites.textContent=e.message||"Не удалось загрузить приглашения";
+ }
 }
 async function openOnlineMatch(id){
  try{
