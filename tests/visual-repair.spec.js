@@ -73,10 +73,14 @@ test("scanword keeps its wide grid and uses softer readable cell styling", async
     const board = document.querySelector(".scanword-board");
     const clue = board.querySelector(".scan-clue");
     const letter = board.querySelector(".cell");
+    const clueFonts = [...board.querySelectorAll(".scan-clue-text")]
+      .filter(node => !node.closest(".scan-clue-emoji"))
+      .map(node => parseFloat(getComputedStyle(node).fontSize));
     return {
       columns: getComputedStyle(board).gridTemplateColumns.split(" ").length,
       rows: getComputedStyle(board).gridTemplateRows.split(" ").length,
       clueFont: parseFloat(getComputedStyle(clue.querySelector(".scan-clue-text")).fontSize),
+      minClueFont: clueFonts.length ? Math.min(...clueFonts) : 0,
       cellBackground: getComputedStyle(letter).backgroundImage,
       clueBackground: getComputedStyle(clue).backgroundImage,
       scrollWidth: document.documentElement.scrollWidth,
@@ -86,6 +90,7 @@ test("scanword keeps its wide grid and uses softer readable cell styling", async
   expect(visual.columns).toBe(12);
   expect(visual.rows).toBe(8);
   expect(visual.clueFont).toBeGreaterThanOrEqual(8);
+  expect(visual.minClueFont).toBeGreaterThanOrEqual(8);
   expect(visual.cellBackground).not.toBe(visual.clueBackground);
   expect(visual.scrollWidth).toBeLessThanOrEqual(visual.viewportWidth + 1);
 });
