@@ -10,7 +10,7 @@ The scanword engine is the only production path for creating scanword boards in 
 - (0,1) is the required top-left anchor.
 - Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
 - Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
-- Horizontal and vertical answers are supported in both directions.
+- Horizontal answers run right; vertical answers run down. Reverse directions are disabled in the production generator.
 - The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
 
 ## Pipeline
