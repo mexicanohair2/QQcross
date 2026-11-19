@@ -1,7 +1,7 @@
 const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1, left: 2, up: 3 });
 
 function compactClue(value) {
-  const text = String(value ?? '').trim().replace(/\\s+/gu, ' ');
+  const text = String(value ?? '').trim().replace(/\s+/gu, ' ');
   if (text.length <= 34) return text;
   const words = text.split(' ');
   let result = '';
@@ -14,7 +14,7 @@ function compactClue(value) {
 }
 
 function hasEmoji(value) {
-  return /[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}]/u.test(String(value ?? ''));
+  return /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(String(value ?? ''));
 }
 
 /** Pass through the canonical 8-column × 12-row grid without rotation. */
