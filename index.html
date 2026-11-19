@@ -9,13 +9,13 @@
   try{
     var palette=localStorage.getItem("qqcross_theme_v1");
     var savedMode=localStorage.getItem("qqcross_appearance_mode_v1");
-    var theme=palette==="purple"?"purple":"burgundy";
+    var supported=["burgundy","crimson","ember","amber","olive","forest","emerald","teal","lagoon","ocean","sapphire","indigo","purple","violet","plum","orchid","graphite"];var theme=supported.indexOf(palette)>=0?palette:(palette==="dark"?"purple":"burgundy");
     var mode="dark";
     document.documentElement.dataset.qqTheme=theme;
     document.documentElement.dataset.qqMode=mode;
     document.documentElement.style.colorScheme=mode;
     var meta=document.querySelector('meta[name="theme-color"]');
-    if(meta)meta.setAttribute("content",mode==="light"?"#f4eee9":({burgundy:"#1b0e13",purple:"#100b19"})[theme]);
+    if(meta){var colors={burgundy:"#1a0a10",crimson:"#200912",ember:"#211008",amber:"#201606",olive:"#191a0b",forest:"#0d1b13",emerald:"#081c18",teal:"#081b1d",lagoon:"#081923",ocean:"#0a1724",sapphire:"#0d1427",indigo:"#15112a",purple:"#170e20",violet:"#190d28",plum:"#210f20",orchid:"#210d1b",graphite:"#17191d"};meta.setAttribute("content",mode==="light"?"#f4eee9":(colors[theme]||"#1a0a10"));}
   }catch(_){}
 })();
 </script>
@@ -26,6 +26,8 @@
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
 <link rel="stylesheet" href="./visual-repair.css?v=20261120-phone-fit-5rack-v4">
+<link rel="stylesheet" href="./ui-refresh.css?v=20261120-spectrum-sakura-v1">
+<script src="./ambience.js?v=20261120-sakura-canvas-v1" defer></script>
 <title>QQCross</title>
 </head>
 <body>
@@ -54,8 +56,8 @@
 </script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
 <script src="./wordle.js?v=20261108-key-order-v2"></script>
-<script src="./new-games.js?v=20261109-grid-8x12-v30"></script>
-<script src="./progression.js?v=20261108-hint-achievements-v1"></script>
+<script src="./new-games.js?v=20261120-remove-wheel-v2"></script>
+<script src="./progression.js?v=20261120-remove-wheel-v2"></script>
 <script src="./encyclopedia.js?v=20261109-grid-8x12-v30"></script>
 <script>
 (function(){
@@ -66,7 +68,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261120-phone-fit-5rack-v4";
+    app.src="./app.js?v=20261120-spectrum-motion-v2";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
