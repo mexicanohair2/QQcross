@@ -563,7 +563,7 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 });
 
 
-test("wide scanword moves right-edge clues to the top row and preserves central clues", async ({ page }) => {
+test("8×12 scanword preserves right-edge clues and central clues", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
