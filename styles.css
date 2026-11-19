@@ -2447,3 +2447,6 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
     max-width:90vw!important;
   }
 }
+
+.qq-party-open-link{display:block;text-align:center;text-decoration:none;margin-top:8px}
+.qq-party-invite-card .grid2{gap:8px}
