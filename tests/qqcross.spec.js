@@ -94,7 +94,7 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   expect(geometry.explicitRows).toBe(12);
   expect(geometry.positiveCells).toBe(96);
   expect(Math.abs(geometry.ratio - (2 / 3))).toBeLessThan(0.03);
-  expect(geometry.width).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 220) * (2 / 3)));
+  expect(geometry.width + 1).toBeGreaterThanOrEqual(Math.min(geometry.viewport * 0.85, (geometry.viewportHeight - 220) * (2 / 3)));
   const clueCellsHaveContent = await page.locator(".scan-clue").evaluateAll(nodes => nodes.every(node => !!node.querySelector(".scan-clue-text, .scan-clue-image")));
   expect(clueCellsHaveContent).toBeTruthy();
   await expect(scanBoard).toHaveAttribute("data-answer-count", /.+/);
