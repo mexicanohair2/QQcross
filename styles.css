@@ -716,7 +716,7 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 
 /* Дополнительные словесные игры QQCross — спокойная тёмная палитра */
 .qq-game-launch-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 20px}
-.qq-game-launch{min-width:0;min-height:116px;text-align:left;padding:14px;border:1px solid #40334f;border-radius:16px;background:linear-gradient(145deg,#211a2c,#15111d);color:#f3edf9;display:flex;flex-direction:column;gap:6px;box-shadow:0 5px 14px #0002}
+.qq-game-launch{text-decoration:none;min-width:0;min-height:116px;text-align:left;padding:14px;border:1px solid #40334f;border-radius:16px;background:linear-gradient(145deg,#211a2c,#15111d);color:#f3edf9;display:flex;flex-direction:column;gap:6px;box-shadow:0 5px 14px #0002}
 .qq-game-launch:active{transform:scale(.985)}.qq-game-launch b{font-size:15px}.qq-game-launch small{font-size:11px;line-height:1.35;color:#b9adc8}
 .qq-game-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:#30243e;color:#d9c9ee;font-size:23px}
 .qq-extra-screen{padding-top:12px}.qq-extra-top{margin-bottom:14px}.qq-extra-top b{font-size:17px}.qq-extra-mark{color:#a992c9;font-weight:900}
