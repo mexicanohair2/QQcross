@@ -17,7 +17,12 @@ html[data-qq-theme="plum"]{--qq-base:#210f20;--qq-base-deep:#0b050b;--qq-glass:r
 html[data-qq-theme="orchid"]{--qq-base:#210d1b;--qq-base-deep:#0b0409;--qq-glass:rgba(51,17,42,.93);--qq-theme-border:#76395e;--qq-theme-accent:#e391bd;--qq-theme-muted:#e3bed2}
 html[data-qq-theme="graphite"]{--qq-base:#17191d;--qq-base-deep:#07080a;--qq-glass:rgba(35,39,45,.94);--qq-theme-border:#515a65;--qq-theme-accent:#b7c4d2;--qq-theme-muted:#c3cbd3}
 html[data-qq-theme]{--qq-theme-text:#f5f2f4;--qq-theme-page:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--qq-theme-accent) 20%,var(--qq-base) 80%) 0%,var(--qq-base) 54%,var(--qq-base-deep) 100%);--qq-theme-card:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 17%,var(--qq-base) 83%),var(--qq-glass));--qq-theme-panel:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 14%,var(--qq-base) 86%),color-mix(in srgb,var(--qq-base) 78%,var(--qq-base-deep) 22%));--qq-theme-panel-strong:linear-gradient(135deg,color-mix(in srgb,var(--qq-theme-accent) 76%,white 4%),color-mix(in srgb,var(--qq-theme-accent) 52%,var(--qq-base) 48%));--qq-theme-icon:var(--qq-theme-accent);--qq-theme-cell:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 17%,var(--qq-base) 83%),color-mix(in srgb,var(--qq-base) 78%,var(--qq-base-deep) 22%));--qq-theme-block:linear-gradient(145deg,color-mix(in srgb,var(--qq-base) 74%,black 26%),var(--qq-base-deep));--qq-theme-filled:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 38%,var(--qq-base) 62%),color-mix(in srgb,var(--qq-theme-accent) 24%,var(--qq-base-deep) 76%));--qq-theme-pending:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 30%,var(--qq-base) 70%),color-mix(in srgb,var(--qq-base) 68%,var(--qq-base-deep) 32%));--qq-theme-clue:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 34%,var(--qq-base) 66%),color-mix(in srgb,var(--qq-theme-accent) 19%,var(--qq-base-deep) 81%));--qq-theme-chip:color-mix(in srgb,var(--qq-theme-accent) 19%,var(--qq-base) 81%);--qq-theme-field:color-mix(in srgb,var(--qq-base) 75%,black 25%);--qq-theme-press-glow:color-mix(in srgb,var(--qq-theme-accent) 36%,transparent);--qq-theme-press-border:color-mix(in srgb,var(--qq-theme-accent) 54%,transparent)}
-html[data-qq-theme] body{background:var(--qq-theme-page)!important}
+html[data-qq-theme] body{
+ background:
+  radial-gradient(ellipse at 14% 12%,color-mix(in srgb,var(--qq-bg-c,var(--qq-theme-accent)) 42%,var(--qq-base) 58%) 0%,transparent 56%),
+  radial-gradient(ellipse at 88% 82%,color-mix(in srgb,var(--qq-bg-b,var(--qq-theme-accent)) 36%,var(--qq-base) 64%) 0%,transparent 58%),
+  linear-gradient(135deg,color-mix(in srgb,var(--qq-bg-a,var(--qq-theme-accent)) 48%,var(--qq-base) 52%),var(--qq-base-deep) 76%) fixed!important;
+}
 html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero,html[data-qq-theme] .settings-card{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .nav,html[data-qq-theme] .score-strip,html[data-qq-theme] .letter-area,html[data-qq-theme] .items,html[data-qq-theme] .coins,html[data-qq-theme] .pill,html[data-qq-theme] .timer{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .btn,html[data-qq-theme] .item,html[data-qq-theme] .input,html[data-qq-theme] .theme-choice,html[data-qq-theme] .background-choice,html[data-qq-theme] .ambience-choice{border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
@@ -81,3 +86,8 @@ html[data-qq-theme="purple"] .theme-swatch-purple{background:linear-gradient(145
 @media(prefers-reduced-motion:reduce){.qq-settings-content,.qq-settings-toggle,.qq-settings-toggle svg{transition:none!important}}
 html[data-qq-reduce-motion="true"] .qq-settings-content,html[data-qq-reduce-motion="true"] .qq-settings-toggle,html[data-qq-reduce-motion="true"] .qq-settings-toggle svg{transition:none!important}
 @media(min-width:600px){.qq-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* Sakura canvas lives behind the interface and never captures a touch. */
+.qq-ambience-canvas{position:fixed;inset:0;z-index:0;display:block;width:100vw;height:100dvh;pointer-events:none!important;opacity:.82;contain:strict;will-change:contents}
+html[data-qq-ambience="sakura"] body::before{display:none!important}
+#app{position:relative;z-index:1}

@@ -432,7 +432,7 @@ function settings(){
  const comfortBody=`<label class="audio-setting"><span><b>Размер текста</b><small>Можно увеличить подписи и вопросы</small></span><select id="qqFontSize" class="input"><option value="normal" ${localStorage.getItem("qqcross_font_size")!=="large"&&localStorage.getItem("qqcross_font_size")!=="small"?"selected":""}>Обычный</option><option value="large" ${localStorage.getItem("qqcross_font_size")==="large"?"selected":""}>Крупный</option><option value="small" ${localStorage.getItem("qqcross_font_size")==="small"?"selected":""}>Компактный</option></select></label><label class="audio-setting"><span><b>Уменьшить анимации</b><small>Отключает движение для более спокойного интерфейса</small></span><input type="checkbox" id="qqReduceMotion" ${localStorage.getItem("qqcross_reduce_motion")==="true"?"checked":""}></label>`;
  return `<h2>Настройки</h2>
  ${section("audio","Звук","Музыка и эффекты",audioBody,true)}
- <section class="card settings-card qq-settings-section"><div class="qq-settings-heading"><div><span class="pill">Персонализация</span><h3>Тема интерфейса</h3></div><span class="qq-theme-count">17 палитр</span></div><div class="qq-settings-content">${themeBody}</div></section>
+ ${section("themes","Персонализация · 17 палитр","Тема интерфейса",themeBody,true)}
  ${section("backgrounds","Фон игры · 20 вариантов","Атмосферные фоны",backgroundBody,false)}
  ${section("ambience","Атмосфера","Анимации и сезонные эффекты",ambienceBody,false)}
  ${section("comfort","Удобство","Размер текста и анимации",comfortBody,false)}`;
