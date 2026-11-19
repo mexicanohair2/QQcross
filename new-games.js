@@ -309,6 +309,10 @@ function drawCrossword(layout,rootId){
  const cells=[];for(let y=0;y<layout.size;y++)for(let x=0;x<layout.size;x++){const ch=layout.grid[y][x];cells.push(ch?'<span class="qq-cross-cell" data-pos="'+x+','+y+'"></span>':'<span class="qq-cross-empty"></span>');}
  return '<div class="qq-cross-board" id="'+rootId+'" data-word-count="'+layout.placed.length+'" data-grid-size="'+layout.size+'" style="--qq-cols:'+layout.size+';--qq-rows:'+layout.size+'">'+cells.join("")+'</div>';
 }
+async function loadClues(){
+ if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return window.QQCROSS_DICTIONARY;
+ const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
+}
 function mountCody(root,onExit,clues,words){
  const COLS=9,CENTER=4,GROUPS=50,PER_GROUP=2,TOTAL=100;
  const STORAGE_KEY="qqcross.cody.progress.v3";
