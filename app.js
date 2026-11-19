@@ -1239,7 +1239,7 @@ function renderGame(root){
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(),startWordsAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list);const starts=startWordsAt.get(key)||[];starts.push(w);startWordsAt.set(key,starts)});
-  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],down:[1,0]};
+  const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
   for(const [key,ended] of wordTerminals)if(!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
@@ -1257,14 +1257,14 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"→",down:"↓"};
+      const arrowGlyph={right:"→",left:"←",down:"↓",up:"↑"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
       if(terminalOnly.has(key)&&!puzzle.clueKeys?.has(key)){
         const endArrows=(wordTerminals.get(key)||[]).map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"")+'</span>').join("");
         cells.push('<div class="scan-cell scan-grid-cell scan-boundary scan-terminal" data-boundary-cell="'+key+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" aria-hidden="true"'+position+'>'+endArrows+'</div>');
       }else{
-        cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
+        cells.push('<button type="button" class="scan-cell scan-grid-cell scan-clue '+(wordsAt.some(w=>w.id===activeWord?.id)?' scan-clue-active':'')+' '+(wordsAt.length>1?"scan-clue-multi":"")+(single.length>26?' scan-clue-long':'')+(displayWord?.isEmoji?' scan-clue-emoji':'')+(displayWord?.logic?' scan-clue-logic':'')+(pictureWord?' scan-clue-picture':'')+(wordTerminals.has(key)?' scan-clue-terminal':'')+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" data-clue-cell="'+key+'" data-clue-start-count="'+arrowWords.length+'" title="'+esc(clueTitle)+'" aria-label="'+esc(clueTitle)+'"'+position+'>'+picture+arrows+'</button>');
       }
     }else if(expected[key]!==undefined){
       const value=state.filled[key]||pending[key]||"";
@@ -1343,7 +1343,7 @@ function renderGame(root){
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
         const shownDirection=word.dir;
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",down:"вниз"}[shownDirection])+" · Ответ: "+count+" "+form;
+        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",left:"влево",down:"вниз",up:"вверх"}[shownDirection])+" · Ответ: "+count+" "+form;
         options.querySelector(".clue-popup-back").onclick=()=>showChoices();
       };
       const showChoices=()=>{
@@ -1351,7 +1351,7 @@ function renderGame(root){
         options.innerHTML="";
         [...wordsAt].sort((a,b)=>Number(!!b.logic)-Number(!!a.logic)).forEach(word=>{
           const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
-          choice.textContent=({right:"→ Вправо",down:"↓ Вниз"}[word.dir])+" · "+fitScanwordClue(word.clueShort||word.clue);
+          choice.textContent=({right:"→ Вправо",left:"← Влево",down:"↓ Вниз",up:"↑ Вверх"}[word.dir])+" · "+fitScanwordClue(word.clueShort||word.clue);
           choice.onclick=()=>showQuestion(word);options.append(choice);
         });
       };
