@@ -82,6 +82,7 @@ for (const [imageKey, expectedAnswer] of Object.entries(expectedPictures)) {
 const seenSingleLetters = new Set();
 const seenClues = new Map();
 const seenPairs = new Set();
+const declaredSharedClueGroups = new Map();
 const clueKey = value => String(value || "").toLocaleLowerCase("ru-RU").replace(/ё/g, "е").replace(/[«»"'.,!?—:;()]/g, "").replace(/\s+/g, " ").trim();
 for (let i = 0; i < dictionary.length; i++) {
   const item = dictionary[i];
@@ -90,14 +91,47 @@ for (let i = 0; i < dictionary.length; i++) {
   const pair = answer + "|" + clue;
   if (seenPairs.has(pair)) fail(`Duplicate dictionary entry for ${answer}: ${clue}`);
   seenPairs.add(pair);
+  const sharedClueGroup = String(item?.sharedClueGroup || "").trim();
+  if (sharedClueGroup) {
+    if (!/^[a-z0-9_-]{3,80}$/u.test(sharedClueGroup)) {
+      fail(`Invalid sharedClueGroup identifier for ${answer}: ${sharedClueGroup}`);
+    }
+    if (!declaredSharedClueGroups.has(sharedClueGroup)) {
+      declaredSharedClueGroups.set(sharedClueGroup, []);
+    }
+    declaredSharedClueGroups.get(sharedClueGroup).push({
+      answer,
+      clue,
+      imageKey: item?.imageKey ?? null
+    });
+  }
   if (answer.length === 1) {
     if (seenSingleLetters.has(answer)) fail(`Duplicate one-letter answer: ${answer}`);
     seenSingleLetters.add(answer);
   }
   if (clue && clue !== "что изображено на картинке") {
     const previous = seenClues.get(clue);
-    if (previous && previous !== answer) fail(`Ambiguous clue shared by ${previous} and ${answer}: ${clue}`);
-    seenClues.set(clue, answer);
+    const sameDeclaredPair = Boolean(
+      previous
+      && sharedClueGroup
+      && previous.sharedClueGroup === sharedClueGroup
+    );
+    if (previous && previous.answer !== answer && !sameDeclaredPair) {
+      fail(`Ambiguous clue shared by ${previous.answer} and ${answer}: ${clue}`);
+    }
+    if (!previous) {
+      seenClues.set(clue, {
+        answer,
+        sharedClueGroup,
+        imageKey: item?.imageKey ?? null
+      });
+    }
+  }
+}
+for (const [groupId, entries] of declaredSharedClueGroups) {
+  const uniqueAnswers = new Set(entries.map(entry => entry.answer));
+  if (entries.length !== 2 || uniqueAnswers.size !== 2 || entries.some(entry => entry.imageKey)) {
+    fail(`Shared clue group ${groupId} must contain exactly two different text answers and no image clues; got ${entries.length} records.`);
   }
 }
 if (seenSingleLetters.size > 33) fail(`Unexpected number of one-letter answers: ${seenSingleLetters.size}`);
