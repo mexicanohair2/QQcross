@@ -563,7 +563,7 @@ test("legacy inventory normalization adds a bulb slot and preserves existing cou
 });
 
 
-test("8×12 scanword preserves right-edge clues and central clues", async ({ page }) => {
+test("8×12 scanword preserves top and left anchors with central clues", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const board = page.locator(".scanword-board");
@@ -589,12 +589,13 @@ test("8×12 scanword preserves right-edge clues and central clues", async ({ pag
   expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.91);
   expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
-  await expect(board.locator('.scan-clue[data-clue-cell="6,0"]')).toHaveCount(1);
-  await expect(board.locator('.scan-clue[data-clue-cell="0,0"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="0,4"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="0,7"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="1,0"]')).toHaveCount(1);
   await expect(board.locator('.scan-clue[data-clue-cell="3,0"]')).toHaveCount(1);
   await expect(board.locator(".scan-empty")).toHaveCount(1);
-  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "7,0");
-  await expect(board.locator('.scan-clue[data-clue-cell="0,0"]')).toHaveCount(1);
+  await expect(board.locator(".scan-empty")).toHaveAttribute("data-reserved-cell", "0,0");
   await expect(board.locator(".scan-clue-count")).toHaveCount(0);
   const arrows = board.locator(".scan-arrow");
   await expect(arrows).not.toHaveCount(0);
@@ -613,18 +614,18 @@ test("8×12 scanword preserves right-edge clues and central clues", async ({ pag
   expect(edgeCounts.left).toBeGreaterThanOrEqual(2);
   const interiorClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    return row > 0 && row < 7 && col > 0 && col < 11;
+    return row > 0 && row < 11 && col > 0 && col < 7;
   }).length);
   expect(interiorClues).toBeGreaterThanOrEqual(5);
   const centerClues = await board.locator(".scan-clue").evaluateAll(nodes => nodes.filter(node => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
-    return row >= 2 && row <= 4 && col >= 3 && col <= 8;
+    return row >= 2 && row <= 9 && col >= 2 && col <= 5;
   }).length);
   expect(centerClues).toBeGreaterThanOrEqual(3);
   const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
   expect(rightBoundaries.length).toBeLessThanOrEqual(2);
-  expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 7 || col === 0 || col === 11; })).toBeTruthy();
-  await expect(board.locator('.scan-clue[data-clue-cell="0,11"]')).toHaveCount(1);
+  expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 11 || col === 0 || col === 7; })).toBeTruthy();
+  await expect(board.locator('.scan-clue[data-clue-cell="0,7"]')).toHaveCount(1);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
