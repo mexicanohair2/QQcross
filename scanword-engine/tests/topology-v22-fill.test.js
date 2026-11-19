@@ -24,18 +24,20 @@ test('v2.2 topology has bounded dictionary-fill diagnostics without weakening th
     results.push({
       patternIndex,
       ok: solved.ok,
-      reason: solved.reason,
+      reason: solved.reason ?? null,
       nodes: solved.nodes,
-      depth: solved.bestDepth ?? solved.metrics?.words,
-      failure: solved.bestFailure,
-      metrics: solved.metrics
+      depth: solved.bestDepth ?? solved.metrics?.words ?? null,
+      elapsedMs: solved.elapsedMs,
+      failure: solved.bestFailure ?? null,
+      metrics: solved.metrics ?? null,
+      dictionaryStats: solved.dictionaryStats
     });
   }
 
-  // This is intentionally diagnostic for the first integration milestone:
-  // it proves every mask can be checked against the actual curated dictionary.
-  // Full 34-word solvability is promoted to a hard gate only after shared-clue
-  // word pairs have been editorially curated and reviewed.
+  console.log('ETALON_V22_DICTIONARY_FILL_DIAGNOSTICS=' + JSON.stringify(results));
+  // This milestone records bounded dictionary solvability data; the hard
+  // production gate remains closed until the pair clue content is reviewed
+  // and the complete independent puzzle validator has been integrated.
   assert.equal(results.length, 3);
   assert.ok(results.every(result => result.nodes > 0));
 });
