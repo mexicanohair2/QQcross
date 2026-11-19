@@ -249,3 +249,10 @@ html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
   .game-screen .scanword-board>.scan-cell{transition:none!important}
 }
 html[data-qq-reduce-motion="true"] body::before{animation:none!important}
+
+
+/* Keep readable type in multi-direction scanword clue cells. */
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-multi:not(.scan-clue-picture):not(.scan-clue-emoji) .scan-clue-text{
+  font-size:clamp(8px,2.1vw,10px)!important;
+  line-height:1.08!important;
+}
