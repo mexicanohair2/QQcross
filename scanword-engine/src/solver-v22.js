@@ -252,7 +252,14 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
           knownLetters: slot.coordinates.flatMap((point, index) => {
             const letter = state.letters.get(keyOf(point));
             return letter === undefined ? [] : [{ index, letter }];
-          })
+          }),
+          assigned: [...state.assignments.entries()].map(([id, item]) => ({
+            slotId: id,
+            answer: item.entry.answer,
+            clue: item.entry.question,
+            clueCell: item.clueKey,
+            direction: orderedSlots.find(candidate => candidate.id === id)?.directionOptions[0]?.direction
+          }))
         };
         return false;
       }
