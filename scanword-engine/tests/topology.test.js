@@ -25,7 +25,7 @@ function setQuestion(grid, row, col) {
   };
 }
 
-test('derives horizontal slots and both horizontal orientations', () => {
+test('derives horizontal slots only to the right', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 4);
@@ -35,20 +35,15 @@ test('derives horizontal slots and both horizontal orientations', () => {
 
   assert.ok(slot);
   assert.equal(slot.length, 3);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right', 'left']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right']);
   assert.deepEqual(slot.directionOptions[0].coordinates, [
     { row: 2, col: 1 },
     { row: 2, col: 2 },
     { row: 2, col: 3 }
   ]);
-  assert.deepEqual(slot.directionOptions[1].coordinates, [
-    { row: 2, col: 3 },
-    { row: 2, col: 2 },
-    { row: 2, col: 1 }
-  ]);
 });
 
-test('derives vertical slots and both vertical orientations', () => {
+test('derives vertical slots only downwards', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 4);
   setQuestion(grid, 5, 4);
@@ -58,7 +53,7 @@ test('derives vertical slots and both vertical orientations', () => {
 
   assert.ok(slot);
   assert.equal(slot.length, 4);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down', 'up']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down']);
 });
 
 test('does not turn a one-letter gap into an answer', () => {
