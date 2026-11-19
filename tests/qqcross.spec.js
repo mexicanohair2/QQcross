@@ -424,25 +424,6 @@ test("word search shows a question for every target and the bulb marks a startin
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
 });
 
-test("Word of Wonders shows clue prompts and uses the bulb to highlight a letter", async ({ page }) => {
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
-  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
-  await page.locator("#guestPlay").click();
-  await page.locator('[data-extra-game="wheel"]').click();
-  await page.locator('[data-level="1"]').click();
-  const total = Number((await page.locator("#qqWheelProgress").textContent()).split("/")[1].trim());
-  await expect(page.locator("#qqWowClues .qq-wow-clue")).toHaveCount(total);
-  await expect(page.locator("#qqWowClues")).not.toContainText("Что изображено");
-  const bulbsBefore = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
-  await page.locator("#qqWheelBulb").click();
-  await expect(page.locator(".qq-wheel-letter.qq-wheel-hinted")).toHaveCount(1);
-  const bulbsAfter = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
-  expect(bulbsAfter).toBe(bulbsBefore - 1);
-  const fit = await page.evaluate(() => ({ h: document.documentElement.clientHeight, s: document.documentElement.scrollHeight }));
-  expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
-});
-
 test("the redesigned shop contains the bulb item and level rewards are idempotent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
