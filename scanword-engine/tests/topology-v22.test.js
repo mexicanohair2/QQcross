@@ -68,14 +68,15 @@ test('validator rejects a missing top-border question and a passive clue cell', 
   assert.ok(topResult.errors.some(error => error.type === 'TOP_ROW_NOT_QUESTION'));
 
   const passive = createEtalonV22Grid(0);
-  passive[3][4] = { ...passive[3][4], type: 'question' };
+  passive[11][7] = { ...passive[11][7], type: 'question' };
   const passiveResult = validateEtalonV22Topology(passive);
   assert.ok(passiveResult.errors.some(error => error.type === 'QUESTION_WITHOUT_OUTGOING_ANSWER'));
 });
 
-test('validator rejects orphan letters, disconnected layouts and too few answers', () => {
+test('validator rejects an orphan letter and too few answers', () => {
   const orphan = createEtalonV22Grid(0);
-  orphan[1][1] = { ...orphan[1][1], type: 'letter', letter: 'А' };
+  orphan[10][7] = { ...orphan[10][7], type: 'question' };
+  orphan[11][6] = { ...orphan[11][6], type: 'question' };
   const orphanResult = validateEtalonV22Topology(orphan);
   assert.ok(orphanResult.errors.some(error => error.type === 'ORPHAN_LETTER'));
 
