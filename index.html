@@ -22,10 +22,10 @@
 <link rel="icon" href="./icon.svg?v=qqcross-brand-20261117" type="image/svg+xml">
 <meta name="description" content="QQCross — играй в сканворды">
 <link rel="manifest" href="./manifest.json?v=qqcross-brand-20261117">
-<link rel="stylesheet" href="./styles.css?v=20261119-scanword-layout-v3">
+<link rel="stylesheet" href="./styles.css?v=20261120-native-8x12-v1">
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
-<link rel="stylesheet" href="./visual-repair.css?v=20261119-scanword-css-v3">
+<link rel="stylesheet" href="./visual-repair.css?v=20261120-native-8x12-v1">
 <title>QQCross</title>
 </head>
 <body>
@@ -66,7 +66,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261119-burgundy-purple-motion-v1";
+    app.src="./app.js?v=20261120-native-8x12-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
