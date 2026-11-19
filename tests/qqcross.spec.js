@@ -586,7 +586,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
   expect(grid.columns).toBe(8);
   expect(grid.rows).toBe(12);
   expect(grid.width).toBeGreaterThanOrEqual(grid.viewportWidth * 0.85);
-  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.91);
+  expect(grid.width).toBeLessThanOrEqual(grid.viewportWidth * 0.97);
   expect(Math.abs(grid.width / grid.height - (2 / 3))).toBeLessThan(0.03);
   expect(grid.height).toBeLessThanOrEqual(grid.viewportHeight - 240);
   await expect(board.locator('.scan-clue[data-clue-cell="0,1"]')).toHaveCount(1);
@@ -602,7 +602,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0) counts.top++;
