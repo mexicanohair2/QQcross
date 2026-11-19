@@ -12539,17 +12539,6 @@
     "sharedClueGroup": "v22_face_nose_moustache"
   },
   {
-    "answer": "ТИГР",
-    "clue": "Полосатый хищник и речное животное с клешнями.",
-    "sharedClueGroup": "v22_tiger_crayfish"
-  },
-  {
-    "answer": "РАК",
-    "clue": "Полосатый хищник и речное животное с клешнями.",
-    "logic": true,
-    "sharedClueGroup": "v22_tiger_crayfish"
-  },
-  {
     "answer": "КОТ",
     "clue": "Домашний питомец и массив деревьев в природе.",
     "sharedClueGroup": "v22_cat_forest"
@@ -12568,5 +12557,16 @@
     "answer": "УМ",
     "clue": "Орган мышления и способность человека думать.",
     "sharedClueGroup": "v22_brain_intellect"
+  },
+  {
+    "answer": "СЛОН",
+    "clue": "Крупный зверь с хоботом и речное животное с клешнями.",
+    "sharedClueGroup": "v22_elephant_crayfish"
+  },
+  {
+    "answer": "РАК",
+    "clue": "Крупный зверь с хоботом и речное животное с клешнями.",
+    "logic": true,
+    "sharedClueGroup": "v22_elephant_crayfish"
   }
 ]
