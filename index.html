@@ -9,7 +9,7 @@
   try{
     var palette=localStorage.getItem("qqcross_theme_v1");
     var savedMode=localStorage.getItem("qqcross_appearance_mode_v1");
-    var theme=palette==="purple"?"purple":"burgundy";
+    var supported=["burgundy","crimson","ember","amber","olive","forest","emerald","teal","lagoon","ocean","sapphire","indigo","purple","violet","plum","orchid","graphite"];var theme=supported.indexOf(palette)>=0?palette:(palette==="dark"?"purple":"burgundy");
     var mode="dark";
     document.documentElement.dataset.qqTheme=theme;
     document.documentElement.dataset.qqMode=mode;
@@ -26,6 +26,8 @@
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
 <link rel="stylesheet" href="./visual-repair.css?v=20261119-scanword-css-v3">
+<link rel="stylesheet" href="./ui-refresh.css?v=20261120-spectrum-sakura-v1">
+<script src="./ambience.js?v=20261120-sakura-canvas-v1" defer></script>
 <title>QQCross</title>
 </head>
 <body>
@@ -66,7 +68,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261119-burgundy-purple-motion-v1";
+    app.src="./app.js?v=20261120-spectrum-motion-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
