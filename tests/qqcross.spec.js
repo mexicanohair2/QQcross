@@ -167,6 +167,7 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.board.left).toBeGreaterThanOrEqual(-1);
   expect(layout.board.right).toBeLessThanOrEqual(layout.viewport.width + 1);
   expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
+  await expect(page.locator(".letter")).toHaveCount(5);
   expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterStyle = await page.locator(".letter").first().evaluate(async node => {
