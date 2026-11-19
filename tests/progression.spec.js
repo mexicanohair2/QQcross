@@ -177,10 +177,10 @@ test("unique level completions cannot be farmed by replaying the same level", as
   await enterGuest(page);
   const result = await page.evaluate(() => {
     const p = window.QQProgression;
-    const first = p.recordUnique("wowLevels", "wow:1");
-    const replay = p.recordUnique("wowLevels", "wow:1");
-    const next = p.recordUnique("wowLevels", "wow:2");
-    return { first, replay, next, count: p.get().stats.wowLevels };
+    const first = p.recordUnique("searchLevels", "search:1");
+    const replay = p.recordUnique("searchLevels", "search:1");
+    const next = p.recordUnique("searchLevels", "search:2");
+    return { first, replay, next, count: p.get().stats.searchLevels };
   });
   expect(result.first).toBe(true);
   expect(result.replay).toBe(false);
