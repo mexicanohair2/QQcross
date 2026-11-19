@@ -47,6 +47,7 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
   const sharedClues = new Set([...clueSlots.entries()]
     .filter(([, ids]) => ids.length > 1)
     .map(([key]) => key));
+  const slotById = new Map(slots.map(slot => [slot.id, slot]));
 
   const state = {
     answers: new Set(),
@@ -79,7 +80,18 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
       const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
       if (state.answers.has(answerKey)) continue;
       if (isShared && entry.imageKey) continue;
-      if (clueText !== undefined && normalizeQuestion(entry.question) !== clueText) continue;
+      const normalizedQuestion = normalizeQuestion(entry.question);
+      if (clueText !== undefined && normalizedQuestion !== clueText) continue;
+      if (isShared) {
+        const peerIds = (clueSlots.get(clueKey) ?? []).filter(id => id !== slot.id);
+        const hasPeerSupport = peerIds.length > 0 && peerIds.every(peerId => {
+          const peer = slotById.get(peerId);
+          return (candidatesByLength.get(peer?.length) ?? []).some(peerEntry =>
+            !peerEntry.imageKey && normalizeQuestion(peerEntry.question) === normalizedQuestion
+          );
+        });
+        if (!hasPeerSupport) continue;
+      }
 
       let lettersMatch = true;
       for (let index = 0; index < slot.coordinates.length; index++) {
@@ -104,7 +116,6 @@ export function solveEtalonV22Slots(slots, dictionary, options = {}) {
         // adding a second logic tag cannot create a new logic clue cell.
       }
 
-      const normalizedQuestion = normalizeQuestion(entry.question);
       const previousUses = state.questions.get(normalizedQuestion) ?? [];
       if (previousUses.length) {
         const isSameClue = previousUses.every(use => use.clueKey === clueKey);
