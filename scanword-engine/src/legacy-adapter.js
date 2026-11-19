@@ -1,12 +1,7 @@
-const DIRECTION_INDEX = Object.freeze({
-  right: 0,
-  down: 1,
-  left: 2,
-  up: 3
-});
+const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1, left: 2, up: 3 });
 
 function compactClue(value) {
-  const text = String(value ?? '').trim().replace(/\s+/gu, ' ');
+  const text = String(value ?? '').trim().replace(/\\s+/gu, ' ');
   if (text.length <= 34) return text;
   const words = text.split(' ');
   let result = '';
@@ -19,30 +14,10 @@ function compactClue(value) {
 }
 
 function hasEmoji(value) {
-  return /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(String(value ?? ''));
+  return /[\\u{1F000}-\\u{1FAFF}\\u{2600}-\\u{27BF}]/u.test(String(value ?? ''));
 }
 
-function rotatePoint(point) {
-  return [7 - point[1], point[0]];
-}
-
-function rotateDirection(direction) {
-  const rotated = { right: 'up', down: 'right', left: 'down', up: 'left' };
-  return rotated[direction] ?? null;
-}
-
-function rotateKeySet(source) {
-  return new Set([...source].map(key => {
-    const [row, col] = key.split(',').map(Number);
-    return rotatePoint([row, col]).join(',');
-  }));
-}
-
-/**
- * Converts the certified engine format into the shape consumed by the
- * existing QQCross game renderer. The validated 8×12 engine grid is displayed
- * counter-clockwise as a wide 12-column × 8-row game board.
- */
+/** Pass through the canonical 8-column × 12-row grid without rotation. */
 export function toLegacyPuzzle(scanword, options = {}) {
   if (!scanword || scanword.width !== 8 || scanword.height !== 12) {
     throw new Error('Адаптер QQCross принимает только проверенную сетку 8×12.');
@@ -58,25 +33,20 @@ export function toLegacyPuzzle(scanword, options = {}) {
   const reservedKeys = new Set(['0,0']);
   const clueKeys = new Set();
   const used = new Set();
-
   for (let row = 0; row < 12; row++) {
     for (let col = 0; col < 8; col++) {
       const cell = scanword.grid[row][col];
       const key = row + ',' + col;
       if (row === 0 && col === 0) {
         if (cell.type !== 'corner') throw new Error('Клетка (0,0) должна оставаться пустым углом.');
-      } else if (cell.type === 'question') {
-        clueKeys.add(key);
-      } else if (cell.type === 'letter') {
-        used.add(key);
-      } else {
-        throw new Error('Клетка ' + key + ' не имеет роли.');
-      }
+      } else if (cell.type === 'question') clueKeys.add(key);
+      else if (cell.type === 'letter') used.add(key);
+      else throw new Error('Клетка ' + key + ' не имеет роли.');
     }
   }
 
   const words = scanword.words.map(word => {
-    if (!DIRECTION_INDEX.hasOwnProperty(word.direction)) {
+    if (!Object.prototype.hasOwnProperty.call(DIRECTION_INDEX, word.direction)) {
       throw new Error('У ответа ' + word.id + ' неизвестное направление.');
     }
     if (!Array.isArray(word.coordinates) || word.coordinates.length !== word.answer.length) {
@@ -85,33 +55,16 @@ export function toLegacyPuzzle(scanword, options = {}) {
     const clue = String(word.question ?? '').trim();
     if (!clue) throw new Error('У ответа ' + word.id + ' отсутствует вопрос.');
     return {
-      id: String(word.id),
-      answer: String(word.answer),
-      sourceAnswer: String(word.answer),
-      clue,
-      clueShort: String(word.clueShort || compactClue(clue)),
-      isEmoji: hasEmoji(clue),
-      logic: word.logic === true,
-      imageKey: word.imageKey ?? null,
-      dir: rotateDirection(word.direction),
-      dirIndex: DIRECTION_INDEX[rotateDirection(word.direction)],
-      cells: word.coordinates.map(point => rotatePoint([point.row, point.col])),
-      clueCell: rotatePoint([word.clue.row, word.clue.col]),
-      special: word.special ?? null
+      id: String(word.id), answer: String(word.answer), sourceAnswer: String(word.answer),
+      clue, clueShort: String(word.clueShort || compactClue(clue)), isEmoji: hasEmoji(clue),
+      logic: word.logic === true, imageKey: word.imageKey ?? null,
+      dir: word.direction, dirIndex: DIRECTION_INDEX[word.direction],
+      cells: word.coordinates.map(point => [point.row, point.col]),
+      clueCell: [word.clue.row, word.clue.col], special: word.special ?? null
     };
   });
 
   const id = 'scanword-' + String(scanword.metadata?.seed ?? Date.now())
     + '-' + String(options.sequence ?? Math.floor(Math.random() * 1e6));
-  return {
-    id,
-    title: 'Сканворд',
-    w: 12,
-    h: 8,
-    words,
-    used: rotateKeySet(used),
-    clueKeys: rotateKeySet(clueKeys),
-    reservedKeys: rotateKeySet(reservedKeys),
-    coverage: 1
-  };
+  return { id, title: 'Сканворд', w: 8, h: 12, words, used, clueKeys, reservedKeys, coverage: 1 };
 }
