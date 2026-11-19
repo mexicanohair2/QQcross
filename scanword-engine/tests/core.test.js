@@ -481,7 +481,7 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator accept left/up scanword answers', () => {
+test('assembler and independent validator reject left/up scanword answers', () => {
   const leftWord = {
     id: 'left-word', entryId: 'cat', answer: 'КОТ',
     question: 'Домашнее животное из семейства кошачьих.',
@@ -508,8 +508,8 @@ test('assembler and independent validator accept left/up scanword answers', () =
     length: word.answer.length
   }));
   const assembled = assembleScanword({ seed: 1, words, questions });
-  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
-  assert.deepEqual(new Set(assembled.scanword.words.map(word => word.direction)), new Set(['left', 'up']));
+  assert.equal(assembled.ok, false, JSON.stringify(assembled.errors));
+  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
@@ -536,7 +536,7 @@ test('assembler and independent validator accept left/up scanword answers', () =
   });
   assert.equal(
     validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
-    false,
+    true,
     JSON.stringify(validation.errors)
   );
 });
@@ -555,7 +555,7 @@ test('assembler rejects using the lower-right terminal cell as a clue', () => {
   };
   const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });
   assert.equal(assembled.ok, false);
-  assert.ok(assembled.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
+  assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
 
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
@@ -591,5 +591,5 @@ test('assembler rejects using the lower-right terminal cell as a clue', () => {
     requiredImageCount: 0,
     minimumLogicClueCells: 0
   });
-  assert.ok(validation.errors.some(error => error.type === 'INVALID_LOWER_RIGHT_TERMINAL_DIRECTION'));
+  assert.ok(validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
 });
