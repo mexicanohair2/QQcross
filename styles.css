@@ -2478,3 +2478,10 @@ html[data-qq-theme="purple"]{--qq-theme-page:linear-gradient(155deg,#171020 0%,#
     width:min(90vw,calc((100dvh - 220px)*1.5))!important;
   }
 }
+
+
+/* Multi-direction clue cells must not inherit the tiny legacy text size. */
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-multi:not(.scan-clue-picture):not(.scan-clue-emoji) .scan-clue-text{
+  font-size:clamp(8px,2.1vw,10px)!important;
+  line-height:1.08!important;
+}
