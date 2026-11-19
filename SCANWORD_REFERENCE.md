@@ -64,7 +64,7 @@ The official maker page and its embedded canvas were inspected through rendered-
 
 ## Production validation — 2026-11-17
 
-- Production answer placement supports right, left, down and up; the top-right anchor and lower-right terminal remain fixed.
+- Production answer placement is restricted to right and down; the top-right anchor and lower-right terminal remain fixed.
 - The approved two-letter answer set is limited to five curated entries; music-note and weak filler answers are excluded.
 - Independent seeded validation: 20/20 first-gate puzzles and 100/100 stress puzzles passed.
 - Scheduled eleven-letter puzzles: 25/25 generated at the required one-in-four cadence.
