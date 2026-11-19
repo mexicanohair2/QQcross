@@ -43,7 +43,7 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 
 ## Current production layout refinement
 
-- Keep the canonical **8 columns × 12 rows = 96 cells** portrait board.
+- Keep the canonical **engine/data grid at 8 columns × 12 rows = 96 cells**. The production adapter `scanword-engine/src/legacy-adapter.js` rotates that certified model for the existing game renderer, which displays a **12-column × 8-row wide board**. This is a presentation transform only: do not transpose or resize the generator's 8×12 source grid.
 - Put three main clue anchors on the top row at columns 1, 4 and 7 (the top-left corner remains blank).
 - Keep the left-edge clue cells in rows 1–11 and at least six clue cells in the interior.
 - Do not use the entire rightmost column as repeated clue/terminal cells. The normal topology uses one lower-right terminal cell to close the long vertical answer; the rare eleven-letter layout may retain only its own validated sparse edge structure.
@@ -52,8 +52,8 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 ## Implementation guardrails
 
 - Never change the agreed **8×12** dimensions.
-- Keep the board large and centered in the available phone game area; it must not shrink to a small tile or force horizontal/vertical scrolling.
-- Preserve the visual clue-cell language, small direction indicators, and vertical composition from the screenshot.
+- Keep the rotated 12×8 play surface large and centered in the available phone game area; it must not shrink to a small tile or force horizontal scrolling. Preserve the adapter's coordinate and direction transform for clue cells, answer cells, hints and terminal positions.
+- Preserve the visual clue-cell language, small direction indicators and compact composition from the screenshot. The screenshot's visual cues apply to the source topology; the playable board is rendered wide by the documented adapter rotation.
 - QQCross supports all four answer directions: right, left, down and up. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's visible arrows are a visual reference, not a restriction on production directions.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
@@ -71,3 +71,10 @@ The official maker page and its embedded canvas were inspected through rendered-
 - Independent validator errors: 0.
 - Desktop Chromium and mobile Chromium Playwright suites: passed.
 - Stress generation timing: median 498 ms, p95 729 ms, maximum 840 ms.
+
+
+## Engine geometry and play-screen orientation
+
+- The independent generator and validator use a 12-row × 8-column model (`width: 8`, `height: 12`). This remains the only valid topology format.
+- `toLegacyPuzzle()` in `scanword-engine/src/legacy-adapter.js` rotates model coordinates and directions and emits `w: 12`, `h: 8` for the game renderer. The rendered board therefore has 12 columns × 8 rows and a 3:2 aspect ratio.
+- Keep tests explicit about which layer they validate: generator/topology tests assert 8×12; browser rendering tests assert the rotated 12×8 surface. Never “fix” one layer by changing the other.
