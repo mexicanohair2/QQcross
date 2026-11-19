@@ -173,34 +173,6 @@ test("the secret straw-hat counter works across different game screens", async (
 });
 
 
-test("unique level completions cannot be farmed by replaying the same level", async ({ page }) => {
-  await enterGuest(page);
-  const result = await page.evaluate(() => {
-    const p = window.QQProgression;
-    const first = p.recordUnique("wowLevels", "wow:1");
-    const replay = p.recordUnique("wowLevels", "wow:1");
-    const next = p.recordUnique("wowLevels", "wow:2");
-    return { first, replay, next, count: p.get().stats.wowLevels };
-  });
-  expect(result.first).toBe(true);
-  expect(result.replay).toBe(false);
-  expect(result.next).toBe(true);
-  expect(result.count).toBe(2);
-});
-
-test("double-tapping a discovered word opens its encyclopedia entry", async ({ page }) => {
-  await enterGuest(page);
-  await page.evaluate(() => {
-    const word = document.createElement("button");
-    word.type = "button";
-    word.dataset.qqWord = "ЁЛКА";
-    word.textContent = "ЁЛКА";
-    document.querySelector("#app").append(word);
-    word.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-  });
-  await expect(page.locator("#encyclopediaInput")).toHaveValue("ЁЛКА");
-});
-
 test("accessibility preferences and abstract-background opt-out survive reload", async ({ page }) => {
   await page.goto("/");
   await page.evaluate(() => {
@@ -247,25 +219,6 @@ test("unclaimed achievement rewards stay queued until explicitly acknowledged", 
   expect(result.removed).toBe(true);
 });
 
-test("double-tapping a discovered word works with touch pointer events", async ({ page }) => {
-  await enterGuest(page);
-  await page.evaluate(() => {
-    const word = document.createElement("button");
-    word.type = "button";
-    word.dataset.qqWord = "ТУНЕЦ";
-    word.textContent = "ТУНЕЦ";
-    document.querySelector("#app").append(word);
-    const tap = () => word.dispatchEvent(new PointerEvent("pointerup", {
-      bubbles: true,
-      pointerType: "touch",
-      pointerId: 7
-    }));
-    tap();
-    tap();
-  });
-  await expect(page.locator("#encyclopediaInput")).toHaveValue("ТУНЕЦ");
-});
-
 test("late completion of an older daily challenge cannot rewind the current streak", async ({ page }) => {
   await enterGuest(page);
   const result = await page.evaluate(() => {
@@ -296,43 +249,4 @@ test("profile displays match losses and win percentage", async ({ page }) => {
   await page.getByRole("button", { name: /Профиль/ }).click();
   await expect(page.locator("#qqProgressionStats")).toContainText("поражения: 0");
   await expect(page.locator("#qqProgressionStats")).toContainText("процент побед: 0%");
-});
-
-test("encyclopedia falls back to a fuller Wiktionary definition and preserves stress", async ({ page }) => {
-  await enterGuest(page);
-  await page.route("https://ru.wikipedia.org/w/api.php**", async route => {
-    const url = new URL(route.request().url());
-    if (url.searchParams.get("list") === "search") {
-      return route.fulfill({ json: { query: { search: [{ title: "Тунец" }] } } });
-    }
-    return route.fulfill({ json: { query: { pages: [{
-      title: "Тунец",
-      extract: "Тунец — крупная морская рыба.",
-      fullurl: "https://ru.wikipedia.org/wiki/Тунец",
-      links: []
-    }] } } });
-  });
-  await page.route("https://ru.wiktionary.org/w/api.php**", async route => {
-    const url = new URL(route.request().url());
-    if (url.searchParams.get("list") === "search") {
-      return route.fulfill({ json: { query: { search: [{ title: "тунец" }] } } });
-    }
-    return route.fulfill({ json: { query: { pages: [{
-      title: "тунец",
-      extract: "Туне́ц — род морских рыб семейства скумбриевых. Эти рыбы обитают в тёплых морях и имеют большое значение для промысла.",
-      fullurl: "https://ru.wiktionary.org/wiki/тунец",
-      links: []
-    }] } } });
-  });
-  const result = await page.evaluate(() => window.QQEncyclopedia.search("ТУНЕЦ"));
-  expect(result.article.sourceLabel).toBe("Викисловаре");
-  expect(result.article.sentences).toHaveLength(2);
-  expect(result.stress).toBe("Туне́ц");
-});
-
-
-test("exact common-word spelling is never replaced by a nearby word", async ({ page }) => {
-  await page.goto("/");
-  const result = await page.evaluate(() => window.QQEncyclopedia.suggest("ЗМЕЯ"));
-  expect(result).toEqual({ word: "ЗМЕЯ", distance: 0 });
 });

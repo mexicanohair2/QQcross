@@ -22,10 +22,10 @@
 <link rel="icon" href="./icon.svg?v=qqcross-brand-20261117" type="image/svg+xml">
 <meta name="description" content="QQCross — играй в сканворды">
 <link rel="manifest" href="./manifest.json?v=qqcross-brand-20261117">
-<link rel="stylesheet" href="./styles.css?v=20261117-scanword-top-center-v1">
+<link rel="stylesheet" href="./styles.css?v=20261119-search-layout-v1">
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
-<link rel="stylesheet" href="./visual-repair.css?v=20261119-atmosphere-scanword-v1">
+<link rel="stylesheet" href="./visual-repair.css?v=20261119-natural-atmosphere-v2">
 <title>QQCross</title>
 </head>
 <body>
@@ -52,11 +52,11 @@
   setTimeout(function(){showBootError("Игра не завершила запуск за 15 секунд. Возможно, не загрузился один из файлов.")},15000);
 })();
 </script>
+<script src="./atmosphere.js?v=20261119-natural-particles-v2"></script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
 <script src="./wordle.js?v=20261108-key-order-v2"></script>
-<script src="./new-games.js?v=20261109-grid-8x12-v30"></script>
-<script src="./progression.js?v=20261108-hint-achievements-v1"></script>
-<script src="./encyclopedia.js?v=20261109-grid-8x12-v30"></script>
+<script src="./new-games.js?v=20261119-search-12-words-v1"></script>
+<script src="./progression.js?v=20261119-no-wow-achievements-v1"></script>
 <script>
 (function(){
   var urls=[
@@ -66,7 +66,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261119-burgundy-purple-motion-v1";
+    app.src="./app.js?v=20261119-no-encyclopedia-v2";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};

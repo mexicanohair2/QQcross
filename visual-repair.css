@@ -249,3 +249,40 @@ html[data-qq-ambience="forest"] .home-hero::after{content:none!important}
   .game-screen .scanword-board>.scan-cell{transition:none!important}
 }
 html[data-qq-reduce-motion="true"] body::before{animation:none!important}
+
+
+/* Additional deep burgundy atmospheric backgrounds. */
+html[data-qq-background="burgundy-velvet"] body{background:radial-gradient(ellipse at 50% 0%,#542333 0%,#28101a 48%,#0e070b 100%) fixed!important;}
+html[data-qq-background="wine-dusk"] body{background:radial-gradient(ellipse at 18% 20%,#683044 0%,transparent 48%),radial-gradient(ellipse at 82% 78%,#351724 0%,#10070c 72%) fixed!important;}
+html[data-qq-background="rose-night"] body{background:radial-gradient(ellipse at 70% 0%,#49202f 0%,#24101a 48%,#0b0609 100%) fixed!important;}
+
+/* Natural individual seasonal particles: SVG shapes with independent drift and rotation. */
+.qq-atmosphere-layer{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;contain:strict}
+.qq-atmo-particle{position:absolute;top:-12vh;display:block;color:#e9e5ee;will-change:transform;animation:qqAtmoFall linear infinite;filter:drop-shadow(0 2px 3px #0005)}
+.qq-atmo-particle svg{display:block;width:100%;height:100%;overflow:visible}
+.qq-atmo-snow{color:#f5f2fa;filter:drop-shadow(0 0 3px #fff7)}
+.qq-atmo-leaf{color:#a85b43;filter:drop-shadow(0 2px 4px #0007)}
+.qq-atmo-petal{color:#d99ab0;filter:drop-shadow(0 2px 3px #0005)}
+.qq-atmo-rain{color:#9ebbd0}.qq-atmo-glow{color:#e4cf91;filter:drop-shadow(0 0 9px #e9cf79)}
+.qq-atmo-star{color:#d9c8ec;filter:drop-shadow(0 0 5px #cbb5ee)}
+.qq-atmo-fog{color:#c9c0ca;filter:blur(3px);top:10vh;animation-name:qqAtmoFog;animation-timing-function:ease-in-out}
+@keyframes qqAtmoFall{0%{transform:translate3d(0,-10vh,0) rotate(0deg)}25%{transform:translate3d(var(--sway),25vh,0) rotate(calc(var(--spin)*.25))}50%{transform:translate3d(calc(var(--drift)*-.35),55vh,0) rotate(calc(var(--spin)*.55))}75%{transform:translate3d(var(--sway),82vh,0) rotate(calc(var(--spin)*.8))}100%{transform:translate3d(var(--drift),115vh,0) rotate(var(--spin))}}
+@keyframes qqAtmoFog{0%{transform:translate3d(-12vw,0,0) scale(.9)}50%{transform:translate3d(8vw,8vh,0) scale(1.12)}100%{transform:translate3d(20vw,0,0) scale(.95)}}
+html[data-qq-ambience="forest"] .home-hero::after,html[data-qq-ambience="forest"] .home-hero::before,html[data-qq-ambience="sakura"] body::before,html[data-qq-ambience="autumn"] body::before{display:none!important}
+@media(prefers-reduced-motion:reduce){.qq-atmo-particle{animation:none!important;opacity:.12!important}}
+
+html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:transparent!important}
+
+html[data-qq-ambience] body::before{display:none!important}
+
+/* Disable the old CSS oval/dust layers; the SVG particle system below replaces them. */
+html[data-qq-ambience] body::before{display:none!important;content:none!important;}
+html[data-qq-ambience] body::after{display:none!important;content:none!important;}
+#app,.qq-extra-screen{position:relative;z-index:1;}.nav{z-index:30!important}.modal,.toast{z-index:50!important}
+
+@keyframes qqAtmoGlow{0%,100%{transform:translate3d(0,0,0) scale(.7);opacity:.18}45%{transform:translate3d(var(--float-x),-12px,0) scale(1.25);opacity:.85}70%{transform:translate3d(0,8px,0) scale(.9);opacity:.42}}
+@keyframes qqAtmoTwinkle{0%,100%{transform:scale(.65) rotate(-12deg);opacity:.18}50%{transform:scale(1.25) rotate(18deg);opacity:.9}}
+html[data-qq-reduce-motion="true"] .qq-atmo-particle{animation:none!important;opacity:.12!important}
+
+/* Keep multi-direction clue text readable on narrow phone boards. */
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-multi:not(.scan-clue-picture) .scan-clue-text{font-size:clamp(8px,2.1vw,10px)!important;line-height:1.04!important}

@@ -107,18 +107,19 @@ function levelComplete(root,key,level,next){
 }
 function buildSearchPuzzle(words,level){
  const theme=SEARCH_THEMES[(level-1)%SEARCH_THEMES.length],lexicon=new Set(words);
- const pool=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w])));
- const count=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
- let size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
- let chosen=pool.slice(0,count);
- if(chosen.length<5)chosen=shuffle(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)&&(clueIndex.has(w)||EXTRA_CLUES[w]))).slice(0,Math.max(5,count));
+ const pool=shuffle([...new Set(theme.words.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)))]);
+ const count=Math.min(30,Math.max(12,level<=20?12+Math.floor((level-1)/2):20+Math.floor((level-20)/30)));
+ let size=Math.min(25,Math.max(12,level<=20?12+Math.floor((level-1)/2):18+Math.floor((level-20)/100)));
+ let chosen=[...new Set(pool)].slice(0,count);
+ if(chosen.length<count){const thematic=SEARCH_THEMES.flatMap(item=>item.words),fallback=shuffle([...new Set(thematic.filter(w=>w.length>=4&&w.length<=12&&lexicon.has(w)))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
+ if(chosen.length<count){const fallback=shuffle([...new Set(words.filter(w=>w.length>=4&&w.length<=12))].filter(w=>!chosen.includes(w)));chosen.push(...fallback.slice(0,count-chosen.length));}
  const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]];
  let grid,placed;
- for(let grow=0;grow<8;grow++){
+ for(let grow=0;grow<14;grow++){
   grid=Array.from({length:size},()=>Array(size).fill(""));placed=[];
   for(const word of [...chosen].sort((a,b)=>b.length-a.length)){
    let done=false;
-   for(let attempt=0;attempt<500&&!done;attempt++){
+   for(let attempt=0;attempt<900&&!done;attempt++){
     const d=dirs[Math.floor(Math.random()*dirs.length)],x=Math.floor(Math.random()*size),y=Math.floor(Math.random()*size),ex=x+d[0]*(word.length-1),ey=y+d[1]*(word.length-1);
     if(ex<0||ex>=size||ey<0||ey>=size)continue;
     let ok=true;for(let i=0;i<word.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==word[i]){ok=false;break;}}
@@ -126,8 +127,19 @@ function buildSearchPuzzle(words,level){
     const cells=[];for(let i=0;i<word.length;i++){const p={x:x+d[0]*i,y:y+d[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
     placed.push({word,cells,found:false});done=true;
    }
+   // Deterministic full-grid fallback: never silently drop a target word after random attempts.
+   if(!done){
+    for(let y=0;y<size&&!done;y++)for(let x=0;x<size&&!done;x++)for(const d of dirs){
+     const ex=x+d[0]*(word.length-1),ey=y+d[1]*(word.length-1);
+     if(ex<0||ex>=size||ey<0||ey>=size)continue;
+     let ok=true;for(let i=0;i<word.length;i++){const old=grid[y+d[1]*i][x+d[0]*i];if(old&&old!==word[i]){ok=false;break;}}
+     if(!ok)continue;
+     const cells=[];for(let i=0;i<word.length;i++){const p={x:x+d[0]*i,y:y+d[1]*i};grid[p.y][p.x]=word[i];cells.push(p);}
+     placed.push({word,cells,found:false});done=true;break;
+    }
+   }
   }
-  if(placed.length>=Math.min(chosen.length,Math.max(5,count-2))||size>=25)break;
+  if(placed.length===chosen.length||size>=25)break;
   size++;
  }
  const targets=new Set(placed.map(p=>p.word));let decoy="";
@@ -150,6 +162,7 @@ function buildSearchPuzzle(words,level){
   }
  }
  for(let y=0;y<size;y++)for(let x=0;x<size;x++)if(!grid[y][x])grid[y][x]=LETTERS[Math.floor(Math.random()*LETTERS.length)];
+ if(placed.length<12)throw new Error("Не удалось разместить минимум 12 слов. Повтори уровень.");
  return {size,grid,placed,theme:theme.name,decoy};
 }
 function mountSearch(root,onExit,words){
@@ -157,7 +170,7 @@ function mountSearch(root,onExit,words){
  const showMap=()=>renderLevelMap(root,"Поиск слов",onExit,KEY,playLevel);
  function playLevel(level){
   const puzzle=buildSearchPuzzle(words,level);let start=null,drag=false,solved=new Set(),selection=[],tapPath=[],tapDirection=null,completed=false;
-  const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><section class="qq-search-targets-wrap"><div class="qq-search-targets-title">НАЙДИ СЛОВА</div><div class="qq-search-clues qq-search-targets" id="qqSearchClues" aria-label="Слова, которые нужно найти">'+puzzle.placed.map(p=>'<div class="qq-search-word" data-clue-word="'+p.word+'" title="'+escapeHtml(clueFor(p.word))+'"><span>'+escapeHtml(p.word)+'</span></div>').join("")+'</div></section><div class="qq-search-actions"><span class="qq-search-hint">Проведи пальцем или нажимай буквы по очереди — можно и по диагонали.</span><button type="button" class="btn" id="qqSearchBulb">💡 Подсказка</button></div>';
+  const body='<div class="qq-search-level-meta"><span>УРОВЕНЬ '+level+'</span><b>'+puzzle.theme+'</b></div><div class="qq-search-progress" id="qqProgress">Найдено: 0 / '+puzzle.placed.length+'</div><div class="qq-search-grid" id="qqSearchGrid" data-grid-size="'+puzzle.size+'" style="--qq-cols:'+puzzle.size+';--qq-size:'+puzzle.size+'">'+puzzle.grid.map((row,y)=>row.map((letter,x)=>'<button type="button" class="qq-search-cell" data-x="'+x+'" data-y="'+y+'" aria-label="Строка '+(y+1)+', столбец '+(x+1)+'">'+letter+'</button>').join("")).join("")+'</div><section class="qq-search-targets-wrap"><div class="qq-search-targets-title">НАЙДИ СЛОВА</div><div class="qq-search-clues qq-search-targets" id="qqSearchClues" aria-label="Слова, которые нужно найти">'+puzzle.placed.map(p=>'<div class="qq-search-word" data-clue-word="'+p.word+'" title="'+escapeHtml(clueFor(p.word))+'"><span>'+escapeHtml(p.word)+'</span></div>').join("")+'</div></section><div class="qq-search-actions"><span class="qq-search-hint">Проведи пальцем или нажимай буквы по очереди — можно и по диагонали.</span><button type="button" class="btn" id="qqSearchBulb">💡 Подсказка</button></div>';
   shell(root,"Поиск слов · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-search-screen");
   const grid=root.querySelector("#qqSearchGrid"),progress=root.querySelector("#qqProgress"),cellAt=(x,y)=>grid.querySelector('[data-x="'+x+'"][data-y="'+y+'"]');
   function clear(){grid.querySelectorAll(".qq-search-cell").forEach(c=>c.classList.remove("qq-selected"));selection=[];}
@@ -296,98 +309,6 @@ function drawCrossword(layout,rootId){
  const cells=[];for(let y=0;y<layout.size;y++)for(let x=0;x<layout.size;x++){const ch=layout.grid[y][x];cells.push(ch?'<span class="qq-cross-cell" data-pos="'+x+','+y+'"></span>':'<span class="qq-cross-empty"></span>');}
  return '<div class="qq-cross-board" id="'+rootId+'" data-word-count="'+layout.placed.length+'" data-grid-size="'+layout.size+'" style="--qq-cols:'+layout.size+';--qq-rows:'+layout.size+'">'+cells.join("")+'</div>';
 }
-function mountWheel(root,onExit,words){
- const KEY="qqcross.wow.unlocked.v1";
- const showMap=()=>renderLevelMap(root,"Word of Wonders",onExit,KEY,playLevel);
- const clueWords=words.filter(w=>clueIndex.has(w)||EXTRA_CLUES[w]);
- const rankedSeeds=clueWords.filter(w=>w.length>=6&&w.length<=9&&new Set(w).size>=5).map(seed=>({
-  seed,
-  candidates:clueWords.filter(w=>w.length>=3&&w.length<=seed.length&&w!==seed&&canBuild(w,seed))
- })).sort((a,b)=>b.candidates.length-a.candidates.length);
- function build(level){
-  const targetCount=Math.min(30,level<=20?5+Math.floor((level-1)/2):14+Math.floor((level-20)/30));
-  const size=Math.min(25,level<=20?9+Math.floor((level-1)/2):18+Math.floor((level-20)/100));
-  let best=null;
-  for(const item of rankedSeeds.slice(0,48)){
-   if(item.candidates.length<targetCount-1&&best&&item.candidates.length<best.words.length-1)break;
-   const candidates=shuffle(item.candidates).sort((a,b)=>b.length-a.length);
-   const layout=layoutWords([item.seed,...candidates].slice(0,targetCount),size);
-   const actual=layout.placed.map(p=>p.word);
-   if(!best||actual.length>best.words.length)best={seed:item.seed,layout,words:actual};
-   if(actual.length>=targetCount)break;
-  }
-  return best||{seed:"КОРАБЛЬ",layout:layoutWords(["КОРАБЛЬ"],size),words:["КОРАБЛЬ"]};
- }
- function playLevel(level){
-  const puzzle=build(level);
-  let selected=[],solved=new Set(),dragging=false,dragPath=false,dragSelection=[],lastDragIndex=-1,completed=false,suppressClick=false;
-  const wheelMarkup=seed=>[...seed].map((l,i)=>'<button type="button" class="qq-wheel-letter" data-index="'+i+'" style="--qq-index:'+i+';--qq-count:'+seed.length+'">'+l+'</button>').join("");
-  const body='<div class="qq-wow-level-meta"><span>УРОВЕНЬ '+level+'</span><b id="qqWheelProgress">Найдено: 0 / '+puzzle.words.length+'</b></div>'+drawCrossword(puzzle.layout,"qqWheelBoard")+'<div class="qq-wow-clues" id="qqWowClues" aria-label="Вопросы к словам">'+puzzle.words.map((w,i)=>'<div class="qq-wow-clue" data-wow-clue="'+w+'"><b>'+(i+1)+'.</b><span>'+escapeHtml(clueFor(w))+'</span></div>').join("")+'</div><div class="qq-wheel-answer" id="qqWheelAnswer" aria-live="polite"></div><div class="qq-word-discovery-list" id="qqWowFoundWords"></div><div class="qq-wow-controls"><div class="qq-wheel" id="qqWheel" style="--qq-wheel-radius:62px">'+wheelMarkup(puzzle.seed)+'</div><div class="qq-wheel-actions"><button type="button" class="btn" id="qqWheelClear">Очистить</button><button type="button" class="btn" id="qqWheelMix">Перемешать</button><button type="button" class="btn" id="qqWheelBulb">💡</button></div></div>';
-  shell(root,"Word of Wonders · "+level,showMap,body);root.querySelector(".qq-extra-screen").classList.add("qq-wow-screen");
-  const wheel=root.querySelector("#qqWheel"),answer=root.querySelector("#qqWheelAnswer"),board=root.querySelector("#qqWheelBoard"),progress=root.querySelector("#qqWheelProgress");
-  function refresh(show=selected){answer.textContent=show.map(i=>puzzle.seed[i]).join("");wheel.querySelectorAll("button").forEach(b=>b.classList.toggle("chosen",show.includes(+b.dataset.index)));}
-  function complete(){if(completed)return;completed=true;window.QQEconomy?.awardLevel?.("wow",level);window.QQProgression?.recordUnique("wowLevels","wow:"+level);unlockNext(KEY,level);setTimeout(()=>levelComplete(root,KEY,level,()=>level===LEVEL_TOTAL?showMap():playLevel(level+1)),350);}
-  function solveWord(indices,feedback=true){
-   const word=indices.map(i=>puzzle.seed[i]).join("");if(!word)return false;
-   const target=puzzle.words.find(w=>w===word&&!solved.has(w));
-   if(target){
-    solved.add(target);window.QQProgression?.recordWord?.(target);const chip=document.createElement("button");chip.type="button";chip.className="pill";chip.dataset.qqWord=target;chip.textContent=target;root.querySelector("#qqWowFoundWords")?.append(chip);const entry=puzzle.layout.placed.find(p=>p.word===target);
-    entry?.cells.forEach(p=>{const c=board.querySelector('[data-pos="'+p.x+','+p.y+'"]');if(c){c.textContent=puzzle.layout.grid[p.y][p.x];c.classList.add("revealed");}});
-    progress.textContent="Найдено: "+solved.size+" / "+puzzle.words.length;root.querySelector('[data-wow-clue="'+target+'"]')?.classList.add("done");sound(solved.size===puzzle.words.length?"win":"good");
-    selected=[];refresh();if(solved.size===puzzle.words.length)complete();return true;
-   }
-   if(puzzle.words.includes(word))answer.textContent="Уже найдено";
-   else if(feedback){answer.classList.add("qq-shake");setTimeout(()=>answer.classList.remove("qq-shake"),300);sound("hint");}
-   selected=[];refresh();return false;
-  }
-  function addTap(i){
-   if(completed||selected.includes(i))return;
-   selected.push(i);refresh();
-   const word=selected.map(n=>puzzle.seed[n]).join("");
-   if(puzzle.words.includes(word)){solveWord(selected,false);return;}
-   if(selected.length>=puzzle.seed.length)solveWord(selected,true);
-  }
-  root.querySelector("#qqWheelBulb").onclick=()=>{
-   const target=puzzle.words.find(w=>!solved.has(w));if(!target)return;
-   if(!window.QQEconomy?.useBulb?.())return;
-   const index=puzzle.seed.indexOf(target[0]),button=wheel.querySelector('[data-index="'+index+'"]');
-   button?.classList.add("qq-wheel-hinted");button?.scrollIntoView({block:"nearest",inline:"nearest"});
-   answer.textContent="Начни с подсвеченной буквы";
-  };
-  wheel.addEventListener("pointerdown",e=>{
-   const b=e.target.closest("[data-index]");if(!b||completed)return;
-   e.preventDefault();dragging=true;dragPath=false;dragSelection=[+b.dataset.index];lastDragIndex=+b.dataset.index;
-   try{wheel.setPointerCapture(e.pointerId);}catch(_){}
-  });
-  const wheelButtonAt=(x,y)=>{
-   const direct=document.elementFromPoint(x,y)?.closest("#qqWheel [data-index]");
-   if(direct)return direct;
-   let nearest=null,best=Infinity;
-   wheel.querySelectorAll("[data-index]").forEach(button=>{
-    const r=button.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,d=Math.hypot(cx-x,cy-y);
-    if(d<best){best=d;nearest=button;}
-   });
-   return nearest&&best<=Math.max(24,Math.min(nearest.getBoundingClientRect().width,nearest.getBoundingClientRect().height)*.72)?nearest:null;
-  };
-  const track=e=>{
-   if(!dragging)return;
-   const b=wheelButtonAt(e.clientX,e.clientY);if(!b)return;
-   const i=+b.dataset.index;
-   if(i!==lastDragIndex){dragPath=true;lastDragIndex=i;if(!dragSelection.includes(i)){dragSelection.push(i);refresh(dragSelection);}}
-  };
-  const stop=e=>{
-   if(!dragging)return;track(e);dragging=false;
-   if(dragPath&&dragSelection.length>1){suppressClick=true;setTimeout(()=>{suppressClick=false;},350);solveWord(dragSelection,true);}
-   dragSelection=[];lastDragIndex=-1;dragPath=false;
-  };
-  wheel.addEventListener("pointermove",track);wheel.addEventListener("pointerup",stop);wheel.addEventListener("pointercancel",stop);
-  wheel.addEventListener("click",e=>{const b=e.target.closest("[data-index]");if(!b)return;if(suppressClick){suppressClick=false;return;}addTap(+b.dataset.index);});
-  root.querySelector("#qqWheelClear").onclick=()=>{selected=[];refresh();};
-  root.querySelector("#qqWheelMix").onclick=()=>{puzzle.seed=shuffle([...puzzle.seed]).join("");wheel.innerHTML=wheelMarkup(puzzle.seed);selected=[];refresh();};
-  refresh();
- }
- showMap();
-}
 async function loadClues(){
  if(Array.isArray(window.QQCROSS_DICTIONARY)&&window.QQCROSS_DICTIONARY.length)return window.QQCROSS_DICTIONARY;
  const r=await fetch("./data/scanword-dictionary.json");if(!r.ok)throw new Error("Не удалось загрузить вопросы");return r.json();
@@ -500,7 +421,6 @@ async function mount(root,mode,onExit){
   clueIndex=new Map();
   clues.forEach(entry=>{const word=norm(entry?.answer||entry?.word),clue=String(entry?.clue||entry?.question||"").trim();if(word&&clue&&isEverydayClue(word,clue)&&!/^что изображено\b/i.test(clue)&&!/[\u{1F1E6}-\u{1F1FF}\u{1F300}-\u{1FAFF}]/u.test(clue)&&!clueIndex.has(word))clueIndex.set(word,clue);});
   if(mode==="search")mountSearch(root,onExit,words);
-  else if(mode==="wheel")mountWheel(root,onExit,words);
   else if(mode==="cody")mountCody(root,onExit,clues,words);
   else throw new Error("Неизвестный режим");
  }catch(error){
