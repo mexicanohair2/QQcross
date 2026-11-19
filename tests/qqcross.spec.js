@@ -51,24 +51,9 @@ test("loads a fully occupied 12-column by 8-row wide scanword with five distinct
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
   const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
-    const countTracks = value => {
-      const text = String(value || "").trim();
-      const repeated = text.match(/^repeat\((\d+)\s*,/);
-      if (repeated) return Number(repeated[1]);
-      let depth = 0, tokens = 0, inToken = false;
-      for (const char of text) {
-        if (/\s/.test(char) && depth === 0) {
-          if (inToken) tokens++;
-          inToken = false;
-          continue;
-        }
-        if (!inToken) inToken = true;
-        if (char === "(") depth++;
-        else if (char === ")") depth--;
-      }
-      if (inToken) tokens++;
-      return tokens;
-    };
+    const countRenderedTracks = values => new Set(
+      values.map(value => Math.round(value * 100) / 100)
+    ).size;
     const style = getComputedStyle(board);
     const explicitColumns = new Set(cells.map(cell => Number(cell.style.gridColumn)));
     const explicitRows = new Set(cells.map(cell => Number(cell.style.gridRow)));
@@ -76,8 +61,11 @@ test("loads a fully occupied 12-column by 8-row wide scanword with five distinct
     const boardRect = board.getBoundingClientRect();
     return {
       cellCount: cells.length,
-      columns: countTracks(style.gridTemplateColumns),
-      rows: countTracks(style.gridTemplateRows),
+      // Count real rendered cell positions instead of parsing CSS track serialization.
+      columns: countRenderedTracks(rects.map(rect => rect.left)),
+      rows: countRenderedTracks(rects.map(rect => rect.top)),
+      templateColumns: style.gridTemplateColumns,
+      templateRows: style.gridTemplateRows,
       explicitColumns: explicitColumns.size,
       explicitRows: explicitRows.size,
       positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
@@ -175,7 +163,8 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
     const style = getComputedStyle(node);
     return { filter: style.filter, transform: style.transform };
   });
-  expect(letterStyle.filter).toBe("none");
+  // Empty and "none" both represent the browser's no-filter default.
+  expect(["", "none"]).toContain(letterStyle.filter);
   expect(["none","matrix(1, 0, 0, 1, 0, 0)"]).toContain(letterStyle.transform);
   const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueSizes.length).toBeGreaterThan(0);
