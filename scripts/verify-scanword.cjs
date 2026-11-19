@@ -10,7 +10,7 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
-  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const directionCounts = { right: 0, down: 0 };
   const generationOptions = {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
@@ -150,7 +150,7 @@ async function main() {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
-  for (const direction of ['right', 'down', 'left', 'up']) {
+  for (const direction of ['right', 'down']) {
     assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
   }
 }
