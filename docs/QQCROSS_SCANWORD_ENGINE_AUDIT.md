@@ -1,7 +1,7 @@
 # QQCross scanword engine audit — 2026-11-12
 
 Repository: mexicanohair2/QQCross (canonical GitHub name is mexicanohair2/QQcross), default branch main.
-Published site: https://mexicanohair2.github.io/QQCross/.
+Published site: https://mexicanohair2.github.io/QQcross/.
 index.html loads audio.js, wordle.js, new-games.js, progression.js, encyclopedia.js, then app.js.
 Primary scanword generation is in app.js, function buildScanword(entries). The current clue bank is data/scanword-dictionary.json.
 Existing browser regression tests are in tests/qqcross.spec.js; scanword verification scripts also exist under scripts/.
