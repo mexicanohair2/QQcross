@@ -714,10 +714,13 @@ function scheduleBotGuess(){
   state.botTimer=setTimeout(async()=>{
     const current=state.solo;if(!current||current.status!=="playing")return;
     const used=new Set(current.guesses.map((g)=>normalizeDrawWord(g.word)));
+    const eventCount=state.drawEvents.length;
     const strokes=replayDrawingEvents(state.drawEvents);
     let predictions=[];
     try{predictions=await predictDrawing(strokes);}
     catch(error){console.warn("QQ Draw model prediction:",error);}
+    if(state.solo!==current||current.status!=="playing")return;
+    if(state.drawEvents.length!==eventCount){scheduleBotGuess();return;}
     const ranked=[...predictions,...recognizeDrawing(strokes)].filter((item,index,all)=>all.findIndex(other=>normalizeDrawWord(other.word)===normalizeDrawWord(item.word))===index).sort((left,right)=>right.confidence-left.confidence);
     const recognized=ranked.find((item)=>!used.has(normalizeDrawWord(item.word)));
     if(!recognized){
