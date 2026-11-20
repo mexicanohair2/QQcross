@@ -44,7 +44,7 @@
   hyphens:auto!important;
   white-space:normal!important;
   text-align:center!important;
-  font-size:clamp(6px,calc(10.5px - var(--clue-length,20)*.11px),9px)!important;
+  font-size:clamp(8px,calc(10px - var(--clue-length,20)*.035px),9px)!important;
   line-height:1.04!important;
   font-weight:750!important;
   text-overflow:ellipsis!important;
