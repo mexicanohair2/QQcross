@@ -1421,6 +1421,7 @@ function renderGame(root){
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
         options.querySelector(".clue-popup-length").textContent="Ответ: "+count+" "+form;
         options.querySelector(".clue-popup-back")?.addEventListener("click",showChoices);
+        (options.querySelector(".clue-popup-back")||popup.querySelector(".clue-popup-close")).focus({preventScroll:true});
       };
       const showChoices=()=>{
         if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
@@ -1436,10 +1437,11 @@ function renderGame(root){
           choice.append(direction,clue);
           choice.onclick=()=>showQuestion(word);options.append(choice);
         });
+        options.querySelector(".clue-popup-choice")?.focus({preventScroll:true});
       };
       popup.querySelector(".clue-popup-close").onclick=close;
       popup.onclick=event=>{if(event.target===popup)close()};
-      document.body.append(popup);showChoices();popup.querySelector(".clue-popup-close").focus({preventScroll:true});document.addEventListener("keydown",handlePopupKeydown);
+      document.body.append(popup);showChoices();(popup.querySelector(".clue-popup-choice")||popup.querySelector(".clue-popup-close")).focus({preventScroll:true});document.addEventListener("keydown",handlePopupKeydown);
     };
   });
   let activeDrag=null,dragGhost=null;
