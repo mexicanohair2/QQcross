@@ -619,13 +619,16 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".hand .letter")).toHaveCount(5);
+  const originalLetters=await page.locator(".hand .letter").allTextContents();
   await expect(page.locator("#timer")).toHaveCount(0);
   await expect(page.locator("#clock")).toHaveCount(0);
   const hand = await page.locator(".hand").evaluate(node => {
     const rect = node.getBoundingClientRect();
+    const area = node.closest(".letter-area").getBoundingClientRect();
     const letters = [...node.querySelectorAll(".letter")].map(el => el.getBoundingClientRect());
     return {
       hand: { left: rect.left, right: rect.right, center: (rect.left + rect.right) / 2 },
+      areaCenter: (area.left + area.right) / 2,
       letters: letters.map(r => ({ left: r.left, right: r.right, width: r.width, height: r.height }))
     };
   });
@@ -633,6 +636,7 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   expect(hand.letters.every(item => Math.abs(item.width - item.height) <= 1)).toBeTruthy();
   const tileCenter=(hand.letters[0].left+hand.letters[4].right)/2;
   expect(Math.abs(tileCenter-hand.hand.center)).toBeLessThanOrEqual(2);
+  expect(Math.abs(hand.hand.center-hand.areaCenter)).toBeLessThanOrEqual(2);
   const tile = page.locator(".hand .letter").first();
   const cell = page.locator(".scanword-board .cell").first();
   const from = await tile.boundingBox();
@@ -645,6 +649,23 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await expect(pending).toBeVisible();
   await expect(pending).toHaveClass(/(correct|wrong)/);
   await expect(pending.locator(".cell-letter")).toHaveText(/[А-ЯЁ]/);
+  const feedback=await pending.getAttribute("class");
+  const marker=await pending.locator(".placement-mark").textContent();
+  expect(marker).toBe(feedback.includes("wrong")?"×":"✓");
+  await expect(page.locator(".hand .letter")).toHaveCount(4);
+  await expect(page.locator(".hand .letter-slot-empty")).toHaveCount(1);
+  await expect(page.locator(".hand .letter-slot-empty")).toHaveAttribute("data-empty-slot", "0");
+  await expect(page.locator(".hand .letter, .hand .letter-slot-empty")).toHaveCount(5);
+
+  const pendingBox=await pending.boundingBox();
+  const handBox=await page.locator(".hand").boundingBox();
+  await page.mouse.move(pendingBox.x+pendingBox.width/2,pendingBox.y+pendingBox.height/2);
+  await page.mouse.down();
+  await page.mouse.move(handBox.x+handBox.width/2,handBox.y+handBox.height/2,{steps:6});
+  await page.mouse.up();
+  await expect(page.locator(".hand .letter")).toHaveCount(5);
+  await expect(page.locator(".hand .letter-slot-empty")).toHaveCount(0);
+  expect(await page.locator(".hand .letter").allTextContents()).toEqual(originalLetters);
 });
 
 test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {

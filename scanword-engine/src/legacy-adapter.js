@@ -62,6 +62,11 @@ export function toLegacyPuzzle(scanword, options = {}) {
     if (scanword.grid[clueRow][clueCol]?.type !== 'question') {
       throw new Error('Вопрос ответа ' + word.id + ' не находится в клетке-вопросе.');
     }
+    const isTopRightAnchor = clueRow === 0 && clueCol === 7 && word.direction === 'down';
+    const isBottomLeftAnchor = clueRow === 11 && clueCol === 0 && word.direction === 'right';
+    if ((clueCol === 7 && !isTopRightAnchor) || (clueRow === 11 && !isBottomLeftAnchor)) {
+      throw new Error('Вопрос ответа ' + word.id + ' ошибочно расположен на правом или нижнем краю сетки.');
+    }
     const delta = {
       right: [0, 1], down: [1, 0], left: [0, -1], up: [-1, 0]
     }[word.direction];
