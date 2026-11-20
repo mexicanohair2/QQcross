@@ -694,8 +694,18 @@ function renderSoloSetup(){
 function startUserArtistSolo(word){
   stopSolo();stopWatch();state.room=null;state.roomId=null;state.drawEvents=[];state.lastServerSequence=0;state.nextSequence=1;state.activeStrokeId=null;
   state.activeStrokeId=null;state.activeStrokePoint=null;state.activeStrokeStyle=null;
-  state.solo={mode:"user_draws",word,guesses:[],status:"playing",round:1};
+  state.solo={mode:"user_draws",word,guesses:[],status:"playing",round:1,botStatus:"Загружаем модель распознавания…"};
+  const session=state.solo;
   scheduleBotGuess();render();
+  loadDrawingModel().then(()=>{
+    if(state.solo!==session||session.status!=="playing")return;
+    session.botStatus="Нейросеть готова. Рисуй, боты будут угадывать.";
+    const node=$("#botStatus");if(node)node.textContent=session.botStatus;
+  }).catch(()=>{
+    if(state.solo!==session||session.status!=="playing")return;
+    session.botStatus="Используется локальный резервный распознаватель.";
+    const node=$("#botStatus");if(node)node.textContent=session.botStatus;
+  });
 }
 function scheduleBotGuess(){
   clearTimeout(state.botTimer);
@@ -737,7 +747,7 @@ function renderSoloGame(){
       (botArtist&&!finished?'<form id="guessForm" class="guess-form"><input class="field" id="guessInput" maxlength="30" autocomplete="off" placeholder="Что нарисовано?" required><button class="btn primary" type="submit">Угадать</button></form>':"")+
       (!botArtist?'<div class="tools"><button class="tool-btn '+(!state.eraser?"active":"")+'" id="brush">Кисть</button><button class="tool-btn '+(state.eraser?"active":"")+'" id="eraser">Ластик</button><input class="color-input" id="colorPicker" type="color" value="'+state.color+'"><label class="small muted" for="thickness">Толщина</label><input class="thickness" id="thickness" type="range" min="1" max="32" value="'+state.thickness+'"><button class="tool-btn" id="undo">↶</button><button class="tool-btn" id="clear">Очистить</button></div>':"")+
       (finished?'<div class="result"><h2 class="success">Слово угадано!</h2><p>Ответ: <strong>'+esc(solo.word)+'</strong></p><button class="btn primary full" id="again">Ещё раунд</button></div>':"")+
-      (!botArtist?'<div class="notice">Секретное слово: <strong>'+esc(solo.word)+'</strong>. Боты анализируют форму и контуры, а не получают ответ напрямую. '+esc(solo.botStatus||"Рисуй крупно и добавляй характерные детали.")+'</div>':"")+
+      (!botArtist?'<div class="notice">Секретное слово: <strong>'+esc(solo.word)+'</strong>. Боты анализируют рисунок и не получают ответ напрямую. <span id="botStatus">'+esc(solo.botStatus||"Рисуй крупно и добавляй характерные детали.")+'</span></div>':"")+
     '</section>'+
     '<section class="card stack"><div class="game-meta"><b>История догадок</b><span>'+guesses.length+'</span></div><div class="guess-history">'+historyMarkup(guesses)+'</div></section></section>';
   $("#soloExit").onclick=()=>{stopSolo();state.drawEvents=[];renderHome();};
@@ -793,6 +803,5 @@ async function restore(){
     }catch(error){console.warn("QQ Draw auth restore:",error);toast(friendlyError(error));}
   }
   render();restoreKeyboard();
-  loadDrawingModel().catch((error)=>console.warn("QQ Draw AI model unavailable; geometry fallback remains active:",error));
 }
 restore();
