@@ -15,7 +15,7 @@ const CLASS_TO_RUSSIAN = Object.freeze({
   "hamburger":"гамбургер","hammer":"молоток","hat":"шляпа","headphones":"наушники",
   "hedgehog":"ежик","helicopter":"вертолет","horse":"лошадь","house":"дом","ice cream":"мороженое",
   "key":"ключ","ladder":"лестница","lantern":"фонарь","laptop":"ноутбук","leaf":"лист",
-  "light bulb":"лампочка","lightning":"молния","lion":"лев","mailbox":"почтовый ящик",
+  "light bulb":"лампочка","lightning":"молния","lion":"лев","mailbox":"ящик",
   "map":"карта","matches":"спички","microphone":"микрофон","monkey":"обезьяна","moon":"луна",
   "mountain":"гора","mouse":"мышь","mushroom":"гриб","nose":"нос","ocean":"океан",
   "octopus":"осьминог","owl":"сова","palm tree":"пальма","panda":"панда","parrot":"попугай",
