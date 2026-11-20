@@ -206,3 +206,9 @@
   background:linear-gradient(145deg,#9a4053,#642333)!important;
   box-shadow:inset 0 0 0 2px #ffc0ca!important;
 }
+
+.game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-emoji .scan-clue-text{
+  font-size:clamp(14px,2.2vw,25px)!important;
+  white-space:nowrap!important;
+  -webkit-line-clamp:1!important;
+}
