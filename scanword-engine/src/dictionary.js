@@ -89,7 +89,7 @@ export function inferDifficulty(raw, question, imageKey = null, answer = '') {
   const lower = text.toLocaleLowerCase('ru-RU');
   const answerLength = normalizeAnswer(answer).length;
   const wordCount = text.split(/\s+/u).filter(Boolean).length;
-  const isFlagPrompt = !/[А-Яа-яЁё]/u.test(text) && /\p{Extended_Pictographic}/u.test(text);
+  const isFlagPrompt = !/[А-Яа-яЁё]/u.test(text) && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(text);
 
   if (imageKey || isFlagPrompt) return 2;
 
