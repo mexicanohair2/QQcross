@@ -41,6 +41,7 @@ function questionContainsWholeAnswer(question, answer) {
 }
 
 export function normalizeDifficultyBand(value) {
+  if (value === undefined || value === null || value === '') return 3;
   const numeric = Number(value);
   const level = Number.isFinite(numeric) ? Math.round(numeric) : 3;
   // Keep live play within the agreed grade-7 range: easy, medium, challenging.
