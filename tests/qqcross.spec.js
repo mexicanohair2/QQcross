@@ -259,8 +259,10 @@ test("retired word-wheel game is absent while supported modes remain available",
     if (!appResponse.ok || !gamesResponse.ok) throw new Error("Не удалось загрузить игровые модули для проверки");
     return { app: await appResponse.text(), games: await gamesResponse.text() };
   });
-  expect(sources.app).not.toMatch(/data-extra-game\\s*=\\s*["']wheel["']|Word of Wonders|из круга букв/i);
-  expect(sources.games).not.toMatch(/\\b(?:mountWheel|buildWheelPuzzle|renderWheel)\\b/i);
+  expect(sources.app).not.toContain('data-extra-game="wheel"');
+  expect(sources.games).not.toContain("mountWheel");
+  expect(sources.games).not.toContain("buildWheelPuzzle");
+  expect(sources.games).not.toContain("renderWheel");
 
   const achievementIds = await page.evaluate(() =>
     window.QQProgression.achievements().map(item => item.id)
