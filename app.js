@@ -81,18 +81,29 @@ function playerCardMarkup(player,score,meta,compact=false){
 }
 async function hydratePublicProfiles(players=[]){
  const rows=Array.isArray(players)?players:[];
- const ids=[...new Set(rows.map(p=>p.id||p.user_id).filter(Boolean))];
- if(!ids.length||!supabaseClient)return rows;
+ const ids=[...new Set(rows.map(p=>p.id||p.user_id||p.host_id||p.sender_id).filter(Boolean))];
+ const names=[...new Set(rows.map(p=>p.username||p.nickname||p.host_username||p.sender_username).filter(Boolean))];
+ if((!ids.length&&!names.length)||!supabaseClient)return rows;
  let profiles=[];
  try{
-  const result=await supabaseClient.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title,wins,games,points").in("id",ids);
-  if(result.error)throw result.error;
-  profiles=result.data||[];
+  let query=supabaseClient.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title,wins,games,points");
+  if(ids.length)query=query.in("id",ids);else query=query.in("username",names);
+  const result=await query;if(result.error)throw result.error;profiles=result.data||[];
  }catch(error){
-  try{const result=await supabaseClient.from("profiles").select("id,username,avatar,wins,games,points").in("id",ids);if(!result.error)profiles=result.data||[]}catch{}
+  try{
+   let query=supabaseClient.from("profiles").select("id,username,avatar,wins,games,points");
+   if(ids.length)query=query.in("id",ids);else query=query.in("username",names);
+   const result=await query;if(!result.error)profiles=result.data||[];
+  }catch{}
  }
  const byId=new Map(profiles.map(p=>[String(p.id),p]));
- return rows.map(row=>({...row,...(byId.get(String(row.id||row.user_id))||{}),id:row.id||row.user_id,username:row.username||row.nickname||byId.get(String(row.id||row.user_id))?.username}));
+ const byName=new Map(profiles.map(p=>[String(p.username||"").toLowerCase(),p]));
+ return rows.map(row=>{
+  const id=row.id||row.user_id||row.host_id||row.sender_id;
+  const name=row.username||row.nickname||row.host_username||row.sender_username;
+  const profile=(id&&byId.get(String(id)))||byName.get(String(name||"").toLowerCase())||{};
+  return {...row,...profile,id:id||profile.id,username:name||profile.username};
+ });
 }
 function showPlayerProfile(player){
  const id=player?.id||player?.user_id;
