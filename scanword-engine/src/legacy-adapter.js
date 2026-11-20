@@ -59,17 +59,12 @@ export function toLegacyPuzzle(scanword, options = {}) {
       || clueRow < 0 || clueRow >= 12 || clueCol < 0 || clueCol >= 8) {
       throw new Error('Вопрос ответа ' + word.id + ' расположен вне сетки 8×12.');
     }
-    if (clueRow === 11 || (clueCol === 7 && !(clueRow === 0 && word.direction === 'down'))) {
-      throw new Error('Вопрос ответа ' + word.id + ' ошибочно расположен на нижнем или правом краю сетки.');
-    }
-    if ((clueRow === 0 && clueCol > 0 && word.direction !== 'down')
-      || (clueCol === 0 && clueRow > 0 && word.direction !== 'right')) {
-      throw new Error('Внешняя вопросная клетка ответа ' + word.id + ' направлена неверно.');
-    }
     if (scanword.grid[clueRow][clueCol]?.type !== 'question') {
       throw new Error('Вопрос ответа ' + word.id + ' не находится в клетке-вопросе.');
     }
-    const delta = word.direction === 'right' ? [0, 1] : [1, 0];
+    const delta = {
+      right: [0, 1], down: [1, 0], left: [0, -1], up: [-1, 0]
+    }[word.direction];
     word.coordinates.forEach((point, index) => {
       const row = clueRow + delta[0] * (index + 1);
       const col = clueCol + delta[1] * (index + 1);
