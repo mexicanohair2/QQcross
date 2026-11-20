@@ -1,7 +1,7 @@
 import { CONFIG } from './config.js';
 import { createEmptyGrid } from './grid.js';
 import { createRng } from './rng.js';
-import { deriveWordSlots, validateTopology } from './topology.js';
+import { analyzeRequiredBorderFeasibility, deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * Production layout: clue starts run across the top and left borders, with
@@ -234,6 +234,19 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
  * no answer letters are stored in this stage.
  */
 export function generateTopology(options = {}) {
+  if (options.requireFullTopRow === true) {
+    const feasibility = analyzeRequiredBorderFeasibility({ requireFullTopRow: true });
+    return {
+      ok: false,
+      reason: feasibility.reason,
+      attempts: 0,
+      rejectedAttempts: 0,
+      diagnostics: [feasibility.reason],
+      feasibility,
+      message: feasibility.message
+    };
+  }
+
   const seed = options.seed ?? 1;
   const random = createRng(seed);
   const includeSpecialEleven = options.includeSpecialEleven === true;
