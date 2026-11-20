@@ -609,7 +609,8 @@ async function loadLobbyFriends(){
  try{
   const {data,error}=await supabaseClient.rpc("list_qqcross_friends");if(error)throw error;
   if(!data?.length){out.textContent="Сначала добавь друзей во вкладке «Друзья».";return}
-  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b></label>').join("");
+  const players=await hydratePublicProfiles(data||[]);
+  out.innerHTML=players.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'">'+playerCardMarkup(p,undefined,undefined,true)+'</label>').join("");
  }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
 }
 function puzzleSnapshot(){
@@ -638,7 +639,8 @@ async function refreshPartyLobby(){
  if(!state.pendingMatchId)return;const out=$("#partyStatus");if(!out)return;
  try{
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
-  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
+  const publicPlayers=await hydratePublicProfiles(data.players||[]);
+  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+publicPlayers.map(p=>playerCardMarkup(p,undefined,p.status==="accepted"?"Принял":"Ожидает",true)).join("");
   const b=$("#startOnlineMatch");if(b){b.disabled=data.host_id!==state.profile.id||data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;if(data.host_id!==state.profile.id)b.hidden=true;}
  }catch(e){out.textContent=e.message||"Ошибка"}
 }
@@ -648,7 +650,7 @@ async function startOnlineMatch(){
   const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
   const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||s.puzzle.words.map(w=>w.clueCell.join(","))),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
-  state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
+  state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=await hydratePublicProfiles(data.players||[]);state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
   state.filled={};state.owners={};state.feedback={};state.hints={};state.completed=new Set();state.scores=0;state.playerScores=Array(state.partySize).fill(0);state.round=1;state.seconds=90;state.turnDeadlineAt=Date.now()+90000;state.rackNeedsRefill=Array(state.partySize).fill(false);state.playerRacks=Array.from({length:state.partySize},()=>drawLetters(5));state.pendingMoves=[];state.returning={};state.rewardSubmitted=false;
   const {data:version,error:initError}=await supabaseClient.rpc("init_qqcross_match_state",{target_match_id:state.onlineMatchId,initial_state:serializeOnlineState()});if(initError)throw initError;
   state.onlineVersion=version;clearInterval(partyRefreshTimer);state.pendingMatchId=null;state.screen="game";subscribeOnlineMatch(state.onlineMatchId);pushGameHistoryEntry();render();
@@ -757,6 +759,7 @@ async function openOnlineMatch(id){
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:id});if(error)throw error;
   if(data.status==="waiting"){if(data.host_id===state.profile.id){state.pendingMatchId=id;state.screen="lobby";renderLobby($("#app"))}else toast("Создатель ещё не запустил партию");return}
   if(!data.game_state)throw new Error("Состояние партии ещё не готово");
+  data.players=await hydratePublicProfiles(data.players||[]);
   applyOnlineMatch(data);
  }catch(e){toast(e.message||"Не удалось открыть партию")}
 }
@@ -786,7 +789,7 @@ function applyOnlineMatch(m){
 async function refreshOnlineMatch(force=false){
  if(!state.onlineMatchId)return;
  try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
-  if((force||data.state_version>state.onlineVersion)&&data.game_state)applyOnlineMatch(data);
+  if((force||data.state_version>state.onlineVersion)&&data.game_state){data.players=await hydratePublicProfiles(data.players||[]);applyOnlineMatch(data)}
   else if(data.status==="finished"&&!state.rewardSubmitted)awardOnlineResult();
  }catch(e){console.warn("QQCross online refresh:",e)}
 }
@@ -1481,10 +1484,10 @@ function renderGame(root){
     }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" data-reserved-cell="'+key+'" aria-hidden="true"'+position+'></div>');
     else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
-  const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
-  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  const scorePlayers=Array.from({length:state.partySize},(_,i)=>{const online=state.onlineMatchId?state.onlinePlayers[i]:null;return online?{...online,username:online.username||online.nickname||("Игрок "+(i+1))}:i===0?currentPlayerProfile():{username:state.aiMatch?"ChatGPT":"Игрок "+(i+1),avatar:i===1?1:2,active_title:state.aiMatch?"Соперник":"Новичок"}});
+  const scores=scorePlayers.map((p,i)=>playerCardMarkup(p,(state.playerScores||[])[i]||0,i===state.turn?"Ход сейчас":"Участник",true)).join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
-    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
+    '<div class="score-strip qq-score-players">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+renderRackSlots()+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
