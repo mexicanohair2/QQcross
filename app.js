@@ -984,7 +984,7 @@ function fitScanwordClue(value,answer=""){
   let shortened=clue.slice(0,maxLength-1);
   const lastSpace=shortened.lastIndexOf(" ");
   if(lastSpace>=22)shortened=shortened.slice(0,lastSpace);
-  return shortened.replace(/[\\s,;:—-]+$/,"")+"…";
+  return shortened.replace(/[\s,;:—-]+$/,"")+"…";
 }
 function clonePreparedScanword(source){
   return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
