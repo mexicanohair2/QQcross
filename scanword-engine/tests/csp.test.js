@@ -691,3 +691,47 @@ test('keeps familiar real two-letter answers available', () => {
   assert.equal(result.ok, true, result.message);
   assert.equal(result.words[0].answer, 'ЁЖ');
 });
+
+test('enforces the exact easy-medium-challenging quota for a completed puzzle', () => {
+  const slots = Array.from({ length: 5 }, (_, index) => {
+    const row = index + 1;
+    return slot(
+      'difficulty-' + index,
+      { row, col: 0 },
+      { row, col: 4 },
+      [{ row, col: 1 }, { row, col: 2 }, { row, col: 3 }],
+      'right',
+      'left'
+    );
+  });
+  const dictionary = [
+    ['КОТ', 2], ['ДОМ', 2], ['ЛЕС', 2], ['НОС', 2],
+    ['ЧАЙ', 3], ['ШАР', 3], ['МЁД', 3], ['СЫР', 3],
+    ['БОК', 4], ['КУБ', 4], ['ДАР', 4], ['ГУЛ', 4]
+  ].map(([answer, difficulty], index) => ({
+    id: 'tier-' + index,
+    answer,
+    difficulty,
+    clue: 'Тестовая подсказка номер ' + (index + 1) + '.'
+  }));
+
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 219,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    requireDifficultyBalance: true,
+    allowedDirections: ['right'],
+    maxNodes: 2000,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.deepEqual(result.difficultyQuotas, { 2: 1, 3: 3, 4: 1 });
+  assert.deepEqual(result.difficultyCounts, { 2: 1, 3: 3, 4: 1 });
+  assert.deepEqual(
+    [2, 3, 4].map(level => result.words.filter(word => word.difficulty === level).length),
+    [1, 3, 1]
+  );
+});
+
