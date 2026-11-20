@@ -123,3 +123,5 @@ html,body{width:100%;max-width:100%;overflow-x:hidden}
 .word-slot{height:38px;font-size:17px}
 .guess-history{max-height:18svh}
 @media(max-height:650px){.screen{gap:6px}.guess-history{max-height:13svh}.key{min-height:32px;padding:5px 3px}.word-slot{height:34px}}
+
+.guess-row.bot-typing{border-style:dashed;opacity:.92}.guess-row.bot-typing .guess-player{display:flex;align-items:center;gap:6px;min-width:0}.guess-row.bot-typing .guess-player small{font-size:10px;color:var(--muted);white-space:nowrap}.guess-row.bot-typing .guess-cells{display:flex;gap:3px;margin-left:auto}.guess-row.bot-typing .guess-cell{display:grid;place-items:center;width:clamp(23px,6vw,34px);height:30px;border-radius:7px;background:#302334;border:1px solid var(--line);font-weight:800}.guess-row.bot-typing .guess-cell.pending{opacity:.3}
