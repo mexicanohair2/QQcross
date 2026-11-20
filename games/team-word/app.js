@@ -1,6 +1,9 @@
 import {
   TEAM_WORDS,
   TEAM_WORD_REVEAL_INTERVAL_MS,
+  TEAM_WORD_BOT_THINK_MIN_MS,
+  TEAM_WORD_BOT_THINK_MAX_MS,
+  TEAM_WORD_BOT_TYPING_INTERVAL_MS,
   normalizeWord,
   revealRandomLetter,
   scoreWordGuess,
@@ -23,7 +26,8 @@ const state = {
   busy: false,
   solo: null,
   soloTimer: null,
-  botTimer: null
+  botTimer: null,
+  botTypingTimer: null
 };
 
 const supabase = window.supabase?.createClient
@@ -97,8 +101,10 @@ function stopRoomWatch() {
 function stopSolo() {
   clearInterval(state.soloTimer);
   clearTimeout(state.botTimer);
+  clearInterval(state.botTypingTimer);
   state.soloTimer = null;
   state.botTimer = null;
+  state.botTypingTimer = null;
   state.solo = null;
 }
 function render() {
@@ -562,9 +568,12 @@ function soloTick() {
 }
 function scheduleBotGuess() {
   clearTimeout(state.botTimer);
+  clearInterval(state.botTypingTimer);
+  state.botTypingTimer = null;
   const solo = state.solo;
   if (!solo || solo.status !== "playing") return;
-  const delay = 26000 + Math.floor(Math.random()*19000);
+  const delay = TEAM_WORD_BOT_THINK_MIN_MS
+    + Math.floor(Math.random() * (TEAM_WORD_BOT_THINK_MAX_MS - TEAM_WORD_BOT_THINK_MIN_MS + 1));
   state.botTimer = setTimeout(() => {
     const current = state.solo;
     if (!current || current.status !== "playing") return;
@@ -574,19 +583,45 @@ function scheduleBotGuess() {
       previous: current.guesses,
       words: TEAM_WORDS
     });
-    if (guess) {
-      const correct = normalizeWord(guess) === normalizeWord(current.word);
-      current.guesses.push({
-        word: guess,
-        nickname: Math.random() < .5 ? "Бот Соня" : "Бот Макс",
-        avatar: Math.random() < .5 ? 4 : 1,
-        feedback: scoreWordGuess(guess,current.word),
-        correct
-      });
-      if (correct) current.status = "finished";
+    if (!guess) {
+      scheduleBotGuess();
+      return;
     }
+    current.botTyping = {
+      word: guess,
+      nickname: Math.random() < .5 ? "Бот Соня" : "Бот Макс",
+      avatar: Math.random() < .5 ? 4 : 1,
+      typed: 0
+    };
     render();
-    if (current.status === "playing") scheduleBotGuess();
+    state.botTypingTimer = setInterval(() => {
+      const active = state.solo;
+      if (!active || active.status !== "playing" || !active.botTyping) {
+        clearInterval(state.botTypingTimer);
+        state.botTypingTimer = null;
+        return;
+      }
+      active.botTyping.typed = Math.min(active.botTyping.word.length, active.botTyping.typed + 1);
+      if (active.botTyping.typed >= active.botTyping.word.length) {
+        const typing = active.botTyping;
+        const correct = normalizeWord(typing.word) === normalizeWord(active.word);
+        active.guesses.push({
+          word: typing.word,
+          nickname: typing.nickname,
+          avatar: typing.avatar,
+          feedback: scoreWordGuess(typing.word, active.word),
+          correct
+        });
+        active.botTyping = null;
+        clearInterval(state.botTypingTimer);
+        state.botTypingTimer = null;
+        if (correct) active.status = "finished";
+        render();
+        if (active.status === "playing") scheduleBotGuess();
+        return;
+      }
+      render();
+    }, TEAM_WORD_BOT_TYPING_INTERVAL_MS + Math.floor(Math.random() * 120));
   },delay);
 }
 function submitSoloGuess() {
@@ -607,8 +642,19 @@ function submitSoloGuess() {
   if (correct) {
     solo.status = "finished";
     clearTimeout(state.botTimer);
+    clearInterval(state.botTypingTimer);
+    state.botTypingTimer = null;
+    solo.botTyping = null;
   }
   render();
+}
+function renderBotTyping(typing) {
+  if (!typing) return "";
+  const letters = normalizeWord(typing.word).split("");
+  return `<div class="guess-row bot-typing" aria-label="${esc(typing.nickname)} печатает">
+    <div class="guess-player"><span class="avatar">${avatar(typing.avatar)}</span><b>${esc(typing.nickname)}</b><small>печатает…</small></div>
+    <div class="guess-cells">${letters.map((letter,index) => `<span class="guess-cell ${index < typing.typed ? "miss" : "pending"}">${index < typing.typed ? esc(letter.toUpperCase()) : ""}</span>`).join("")}</div>
+  </div>`;
 }
 function renderSoloGame() {
   const solo = state.solo;
@@ -627,7 +673,7 @@ function renderSoloGame() {
       </section>
       <section class="card stack" style="min-height:0">
         <div class="game-meta"><b>Командная история</b><span>${solo.guesses.length} попыток</span></div>
-        <div class="guess-history">${renderHistory(solo.guesses)}</div>
+        <div class="guess-history">${renderHistory(solo.guesses)}${renderBotTyping(solo.botTyping)}</div>
       </section>
       ${solo.status==="finished" ? '<div class="result"><h2 class="success">Слово отгадано</h2><p>Ответ: <b>'+esc(solo.word)+'</b></p></div><button class="btn primary full" id="soloAgain">Сыграть ещё раз</button>' : `
         <section class="card stack">
