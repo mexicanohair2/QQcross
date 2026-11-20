@@ -19,7 +19,7 @@
     document.documentElement.dataset.qqMode=mode;
     document.documentElement.style.colorScheme=mode;
     var meta=document.querySelector('meta[name="theme-color"]');
-    if(meta){var colors={burgundy:"#1a0a10",crimson:"#200912",ember:"#211008",amber:"#201606",olive:"#191a0b",forest:"#0d1b13",emerald:"#081c18",teal:"#081b1d",lagoon:"#081923",ocean:"#0a1724",sapphire:"#0d1427",indigo:"#15112a",purple:"#170e20",violet:"#190d28",plum:"#210f20",orchid:"#210d1b",graphite:"#17191d"};meta.setAttribute("content",mode==="light"?"#f1f7fb":(colors[theme]||"#1a0a10"));}
+    if(meta){var colors={burgundy:"#210710",crimson:"#200912",ember:"#211008",amber:"#201606",olive:"#191a0b",forest:"#0d1b13",emerald:"#081c18",teal:"#081b1d",lagoon:"#081923",ocean:"#0a1724",sapphire:"#0d1427",indigo:"#15112a",purple:"#170e20",violet:"#190d28",plum:"#210f20",orchid:"#210d1b",graphite:"#17191d"};meta.setAttribute("content",mode==="light"?"#f1f7fb":(colors[theme]||"#210710"));}
   }catch(_){}
 })();
 </script>
@@ -30,9 +30,9 @@
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
 <link rel="stylesheet" href="./visual-repair.css?v=20261120-phone-fit-5rack-v5">
-<link rel="stylesheet" href="./ui-refresh.css?v=20261120-spectrum-sakura-v3">
+<link rel="stylesheet" href="./ui-refresh.css?v=20261121-dark-cherry-v1">
 <link rel="stylesheet" href="./scanword-fix.css?v=20261120-scanword-layout-v4">
-<script src="./ambience.js?v=20261120-sakura-canvas-v1" defer></script>
+<script src="./ambience.js?v=20261121-natural-particles-v1" defer></script>
 <title>QQCross</title>
 </head>
 <body>
@@ -73,7 +73,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261120-scanword-feedback-v10";
+    app.src="./app.js?v=20261121-dark-cherry-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
