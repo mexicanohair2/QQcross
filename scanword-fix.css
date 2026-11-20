@@ -194,3 +194,15 @@
 @media(max-height:700px){
   .game-screen .hand{display:flex!important}
 }
+
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-left{right:auto!important;left:2px!important}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-up{bottom:auto!important;top:1px!important;right:2px!important}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-down{bottom:1px!important;right:2px!important}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.correct{
+  background:linear-gradient(145deg,#527c68,#315644)!important;
+  box-shadow:inset 0 0 0 2px #a8e0bb!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.wrong{
+  background:linear-gradient(145deg,#9a4053,#642333)!important;
+  box-shadow:inset 0 0 0 2px #ffc0ca!important;
+}
