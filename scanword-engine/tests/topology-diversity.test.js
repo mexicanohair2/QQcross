@@ -63,20 +63,18 @@ test('rejects the impossible full top-row plus full left-column request before t
   assert.equal(result.feasibility.conflicts[0].availableLettersBetweenClues, 1);
 });
 
-test('special 11-letter layouts vary without mutating the reserved crossing columns', () => {
+test('special 11-letter layouts vary while protecting the fixed answer path', () => {
   const patterns = new Set();
-  const samples = [
-    [3, 7, 10], [3, 7, 11], [3, 8, 10], [3, 8, 11],
-    [3, 9, 11], [4, 7, 10], [4, 7, 11], [4, 8, 10],
-    [4, 8, 11], [5, 8, 10], [5, 8, 11], [5, 9, 11]
-  ];
+  const specialPattern = getTopologyScaffolds()[3];
 
-  for (let index = 0; index < samples.length; index++) {
+  for (let index = 0; index < 12; index++) {
     const result = generateTopology({
-      seed: 4109 + index * 7919,
+      seed: 9127 + index * 65537,
       includeSpecialEleven: true,
-      specialSplitRows: samples[index],
+      specialPattern,
+      mutateSpecialPattern: true,
       mutationBudget: 48,
+      maxTwoLetterSlots: 4,
       maxAttempts: 1
     });
 
@@ -97,7 +95,7 @@ test('special 11-letter layouts vary without mutating the reserved crossing colu
     patterns.add(result.topology.pattern.join('/'));
   }
 
-  assert.ok(patterns.size >= 4, 'special layouts should vary through validated internal mutations; got ' + patterns.size);
+  assert.ok(patterns.size >= 4, 'special layouts should vary through validator-approved mutations; got ' + patterns.size);
 });
 
 test('topology generation is deterministic for a fixed seed', () => {
