@@ -757,14 +757,37 @@ function placeAtCell(k,letterIndex,root,rackSlot){
 async function finishTurn(root,timeout=false){
   if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
   const moves=state.pendingMoves||[];let correct=0,incorrect=0;const incorrectKeys=[];const correctKeys=[];state.returning=state.returning||{};
-  moves.forEach(m=>{if(state.filled[m.k]){state.letters.push(m.l);return}
-    if(m.l===expected[m.k]){state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k)}
-    else{state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);state.letters.push(m.l);incorrect++}
+  // Rebuild the five physical rack positions before resolving moves. Correctly
+  // placed letters are replaced in their own positions; wrong letters return
+  // to the position they came from instead of being appended at the left/right.
+  const occupiedSlots=new Set();
+  moves.forEach(move=>{
+    let slot=Number(move.rackSlot);
+    if(!Number.isInteger(slot)||slot<0||slot>=5||occupiedSlots.has(slot)){
+      slot=[0,1,2,3,4].find(candidate=>!occupiedSlots.has(candidate));
+    }
+    move.rackSlot=slot;
+    if(Number.isInteger(slot))occupiedSlots.add(slot);
   });
+  const rackPositions=Array(5).fill(null);
+  const freeSlots=[0,1,2,3,4].filter(slot=>!occupiedSlots.has(slot));
+  state.letters.forEach((letter,index)=>{if(index<freeSlots.length)rackPositions[freeSlots[index]]=letter});
+  moves.forEach(m=>{
+    if(state.filled[m.k]){rackPositions[m.rackSlot]=m.l;return}
+    if(m.l===expected[m.k]){
+      state.filled[m.k]=m.l;state.owners[m.k]=state.turn;state.feedback[m.k]="correct";delete state.hints[m.k];state.playerScores[state.turn]++;state.scores++;correct++;correctKeys.push(m.k);
+    }else{
+      state.feedback[m.k]="wrong";state.returning[m.k]=m.l;incorrectKeys.push(m.k);rackPositions[m.rackSlot]=m.l;incorrect++;
+    }
+  });
+  const emptySlots=rackPositions.map((letter,slot)=>letter==null?slot:-1).filter(slot=>slot>=0);
+  const refilled=drawLetters(emptySlots.length);
+  const refilledSlots=[];
+  emptySlots.forEach((slot,index)=>{if(refilled[index]!==undefined){rackPositions[slot]=refilled[index];refilledSlots.push(slot)}});
+  state.letters=rackPositions.filter(letter=>letter!==null&&letter!==undefined);
   state.pendingMoves=[];state.playerRacks[state.turn]=state.letters;
   if(correct)window.QQAudio?.play("correct");if(incorrect)window.QQAudio?.play("wrong");const newlyCompleted=correct?checkWords():[];
-  const refilled=refillRack(state.turn);
-  state.rackNewIndices=state.partySize===1?refilled.map((_,i)=>state.playerRacks[state.turn].length-refilled.length+i):[];
+  state.rackNewIndices=state.partySize===1?refilledSlots:[];
   if(state.rackNewIndices.length){clearTimeout(state.rackAnimationTimer);state.rackAnimationTimer=setTimeout(()=>{state.rackNewIndices=[];if(state.screen==="game")renderGame(root)},520);}
   const completedWordKeys=newlyCompleted.flatMap(w=>w.cells.map(cell=>cell.join(",")));
   const flashKeys=[...new Set([...correctKeys,...completedWordKeys])];
@@ -1208,7 +1231,7 @@ async function runChatGPTTurn(root,turnKey){
           if(state.filled[key])return;
           const letter=actual[i];
           const index=rack.findIndex((value,j)=>!used.includes(j)&&String(value).toUpperCase().replace(/Ё/g,"Е")===letter);
-          if(index>=0){used.push(index);state.pendingMoves.push({k:key,l:rack[index]})}
+          if(index>=0){used.push(index);state.pendingMoves.push({k:key,l:rack[index],rackSlot:index})}
         });
         used.sort((x,y)=>y-x).forEach(index=>rack.splice(index,1));
         state.playerRacks[1]=rack;state.letters=rack;
