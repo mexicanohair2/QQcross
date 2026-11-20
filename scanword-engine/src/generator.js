@@ -500,6 +500,8 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
+      requireDifficultyBalance: true,
+      difficultyDistribution: options.difficultyDistribution,
       allowedDirections: ['right', 'down'],
       history: options.history,
       signal: options.signal,
@@ -572,7 +574,9 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true,
+      difficultyDistribution: options.difficultyDistribution
     });
 
     if (!validation.valid) {
@@ -623,6 +627,8 @@ export function generateScanword(inputDictionary, options = {}) {
         elapsedMs: Math.round(now() - started),
         cspElapsedMs: solved.elapsedMs,
         score,
+        difficultyCounts: solved.difficultyCounts,
+        difficultyQuotas: solved.difficultyQuotas,
         specialElevenLetterQuestion: scanword.metadata.specialElevenLetterQuestion,
         specialElevenRequested: wantsEleven,
         specialElevenMissed: wantsEleven && !scanword.metadata.specialElevenLetterQuestion,
