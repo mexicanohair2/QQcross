@@ -55,10 +55,10 @@ function makeSlot(axis, first, last, coordinates) {
   const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   const endsAtRightEdge = horizontal && last.col === CONFIG.WIDTH - 1;
-  const endsAtBottomEdge = !horizontal && last.row === CONFIG.HEIGHT - 1;
+  const endsAtBottomEdge = last.row === CONFIG.HEIGHT - 1;
   const startsAtTopRight = first.row === 0 && first.col === CONFIG.WIDTH - 1;
   const requiredDirection = horizontal
-    ? (endsAtRightEdge ? 'right' : null)
+    ? (endsAtRightEdge || endsAtBottomEdge ? 'right' : null)
     : (endsAtBottomEdge || startsAtTopRight ? 'down' : null);
 
   return {
