@@ -623,9 +623,11 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await expect(page.locator("#clock")).toHaveCount(0);
   const hand = await page.locator(".hand").evaluate(node => {
     const rect = node.getBoundingClientRect();
+    const area = node.closest(".letter-area").getBoundingClientRect();
     const letters = [...node.querySelectorAll(".letter")].map(el => el.getBoundingClientRect());
     return {
       hand: { left: rect.left, right: rect.right, center: (rect.left + rect.right) / 2 },
+      areaCenter: (area.left + area.right) / 2,
       letters: letters.map(r => ({ left: r.left, right: r.right, width: r.width, height: r.height }))
     };
   });
@@ -633,6 +635,7 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   expect(hand.letters.every(item => Math.abs(item.width - item.height) <= 1)).toBeTruthy();
   const tileCenter=(hand.letters[0].left+hand.letters[4].right)/2;
   expect(Math.abs(tileCenter-hand.hand.center)).toBeLessThanOrEqual(2);
+  expect(Math.abs(hand.hand.center-hand.areaCenter)).toBeLessThanOrEqual(2);
   const tile = page.locator(".hand .letter").first();
   const cell = page.locator(".scanword-board .cell").first();
   const from = await tile.boundingBox();
