@@ -20,6 +20,14 @@ test('special eleven-letter answer is scheduled no more than once per five puzzl
   assert.equal(shouldRequestSpecialElevenLetter(null, 0.8, 0), false);
 });
 
+test('production generator refuses the impossible full top-row and full left-column request', () => {
+  const result = generateScanword([], { requireFullTopRow: true, seed: 77 });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.equal(result.feasibility.conflicts[0].topClue.row, 0);
+  assert.equal(result.feasibility.conflicts[0].topClue.col, 2);
+});
+
 test('AC-3 preserves a candidate when a reversed crossing arc has matching letters', () => {
   const domains = [
     {
