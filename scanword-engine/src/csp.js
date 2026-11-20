@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, getDifficultyQuotaCounts, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
 function pointKey(point) {
@@ -260,6 +260,11 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
+      const difficultyBand = normalizeDifficultyBand(entry.difficulty);
+      if (options.requireDifficultyBalance === true
+        && (options.difficultyCounts?.[difficultyBand] ?? 0) >= (options.difficultyQuotas?.[difficultyBand] ?? 0)) {
+        continue;
+      }
       const plannedDomain = options.allowedEntryIdsBySlot?.get(slot.id);
       if (plannedDomain && !plannedDomain.has(entry.id)) continue;
       if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
@@ -285,7 +290,10 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
       const priority =
         (entry.imageKey && state.usedImages.size < options.requiredImageCount ? 1000 : 0)
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
-        + getDifficultyFitScore(entry.difficulty)
+        + getDifficultyFitScore(difficultyBand)
+        + (options.requireDifficultyBalance === true
+          ? Math.max(0, (options.difficultyQuotas?.[difficultyBand] ?? 0) - (options.difficultyCounts?.[difficultyBand] ?? 0)) * 2
+          : 0)
         - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
         - (options.history?.questionUsageCount?.(entry.question) ?? 0) * (options.repeatQuestionPenalty ?? 12);
 
@@ -390,6 +398,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const questionKeys = [...new Set(slots.flatMap(slot =>
     slot.endpoints.filter(point => !point.boundary).map(pointKey)
   ))];
+  const difficultyQuotas = options.requireDifficultyBalance === true
+    ? getDifficultyQuotaCounts(slots.length, options.difficultyDistribution)
+    : { 2: Infinity, 3: Infinity, 4: Infinity };
 
   const state = {
     letters: new Map(),
@@ -400,6 +411,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     usedImages: new Set(),
     usedImageClueCells: new Set(),
     usedLogicClues: new Set(),
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
     assignments: new Map()
   };
 
@@ -458,10 +470,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       state.usedImageClueCells.add(clueKey);
     }
     if (entry.logic) state.usedLogicClues.add(clueKey);
+    const difficulty = normalizeDifficultyBand(entry.difficulty);
+    state.difficultyCounts[difficulty]++;
     state.assignments.set(placement.slotId, {
       ...placement,
       addedLetters,
-      clueKey
+      clueKey,
+      difficulty
     });
 
     return addedLetters;
@@ -484,6 +499,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (remainingQuestionUses.length) state.usedQuestions.set(normalizedQuestion, remainingQuestionUses);
     else state.usedQuestions.delete(normalizedQuestion);
     state.usedEntryIds.delete(saved.entry.id);
+    state.difficultyCounts[saved.difficulty] = Math.max(0, state.difficultyCounts[saved.difficulty] - 1);
     if (saved.entry.imageKey) {
       state.usedImages.delete(saved.entry.imageKey);
       state.usedImageClueCells.delete(saved.clueKey);
@@ -525,6 +541,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
         history: options.history,
         allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
@@ -585,7 +604,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     deepest = Math.max(deepest, state.assignments.size);
 
     if (state.assignments.size === slots.length) {
+      const difficultyValid = options.requireDifficultyBalance !== true
+        || [2, 3, 4].every(level => state.difficultyCounts[level] === difficultyQuotas[level]);
       const contentValid = (!requireEveryClueStarts || questionKeys.every(key => (state.directionUse.get(key)?.size ?? 0) > 0))
+        && difficultyValid
         && state.usedImages.size === requiredImageCount
         && state.usedImageClueCells.size === requiredImageCount
         && state.usedLogicClues.size >= minimumLogicClueCells;
@@ -647,6 +669,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const candidates = makePlacementCandidates(specialElevenSlot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
         history: options.history,
         allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
@@ -698,6 +723,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
           minimumLogicClueCells,
+          requireDifficultyBalance: options.requireDifficultyBalance === true,
+          difficultyCounts: state.difficultyCounts,
+          difficultyQuotas,
           history: options.history,
           allowedDirections,
           repeatWordPenalty: options.repeatWordPenalty,
@@ -813,6 +841,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     questions,
     letters: new Map(state.letters),
     clueDirections: new Map([...state.directionUse].map(([key, values]) => [key, new Set(values)])),
+    difficultyCounts: { ...state.difficultyCounts },
+    difficultyQuotas: { ...difficultyQuotas },
     metrics: {
       slots: slots.length,
       assignedWords: words.length,
