@@ -72,7 +72,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true
     });
     assert.equal(validation.valid, true, "Independent validator rejected seed " + seed + ": " + JSON.stringify(validation.errors.slice(0, 8)));
     assert.equal(scanword.width, 8);
