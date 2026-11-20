@@ -32,7 +32,8 @@
   return '<div class="qq-player-card '+(options.compact?"is-compact":"")+(options.active?" is-active":"")+'" data-player-id="'+esc(player.id||player.user_id||"")+'">'+renderAvatar(player,options.size||"md")+'<span class="qq-player-copy"><b>'+name+'</b><small class="qq-player-title">'+title+'</small>'+meta+'</span>'+score+'</div>';
  }
  function renderProfile(player={},size="lg"){
-  return '<div class="qq-profile-identity">'+renderAvatar(player,size)+'<span class="qq-player-copy"><b>'+esc(player.username||"Игрок")+'</b><small class="qq-player-title">'+esc(player.active_title||player.activeTitle||"Новичок")+'</small></span></div>';
+  const points=player.points!==undefined&&player.points!==null?'<small class="qq-player-points">Очки: '+esc(Number(player.points)||0)+'</small>':"";
+  return '<div class="qq-profile-identity">'+renderAvatar(player,size)+'<span class="qq-player-copy"><b>'+esc(player.username||"Игрок")+'</b><small class="qq-player-title">'+esc(player.active_title||player.activeTitle||"Новичок")+'</small>'+points+'</span></div>';
  }
  window.QQPlayerUI={avatars:AVATARS,frames:FRAMES,escape:esc,avatar,frameId,imageFor,renderAvatar,renderCard,renderProfile};
 })();
