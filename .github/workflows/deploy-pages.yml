@@ -46,6 +46,22 @@ jobs:
           name: github-pages-${{ github.run_attempt }}
           path: dist
 
+      - name: Wait until the Pages artifact is visible to the deploy token
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_ARTIFACT: github-pages-${{ github.run_attempt }}
+        run: |
+          for attempt in {1..15}; do
+            if gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[].name' | grep -Fxq "$EXPECTED_ARTIFACT"; then
+              echo "Pages artifact is visible to the deploy token."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::Pages artifact metadata did not become visible after 30 seconds."
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/artifacts" --jq '.artifacts[] | {name,id,expired}'
+          exit 1
+
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
