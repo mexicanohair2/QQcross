@@ -13,7 +13,7 @@ alter table public.profiles
 
 grant select (id, username, avatar, avatar_url, frame_id, active_title, wins, games, points, created_at)
   on public.profiles to authenticated;
-grant update (avatar_url, frame_id, active_title)
+grant update (avatar_url, active_title)
   on public.profiles to authenticated;
 
 create table if not exists public.qqcross_player_cosmetics (
@@ -28,6 +28,30 @@ create policy qqcross_cosmetics_read_own on public.qqcross_player_cosmetics
   for select to authenticated using (user_id = (select auth.uid()));
 revoke all on public.qqcross_player_cosmetics from public, anon, authenticated;
 grant select on public.qqcross_player_cosmetics to authenticated;
+
+create or replace function public.equip_qqcross_frame(p_frame_id text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $function$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then raise exception 'AUTH_REQUIRED'; end if;
+  if p_frame_id not in ('classic','amethyst','royal','sakura','obsidian') then
+    raise exception 'INVALID_FRAME';
+  end if;
+  if p_frame_id<>'classic' and not exists(
+    select 1 from public.qqcross_player_cosmetics
+    where user_id=v_uid and cosmetic_id=p_frame_id
+  ) then raise exception 'FRAME_NOT_OWNED'; end if;
+  update public.profiles set frame_id=p_frame_id where id=v_uid;
+  return jsonb_build_object('equipped',true,'frame_id',p_frame_id);
+end
+$function$;
+revoke all on function public.equip_qqcross_frame(text) from public, anon;
+grant execute on function public.equip_qqcross_frame(text) to authenticated;
 
 create or replace function public.purchase_qqcross_cosmetic(p_cosmetic_id text)
 returns jsonb
