@@ -47,7 +47,7 @@ export function inferDifficulty(raw, question, imageKey = null) {
   }
   if (imageKey) return 2;
   if (raw?.logic === true) return 3;
-  const wordCount = String(question ?? '').split(/\\s+/u).filter(Boolean).length;
+  const wordCount = String(question ?? '').split(/\s+/u).filter(Boolean).length;
   if (wordCount <= 3) return 2;
   if (wordCount <= 8) return 3;
   return 4;
