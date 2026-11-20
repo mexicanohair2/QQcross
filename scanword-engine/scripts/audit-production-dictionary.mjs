@@ -107,8 +107,8 @@ const report = {
     autoClassifiedRecords: prepared.variants.length - explicitDifficultyRecords,
     classifiedBands: difficultyBands,
     exactBoardTargets: {
-      20Answers: getDifficultyQuotaCounts(20),
-      25Answers: getDifficultyQuotaCounts(25)
+      twentyAnswers: getDifficultyQuotaCounts(20),
+      twentyFiveAnswers: getDifficultyQuotaCounts(25)
     }
   },
   warningCounts: {
