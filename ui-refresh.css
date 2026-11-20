@@ -109,3 +109,37 @@ html[data-qq-reduce-motion="true"] .qq-settings-content,html[data-qq-reduce-moti
 .qq-ambience-canvas{position:fixed;inset:0;z-index:0;display:block;width:100vw;height:100dvh;pointer-events:none!important;opacity:.82;contain:strict;will-change:contents}
 html[data-qq-ambience="sakura"] body::before{display:none!important}
 #app{position:relative;z-index:1}
+
+
+/* Natural canvas particles own every ambience effect; disable the old striped CSS approximation. */
+body::before{display:none!important;content:none!important}
+.qq-ambience-canvas{z-index:0!important;opacity:.94!important;pointer-events:none!important}
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  z-index:0;
+  pointer-events:none;
+  background:
+    radial-gradient(ellipse at 13% 18%,rgba(105,20,49,.23),transparent 54%),
+    radial-gradient(ellipse at 86% 78%,rgba(76,12,35,.2),transparent 58%);
+  opacity:.82;
+}
+html[data-qq-theme="burgundy"]{
+  --qq-base:#210710;
+  --qq-base-deep:#090207;
+  --qq-glass:rgba(43,10,22,.93);
+  --qq-theme-border:#572536;
+  --qq-theme-accent:#b77a8d;
+  --qq-theme-muted:#c9aab6;
+}
+html[data-qq-theme="burgundy"] body::after{
+  background:
+    radial-gradient(ellipse at 18% 14%,rgba(130,25,57,.34),transparent 55%),
+    radial-gradient(ellipse at 82% 80%,rgba(92,13,40,.28),transparent 60%),
+    linear-gradient(145deg,rgba(54,7,24,.24),rgba(12,2,7,.08));
+  opacity:1;
+}
+.theme-swatch-burgundy{
+  background:linear-gradient(145deg,#a34a65,#4b1027 58%,#210710)!important;
+}
