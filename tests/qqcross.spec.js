@@ -775,9 +775,13 @@ test("opens QQ Draw inside QQCross and keeps its drawing canvas within the phone
 
 test("QuickDraw neural recognizer loads and runs an inference in the browser", async ({ page }) => {
   test.setTimeout(90_000);
-  await page.goto("/");
-  const result = await page.evaluate(async () => {
-    const { predictDrawing, loadDrawingModel } = await import("/games/qq-draw/draw-model.mjs");
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="qq-draw"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(frame.locator("#app")).toBeVisible();
+  const result = await frame.locator("html").evaluate(async () => {
+    const { predictDrawing, loadDrawingModel } = await import("./draw-model.mjs");
     const { model, classes } = await loadDrawingModel();
     const tf = window.tf;
     const input = tf.zeros([1, 28, 28, 1]);
