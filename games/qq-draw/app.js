@@ -1,3 +1,5 @@
+import { loadDrawingModel, predictDrawing } from "./draw-model.mjs";
+
 import {
   DRAW_WORDS,
   normalizeDrawWord,
@@ -699,18 +701,23 @@ function scheduleBotGuess(){
   clearTimeout(state.botTimer);
   const solo=state.solo;if(!solo||solo.mode!=="user_draws"||solo.status!=="playing")return;
   const wait=9000+Math.floor(Math.random()*11000);
-  state.botTimer=setTimeout(()=>{
+  state.botTimer=setTimeout(async()=>{
     const current=state.solo;if(!current||current.status!=="playing")return;
     const used=new Set(current.guesses.map((g)=>normalizeDrawWord(g.word)));
-    const recognized=recognizeDrawing(replayDrawingEvents(state.drawEvents)).find((item)=>!used.has(normalizeDrawWord(item.word)));
+    const strokes=replayDrawingEvents(state.drawEvents);
+    let predictions=[];
+    try{predictions=await predictDrawing(strokes);}
+    catch(error){console.warn("QQ Draw model prediction:",error);}
+    const ranked=predictions.length?predictions:recognizeDrawing(strokes);
+    const recognized=ranked.find((item)=>!used.has(normalizeDrawWord(item.word)));
     if(!recognized){
-      current.botStatus=state.drawEvents.length?"Пока не распознали форму. Добавь к рисунку ещё несколько характерных деталей.":"Боты ждут, пока на холсте появится рисунок.";
+      current.botStatus=state.drawEvents.length?"Пока не распознали рисунок. Попробуй сделать контуры понятнее и добавить характерные детали.":"Боты ждут, пока на холсте появится рисунок.";
       renderSoloGame();
       if(current.status==="playing")scheduleBotGuess();
       return;
     }
     const guess=recognized.word;
-    current.botStatus="Боты анализируют контуры рисунка.";
+    current.botStatus="Боты анализируют рисунок.";
     const correct=normalizeDrawWord(guess)===normalizeDrawWord(current.word);
     current.guesses.push({word:guess,nickname:Math.random()<.5?"Бот Соня":"Бот Макс",avatar:Math.random()<.5?4:1,correct,confidence:recognized.confidence});
     if(correct)current.status="finished";
@@ -786,5 +793,6 @@ async function restore(){
     }catch(error){console.warn("QQ Draw auth restore:",error);toast(friendlyError(error));}
   }
   render();restoreKeyboard();
+  loadDrawingModel().catch((error)=>console.warn("QQ Draw AI model unavailable; geometry fallback remains active:",error));
 }
 restore();
