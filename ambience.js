@@ -13,10 +13,10 @@
  function make(type,initial=false){
   const depth=rand(.55,1.35);
   const p={type,x:rand(-30,width+30),y:initial?rand(-height,height):rand(-height*.25,-15),depth,phase:rand(0,Math.PI*2),rotation:rand(-Math.PI,Math.PI),spin:rand(-1.1,1.1),opacity:rand(.35,.82),drift:rand(-22,22),sway:rand(7,27),age:0};
-  if(type==="sakura"){p.length=rand(12,23)*depth;p.width=p.length*rand(.48,.72);p.fall=rand(18,43)*depth;p.color=palettes.sakura[Math.floor(rand(0,palettes.sakura.length))];p.fold=rand(.45,.9);p.flip=rand(.65,1.25)}
+  if(type==="sakura"){p.length=rand(10,19.5)*depth;p.width=p.length*rand(.48,.72);p.fall=rand(18,43)*depth;p.color=palettes.sakura[Math.floor(rand(0,palettes.sakura.length))];p.fold=rand(.45,.9);p.flip=rand(.65,1.25)}
   else if(type==="autumn"){p.size=rand(10,19)*depth;p.fall=rand(16,35)*depth;p.color=palettes.autumn[Math.floor(rand(0,palettes.autumn.length))];p.spin=rand(-1.5,1.5)}
   else if(type==="rain"){p.length=rand(10,27)*depth;p.fall=rand(430,760)*depth;p.drift=rand(-85,-30);p.opacity=rand(.16,.42);p.width=rand(.55,1.15)}
-  else if(type==="forest"){p.size=rand(3.5,7.5)*depth;p.fall=rand(22,58)*depth;p.drift=rand(-8,8);p.opacity=rand(.55,.9)}
+  else if(type==="forest"){p.size=rand(3,6.4)*depth;p.fall=rand(22,58)*depth;p.drift=rand(-8,8);p.opacity=rand(.55,.9)}
   else if(type==="fireflies"){p.size=rand(2,4.5)*depth;p.fall=rand(-4,4);p.opacity=rand(.35,.8);p.glow=rand(7,16);p.sway=rand(8,24);p.phaseSpeed=rand(.5,1.4)}
   else if(type==="stars"){p.size=rand(1.1,2.8)*depth;p.fall=rand(-1,1);p.opacity=rand(.25,.85);p.glow=rand(2,7);p.phaseSpeed=rand(.5,2)}
   else if(type==="fog"){p.rx=rand(85,190);p.ry=rand(25,75);p.fall=rand(-2,2);p.drift=rand(-7,7);p.opacity=rand(.035,.105);p.hue=Math.random()<.5?"rgba(202,190,211,":"rgba(173,190,199,"}
