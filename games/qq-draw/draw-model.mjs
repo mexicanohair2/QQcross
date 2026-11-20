@@ -92,20 +92,26 @@ export async function loadDrawingModel() {
   if (loadedModel && loadedClasses) return {model:loadedModel,classes:loadedClasses};
   await ensureTensorFlow();
   if (!modelPromise) {
-    modelPromise = Promise.all([
-      window.tf.loadLayersModel(MODEL_URL),
-      fetch(CLASSES_URL).then(response=>{if(!response.ok)throw new Error("Не удалось загрузить классы модели.");return response.json();})
-    ]).then(([model,classes])=>{
-      if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape[model.outputs[0].shape.length-1]) {
+    modelPromise = (async()=>{
+      const model = await window.tf.loadLayersModel(MODEL_URL);
+      try {
+        const response = await fetch(CLASSES_URL);
+        if (!response.ok) throw new Error("Не удалось загрузить классы модели.");
+        const classes = await response.json();
+        if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape[model.outputs[0].shape.length-1]) {
+          throw new Error("Список классов модели не совпадает с выходом нейросети.");
+        }
+        const warmup = window.tf.zeros([1,28,28,1]);
+        let output = null;
+        try { output = model.predict(warmup); }
+        finally { output?.dispose(); warmup.dispose(); }
+        loadedModel=model;loadedClasses=classes;
+        return {model,classes};
+      } catch(error) {
         model.dispose();
-        throw new Error("Список классов модели не совпадает с выходом нейросети.");
+        throw error;
       }
-      loadedModel=model;loadedClasses=classes;
-      const warmup=window.tf.zeros([1,28,28,1]);
-      const output=model.predict(warmup);
-      output.dispose();warmup.dispose();
-      return {model,classes};
-    }).catch(error=>{modelPromise=null;throw error;});
+    })().catch(error=>{modelPromise=null;throw error;});
   }
   return modelPromise;
 }
