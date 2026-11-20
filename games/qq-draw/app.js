@@ -289,7 +289,7 @@ function renderPlayers(players=[]){
 function renderLobby(){
   const players=state.room.players||[];
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small></span></div></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small><small class="qq-player-points">Очки: '+Number(state.profile?.points||0)+'</small></span></div></header>'+
     '<section class="card"><div class="small muted" style="text-align:center">ЛОББИ QQCROSS</div><p class="small muted" style="text-align:center;margin:8px 0 0">Друзья присоединяются через приглашения в QQCross. Код комнаты не требуется.</p></section>'+
     '<section class="card stack"><div class="game-meta"><b>Реальные участники</b><span>'+players.length+'/'+state.room.player_limit+'</span></div><div class="player-grid">'+renderPlayers(players)+'</div>'+
     '<div class="notice">'+(isHost()?"После входа друга можно начать раунд. Художник будет выбран сервером случайно.":"Ожидаем начала раунда от создателя.")+'</div>'+
