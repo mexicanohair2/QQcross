@@ -18,4 +18,4 @@ Existing browser regression tests are in tests/qqcross.spec.js; scanword verific
 
 ## Non-regression requirements
 
-Do not change Supabase schema, auth, profiles, inventory, friends, multiplayer, Wordle, word search, word wheel, CodyCross, themes, shop, PWA/offline or no-ads behavior unless a direct engine dependency is proven. Preserve the real dictionary and image assets. Keep generation bounded and fast. Do not deploy an incomplete engine to main or GitHub Pages.
+Do not change Supabase schema, auth, profiles, inventory, friends, multiplayer, Wordle, classic word search, CodyCross, themes, shop, PWA/offline or no-ads behavior unless a direct engine dependency is proven. Preserve the real dictionary and image assets. Keep generation bounded and fast. Do not deploy an incomplete engine to main or GitHub Pages.

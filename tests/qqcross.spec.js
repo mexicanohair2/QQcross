@@ -238,6 +238,38 @@ test("Wordle supports 4, 6, 7 and 8 letter modes on a phone viewport", async ({ 
   expect(dimensions.s).toBeLessThanOrEqual(dimensions.h + 1);
 });
 
+test("retired word-wheel game is absent while supported modes remain available", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+
+  const extraModes = await page.locator(".qq-game-launch-grid [data-extra-game]")
+    .evaluateAll(nodes => nodes.map(node => node.getAttribute("data-extra-game")).sort());
+  expect(extraModes).toEqual(["cody", "search"]);
+  await expect(page.locator("#playWordle")).toBeVisible();
+  const homeText = await page.locator(".qq-game-launch-grid").innerText();
+  expect(homeText).not.toMatch(/Word of Wonders|из круга букв|составляй слова из круга/i);
+
+  const sources = await page.evaluate(async () => {
+    const [appResponse, gamesResponse] = await Promise.all([
+      fetch("./app.js"),
+      fetch("./new-games.js")
+    ]);
+    if (!appResponse.ok || !gamesResponse.ok) throw new Error("Не удалось загрузить игровые модули для проверки");
+    return { app: await appResponse.text(), games: await gamesResponse.text() };
+  });
+  expect(sources.app).not.toContain('data-extra-game="wheel"');
+  expect(sources.games).not.toContain("mountWheel");
+  expect(sources.games).not.toContain("buildWheelPuzzle");
+  expect(sources.games).not.toContain("renderWheel");
+
+  const achievementIds = await page.evaluate(() =>
+    window.QQProgression.achievements().map(item => item.id)
+  );
+  expect(achievementIds.some(id => /wheel|wonders/i.test(id))).toBe(false);
+});
+
 test("opens the 100-level Russian word-search map and mobile board", async ({ page }) => {
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
