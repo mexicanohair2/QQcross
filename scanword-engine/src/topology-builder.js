@@ -52,7 +52,7 @@ const STANDARD_SCAFFOLD_VARIANT_3 = Object.freeze([
   '#.....#.',
   '#...#...',
   '#....#..',
-  '#......#'
+  '#.....##'
 ]);
 
 const SCAFFOLD_VARIANTS = Object.freeze([
