@@ -13,6 +13,7 @@ test("shared player UI exposes the QQCross frame catalog", async () => {
   assert.match(ui.renderAvatar({ avatar: 2, frame_id: "amethyst" }), /qq-frame-amethyst/);
   assert.match(ui.renderCard({ username: "Player_1", active_title: "Знаток" }, { score: 42 }), /Знаток/);
   assert.match(ui.renderCard({ username: "Player_1" }, { score: 42 }), /42/);
+  assert.match(ui.renderProfile({ username: "Player_1", points: 125 }), /Очки: 125/);
 });
 
 test("shared player UI escapes player-provided text", async () => {
