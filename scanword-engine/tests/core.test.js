@@ -4,12 +4,21 @@ import { CONFIG } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
-import { generateScanword, enforceCrossingArcConsistency } from '../src/generator.js';
+import { generateScanword, enforceCrossingArcConsistency, shouldRequestSpecialElevenLetter } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
 import { assembleScanword } from '../src/assembler.js';
 import { analyzeRequiredBorderFeasibility } from '../src/topology.js';
+
+test('special eleven-letter answer is scheduled no more than once per five puzzles', () => {
+  const selected = Array.from({ length: 30 }, (_, index) => index + 1)
+    .filter(sequenceIndex => shouldRequestSpecialElevenLetter(sequenceIndex));
+  assert.deepEqual(selected, [5, 10, 15, 20, 25, 30]);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.19, 0.2), true);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.2, 0.2), false);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.8, 0), false);
+});
 
 test('AC-3 preserves a candidate when a reversed crossing arc has matching letters', () => {
   const domains = [
