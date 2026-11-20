@@ -132,7 +132,12 @@ test("question dialog supports keyboard navigation and restores focus after Esca
   await expect(dialog).toBeVisible();
   await expect(dialog).toHaveAttribute("aria-modal","true");
   await expect(dialog).toHaveAttribute("aria-labelledby","clue-popup-heading");
-  await expect(page.locator(".clue-popup-close")).toBeFocused();
+  const dialogButtons=dialog.locator("button");
+  await expect(dialogButtons.first()).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialogButtons.last()).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialogButtons.first()).toBeFocused();
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
   await expect(trigger).toBeFocused();
