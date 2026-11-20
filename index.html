@@ -9,8 +9,12 @@
   try{
     var palette=localStorage.getItem("qqcross_theme_v1");
     var savedMode=localStorage.getItem("qqcross_appearance_mode_v1");
-    var supported=["burgundy","crimson","ember","amber","olive","forest","emerald","teal","lagoon","ocean","sapphire","indigo","purple","violet","plum","orchid","graphite"];var theme=supported.indexOf(palette)>=0?palette:(palette==="dark"?"purple":"burgundy");
-    var mode=savedMode==="light"?"light":"dark";
+    var supported=["burgundy","crimson","ember","amber","olive","forest","emerald","teal","lagoon","ocean","sapphire","indigo","purple","violet","plum","orchid","graphite"];
+    var legacyLight=palette==="light"&&savedMode===null;
+    var theme=supported.indexOf(palette)>=0?palette:(palette==="black"?"graphite":palette==="dark"?"purple":"burgundy");
+    var mode=savedMode==="light"||legacyLight?"light":"dark";
+    if(legacyLight)localStorage.setItem("qqcross_appearance_mode_v1","light");
+    if(palette==="black"||palette==="dark"||palette==="light")localStorage.setItem("qqcross_theme_v1",theme);
     document.documentElement.dataset.qqTheme=theme;
     document.documentElement.dataset.qqMode=mode;
     document.documentElement.style.colorScheme=mode;
@@ -68,7 +72,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261120-spectrum-motion-v6";
+    app.src="./app.js?v=20261120-spectrum-motion-v7";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
