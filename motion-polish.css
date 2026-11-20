@@ -1,0 +1,68 @@
+/* QQCross product polish: calm motion, profile-first surfaces and collectible frames. */
+:root{--qq-motion-in:.48s;--qq-motion-ui:.38s;--qq-motion-ease:cubic-bezier(.2,.72,.2,1)}
+.qq-home-player,.qq-daily-player{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;margin:8px 0 14px;background:linear-gradient(135deg,var(--qq-theme-panel,var(--panel)),var(--qq-theme-card,var(--panel2)));border:1px solid var(--qq-theme-border,var(--line));border-radius:17px}
+.qq-home-player .qq-profile-identity,.qq-daily-player .qq-profile-identity{flex:1;min-width:0}
+.qq-home-player-coins,.qq-daily-player-balance{flex:0 0 auto;font-size:13px;font-weight:800;color:var(--qq-theme-text,var(--text));font-variant-numeric:tabular-nums}
+.qq-header-player{display:flex;align-items:center;gap:9px;min-width:0}
+.qq-header-player .qq-avatar-frame{width:40px;height:40px}
+.qq-header-player .qq-player-title{font-size:10px}
+.qq-profile-avatar-card{display:grid;gap:12px}
+.qq-profile-avatar-card .qq-profile-identity{justify-content:flex-start}
+.qq-avatar-upload-label{display:inline-flex;align-items:center;justify-content:center}
+.qq-shop-balance{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;margin:10px 0 14px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-card,var(--panel2));font-size:13px}
+.qq-shop-balance b{font-size:17px;font-variant-numeric:tabular-nums}
+.qq-shop-section-title{margin:4px 0 8px}
+.qq-shop-icon{display:grid;place-items:center;font-family:system-ui,sans-serif;font-size:24px;font-weight:600}
+.qq-shop-icon svg{width:25px;height:25px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.qq-frame-shop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.qq-frame-shop-card{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;padding:12px 9px;border:1px solid var(--qq-theme-border,var(--line));border-radius:16px;background:var(--qq-theme-card,var(--panel));text-align:center;transition:border-color .42s ease,background .42s ease,transform .48s var(--qq-motion-ease)}
+.qq-frame-shop-card.is-equipped{border-color:var(--qq-theme-accent,var(--purple));background:var(--qq-theme-panel-2,var(--panel2))}
+.qq-frame-shop-card>b{font-size:13px}
+.qq-frame-shop-card>small{min-height:28px;font-size:10px;line-height:1.35;color:var(--qq-theme-muted,var(--muted))}
+.qq-frame-tier{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--qq-theme-muted,var(--muted))}
+.qq-frame-preview{display:grid;place-items:center;min-height:78px;width:100%;background:radial-gradient(circle, #ffffff0a,transparent 72%)}
+.qq-frame-preview .qq-avatar-frame{width:68px;height:68px}
+.qq-frame-shop-card .btn{width:100%;margin-top:auto}
+.qq-party-lobby-screen{padding-bottom:max(22px,env(safe-area-inset-bottom))}
+.qq-party-friend-option{display:flex;align-items:center;gap:9px;margin:8px 0;padding:7px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-card,var(--panel));cursor:pointer}
+.qq-party-friend-option input{flex:0 0 19px;width:19px;height:19px;accent-color:var(--qq-theme-accent,var(--purple))}
+.qq-party-friend-option .qq-player-card{flex:1;border:0;background:transparent;padding:4px}
+.qq-friend-list-card{display:block;width:100%;text-align:left;cursor:pointer}
+.qq-friend-search-result{align-items:center;gap:8px}
+.qq-friend-profile-button{flex:1;min-width:0;text-align:left;background:transparent;border:0;padding:0;cursor:pointer}
+.qq-score-players{display:grid;grid-template-columns:repeat(auto-fit,minmax(126px,1fr));gap:7px;align-items:stretch}
+.qq-score-players .qq-player-card{min-width:0}
+.qq-party-player-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+.qq-party-player-strip .qq-player-card{min-width:0}
+.qq-party-game-screen{animation:qq-screen-in .52s var(--qq-motion-ease) both}
+.qq-party-game-frame{transition:border-color .45s ease,box-shadow .5s ease}
+.qq-party-game-top .btn,.qq-party-game-top b{transition:opacity .4s ease,transform .4s var(--qq-motion-ease)}
+.qq-profile-modal{animation-duration:.5s}
+.qq-settings-section .qq-settings-content{transition:opacity .4s ease,transform .42s var(--qq-motion-ease)}
+.qq-settings-section.is-collapsed .qq-settings-content{display:none}
+.qq-settings-toggle svg{transition:transform .42s var(--qq-motion-ease)}
+.qq-settings-section.is-collapsed .qq-settings-toggle svg{transform:rotate(-90deg)}
+/* Slower, softer entrance and interaction timing in the newer modes. */
+.qq-extra-screen,.qq-cody-app,.qq-wordle-screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}
+.qq-extra-screen .card,.qq-cody-app .card,.qq-wordle-screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}
+.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
+.qq-extra-screen button:active,.qq-cody-app button:active,.qq-wordle-screen button:active{transform:scale(.985)}
+.qq-extra-screen .word-slot,.qq-extra-screen .guess-cell,.qq-cody-app .word-slot,.qq-wordle-screen .word-cell{transition:background .4s ease,border-color .4s ease,transform .45s var(--qq-motion-ease)}
+.qq-extra-screen .level-card,.qq-cody-app .clue-card{transition:transform .45s var(--qq-motion-ease),border-color .42s ease,box-shadow .42s ease}
+@keyframes qq-screen-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes qq-card-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+/* Reworked QQCross loading scene: centered mark, deep cherry-black canvas, unhurried pulse. */
+.boot-splash{background:radial-gradient(ellipse at 50% 42%,#351525 0%,#1b0b16 42%,#09070b 100%)!important;gap:12px!important}
+.boot-scene{transform:scale(.96);animation:qq-boot-breathe 3.2s ease-in-out infinite!important}
+.boot-mark{width:96px!important;height:96px!important;border-radius:27px!important;border:1px solid #b77a9c66!important;background:linear-gradient(145deg,#51253e,#1a0b17)!important;box-shadow:0 14px 44px #0008,0 0 30px #8c3c6a22!important}
+.boot-mark img{width:82%!important;height:82%!important;object-fit:contain;animation:qq-boot-mark 3.2s ease-in-out infinite}
+.boot-orbit{animation-duration:18s!important;opacity:.48}
+.boot-tiles i{animation-duration:2.9s!important}
+.boot-progress{background:#ffffff12!important;border:1px solid #ffffff16!important}
+.boot-progress span{animation-duration:2.7s!important;background:linear-gradient(90deg,#8b456b,#d2a1c0,#8b456b)!important;box-shadow:0 0 10px #c27ba055!important}
+.boot-caption{letter-spacing:.035em;color:#ead7e2!important}
+.boot-footnote{color:#ad8b9e!important}
+@keyframes qq-boot-breathe{0%,100%{transform:scale(.96)}50%{transform:scale(1.015)}}
+@keyframes qq-boot-mark{0%,100%{filter:drop-shadow(0 0 3px #d18db355)}50%{filter:drop-shadow(0 0 13px #d18db388)}}
+@media(max-width:380px){.qq-frame-shop-grid{gap:7px}.qq-frame-shop-card{padding:9px 6px}.qq-frame-preview .qq-avatar-frame{width:60px;height:60px}.qq-home-player,.qq-daily-player{padding:10px}.qq-score-players{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}}
+@media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
