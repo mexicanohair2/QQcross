@@ -87,3 +87,8 @@ test("model labels always map to a single Russian word accepted by the solo inpu
   assert.equal(mapped[0].word,"ящик");
   assert.match(mapped[0].word,/^[а-яё]{4,20}$/);
 });
+
+test("model filters labels outside the solo game's valid Russian word length",()=>{
+  const mapped=mapQuickDrawPredictions([0.9,0.8],["lion","cat"],2);
+  assert.deepEqual(mapped.map(item=>item.word),["кошка"]);
+});
