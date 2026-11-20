@@ -17,7 +17,9 @@ test("Burgundy and Purple backgrounds are visibly distinct", async ({ page }) =>
   await page.locator('[data-theme-choice="burgundy"]').click();
   const burgundy = await page.evaluate(() => ({
     base: getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim(),
-    background: getComputedStyle(document.body).backgroundImage
+    background: getComputedStyle(document.body).backgroundImage,
+    atmosphericTint: getComputedStyle(document.body, "::after").backgroundImage,
+    atmosphericOpacity: Number(getComputedStyle(document.body, "::after").opacity)
   }));
   await page.locator('[data-theme-choice="purple"]').click();
   const purple = await page.evaluate(() => ({
@@ -27,6 +29,9 @@ test("Burgundy and Purple backgrounds are visibly distinct", async ({ page }) =>
   expect(burgundy.base).not.toBe(purple.base);
   expect(burgundy.background).not.toBe(purple.background);
   expect(burgundy.base).toContain("#210710");
+  expect(burgundy.atmosphericTint).not.toBe("none");
+  expect(burgundy.atmosphericTint).toContain("rgba(130, 25, 57");
+  expect(burgundy.atmosphericOpacity).toBe(1);
   await expect(page.locator('[data-theme-choice="burgundy"]')).toContainText("Тёмная вишня");
   expect(purple.base).toContain("#170e20");
 });
