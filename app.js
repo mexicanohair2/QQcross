@@ -687,15 +687,17 @@ async function loadMatchInbox(){
   if(mr.error)throw mr.error;
   if(pr.error)throw pr.error;
 
-  const classicInvites=ir.data?.length?ir.data.map(x=>
-    '<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
+  const classicPlayers=await hydratePublicProfiles((ir.data||[]).map(x=>({...x,id:x.host_id||x.sender_id,username:x.host_username,avatar:x.host_avatar})));
+  const partyPlayers=await hydratePublicProfiles((pr.data||[]).map(x=>({...x,id:x.sender_id,username:x.sender_username,avatar:x.sender_avatar})));
+  const classicInvites=classicPlayers.length?classicPlayers.map(x=>
+    '<div class="card"><div class="qq-profile-open" data-profile-id="'+esc(x.id)+'">'+playerCardMarkup(x,undefined,"Приглашение в сканворд",true)+'</div><p class="small muted">Партия · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
   ).join(""):"";
 
-  const partyInvites=pr.data?.length?pr.data.map(x=>{
+  const partyInvites=partyPlayers.length?partyPlayers.map(x=>{
     const gameName=x.game==="team_word"?"Team Word":"QQ Draw";
     return '<div class="card qq-party-invite-card" data-invite-id="'+esc(x.invite_id)+'">'+
-      '<b>'+esc(x.sender_username)+'</b>'+
-      '<p class="small muted">Приглашает в '+gameName+' · '+x.player_limit+' мест</p>'+
+      '<div class="qq-profile-open" data-profile-id="'+esc(x.id)+'">'+playerCardMarkup(x,undefined,"Приглашает в "+gameName,true)+'</div>'+
+      '<p class="small muted">'+gameName+' · '+x.player_limit+' мест</p>'+
       '<div class="grid2"><button class="btn primary party-invite-accept" data-id="'+esc(x.invite_id)+'">Принять</button><button class="btn party-invite-decline" data-id="'+esc(x.invite_id)+'">Отклонить</button></div>'+
       '</div>';
   }).join(""):"";
@@ -724,22 +726,17 @@ async function loadMatchInbox(){
       await loadMatchInbox();
     }catch(e){toast(e.message||"Ошибка");b.disabled=false}
   });
-  document.querySelectorAll(".party-invite-accept").forEach(b=>b.onclick=async()=>{
+  invites?.querySelectorAll("[data-profile-id]").forEach(b=>b.onclick=()=>{const person=[...classicPlayers,...partyPlayers].find(p=>String(p.id)===String(b.dataset.profileId));if(person)showPlayerProfile(person)});
+  invites?.querySelectorAll(".party-invite-accept").forEach(b=>b.onclick=async()=>{
     b.disabled=true;b.textContent="Подключаем…";
     try{
-      const {data,error}=await supabaseClient.rpc("qq_party_respond_invite",{
-        p_invite_id:b.dataset.id,p_accept:true
-      });
+      const {data,error}=await supabaseClient.rpc("qq_party_respond_invite",{p_invite_id:b.dataset.id,p_accept:true});
       if(error)throw error;
       if(!data?.accepted||!data.code)throw new Error("Не удалось принять приглашение.");
       const isTeamWord=data.game==="team_word";
-      const gameUrl=isTeamWord?"./games/team-word/index.html":"./games/qq-draw/index.html";
       state.partyGame=isTeamWord?"team-word":"qq-draw";state.partyRoomCode=data.code;state.partyRoomId=data.room_id;state.screen="party-game";render();
       toast("Ты присоединился к лобби "+(isTeamWord?"Team Word":"QQ Draw")+".");
-    }catch(e){
-      b.disabled=false;b.textContent="Принять";
-      toast(e.message||"Не удалось принять приглашение");
-    }
+    }catch(e){b.disabled=false;b.textContent="Принять";toast(e.message||"Не удалось принять приглашение")}
   });
   document.querySelectorAll(".party-invite-decline").forEach(b=>b.onclick=async()=>{
     b.disabled=true;
