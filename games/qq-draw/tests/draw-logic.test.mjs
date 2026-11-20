@@ -5,7 +5,8 @@ import {
   normalizeDrawWord,
   chooseLocalBotGuess,
   appendOrderedEvent,
-  replayDrawingEvents
+  replayDrawingEvents,
+  recognizeDrawing
 } from "../draw-logic.mjs";
 
 test("draw word bank contains unique Russian words from 4 to 20 letters",()=>{
@@ -55,4 +56,19 @@ test("drawing replay supports begin, move, undo and clear",()=>{
   assert.equal(strokes[0].id,1);
   assert.deepEqual(strokes[0].points,[{x:0.1,y:0.2},{x:0.3,y:0.4},{x:0.4,y:0.5}]);
   assert.equal(replayDrawingEvents([...events,{sequence:6,type:"clear",payload:{}}]).length,0);
+});
+
+test("offline drawing recognizer identifies a sun from a circle and radial strokes",()=>{
+  const circle={points:Array.from({length:33},(_,i)=>({x:.5+Math.cos(i/32*Math.PI*2)*.18,y:.5+Math.sin(i/32*Math.PI*2)*.18}))};
+  const rays=Array.from({length:6},(_,i)=>{
+    const a=i*Math.PI/3;
+    return {points:[{x:.5,y:.5},{x:.5+Math.cos(a)*.32,y:.5+Math.sin(a)*.32}]};
+  });
+  const guesses=recognizeDrawing([circle,...rays]);
+  assert.equal(guesses[0]?.word,"солнце");
+  assert.ok(guesses[0]?.confidence>=.68);
+});
+
+test("offline drawing recognizer returns no guess for an empty canvas",()=>{
+  assert.deepEqual(recognizeDrawing([]),[]);
 });
