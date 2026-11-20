@@ -735,7 +735,9 @@ function placeAtCell(k,letterIndex,root){
   if(state.loupeActive){toast("Нажми на клетку, чтобы открыть букву");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});window.QQAudio?.play("letter");delete state.feedback[k];
+  state.pendingMoves.push({k,l:letter});
+  state.feedback[k]=String(letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[k]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
+  window.QQAudio?.play("letter");
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 async function finishTurn(root,timeout=false){
@@ -760,11 +762,11 @@ async function finishTurn(root,timeout=false){
   if(state.screen!=="game"){render();return}
   if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
   state.rackNeedsRefill[state.turn]=true;
-  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},520)}return}
+  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},1400)}return}
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=(state.round||1)<=1?90:60;state.turnDeadlineAt=Date.now()+state.seconds*1000;state.selectedLetter=-1;ensureWordLetter(state.turn);state.letters=state.playerRacks[state.turn];renderGame(root);
-  if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},520)}
+  if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},1400)}
 
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);const count=Math.min(Math.max(0,5-rack.length),letterBag.length);if(!count)return [];const added=drawLetters(count);rack.push(...added);return added;}
@@ -1276,6 +1278,7 @@ function renderGame(root){
   }
   state.letters=state.playerRacks[state.turn]||[];
   const aiTurn=!!state.aiMatch&&state.turn===1;
+  const untimedSolo=state.partySize===1&&!state.aiMatch&&!state.onlineMatchId;
   const onlineIsMyTurn=(!state.onlineMatchId||state.onlinePlayers[state.turn]?.id===state.profile?.id)&&!aiTurn;
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
@@ -1324,7 +1327,7 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
 
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
@@ -1416,7 +1419,7 @@ function renderGame(root){
       if(drag.type==="rack"){
         if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key))placeAtCell(key,drag.index,root);
       }else if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key)){
-        state.pendingMoves.push({k:key,l:drag.letter});state.playerRacks[state.turn]=state.letters;renderGame(root);
+        state.pendingMoves.push({k:key,l:drag.letter});state.feedback[key]=String(drag.letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[key]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";state.playerRacks[state.turn]=state.letters;renderGame(root);
       }else{state.pendingMoves.push({k:drag.key,l:drag.letter});renderGame(root)}
     }else if(target?.matches(".hand")||drag.type==="pending"){
       if(drag.type==="pending"){state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
@@ -1458,7 +1461,7 @@ function renderGame(root){
     toast(state.loupeActive?"Нажми на любую пустую клетку с буквой":"Выбор клетки отменён");
     root.querySelector("#magnifier")?.classList.toggle("active",state.loupeActive);
   };
-  $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
+  const clockButton=$("#clock");if(clockButton)clockButton.onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);ensureWordLetter(state.turn);renderGame(root)};
   $("#bulb").onclick=()=>{
     if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
@@ -1469,7 +1472,7 @@ function renderGame(root){
   };
   if(aiTurn&&state.aiError){const retry=root.querySelector("#retryAI");if(retry)retry.onclick=()=>{state.aiError="";state.aiThinkingTurn=null;renderGame(root)}}
   if(aiTurn&&!state.aiError){const turnKey=String(state.round||1)+":"+state.turn;if(state.aiThinkingTurn!==turnKey){state.aiThinkingTurn=turnKey;runChatGPTTurn(root,turnKey)}}
-  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(Date.now()-lastMatchPersistAt>=2000)persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
+  if(onlineIsMyTurn&&!untimedSolo)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(Date.now()-lastMatchPersistAt>=2000)persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
 }
 
 
