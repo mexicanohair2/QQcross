@@ -17,6 +17,7 @@ test('calibrates missing clue difficulty toward a readable middle-school level',
     { id: 'advanced', answer: 'АРХИПЕЛАГ', clue: 'Как географы называют группу островов, расположенных близко друг к другу?' },
     { id: 'logic', answer: 'ЭХО', clue: 'Что возвращает твои слова, но не начинает разговор первым?', logic: true },
     { id: 'picture', answer: 'ЯБЛОКО', clue: 'Что изображено на картинке?', imageKey: 'apple' },
+    { id: 'flag', answer: 'ЧИЛИ', clue: '🇨🇱' },
     { id: 'expert', answer: 'ИЗОТОП', clue: 'Специалистская формулировка.', difficulty: 5 }
   ]);
   const byId = Object.fromEntries(prepared.entries.map(entry => [entry.id, entry]));
@@ -25,6 +26,7 @@ test('calibrates missing clue difficulty toward a readable middle-school level',
   assert.equal(byId.advanced.difficulty, 4);
   assert.equal(byId.logic.difficulty, 4);
   assert.equal(byId.picture.difficulty, 2);
+  assert.equal(byId.flag.difficulty, 2);
   assert.equal(byId.expert.difficulty, 4);
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(2));
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(4));
