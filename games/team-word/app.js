@@ -1,5 +1,6 @@
 import {
   TEAM_WORDS,
+  TEAM_WORD_REVEAL_INTERVAL_MS,
   normalizeWord,
   revealRandomLetter,
   scoreWordGuess,
@@ -532,7 +533,7 @@ function startSolo() {
     revealed: [],
     input: "",
     startedAt: Date.now(),
-    nextRevealAt: Date.now()+15000,
+    nextRevealAt: Date.now()+TEAM_WORD_REVEAL_INTERVAL_MS,
     status: "playing"
   };
   state.room = null;
@@ -549,7 +550,7 @@ function soloTick() {
   if (solo.revealed.length < solo.word.length && now >= solo.nextRevealAt) {
     const next = revealRandomLetter(solo.word,solo.revealed);
     if (next) solo.revealed.push(next);
-    solo.nextRevealAt += 15000;
+    solo.nextRevealAt += TEAM_WORD_REVEAL_INTERVAL_MS;
     render();
     return;
   }
@@ -563,7 +564,7 @@ function scheduleBotGuess() {
   clearTimeout(state.botTimer);
   const solo = state.solo;
   if (!solo || solo.status !== "playing") return;
-  const delay = 9000 + Math.floor(Math.random()*9000);
+  const delay = 26000 + Math.floor(Math.random()*19000);
   state.botTimer = setTimeout(() => {
     const current = state.solo;
     if (!current || current.status !== "playing") return;
