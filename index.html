@@ -30,7 +30,7 @@
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
 <link rel="stylesheet" href="./visual-repair.css?v=20261120-phone-fit-5rack-v5">
-<link rel="stylesheet" href="./ui-refresh.css?v=20261120-spectrum-sakura-v3">
+<link rel="stylesheet" href="./ui-refresh.css?v=20261120-spectrum-sakura-v4">
 <link rel="stylesheet" href="./scanword-fix.css?v=20261120-scanword-layout-v1">
 <script src="./ambience.js?v=20261120-sakura-canvas-v1" defer></script>
 <title>QQCross</title>
@@ -73,7 +73,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261120-spectrum-motion-v7";
+    app.src="./app.js?v=20261120-spectrum-motion-v8";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
