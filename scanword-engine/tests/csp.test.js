@@ -1,7 +1,31 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { solveSlotsCsp } from '../src/csp.js';
+import { maximumDistinctAssignmentCount, solveSlotsCsp } from '../src/csp.js';
 import { GenerationHistory } from '../src/history.js';
+
+test('maximum distinct assignment count handles overlapping resource domains', () => {
+  assert.equal(maximumDistinctAssignmentCount([
+    ['apple', 'pear'],
+    ['apple'],
+    ['plum', 'pear']
+  ]), 3);
+
+  assert.equal(maximumDistinctAssignmentCount([
+    ['image-a'],
+    ['image-a'],
+    ['image-a', 'image-b']
+  ]), 2);
+
+  assert.equal(maximumDistinctAssignmentCount([
+    ['clue-1', 'clue-2'],
+    ['clue-1', 'clue-2'],
+    ['clue-1', 'clue-2']
+  ]), 2);
+
+  assert.equal(maximumDistinctAssignmentCount([
+    [], ['image-x'], [], ['image-y', 'image-z']
+  ]), 2);
+});
 
 function entry(id, answer, question) {
   return { id, answer, clue: question };
