@@ -4,6 +4,7 @@ import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
+import { analyzeRequiredBorderFeasibility } from './topology.js';
 import { scoreScanword } from './scoring.js';
 import { createRng } from './rng.js';
 
@@ -373,6 +374,11 @@ export function generateScanword(inputDictionary, options = {}) {
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
+
+  if (options.requireFullTopRow === true) {
+    const feasibility = analyzeRequiredBorderFeasibility({ requireFullTopRow: true });
+    return fail(feasibility.reason, seed, started, attempts, rejectedReasons, { feasibility, message: feasibility.message });
+  }
 
   if (!Array.isArray(inputDictionary) || inputDictionary.length === 0) {
     return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
