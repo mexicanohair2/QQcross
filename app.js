@@ -109,25 +109,45 @@ function showPlayerProfile(player){
  };
  draw();
 }
-function saveAvatarFile(file){
-  if(!file)return;
-  if(!/^image\/(png|jpeg|webp)$/.test(file.type)){toast("Выбери изображение PNG, JPG или WebP.");return;}
-  if(file.size>8*1024*1024){toast("Изображение должно быть меньше 8 МБ.");return;}
-  const reader=new FileReader();
-  reader.onload=()=>{
-    const image=new Image();
-    image.onload=()=>{
-      const side=256,canvas=document.createElement("canvas");canvas.width=side;canvas.height=side;
-      const ctx=canvas.getContext("2d"),crop=Math.min(image.width,image.height),sx=(image.width-crop)/2,sy=(image.height-crop)/2;
-      ctx.drawImage(image,sx,sy,crop,crop,0,0,side,side);
-      try{localStorage.setItem(avatarStorageKey(),canvas.toDataURL("image/webp",.82));render();toast("Аватарка сохранена на этом устройстве.");}
-      catch(_){toast("Не удалось сохранить изображение. Попробуй файл поменьше.");}
-    };
-    image.onerror=()=>toast("Не удалось открыть это изображение.");
-    image.src=String(reader.result||"");
+async function saveAvatarFile(file){
+ if(!file)return;
+ if(!/^image\/(png|jpeg|webp)$/.test(file.type)){toast("Выбери изображение PNG, JPG или WebP.");return}
+ if(file.size>8*1024*1024){toast("Изображение должно быть меньше 8 МБ.");return}
+ const reader=new FileReader();
+ reader.onload=()=>{
+  const image=new Image();
+  image.onload=async()=>{
+   const side=256,canvas=document.createElement("canvas");canvas.width=side;canvas.height=side;
+   const ctx=canvas.getContext("2d"),crop=Math.min(image.width,image.height),sx=(image.width-crop)/2,sy=(image.height-crop)/2;
+   ctx.drawImage(image,sx,sy,crop,crop,0,0,side,side);
+   try{
+    const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/webp",.82));
+    if(!blob)throw new Error("Не удалось обработать изображение");
+    const localData=canvas.toDataURL("image/webp",.82);
+    localStorage.setItem(avatarStorageKey(),localData);
+    state.profile.avatarUrl=localData;state.profile.avatar_url=localData;
+    let cloudSaved=false;
+    if(supabaseClient&&state.profile?.id&&!String(state.profile.id).startsWith("local-")){
+     try{
+      const path=String(state.profile.id)+"/avatar.webp";
+      const upload=await supabaseClient.storage.from("qqcross-avatars").upload(path,blob,{upsert:true,contentType:"image/webp",cacheControl:"3600"});
+      if(upload.error)throw upload.error;
+      const publicUrl=supabaseClient.storage.from("qqcross-avatars").getPublicUrl(path).data?.publicUrl;
+      if(publicUrl){
+       const update=await supabaseClient.from("profiles").update({avatar_url:publicUrl}).eq("id",state.profile.id);
+       if(update.error)throw update.error;
+       state.profile.avatarUrl=publicUrl;state.profile.avatar_url=publicUrl;cloudSaved=true;
+      }
+     }catch(error){console.warn("QQCross avatar cloud sync:",error)}
+    }
+    save();render();toast(cloudSaved?"Аватарка синхронизирована между устройствами.":"Аватарка сохранена на этом устройстве. Облачная синхронизация появится после настройки профиля.");
+   }catch(error){toast(error.message||"Не удалось сохранить изображение. Попробуй файл поменьше.")}
   };
-  reader.onerror=()=>toast("Не удалось прочитать файл.");
-  reader.readAsDataURL(file);
+  image.onerror=()=>toast("Не удалось открыть это изображение.");
+  image.src=String(reader.result||"");
+ };
+ reader.onerror=()=>toast("Не удалось прочитать файл.");
+ reader.readAsDataURL(file);
 }
 const SUPABASE_URL="https://lzpkronttfzbubbfggsb.supabase.co";
 const SUPABASE_KEY="sb_publishable_2PD3wYGG1aYoxRqhyM8wMA_OIQrwm3k";
