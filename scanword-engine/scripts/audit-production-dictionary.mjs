@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { normalizeAnswer, normalizeQuestion, prepareDictionary } from '../src/dictionary.js';
+import { getDifficultyQuotaCounts, normalizeAnswer, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from '../src/dictionary.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dictionaryPath = resolve(here, '../../data/scanword-dictionary.json');
@@ -48,6 +48,14 @@ for (const item of raw) {
 }
 
 const prepared = prepareDictionary(raw);
+const difficultyBands = { easy: 0, medium: 0, challenging: 0 };
+for (const entry of prepared.variants) {
+  const band = normalizeDifficultyBand(entry.difficulty);
+  difficultyBands[band === 2 ? 'easy' : band === 3 ? 'medium' : 'challenging']++;
+}
+const explicitDifficultyRecords = raw.filter(item =>
+  item?.difficulty !== undefined && item?.difficulty !== null && item?.difficulty !== ''
+).length;
 for (const error of prepared.errors) {
   for (const code of error.codes) rejectionCodes[code] = (rejectionCodes[code] ?? 0) + 1;
 }
@@ -94,6 +102,15 @@ const report = {
   emptyClues,
   invalidAnswerCharacters: invalidCharacters,
   topDuplicateAnswers: duplicateAnswers.slice(0, 12),
+  difficultyAudit: {
+    explicitDifficultyRecords,
+    autoClassifiedRecords: prepared.variants.length - explicitDifficultyRecords,
+    classifiedBands: difficultyBands,
+    exactBoardTargets: {
+      20Answers: getDifficultyQuotaCounts(20),
+      25Answers: getDifficultyQuotaCounts(25)
+    }
+  },
   warningCounts: {
     duplicateAnswers: prepared.stats.duplicateAnswerWarnings,
     duplicateQuestions: prepared.stats.duplicateQuestionWarnings,
