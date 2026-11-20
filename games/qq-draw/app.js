@@ -708,7 +708,7 @@ function scheduleBotGuess(){
     let predictions=[];
     try{predictions=await predictDrawing(strokes);}
     catch(error){console.warn("QQ Draw model prediction:",error);}
-    const ranked=predictions.length?predictions:recognizeDrawing(strokes);
+    const ranked=[...predictions,...recognizeDrawing(strokes)].filter((item,index,all)=>all.findIndex(other=>normalizeDrawWord(other.word)===normalizeDrawWord(item.word))===index).sort((left,right)=>right.confidence-left.confidence);
     const recognized=ranked.find((item)=>!used.has(normalizeDrawWord(item.word)));
     if(!recognized){
       current.botStatus=state.drawEvents.length?"Пока не распознали рисунок. Попробуй сделать контуры понятнее и добавить характерные детали.":"Боты ждут, пока на холсте появится рисунок.";
