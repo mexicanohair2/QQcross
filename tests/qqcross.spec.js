@@ -727,3 +727,46 @@ test("scanword always includes five pictures and at least three logical question
   expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
+
+async function startGuestHome(page) {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await expect(page.locator('[data-party-game="team-word"]')).toBeVisible();
+  await expect(page.locator('[data-party-game="qq-draw"]')).toBeVisible();
+}
+
+test("opens Team Word inside QQCross with the shared theme bridge", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="team-word"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/team-word\/index\.html/);
+  await expect(frame.locator("#app")).toBeVisible();
+  await expect(frame.locator("html")).toHaveAttribute("data-qq-theme", /.+/);
+  const layout = await frame.locator("html").evaluate(node => ({
+    width: node.clientWidth,
+    scrollWidth: node.scrollWidth,
+    accent: getComputedStyle(node).getPropertyValue("--accent").trim()
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width + 1);
+  expect(layout.accent).not.toBe("");
+  await page.locator("#partyGameBack").click();
+  await expect(page.locator('[data-party-game="qq-draw"]')).toBeVisible();
+});
+
+test("opens QQ Draw inside QQCross and keeps its drawing canvas within the phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="qq-draw"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/qq-draw\/index\.html/);
+  await expect(frame.locator("#app")).toBeVisible();
+  const layout = await frame.locator("html").evaluate(node => ({
+    width: node.clientWidth,
+    scrollWidth: node.scrollWidth
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width + 1);
+  await page.locator("#partyGameBack").click();
+  await expect(page.locator("#play-toggle")).toBeVisible();
+});
