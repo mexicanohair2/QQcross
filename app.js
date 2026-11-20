@@ -1284,6 +1284,8 @@ function renderGame(root){
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(),startWordsAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list);const starts=startWordsAt.get(key)||[];starts.push(w);startWordsAt.set(key,starts)});
   const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const directionGlyph={right:"→",left:"←",down:"↓",up:"↑"};
+  const directionLabels={right:"→ По горизонтали",left:"← По горизонтали",down:"↓ По вертикали",up:"↑ По вертикали"};
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
   for(const [key,ended] of wordTerminals)if(!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
@@ -1301,9 +1303,8 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text" style="--clue-length:'+single.length+'">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"→",down:"↓"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
-       const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
+       const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(directionGlyph[w.dir]||"") +'</span>').join("");
       if(terminalOnly.has(key)&&!(startWordsAt.get(key)||[]).length){
         const endArrows="";
         cells.push('<div class="scan-cell scan-grid-cell scan-boundary scan-terminal" data-boundary-cell="'+key+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" aria-hidden="true"'+position+'>'+endArrows+'</div>');
@@ -1360,7 +1361,7 @@ function renderGame(root){
         popupHeading.textContent="ВОПРОС";
         popupSubtitle.textContent="Найди ответ и собери его из букв на панели";
         options.innerHTML='<div class="clue-popup-direction"></div><div class="clue-popup-text"></div><div class="clue-popup-length"></div><div class="clue-popup-help">Перетащи нужные буквы с нижней панели в пустые клетки сетки.</div>'+(wordsAt.length>1?'<button type="button" class="clue-popup-back">← К другим вопросам</button>':"");
-        options.querySelector(".clue-popup-direction").textContent=word.dir==="right"?"→ По горизонтали":"↓ По вертикали";
+        options.querySelector(".clue-popup-direction").textContent=directionLabels[word.dir]||"Направление не определено";
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
         options.querySelector(".clue-popup-length").textContent="Ответ: "+count+" "+form;
@@ -1374,7 +1375,7 @@ function renderGame(root){
         [...wordsAt].sort((a,b)=>Number(!!b.logic)-Number(!!a.logic)).forEach(word=>{
           const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
           const direction=document.createElement("span");direction.className="clue-popup-choice-direction";
-          direction.textContent=word.dir==="right"?"→ По горизонтали":"↓ По вертикали";
+          direction.textContent=directionLabels[word.dir]||"Направление не определено";
           const clue=document.createElement("span");clue.className="clue-popup-choice-text";
           clue.textContent=word.imageKey?"Что изображено на картинке?":word.clue;
           choice.append(direction,clue);
