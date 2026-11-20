@@ -233,7 +233,7 @@ function renderPartyGame(root){
  const title=game==="qq-draw"?"QQ Draw":"Team Word";
  const path=game==="qq-draw"?"./games/qq-draw/index.html":"./games/team-word/index.html";
  root.innerHTML='<section class="qq-party-game-screen"><header class="qq-party-game-top"><button class="btn" id="partyGameBack" type="button">← Назад</button><b>'+title+'</b><span style="width:64px"></span></header><iframe class="qq-party-game-frame" id="qqPartyGameFrame" title="'+title+'" src="'+path+'?embedded=1'+(state.partyRoomCode?"&room="+encodeURIComponent(state.partyRoomCode):"")+'" loading="eager" allow="clipboard-read; clipboard-write"></iframe></section>';
- $("#partyGameBack").onclick=()=>{state.screen="";state.partyGame="";state.partyRoomCode=null;state.partyRoomId=null;render()};
+ $("#partyGameBack").onclick=async()=>{if(state.partyRoomId&&supabaseClient){try{await supabaseClient.rpc("qq_party_leave_room",{p_room_id:state.partyRoomId})}catch(error){console.warn("QQCross leave party room:",error)}}state.screen="";state.partyGame="";state.partyRoomCode=null;state.partyRoomId=null;render()};
 }
 function renderDaily(root){
  const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
