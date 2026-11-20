@@ -771,3 +771,47 @@ test("opens QQ Draw inside QQCross and keeps its drawing canvas within the phone
   await page.locator("#partyGameBack").click();
   await expect(page.locator("#play-toggle")).toBeVisible();
 });
+
+
+test("QuickDraw neural recognizer loads and runs an inference in the browser", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  const result = await page.evaluate(async () => {
+    const { predictDrawing, loadDrawingModel } = await import("/games/qq-draw/draw-model.mjs");
+    const { model, classes } = await loadDrawingModel();
+    const tf = window.tf;
+    const input = tf.zeros([1, 28, 28, 1]);
+    let output = null;
+    let inferenceValues = [];
+    try {
+      output = model.predict(input);
+      inferenceValues = Array.from(await output.data());
+    } finally {
+      output?.dispose();
+      input.dispose();
+    }
+    const circle = Array.from({ length: 24 }, (_, index) => {
+      const angle = index / 24 * Math.PI * 2;
+      return { x: 0.5 + Math.cos(angle) * 0.18, y: 0.5 + Math.sin(angle) * 0.18 };
+    });
+    const predictions = await predictDrawing([
+      { thickness: 5, points: circle },
+      { thickness: 5, points: [{ x: 0.5, y: 0.25 }, { x: 0.5, y: 0.12 }] },
+      { thickness: 5, points: [{ x: 0.75, y: 0.5 }, { x: 0.88, y: 0.5 }] },
+      { thickness: 5, points: [{ x: 0.5, y: 0.75 }, { x: 0.5, y: 0.88 }] },
+      { thickness: 5, points: [{ x: 0.25, y: 0.5 }, { x: 0.12, y: 0.5 }] }
+    ]);
+    return {
+      classCount: classes.length,
+      outputLength: inferenceValues.length,
+      finiteOutput: inferenceValues.every(Number.isFinite),
+      predictionsAreValid: Array.isArray(predictions)
+        && predictions.length <= 6
+        && predictions.every(item => /^[а-яё]{4,20}$/.test(item.word))
+    };
+  });
+  expect(result.classCount).toBe(345);
+  expect(result.outputLength).toBe(345);
+  expect(result.finiteOutput).toBeTruthy();
+  expect(result.predictionsAreValid).toBeTruthy();
+});
