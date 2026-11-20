@@ -4,14 +4,33 @@
   align-items:center!important;
 }
 .game-screen .hand{
-  display:flex!important;
+  display:grid!important;
   grid-column:1!important;
+  grid-row:2!important;
+  grid-template-columns:repeat(5,clamp(36px,10.8vw,44px))!important;
   justify-content:center!important;
+  align-content:center!important;
+  justify-items:center!important;
   align-items:center!important;
   gap:clamp(3px,1vw,5px)!important;
-  width:100%!important;
+  width:max-content!important;
+  max-width:100%!important;
   min-width:0!important;
+  margin-inline:auto!important;
   overflow:visible!important;
+}
+.game-screen .letter-slot-empty{
+  display:block!important;
+  width:clamp(36px,10.8vw,44px)!important;
+  height:clamp(36px,10.8vw,44px)!important;
+  min-width:36px!important;
+  min-height:36px!important;
+  border:1px dashed var(--qq-theme-border,#61404b)!important;
+  border-radius:9px!important;
+  background:transparent!important;
+  opacity:.35!important;
+  box-sizing:border-box!important;
+  pointer-events:none!important;
 }
 .game-screen .letter-area>.letter-label{grid-column:1/-1!important}
 .game-screen .letter-area>.check-turn{grid-column:2!important;grid-row:2!important}
@@ -189,10 +208,12 @@
 }
 @media(max-width:360px){
   .game-screen .letter-area{grid-template-columns:minmax(0,1fr) 34px!important}
-  .game-screen .hand{display:flex!important;gap:3px!important}
+  .game-screen .hand{display:grid!important;grid-template-columns:repeat(5,36px)!important;gap:3px!important}
+  .game-screen .letter-slot-empty{width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important}
 }
 @media(max-height:700px){
-  .game-screen .hand{display:flex!important}
+  .game-screen .hand{display:grid!important;grid-template-columns:repeat(5,38px)!important}
+  .game-screen .letter-slot-empty{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important}
 }
 
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-left{right:auto!important;left:2px!important}
@@ -212,3 +233,27 @@
   white-space:nowrap!important;
   -webkit-line-clamp:1!important;
 }
+
+/* Correctness indicators are visible independently of color. */
+.game-screen .scanword-board>.scan-cell.cell{position:relative!important}
+.game-screen .placement-mark{
+  position:absolute!important;
+  top:1px!important;
+  right:2px!important;
+  z-index:2!important;
+  display:grid!important;
+  place-items:center!important;
+  width:11px!important;
+  height:11px!important;
+  border-radius:50%!important;
+  font-size:9px!important;
+  line-height:1!important;
+  font-weight:950!important;
+  color:#fff!important;
+  background:#27342d!important;
+  box-shadow:0 1px 3px #0008!important;
+}
+.game-screen .placement-mark.placement-correct{background:#236a43!important;color:#eaffef!important}
+.game-screen .placement-mark.placement-wrong{background:#a62f42!important;color:#fff!important}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.correct{outline:2px solid #8bd6a5!important;outline-offset:-2px!important}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.wrong{outline:2px solid #ff9cac!important;outline-offset:-2px!important}
