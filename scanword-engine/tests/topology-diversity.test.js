@@ -50,6 +50,19 @@ test('seeded topology generation produces broad geometric variety while preservi
   );
 });
 
+test('rejects the impossible full top-row plus full left-column request before topology search', () => {
+  const result = generateTopology({
+    seed: 42,
+    includeSpecialEleven: false,
+    requireFullTopRow: true
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.equal(result.attempts, 0);
+  assert.equal(result.feasibility.conflicts[0].availableLettersBetweenClues, 1);
+});
+
 test('topology generation is deterministic for a fixed seed', () => {
   const options = { seed: 90317, includeSpecialEleven: true, maxAttempts: 192 };
   const first = generateTopology(options);
