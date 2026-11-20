@@ -72,3 +72,12 @@ test("offline drawing recognizer identifies a sun from a circle and radial strok
 test("offline drawing recognizer returns no guess for an empty canvas",()=>{
   assert.deepEqual(recognizeDrawing([]),[]);
 });
+
+import { mapQuickDrawPredictions } from "../draw-model.mjs";
+
+test("QuickDraw model output maps supported classes to Russian guesses and filters unknown classes",()=>{
+  const mapped=mapQuickDrawPredictions([0.7,0.2,0.1],["cat","unknown category","sun"],3);
+  assert.equal(mapped[0].word,"кошка");
+  assert.equal(mapped.length,2);
+  assert.ok(mapped[0].confidence>mapped[1].confidence);
+});
