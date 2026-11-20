@@ -76,8 +76,10 @@ function avatarMarkup(size=""){
 }
 function playerCardMarkup(player,score,meta,compact=false){
  const p={...player,username:player.username||player.nickname||"Игрок"};
- if(window.QQPlayerUI?.renderCard)return window.QQPlayerUI.renderCard(p,{score,meta,compact,size:compact?"sm":"md"});
- return '<div class="qq-player-card"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><span class="qq-player-copy"><b>'+esc(p.username)+'</b><small class="qq-player-title">Новичок</small></span>'+(score!==undefined?'<strong>'+esc(score)+'</strong>':"")+'</div>';
+ const shownScore=score!==undefined?score:(p.points!==undefined?Number(p.points):undefined);
+ const shownMeta=meta||(shownScore!==undefined?"Очки профиля":undefined);
+ if(window.QQPlayerUI?.renderCard)return window.QQPlayerUI.renderCard(p,{score:shownScore,meta:shownMeta,compact,size:compact?"sm":"md"});
+ return '<div class="qq-player-card"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><span class="qq-player-copy"><b>'+esc(p.username)+'</b><small class="qq-player-title">Новичок</small></span>'+(shownScore!==undefined?'<strong>'+esc(shownScore)+'</strong>':"")+'</div>';
 }
 async function hydratePublicProfiles(players=[]){
  const rows=Array.isArray(players)?players:[];
