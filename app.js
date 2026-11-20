@@ -198,10 +198,11 @@ function render(){clearInterval(state.interval);const root=$("#app");if(state.pr
 function renderPartyLobby(root){
  const game=state.partyGame==="qq-draw"?"qq-draw":"team-word";
  const title=game==="qq-draw"?"QQ Draw":"Team Word";
- root.innerHTML='<div class="screen qq-party-lobby-screen"><div class="top"><button class="btn" id="partyLobbyBack">← Назад</button><b>'+title+' · Лобби</b><span></span></div><section class="card"><h3>Пригласи друзей</h3><p class="small muted">Выбери от одного до двух друзей. Комната создастся автоматически — вводить коды не нужно.</p><div id="partyLobbyFriends"><p class="muted small">Загружаем друзей…</p></div><button class="btn primary full" id="partyLobbyCreate">Создать лобби и пригласить</button></section></div>';
+ root.innerHTML='<div class="screen qq-party-lobby-screen"><div class="top"><button class="btn" id="partyLobbyBack">← Назад</button><b>'+title+' · Лобби</b><span></span></div><section class="card"><h3>Начать игру</h3><p class="small muted">Можно сыграть одному или создать комнату и пригласить друзей из списка QQCross.</p><button class="btn full" id="partyLobbySolo">Играть одному</button></section><section class="card"><h3>Игра с друзьями</h3><p class="small muted">Выбери от одного до двух друзей. Комната создастся автоматически — вводить коды не нужно.</p><div id="partyLobbyFriends"><p class="muted small">Загружаем друзей…</p></div><button class="btn primary full" id="partyLobbyCreate">Создать лобби и пригласить</button></section></div>';
  $("#partyLobbyBack").onclick=()=>{state.screen="";render()};
+ $("#partyLobbySolo").onclick=()=>{state.partyRoomCode=null;state.partyRoomId=null;state.screen="party-game";render()};
  const out=$("#partyLobbyFriends");
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){out.innerHTML='<p class="muted small">Для игры с друзьями войди в аккаунт QQCross.</p>';$("#partyLobbyCreate").disabled=true;return}
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){out.innerHTML='<p class="muted small">Войди в аккаунт QQCross, чтобы пригласить друзей. Одиночная игра доступна выше.</p>';$("#partyLobbyCreate").disabled=true;return}
  supabaseClient.rpc("list_qqcross_friends").then(async({data,error})=>{
   if(error)throw error;
   const friends=await hydratePublicProfiles(data||[]);
