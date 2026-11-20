@@ -126,51 +126,56 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   ];
 
   const topologySignatures = new Set();
-  const topologies = rowPatterns.map(rows => {
+  const topologies = [];
+  for (const rows of rowPatterns) {
     const seed = rows.reduce((value, row) => Math.imul(value ^ row, 16777619), 2166136261) >>> 0;
-    return {
+    const result = generateTopology({
+      seed,
+      includeSpecialEleven: true,
+      specialSplitRows: rows,
+      mutationBudget: 48,
+      maxAttempts: 1,
+      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
+    });
+    if (!result.ok) continue;
+    const signature = result.topology.pattern.join('/');
+    if (topologySignatures.has(signature)) continue;
+    topologySignatures.add(signature);
+    topologies.push({
       rows,
       patternKey: 'split-' + rows.join('-'),
-      specialPattern: null,
-      result: generateTopology({
-        seed,
-        includeSpecialEleven: true,
-        specialSplitRows: rows,
-        mutationBudget: 48,
-        maxAttempts: 1,
-        maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
-      })
-    };
-  }).filter(item => {
-    if (!item.result.ok) return false;
-    const signature = item.result.topology.pattern.join('/');
-    if (topologySignatures.has(signature)) return false;
-    topologySignatures.add(signature);
-    return true;
-  });
+      // Reuse this exact mask during the production CSP pass. A new seed must
+      // never silently change the slots after their domains were precomputed.
+      specialPattern: result.topology.pattern,
+      result
+    });
+  }
 
   // The independently audited two-short-slot layout is valid only when its
   // eleven-letter boundary answer is present. Keep it as a dedicated CSP
   // candidate instead of trying to use it for ordinary disconnected boards.
   const lowShortPattern = getTopologyScaffolds()[3];
-  const lowShortTopology = generateTopology({
-    seed: 1,
-    includeSpecialEleven: true,
-    specialPattern: lowShortPattern,
-    maxAttempts: 1,
-    maxTwoLetterSlots: 4
-  });
-  if (lowShortTopology.ok) {
+  for (let sample = 0; sample < 8; sample++) {
+    const seed = 9127 + sample * 65537;
+    const lowShortTopology = generateTopology({
+      seed,
+      includeSpecialEleven: true,
+      specialPattern: lowShortPattern,
+      mutateSpecialPattern: true,
+      mutationBudget: 48,
+      maxAttempts: 1,
+      maxTwoLetterSlots: 4
+    });
+    if (!lowShortTopology.ok) continue;
     const signature = lowShortTopology.topology.pattern.join('/');
-    if (!topologySignatures.has(signature)) {
-      topologySignatures.add(signature);
-      topologies.push({
-        rows: [3, 7, 11],
-        patternKey: 'low-short',
-        specialPattern: lowShortPattern,
-        result: lowShortTopology
-      });
-    }
+    if (topologySignatures.has(signature)) continue;
+    topologySignatures.add(signature);
+    topologies.push({
+      rows: [3, 7, 11],
+      patternKey: 'low-short-' + sample,
+      specialPattern: lowShortTopology.topology.pattern,
+      result: lowShortTopology
+    });
   }
 
   const plans = [];
@@ -313,7 +318,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         answerDifficultyBand: normalizeDifficultyBand(entry.difficulty),
         rows: topology.rows,
         patternKey: topology.patternKey ?? ('split-' + topology.rows.join('-')),
-        specialPattern: topology.specialPattern,
+        specialPattern: topology.specialPattern ?? topology.result.topology.pattern,
         // Preserve the AC-3-pruned dictionary domains so the production CSP
         // does not reopen candidates already proven incompatible at crossings.
         allowedEntryIdsBySlot: new Map(domains.map(domain => [
@@ -475,10 +480,13 @@ export function generateScanword(inputDictionary, options = {}) {
   // Prefer exactly one low-short topology attempt when it has a compatible
   // dictionary/CSP domain, then retain the best conventional topology as the
   // bounded fallback. Do not spend both retries on near-identical templates.
-  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
-  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
+  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey.startsWith('low-short'));
+  const conventionalSpecialPlans = specialPlanPool.filter(plan => !plan.patternKey.startsWith('low-short'));
+  const additionalLowShortPlans = specialPlanPool.filter(plan =>
+    plan.patternKey.startsWith('low-short') && plan !== firstLowShortPlan
+  );
   const specialPlanSequence = firstLowShortPlan
-    ? [firstLowShortPlan, ...conventionalSpecialPlans]
+    ? [firstLowShortPlan, ...conventionalSpecialPlans, ...additionalLowShortPlans]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
     specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
