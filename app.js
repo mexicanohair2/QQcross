@@ -220,10 +220,12 @@ function renderShell(root){
  wireContent();
 }
 function content(){if(state.tab==="Поиск")return encyclopedia();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
-function collapsiblePanel(id,title,body,initialOpen=false){
+function collapsiblePanel(id,title,body,initialOpen=false,sectionId=""){
  let open=initialOpen;
  try{const saved=localStorage.getItem("qqcross_settings_section_"+id);if(saved==="collapsed")open=false;else if(saved==="expanded")open=true}catch{}
- return '<section class="card settings-card qq-settings-section '+(open?'':'is-collapsed')+'" data-settings-section="'+id+'">'+
+ const extraClass=sectionId?" qq-profile-fold":"";
+ const domId=sectionId?' id="'+sectionId+'"':"";
+ return '<section'+domId+' class="card settings-card qq-settings-section'+extraClass+' '+(open?'':'is-collapsed')+'" data-settings-section="'+id+'">'+
   '<div class="qq-settings-heading"><div><h3>'+title+'</h3></div>'+
   '<button class="qq-settings-toggle" type="button" data-settings-toggle="'+id+'" aria-expanded="'+open+'" aria-controls="qq-settings-body-'+id+'" aria-label="'+(open?'Свернуть раздел':'Развернуть раздел')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>'+
   '<div class="qq-settings-content" id="qq-settings-body-'+id+'" aria-hidden="'+(!open)+'" '+(open?'':'inert')+'>'+body+'</div></section>';
@@ -433,8 +435,8 @@ function profile(){
  const achievementList=achievements.map(a=>'<div class="qq-achievement '+(a.unlocked?"unlocked":"")+'"><div><b>'+esc(a.name)+'</b><p class="small muted">'+esc(a.desc)+'</p></div><span>'+(a.unlocked?"✓":Math.min(a.value,a.target)+" / "+a.target)+'</span></div>').join("");
  return '<h2>Профиль</h2><div class="card row qq-profile-avatar-card"><div class="avatar big">'+avatarMarkup("big")+'</div><div><h3>'+esc(state.profile.username)+'</h3><span class="muted small">Игрок QQCross · '+esc(p.activeTitle||"Новичок")+'</span><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Загрузить свою аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">Квадратное изображение до 8 МБ. Сохраняется на этом устройстве.</small></div></div>'+
  '<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div><div><b>'+(p.stats.hintsUsed||0)+'</b><div class="muted small">Подсказки</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>'+
- '<section class="card" id="qqTitleInventory"><h3>Коллекция титулов · '+unlockedCount+' / 100</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p></section>'+
- '<section class="card" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>'+
+ collapsiblePanel("profile-titles","Коллекция титулов · "+unlockedCount+" / 100",'<label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p>',true,"qqTitleInventory")+
+ collapsiblePanel("profile-achievements","Достижения · "+achievements.filter(a=>a.unlocked).length+" / "+achievements.length,achievementList,true,"qqAchievements")+
  '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
 }
 function settings(){
