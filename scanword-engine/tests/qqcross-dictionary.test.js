@@ -3,12 +3,34 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildIndexes, findCandidates, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { buildIndexes, findCandidates, getDifficultyFitScore, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const productionDictionary = JSON.parse(
   readFileSync(resolve(here, '../../data/scanword-dictionary.json'), 'utf8')
 );
+
+test('calibrates missing clue difficulty toward a readable middle-school level', () => {
+  const prepared = prepareDictionary([
+    { id: 'easy', answer: 'БЕНЗИН', clue: 'Топливо для машин.' },
+    { id: 'middle', answer: 'КОМПАС', clue: 'Какой прибор помогает определить стороны света в пути?' },
+    { id: 'advanced', answer: 'АРХИПЕЛАГ', clue: 'Как географы называют группу островов, расположенных близко друг к другу?' },
+    { id: 'logic', answer: 'ЭХО', clue: 'Что возвращает твои слова, но не начинает разговор первым?', logic: true },
+    { id: 'picture', answer: 'ЯБЛОКО', clue: 'Что изображено на картинке?', imageKey: 'apple' },
+    { id: 'expert', answer: 'ИЗОТОП', clue: 'Специалистская формулировка.', difficulty: 5 }
+  ]);
+  const byId = Object.fromEntries(prepared.entries.map(entry => [entry.id, entry]));
+  assert.equal(byId.easy.difficulty, 2);
+  assert.equal(byId.middle.difficulty, 3);
+  assert.equal(byId.advanced.difficulty, 4);
+  assert.equal(byId.logic.difficulty, 3);
+  assert.equal(byId.picture.difficulty, 2);
+  assert.equal(byId.expert.difficulty, 5);
+  assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(2));
+  assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(4));
+  assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(5));
+  assert.equal(getDifficultyFitScore(3), 36);
+});
 
 test('accepts the live QQCross clue field and preserves Ё', () => {
   const prepared = prepareDictionary([

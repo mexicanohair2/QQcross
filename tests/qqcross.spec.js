@@ -682,6 +682,23 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   expect(afterCheck.slice(1,4)).toEqual(originalLetters.slice(1,4));
 });
 
+test("terminal answer cells have a visible end marker instead of looking unfilled", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const boundaries = page.locator(".scanword-board .scan-boundary");
+  await expect(boundaries).not.toHaveCount(0);
+  const markerCount = await page.locator(".scanword-board .scan-terminal-arrow").count();
+  expect(markerCount).toBeGreaterThanOrEqual(await boundaries.count());
+  const visibleMarkers = await page.locator(".scanword-board .scan-terminal-arrow").evaluateAll(nodes =>
+    nodes.every(node => {
+      const rect = node.getBoundingClientRect();
+      return !!node.textContent.trim() && rect.width > 0 && rect.height > 0
+        && getComputedStyle(node).display !== "none";
+    })
+  );
+  expect(visibleMarkers).toBeTruthy();
+});
+
 test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);

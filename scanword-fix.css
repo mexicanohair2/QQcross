@@ -275,3 +275,24 @@
   grid-row:auto!important;
   z-index:3!important;
 }
+
+
+/* Visible end caps: terminal cells are valid scanword structure, not missing tiles. */
+.game-screen .scanword-board>.scan-cell.scan-boundary{
+  display:grid!important;
+  place-items:center!important;
+  background:linear-gradient(145deg,#2a1720,#1b1017)!important;
+  border-color:#3b071b!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-boundary .scan-terminal-arrow{
+  display:inline-grid!important;
+  place-items:center!important;
+  min-width:12px!important;
+  min-height:12px!important;
+  color:var(--qq-theme-muted,#c3aab4)!important;
+  font-size:clamp(10px,1.55vw,15px)!important;
+  line-height:1!important;
+  font-weight:900!important;
+  opacity:.82!important;
+  text-shadow:0 1px 2px #0008!important;
+}

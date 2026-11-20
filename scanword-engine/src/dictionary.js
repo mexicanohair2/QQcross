@@ -40,6 +40,26 @@ function questionContainsWholeAnswer(question, answer) {
   return tokens.includes(normalizedAnswer);
 }
 
+export function inferDifficulty(raw, question, imageKey = null) {
+  const supplied = raw?.difficulty;
+  if (supplied !== undefined && supplied !== null && supplied !== '' && Number.isFinite(Number(supplied))) {
+    return Math.max(1, Math.min(5, Math.round(Number(supplied))));
+  }
+  if (imageKey) return 2;
+  if (raw?.logic === true) return 3;
+  const wordCount = String(question ?? '').split(/\s+/u).filter(Boolean).length;
+  if (wordCount <= 3) return 2;
+  if (wordCount <= 8) return 3;
+  return 4;
+}
+
+export function getDifficultyFitScore(value) {
+  const level = Math.max(1, Math.min(5, Number(value) || 3));
+  // Level 3 is the target: familiar but not trivial for a middle-school player.
+  // Both very easy and specialist-level clues lose priority symmetrically.
+  return 36 - Math.abs(level - 3) * 18;
+}
+
 function clueQuality(entry) {
   const question = entry.question;
   const words = question.split(/\s+/u).filter(Boolean).length;
@@ -89,7 +109,7 @@ export function validateEntry(raw, index = 0, options = {}) {
     answer,
     question,
     clueShort: clueShort || question,
-    difficulty: Number.isFinite(raw.difficulty) ? raw.difficulty : 1,
+    difficulty: inferDifficulty(raw, question, imageKey),
     partOfSpeech: String(raw.partOfSpeech ?? ''),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
     logic: raw.logic === true,

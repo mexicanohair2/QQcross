@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
 function pointKey(point) {
@@ -285,7 +285,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
       const priority =
         (entry.imageKey && state.usedImages.size < options.requiredImageCount ? 1000 : 0)
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
-        + Math.max(0, Number(entry.difficulty) - 1) * 22
+        + getDifficultyFitScore(entry.difficulty)
         - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
         - (options.history?.questionUsageCount?.(entry.question) ?? 0) * (options.repeatQuestionPenalty ?? 12);
 
