@@ -1,7 +1,7 @@
 import {
   DRAW_WORDS,
   normalizeDrawWord,
-  chooseLocalBotGuess,
+  recognizeDrawing,
   appendOrderedEvent,
   replayDrawingEvents
 } from "./draw-logic.mjs";
@@ -701,12 +701,19 @@ function scheduleBotGuess(){
   const wait=9000+Math.floor(Math.random()*11000);
   state.botTimer=setTimeout(()=>{
     const current=state.solo;if(!current||current.status!=="playing")return;
-    const guess=chooseLocalBotGuess({previous:current.guesses.map((g)=>g.word),rng:Math.random});
-    if(guess){
-      const correct=normalizeDrawWord(guess)===normalizeDrawWord(current.word);
-      current.guesses.push({word:guess,nickname:Math.random()<.5?"Бот Соня":"Бот Макс",avatar:Math.random()<.5?4:1,correct});
-      if(correct)current.status="finished";
+    const used=new Set(current.guesses.map((g)=>normalizeDrawWord(g.word)));
+    const recognized=recognizeDrawing(replayDrawingEvents(state.drawEvents)).find((item)=>!used.has(normalizeDrawWord(item.word)));
+    if(!recognized){
+      current.botStatus=state.drawEvents.length?"Пока не распознали форму. Добавь к рисунку ещё несколько характерных деталей.":"Боты ждут, пока на холсте появится рисунок.";
+      renderSoloGame();
+      if(current.status==="playing")scheduleBotGuess();
+      return;
     }
+    const guess=recognized.word;
+    current.botStatus="Боты анализируют контуры рисунка.";
+    const correct=normalizeDrawWord(guess)===normalizeDrawWord(current.word);
+    current.guesses.push({word:guess,nickname:Math.random()<.5?"Бот Соня":"Бот Макс",avatar:Math.random()<.5?4:1,correct,confidence:recognized.confidence});
+    if(correct)current.status="finished";
     renderSoloGame();
     if(current.status==="playing")scheduleBotGuess();
   },wait);
@@ -723,7 +730,7 @@ function renderSoloGame(){
       (botArtist&&!finished?'<form id="guessForm" class="guess-form"><input class="field" id="guessInput" maxlength="30" autocomplete="off" placeholder="Что нарисовано?" required><button class="btn primary" type="submit">Угадать</button></form>':"")+
       (!botArtist?'<div class="tools"><button class="tool-btn '+(!state.eraser?"active":"")+'" id="brush">Кисть</button><button class="tool-btn '+(state.eraser?"active":"")+'" id="eraser">Ластик</button><input class="color-input" id="colorPicker" type="color" value="'+state.color+'"><label class="small muted" for="thickness">Толщина</label><input class="thickness" id="thickness" type="range" min="1" max="32" value="'+state.thickness+'"><button class="tool-btn" id="undo">↶</button><button class="tool-btn" id="clear">Очистить</button></div>':"")+
       (finished?'<div class="result"><h2 class="success">Слово угадано!</h2><p>Ответ: <strong>'+esc(solo.word)+'</strong></p><button class="btn primary full" id="again">Ещё раунд</button></div>':"")+
-      (!botArtist?'<div class="notice">Секретное слово: <strong>'+esc(solo.word)+'</strong>. Два бота пробуют угадать его неспешно.</div>':"")+
+      (!botArtist?'<div class="notice">Секретное слово: <strong>'+esc(solo.word)+'</strong>. Боты анализируют форму и контуры, а не получают ответ напрямую. '+esc(solo.botStatus||"Рисуй крупно и добавляй характерные детали.")+'</div>':"")+
     '</section>'+
     '<section class="card stack"><div class="game-meta"><b>История догадок</b><span>'+guesses.length+'</span></div><div class="guess-history">'+historyMarkup(guesses)+'</div></section></section>';
   $("#soloExit").onclick=()=>{stopSolo();state.drawEvents=[];renderHome();};
