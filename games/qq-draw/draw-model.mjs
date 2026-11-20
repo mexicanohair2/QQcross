@@ -32,6 +32,7 @@ const CLASS_TO_RUSSIAN = Object.freeze({
 });
 
 let modelPromise = null;
+let tensorflowPromise = null;
 let loadedModel = null;
 let loadedClasses = null;
 
@@ -46,15 +47,56 @@ export function mapQuickDrawPredictions(probabilities, classNames, limit = 6) {
     .slice(0,limit);
 }
 
+function ensureTensorFlow() {
+  if (window.tf?.loadLayersModel) return Promise.resolve(window.tf);
+  if (!tensorflowPromise) {
+    tensorflowPromise = new Promise((resolve,reject) => {
+      const urls = [
+        "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.19.0/dist/tf.min.js",
+        "https://unpkg.com/@tensorflow/tfjs@3.19.0/dist/tf.min.js"
+      ];
+      const tryLoad = (index) => {
+        if (window.tf?.loadLayersModel) return resolve(window.tf);
+        if (index >= urls.length) return reject(new Error("TensorFlow.js не загрузился."));
+        const script = document.createElement("script");
+        let settled = false;
+        const timeout = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          script.remove();
+          tryLoad(index + 1);
+        },5000);
+        script.src = urls[index];
+        script.onload = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (window.tf?.loadLayersModel) resolve(window.tf);
+          else tryLoad(index + 1);
+        };
+        script.onerror = () => {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          tryLoad(index + 1);
+        };
+        document.head.appendChild(script);
+      };
+      tryLoad(0);
+    }).catch(error=>{tensorflowPromise=null;throw error;});
+  }
+  return tensorflowPromise;
+}
+
 export async function loadDrawingModel() {
   if (loadedModel && loadedClasses) return {model:loadedModel,classes:loadedClasses};
-  if (!window.tf?.loadLayersModel) throw new Error("TensorFlow.js не загрузился.");
+  await ensureTensorFlow();
   if (!modelPromise) {
     modelPromise = Promise.all([
       window.tf.loadLayersModel(MODEL_URL),
       fetch(CLASSES_URL).then(response=>{if(!response.ok)throw new Error("Не удалось загрузить классы модели.");return response.json();})
     ]).then(([model,classes])=>{
-      if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape.at(-1)) {
+      if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape[model.outputs[0].shape.length-1]) {
         model.dispose();
         throw new Error("Список классов модели не совпадает с выходом нейросети.");
       }
