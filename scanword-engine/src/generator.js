@@ -349,6 +349,12 @@ function fail(reason, seed, started, attempts, rejectedReasons, extra = {}) {
  * entries. An independent validator reconstructs the complete 8x12 board
  * before the result can be returned to QQCross.
  */
+export function shouldRequestSpecialElevenLetter(sequenceIndex, randomValue, chance = CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE) {
+  if (Number.isSafeInteger(sequenceIndex) && sequenceIndex > 0) return sequenceIndex % 5 === 0;
+  const probability = Number.isFinite(Number(chance)) ? Math.max(0, Math.min(1, Number(chance))) : CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE;
+  return Number.isFinite(Number(randomValue)) && Number(randomValue) < probability;
+}
+
 export function generateScanword(inputDictionary, options = {}) {
   const started = now();
   const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
@@ -393,8 +399,12 @@ export function generateScanword(inputDictionary, options = {}) {
   // Direct callers without a sequence index use the matching 20% fallback.
   const wantsEleven = hasElevenLetterAnswers && (
     sequenceIndex !== null
-      ? sequenceIndex % 5 === 0
-      : random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE)
+      ? shouldRequestSpecialElevenLetter(sequenceIndex)
+      : shouldRequestSpecialElevenLetter(
+          null,
+          random(),
+          options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE
+        )
   );
   // Build and rank the compatible special plan pool once per puzzle. Re-running
   // the full dictionary/topology arc-consistency pass for every retry was
