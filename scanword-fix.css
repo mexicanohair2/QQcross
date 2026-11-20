@@ -1,18 +1,21 @@
 /* QQCross scanword layout repair — square letter tiles and legible clue cells. */
 .game-screen .letter-area{
-  grid-template-columns:auto minmax(0,1fr) 38px!important;
+  grid-template-columns:minmax(0,1fr) 38px!important;
   align-items:center!important;
 }
 .game-screen .hand{
-  display:grid!important;
-  grid-template-columns:repeat(5,clamp(36px,10.8vw,44px))!important;
+  display:flex!important;
+  grid-column:1!important;
   justify-content:center!important;
-  align-content:center!important;
+  align-items:center!important;
   gap:clamp(3px,1vw,5px)!important;
   width:100%!important;
   min-width:0!important;
   overflow:visible!important;
 }
+.game-screen .letter-area>.letter-label{grid-column:1/-1!important}
+.game-screen .letter-area>.check-turn{grid-column:2!important;grid-row:2!important}
+.game-screen .letter-area>.hand{grid-row:2!important}
 .game-screen .letter{
   display:grid!important;
   place-items:center!important;
@@ -44,7 +47,7 @@
   hyphens:auto!important;
   white-space:normal!important;
   text-align:center!important;
-  font-size:clamp(8px,calc(10px - var(--clue-length,20)*.035px),9px)!important;
+  font-size:8px!important;
   line-height:1.04!important;
   font-weight:750!important;
   text-overflow:ellipsis!important;
@@ -169,4 +172,25 @@
 @media(max-height:700px){
   .game-screen .letter{width:38px!important;height:38px!important;min-width:38px!important;min-height:38px!important}
   .game-screen .hand{grid-template-columns:repeat(5,38px)!important}
+}
+
+/* Placement feedback is immediate and remains legible on small cells. */
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.correct{
+  background:linear-gradient(145deg,#527c68,#315644)!important;
+  box-shadow:inset 0 0 0 2px #a8e0bb!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.wrong{
+  background:linear-gradient(145deg,#9a4053,#642333)!important;
+  box-shadow:inset 0 0 0 2px #ffc0ca!important;
+}
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.correct .cell-letter,
+.game-screen .scanword-board>.scan-cell.cell.pending-cell.wrong .cell-letter{
+  color:#fff!important;
+}
+@media(max-width:360px){
+  .game-screen .letter-area{grid-template-columns:minmax(0,1fr) 34px!important}
+  .game-screen .hand{display:flex!important;gap:3px!important}
+}
+@media(max-height:700px){
+  .game-screen .hand{display:flex!important}
 }
