@@ -20,7 +20,7 @@
         "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
         "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
       ];
-      function injectApp() {
+      function startApp() {
         if (document.querySelector('script[data-qq-game-app]')) return;
         var app = document.createElement("script");
         app.type = "module";
@@ -33,47 +33,6 @@
           document.querySelector("#app").appendChild(message);
         };
         document.body.appendChild(app);
-      }
-      function loadTensorFlow(index) {
-        if (window.tf && typeof window.tf.loadLayersModel === "function") {
-          injectApp();
-          return;
-        }
-        var tfUrls = [
-          "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.19.0/dist/tf.min.js",
-          "https://unpkg.com/@tensorflow/tfjs@3.19.0/dist/tf.min.js"
-        ];
-        if (index >= tfUrls.length) {
-          injectApp();
-          return;
-        }
-        var tfScript = document.createElement("script");
-        var settled = false;
-        var timeout = setTimeout(function () {
-          if (settled) return;
-          settled = true;
-          tfScript.remove();
-          loadTensorFlow(index + 1);
-        }, 5000);
-        tfScript.src = tfUrls[index];
-        tfScript.onload = function () {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          if (window.tf && typeof window.tf.loadLayersModel === "function") injectApp();
-          else loadTensorFlow(index + 1);
-        };
-        tfScript.onerror = function () {
-          if (settled) return;
-          settled = true;
-          clearTimeout(timeout);
-          loadTensorFlow(index + 1);
-        };
-        document.head.appendChild(tfScript);
-      }
-      function startApp() {
-        if (document.querySelector('script[data-qq-game-app]')) return;
-        loadTensorFlow(0);
       }
       function load(index) {
         if (index >= urls.length) {
