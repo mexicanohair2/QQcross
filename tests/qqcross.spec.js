@@ -666,6 +666,20 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await expect(page.locator(".hand .letter")).toHaveCount(5);
   await expect(page.locator(".hand .letter-slot-empty")).toHaveCount(0);
   expect(await page.locator(".hand .letter").allTextContents()).toEqual(originalLetters);
+
+  const firstTile=page.locator(".hand .letter").first();
+  const firstCell=page.locator(".scanword-board .cell").first();
+  const firstFrom=await firstTile.boundingBox();
+  const firstTo=await firstCell.boundingBox();
+  await page.mouse.move(firstFrom.x+firstFrom.width/2,firstFrom.y+firstFrom.height/2);
+  await page.mouse.down();
+  await page.mouse.move(firstTo.x+firstTo.width/2,firstTo.y+firstTo.height/2,{steps:8});
+  await page.mouse.up();
+  await page.locator("#endturn").click();
+  await expect(page.locator(".hand .letter")).toHaveCount(5);
+  await expect(page.locator(".hand .letter-slot-empty")).toHaveCount(0);
+  const afterCheck=await page.locator(".hand .letter").allTextContents();
+  expect(afterCheck.slice(1,4)).toEqual(originalLetters.slice(1,4));
 });
 
 test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {
