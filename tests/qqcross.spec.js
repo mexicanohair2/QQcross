@@ -84,8 +84,9 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
-  await expect(page.locator(".scan-grid-cell.scan-boundary")).toHaveCount(0);
+  await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
+  await expect(page.locator(".scan-grid-cell.scan-boundary")).toHaveAttribute("aria-hidden", "true");
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
@@ -559,15 +560,21 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     return row >= 3 && row <= 8 && col >= 3 && col <= 5;
   }).length);
   expect(centerClues).toBeGreaterThanOrEqual(3);
-  const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
-  expect(rightBoundaries.length).toBeLessThanOrEqual(2);
-  expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 11 || col === 0 || col === 7; })).toBeTruthy();
-  await expect(board.locator('.scan-clue[data-clue-cell="11,7"]')).toHaveCount(1);
+  const terminalBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => ({
+    key: node.dataset.boundaryCell,
+    terminalFor: node.dataset.terminalFor,
+    interactive: node.hasAttribute("data-clue-cell") || node.tagName === "BUTTON"
+  })));
+  expect(terminalBoundaries.length).toBeGreaterThan(0);
+  expect(terminalBoundaries.every(cell => cell.terminalFor && !cell.interactive)).toBeTruthy();
+  await expect(board.locator('.scan-boundary[data-boundary-cell="11,7"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="11,7"]')).toHaveCount(0);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
+  expect(clueCells.every(cell => cell.starts > 0)).toBeTruthy();
   expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
@@ -624,6 +631,8 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   });
   expect(hand.letters).toHaveLength(5);
   expect(hand.letters.every(item => Math.abs(item.width - item.height) <= 1)).toBeTruthy();
+  const tileCenter=(hand.letters[0].left+hand.letters[4].right)/2;
+  expect(Math.abs(tileCenter-hand.hand.center)).toBeLessThanOrEqual(2);
   const tile = page.locator(".hand .letter").first();
   const cell = page.locator(".scanword-board .cell").first();
   const from = await tile.boundingBox();
