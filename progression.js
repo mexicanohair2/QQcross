@@ -23,9 +23,6 @@ const ACHIEVEMENTS=[
 {id:"wordle_1",name:"Первое слово",desc:"Победи в Wordle",stat:"wordleWins",target:1},
 {id:"wordle_25",name:"Слово за словом",desc:"Угадай 25 слов в Wordle",stat:"wordleWins",target:25},
 {id:"wordle_100",name:"Словарный запас",desc:"Угадай 100 слов в Wordle",stat:"wordleWins",target:100},
-{id:"wow_5",name:"Колесо слов",desc:"Пройди 5 уровней Word of Wonders",stat:"wowLevels",target:5},
-{id:"wow_25",name:"Путешествие продолжается",desc:"Пройди 25 уровней Word of Wonders",stat:"wowLevels",target:25},
-{id:"wow_100",name:"Мастер круга",desc:"Пройди 100 уровней Word of Wonders",stat:"wowLevels",target:100},
 {id:"search_5",name:"Внимательный поиск",desc:"Найди слова на 5 уровнях поиска",stat:"searchLevels",target:5},
 {id:"search_25",name:"Искатель слов",desc:"Пройди 25 уровней поиска",stat:"searchLevels",target:25},
 {id:"cody_5",name:"Первые группы",desc:"Реши 5 кроссвордов",stat:"codyLevels",target:5},
@@ -43,7 +40,7 @@ const ACHIEVEMENTS=[
 {id:"hint_50",name:"Умный игрок",desc:"Используй 50 подсказок в сканвордах",stat:"hintsUsed",target:50},
 {id:"hint_100",name:"Мастер подсказок",desc:"Используй 100 подсказок в сканвордах",stat:"hintsUsed",target:100}
 ];
-const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,wowLevels:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0,hintsUsed:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
+const fresh=()=>({version:1,stats:{scanwords:0,wordleWins:0,searchLevels:0,codyLevels:0,wordsFound:0,groups:0,hintsUsed:0},daily:{days:{},currentStreak:0,bestStreak:0,lastCompletedDate:""},achievements:{},titles:["Новичок"],activeTitle:"Новичок",hatTaps:0,discoveredWords:[],rewardClaims:{},pendingRewards:{},completions:{}});
 let data=fresh(),cloudTimer=null,cloudClient=null,cloudUserId=null;
 function today(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")}
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}

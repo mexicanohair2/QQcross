@@ -1,0 +1,138 @@
+/* QQCross full-spectrum dark palettes and touch-first UI. */
+html[data-qq-theme="burgundy"]{--qq-base:#1a0a10;--qq-base-deep:#0b0509;--qq-glass:rgba(43,15,27,.92);--qq-theme-border:#643344;--qq-theme-accent:#d08b9e;--qq-theme-muted:#d5b8c2}
+html[data-qq-theme="crimson"]{--qq-base:#200912;--qq-base-deep:#0c0408;--qq-glass:rgba(48,13,25,.92);--qq-theme-border:#713044;--qq-theme-accent:#eb8298;--qq-theme-muted:#dfb4be}
+html[data-qq-theme="ember"]{--qq-base:#211008;--qq-base-deep:#0c0603;--qq-glass:rgba(49,25,13,.92);--qq-theme-border:#75452d;--qq-theme-accent:#e69a68;--qq-theme-muted:#dfc0a7}
+html[data-qq-theme="amber"]{--qq-base:#201606;--qq-base-deep:#0c0803;--qq-glass:rgba(48,35,12,.92);--qq-theme-border:#75602e;--qq-theme-accent:#e4bd67;--qq-theme-muted:#decda5}
+html[data-qq-theme="olive"]{--qq-base:#191a0b;--qq-base-deep:#080903;--qq-glass:rgba(39,42,15,.92);--qq-theme-border:#5b6230;--qq-theme-accent:#c2c779;--qq-theme-muted:#d0d0a8}
+html[data-qq-theme="forest"]{--qq-base:#0d1b13;--qq-base-deep:#050b08;--qq-glass:rgba(17,43,29,.92);--qq-theme-border:#315b42;--qq-theme-accent:#83c49a;--qq-theme-muted:#b5d4bf}
+html[data-qq-theme="emerald"]{--qq-base:#081c18;--qq-base-deep:#030b09;--qq-glass:rgba(10,45,37,.92);--qq-theme-border:#276052;--qq-theme-accent:#6ed0b0;--qq-theme-muted:#a8d6c9}
+html[data-qq-theme="teal"]{--qq-base:#081b1d;--qq-base-deep:#030a0c;--qq-glass:rgba(10,43,46,.92);--qq-theme-border:#286168;--qq-theme-accent:#72ced0;--qq-theme-muted:#aed8d8}
+html[data-qq-theme="lagoon"]{--qq-base:#081923;--qq-base-deep:#03090d;--qq-glass:rgba(10,39,51,.92);--qq-theme-border:#2d6274;--qq-theme-accent:#75c6dc;--qq-theme-muted:#b2d7e2}
+html[data-qq-theme="ocean"]{--qq-base:#0a1724;--qq-base-deep:#03080e;--qq-glass:rgba(13,36,57,.93);--qq-theme-border:#315a79;--qq-theme-accent:#80b9e8;--qq-theme-muted:#b7cfe3}
+html[data-qq-theme="sapphire"]{--qq-base:#0d1427;--qq-base-deep:#050812;--qq-glass:rgba(18,29,58,.93);--qq-theme-border:#3b548c;--qq-theme-accent:#8daef4;--qq-theme-muted:#bfcae8}
+html[data-qq-theme="indigo"]{--qq-base:#15112a;--qq-base-deep:#070611;--qq-glass:rgba(31,24,61,.93);--qq-theme-border:#51418a;--qq-theme-accent:#a79af0;--qq-theme-muted:#c8c0e8}
+html[data-qq-theme="purple"]{--qq-base:#170e20;--qq-base-deep:#090610;--qq-glass:rgba(37,24,49,.93);--qq-theme-border:#59406e;--qq-theme-accent:#c5a1e5;--qq-theme-muted:#d0bddf}
+html[data-qq-theme="violet"]{--qq-base:#190d28;--qq-base-deep:#08040f;--qq-glass:rgba(43,20,66,.93);--qq-theme-border:#68418e;--qq-theme-accent:#c18eea;--qq-theme-muted:#d6bce9}
+html[data-qq-theme="plum"]{--qq-base:#210f20;--qq-base-deep:#0b050b;--qq-glass:rgba(50,19,48,.93);--qq-theme-border:#713c70;--qq-theme-accent:#d58dc9;--qq-theme-muted:#dfb9d9}
+html[data-qq-theme="orchid"]{--qq-base:#210d1b;--qq-base-deep:#0b0409;--qq-glass:rgba(51,17,42,.93);--qq-theme-border:#76395e;--qq-theme-accent:#e391bd;--qq-theme-muted:#e3bed2}
+html[data-qq-theme="graphite"]{--qq-base:#17191d;--qq-base-deep:#07080a;--qq-glass:rgba(35,39,45,.94);--qq-theme-border:#515a65;--qq-theme-accent:#b7c4d2;--qq-theme-muted:#c3cbd3}
+html[data-qq-theme]{
+ --qq-theme-text:#f5f2f4;
+ --qq-theme-page:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--qq-theme-accent) 20%,var(--qq-base) 80%) 0%,var(--qq-base) 54%,var(--qq-base-deep) 100%);
+ --qq-theme-card:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 17%,var(--qq-base) 83%),var(--qq-glass));
+ --qq-theme-panel:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 14%,var(--qq-base) 86%),color-mix(in srgb,var(--qq-base) 78%,var(--qq-base-deep) 22%));
+ --qq-theme-panel-strong:linear-gradient(135deg,color-mix(in srgb,var(--qq-theme-accent) 76%,white 4%),color-mix(in srgb,var(--qq-theme-accent) 52%,var(--qq-base) 48%));
+ --qq-theme-icon:var(--qq-theme-accent);
+ --qq-theme-cell:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 17%,var(--qq-base) 83%),color-mix(in srgb,var(--qq-base) 78%,var(--qq-base-deep) 22%));
+ --qq-theme-block:linear-gradient(145deg,color-mix(in srgb,var(--qq-base) 74%,black 26%),var(--qq-base-deep));
+ --qq-theme-filled:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 38%,var(--qq-base) 62%),color-mix(in srgb,var(--qq-theme-accent) 24%,var(--qq-base-deep) 76%));
+ --qq-theme-pending:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 30%,var(--qq-base) 70%),color-mix(in srgb,var(--qq-base) 68%,var(--qq-base-deep) 32%));
+ --qq-theme-clue:linear-gradient(145deg,color-mix(in srgb,var(--qq-theme-accent) 34%,var(--qq-base) 66%),color-mix(in srgb,var(--qq-theme-accent) 19%,var(--qq-base-deep) 81%));
+ --qq-theme-chip:color-mix(in srgb,var(--qq-theme-accent) 19%,var(--qq-base) 81%);
+ --qq-theme-field:color-mix(in srgb,var(--qq-base) 75%,black 25%);
+ --qq-theme-press-glow:color-mix(in srgb,var(--qq-theme-accent) 36%,transparent);
+ --qq-theme-press-border:color-mix(in srgb,var(--qq-theme-accent) 54%,transparent);
+}
+html[data-qq-theme] body{
+ background:radial-gradient(ellipse at 14% 12%,color-mix(in srgb,var(--qq-bg-c,var(--qq-theme-accent)) 42%,var(--qq-base) 58%) 0%,transparent 56%),radial-gradient(ellipse at 88% 82%,color-mix(in srgb,var(--qq-bg-b,var(--qq-theme-accent)) 36%,var(--qq-base) 64%) 0%,transparent 58%),linear-gradient(135deg,color-mix(in srgb,var(--qq-bg-a,var(--qq-theme-accent)) 48%,var(--qq-base) 52%),var(--qq-base-deep) 76%) fixed!important;
+}
+html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero,html[data-qq-theme] .settings-card{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .nav,html[data-qq-theme] .score-strip,html[data-qq-theme] .letter-area,html[data-qq-theme] .items,html[data-qq-theme] .coins,html[data-qq-theme] .pill,html[data-qq-theme] .timer{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .btn,html[data-qq-theme] .item,html[data-qq-theme] .input,html[data-qq-theme] .theme-choice,html[data-qq-theme] .background-choice,html[data-qq-theme] .ambience-choice{border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .btn{background:var(--qq-theme-panel)!important}
+html[data-qq-theme] .btn.primary,html[data-qq-theme] .btn.blue{background:var(--qq-theme-panel-strong)!important;border-color:var(--qq-theme-accent)!important;color:#fff!important}
+html[data-qq-theme] .input{background:var(--qq-theme-field)!important}
+html[data-qq-theme] .nav button{color:var(--qq-theme-muted)!important}
+html[data-qq-theme] .nav button.active,html[data-qq-theme] .nav button.active .ni{color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .muted,html[data-qq-theme] .small.muted,html[data-qq-theme] .theme-copy small{color:var(--qq-theme-muted)!important}
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.cell{background:var(--qq-theme-cell)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.scan-clue{background:var(--qq-theme-clue)!important}
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.cell.filled{background:var(--qq-theme-filled)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.cell.pending-cell{background:var(--qq-theme-pending)!important;border-color:var(--qq-theme-accent)!important}
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell .cell-letter{color:var(--qq-theme-text)!important}
+
+/* Six reachable navigation targets; labels remain visible on narrow phones. */
+html[data-qq-theme] .nav{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:2px;padding:6px 4px max(8px,env(safe-area-inset-bottom))!important;left:0!important;transform:none!important;width:100%!important}
+html[data-qq-theme] .nav button{display:flex;min-width:0;min-height:54px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 1px!important;font-size:10px!important;line-height:1.1;white-space:nowrap!important;border-radius:12px!important}
+.qq-tab-icon{display:block;width:20px;height:20px;flex:0 0 auto}
+.nav .ni{display:grid;place-items:center;margin:0;font-size:0;line-height:1}
+.nav .nav-label{display:block;font-size:9px;line-height:1.1;letter-spacing:-.01em}
+.qq-settings-gear{display:grid;place-items:center;min-width:44px;min-height:44px;border-radius:14px!important}
+.qq-settings-gear .qq-tab-icon{width:21px;height:21px}
+
+/* Theme picker uses a dense, scannable grid rather than an endless list. */
+.qq-theme-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.qq-theme-grid .theme-choice{min-width:0;min-height:92px!important;padding:9px!important;grid-template-columns:minmax(0,1fr) 22px!important;grid-template-rows:34px auto;gap:6px 4px!important;border-radius:16px!important}
+.qq-theme-grid .theme-swatch{grid-column:1/3;grid-row:1;width:100%;height:33px;border-radius:10px}
+.qq-theme-grid .theme-copy{grid-column:1;grid-row:2;gap:2px;min-width:0}
+.qq-theme-grid .theme-copy b{font-size:12px;line-height:1.15}
+.qq-theme-grid .theme-copy small{font-size:9px;line-height:1.2}
+.qq-theme-grid .theme-check{grid-column:2;grid-row:2;font-size:16px}
+.theme-swatch-crimson{background:linear-gradient(145deg,#ef8b9f,#7c2038 65%,#210912)}
+.theme-swatch-ember{background:linear-gradient(145deg,#efad78,#874321 65%,#211008)}
+.theme-swatch-amber{background:linear-gradient(145deg,#f1d17e,#8b6424 65%,#201606)}
+.theme-swatch-olive{background:linear-gradient(145deg,#d2d28b,#62682e 65%,#191a0b)}
+.theme-swatch-forest{background:linear-gradient(145deg,#9bd5a7,#316747 65%,#0d1b13)}
+.theme-swatch-emerald{background:linear-gradient(145deg,#85ddba,#17694f 65%,#081c18)}
+.theme-swatch-teal{background:linear-gradient(145deg,#8be0dc,#236a70 65%,#081b1d)}
+.theme-swatch-lagoon{background:linear-gradient(145deg,#92d9e7,#296d82 65%,#081923)}
+.theme-swatch-ocean{background:linear-gradient(145deg,#93c7ee,#2f5e8c 65%,#0a1724)}
+.theme-swatch-sapphire{background:linear-gradient(145deg,#a8c1ff,#405b9e 65%,#0d1427)}
+.theme-swatch-indigo{background:linear-gradient(145deg,#c0b6ff,#51458e 65%,#15112a)}
+.theme-swatch-violet{background:linear-gradient(145deg,#d1a9f1,#684292 65%,#190d28)}
+.theme-swatch-plum{background:linear-gradient(145deg,#e6a8df,#793f78 65%,#210f20)}
+.theme-swatch-orchid{background:linear-gradient(145deg,#f0b4d4,#884363 65%,#210d1b)}
+.theme-swatch-graphite{background:linear-gradient(145deg,#e0e5eb,#5b6570 65%,#17191d)}
+html[data-qq-theme="burgundy"] .theme-swatch-burgundy{background:linear-gradient(145deg,#e2a0b1,#753449 65%,#1a0a10)!important}
+html[data-qq-theme="purple"] .theme-swatch-purple{background:linear-gradient(145deg,#c5a1e5,#583b75 65%,#170e20)!important}
+
+/* Reusable collapsible settings sections with reduced-motion support. */
+.qq-settings-section{overflow:hidden}
+.qq-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.qq-settings-heading h3{margin:8px 0 4px}
+.qq-settings-toggle{display:grid;place-items:center;width:42px;height:42px;flex:0 0 42px;border:1px solid var(--qq-theme-border);border-radius:13px;background:var(--qq-theme-panel);color:var(--qq-theme-accent);transition:transform 220ms ease,background 220ms ease}
+.qq-settings-toggle svg{transition:transform 220ms ease}
+.qq-settings-section.is-collapsed .qq-settings-toggle svg{transform:rotate(-90deg)}
+.qq-settings-content{overflow:hidden;max-height:1600px;opacity:1;transform:translateY(0);transition:max-height 320ms cubic-bezier(.22,.72,.24,1),opacity 220ms ease,transform 220ms ease}
+.qq-settings-content[inert]{max-height:0;opacity:0;transform:translateY(-5px);pointer-events:none}
+.qq-settings-content[aria-hidden="true"]{pointer-events:none}
+.qq-settings-section .qq-settings-heading{padding:2px 0}
+.qq-settings-section .qq-settings-heading>div{min-width:0}
+.qq-settings-section .qq-settings-heading .pill{display:inline-flex}
+.qq-settings-section .qq-settings-toggle:focus-visible{outline:2px solid var(--qq-theme-accent);outline-offset:3px}
+@media(max-width:370px){html[data-qq-theme] .nav .nav-label{font-size:8px}.qq-theme-grid .theme-choice{padding:7px!important}.qq-theme-grid .theme-copy small{font-size:8px}}
+@media(min-width:600px){.qq-theme-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){.qq-settings-content,.qq-settings-toggle,.qq-settings-toggle svg{transition:none!important}}
+html[data-qq-reduce-motion="true"] .qq-settings-content,html[data-qq-reduce-motion="true"] .qq-settings-toggle,html[data-qq-reduce-motion="true"] .qq-settings-toggle svg{transition:none!important}
+
+/* Canvas sits below the app, never blocks taps, and replaces the old pink CSS ellipses. */
+.qq-ambience-canvas{position:fixed;inset:0;z-index:0;display:block;width:100vw;height:100dvh;pointer-events:none!important;opacity:.82;contain:strict;will-change:contents}
+html[data-qq-ambience="sakura"] body::before{display:none!important}
+#app{position:relative;z-index:1}
+
+/* Light appearance is independent of the chosen spectrum accent. */
+html[data-qq-mode="light"]{
+ --qq-theme-page:linear-gradient(145deg,#f8fcff 0%,#eef6fb 58%,#e4eff7 100%);
+ --qq-theme-card:linear-gradient(145deg,#ffffff,#f4f9fd);
+ --qq-theme-panel:linear-gradient(145deg,#edf5fb,#e5f0f8);
+ --qq-theme-panel-strong:linear-gradient(135deg,#a9d4ee,#7fb7dc);
+ --qq-theme-border:#c5d9e6;
+ --qq-theme-text:#263746;
+ --qq-theme-muted:#617b8d;
+ --qq-theme-cell:linear-gradient(145deg,#ffffff,#f1f7fb);
+ --qq-theme-block:linear-gradient(145deg,#e6eef4,#dce8f0);
+ --qq-theme-filled:linear-gradient(145deg,#d9eee3,#c4e4d2);
+ --qq-theme-pending:linear-gradient(145deg,#d9edfb,#c4e2f5);
+ --qq-theme-clue:linear-gradient(145deg,#d5edfc,#bfdef2);
+ --qq-theme-chip:#e1f0f9;
+ --qq-theme-field:#ffffff;
+ --qq-theme-press-glow:rgba(87,151,190,.25);
+ --qq-theme-press-border:rgba(87,151,190,.45);
+}
+html[data-qq-mode="light"] body{
+ background:radial-gradient(ellipse at 16% 12%,#ffffff 0%,transparent 56%),radial-gradient(ellipse at 88% 82%,#d8eaf5 0%,transparent 58%),linear-gradient(135deg,#f4f9fc,#e5eff6 76%) fixed!important;
+}
+html[data-qq-mode="light"] .btn.primary,html[data-qq-mode="light"] .btn.blue{color:#243746!important}
+
+/* The QQCross Sakura mark stays pearl/graphite even in a rose or violet UI palette. */
+.ambience-preview-sakura{color:#eef1ef!important;filter:grayscale(1);text-shadow:0 1px 5px rgba(225,232,230,.22)}

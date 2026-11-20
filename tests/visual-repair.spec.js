@@ -6,6 +6,10 @@ async function openSettings(page) {
   await page.locator("#guestPlay").click();
   await expect(page.locator("#qqSettingsGear")).toBeVisible();
   await page.locator("#qqSettingsGear").click();
+  for (const section of ["backgrounds", "ambience"]) {
+    const toggle = page.locator('[data-settings-toggle="' + section + '"]');
+    if (await toggle.count() && await toggle.getAttribute("aria-expanded") !== "true") await toggle.click();
+  }
 }
 
 test("Burgundy and Purple backgrounds are visibly distinct", async ({ page }) => {
@@ -40,25 +44,30 @@ test("selected background presets change the actual page background", async ({ p
   expect(after.image).not.toBe(before.image);
 });
 
-test("seasonal ambience uses distinct, slow, non-dust animation layers", async ({ page }) => {
+test("seasonal ambience keeps fireflies and renders Sakura as individual Canvas petals", async ({ page }) => {
   await openSettings(page);
   await page.locator('[data-ambience-choice="fireflies"]').click();
   const fireflies = await page.evaluate(() => {
     const style = getComputedStyle(document.body, "::before");
     return { mode: document.documentElement.dataset.qqAmbience, animation: style.animationName, opacity: Number(style.opacity) };
   });
-  await page.locator('[data-ambience-choice="sakura"]').click();
-  const sakura = await page.evaluate(() => {
-    const style = getComputedStyle(document.body, "::before");
-    return { mode: document.documentElement.dataset.qqAmbience, animation: style.animationName, image: style.backgroundImage };
-  });
   expect(fireflies.mode).toBe("fireflies");
   expect(fireflies.animation).toBe("qq-ambience-fireflies");
   expect(fireflies.opacity).toBeGreaterThan(0.1);
+
+  await page.locator('[data-ambience-choice="sakura"]').click();
+  await expect(page.locator("[data-qq-ambience-layer]")).toBeVisible();
+  const sakura = await page.evaluate(() => {
+    const canvas = document.querySelector("[data-qq-ambience-layer]");
+    const legacy = getComputedStyle(document.body, "::before");
+    return {mode:document.documentElement.dataset.qqAmbience,tag:canvas?.tagName,pointerEvents:canvas?getComputedStyle(canvas).pointerEvents:"missing",width:canvas?.width||0,height:canvas?.height||0,legacyDisplay:legacy.display};
+  });
   expect(sakura.mode).toBe("sakura");
-  expect(sakura.animation).toBe("qq-ambience-petals");
-  expect(sakura.image).not.toBe("");
-  expect(fireflies.animation).not.toBe(sakura.animation);
+  expect(sakura.tag).toBe("CANVAS");
+  expect(sakura.pointerEvents).toBe("none");
+  expect(sakura.width).toBeGreaterThan(0);
+  expect(sakura.height).toBeGreaterThan(0);
+  expect(sakura.legacyDisplay).toBe("none");
 });
 
 test("scanword keeps its portrait 8-by-12 grid and uses softer readable cell styling", async ({ page }) => {
