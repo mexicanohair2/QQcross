@@ -186,7 +186,7 @@ function countCenterQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8, allowSpecialMutations = true) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
@@ -195,7 +195,7 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   // are immutable: mutations are restricted to columns 4..6. The same
   // independent topology validator decides whether each mutation is safe.
   const targetMutations = includeSpecialEleven
-    ? 3 + Math.floor(random() * 3)
+    ? (allowSpecialMutations ? 3 + Math.floor(random() * 3) : 0)
     : 5 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
@@ -283,7 +283,8 @@ export function generateTopology(options = {}) {
       includeSpecialEleven,
       random,
       mutationBudget,
-      maxTwoLetterSlots
+      maxTwoLetterSlots,
+      includeSpecialEleven && !Array.isArray(options.specialPattern)
     );
     if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');
