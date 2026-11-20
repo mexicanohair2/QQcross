@@ -518,7 +518,7 @@ export function generateScanword(inputDictionary, options = {}) {
     ? [firstLowShortPlan, ...conventionalSpecialPlans, ...additionalLowShortPlans]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
-    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
+    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey.startsWith('low-short')).length;
   }
 
   // In the 100-seed production batch, four retries still left 11/33
@@ -621,6 +621,8 @@ export function generateScanword(inputDictionary, options = {}) {
         reason: solved.reason,
         specialAnswer: specialPlan?.answer ?? null,
         specialSplitRows: specialPlan?.rows ?? null,
+        specialPlanKey: specialPlan?.planKey ?? null,
+        specialPatternKey: specialPlan?.patternKey ?? null,
         nodes: solved.nodes,
         deepest: solved.deepest,
         elapsedMs: solved.elapsedMs,
