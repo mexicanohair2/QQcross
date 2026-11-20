@@ -168,7 +168,7 @@ test("loading screen logo, tiles, and progress use the saved theme palette", asy
     };
   });
   expect(palette.accent).not.toBe("");
-  expect(palette.mark).toContain("color");
-  expect(palette.tile).toContain("color");
-  expect(palette.progress).toContain("color");
+  expect(palette.mark).toContain("linear-gradient");
+  expect(palette.tile).toContain("linear-gradient");
+  expect(palette.progress).toContain("linear-gradient");
 });
