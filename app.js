@@ -730,12 +730,26 @@ function pictureUrl(emoji){
   const code=Array.from(emoji).map(ch=>ch.codePointAt(0).toString(16)).filter(x=>x!=="fe0f"&&x!=="fe0e").join("-");
   return "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/"+code+".png";
 }
-function placeAtCell(k,letterIndex,root){
+function availableRackSlots(){
+  const occupied=new Set((state.pendingMoves||[]).map(move=>Number(move.rackSlot)).filter(slot=>Number.isInteger(slot)&&slot>=0&&slot<5));
+  return [0,1,2,3,4].filter(slot=>!occupied.has(slot));
+}
+function renderRackSlots(){
+  const free=availableRackSlots();
+  return Array.from({length:5},(_,slot)=>{
+    const index=free.indexOf(slot);
+    if(index<0||index>=state.letters.length)return '<span class="letter-slot-empty" aria-hidden="true" data-empty-slot="'+slot+'"></span>';
+    const letter=state.letters[index];
+    return '<button class="letter '+(state.selectedLetter===index?'selected':'')+(state.rackNewIndices?.includes(index)?' letter-enter':'')+'" data-letter="'+index+'" data-rack-slot="'+slot+'">'+esc(letter)+'</button>';
+  }).join("");
+}
+function placeAtCell(k,letterIndex,root,rackSlot){
   if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
   if(state.loupeActive){toast("Нажми на клетку, чтобы открыть букву");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});
+  const slot=Number.isInteger(rackSlot)?rackSlot:availableRackSlots()[letterIndex];
+  state.pendingMoves.push({k,l:letter,rackSlot:slot});
   state.feedback[k]=String(letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[k]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
   window.QQAudio?.play("letter");
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
@@ -1033,7 +1047,7 @@ function buildScanwordInWorker(entries, overrides={}){
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v2");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
@@ -1317,7 +1331,9 @@ function renderGame(root){
       const wordFlash=state.wordFlashKeys?.has(key);
       const endClass=(wordEnds.get(key)||[]).map(dir=>"answer-end-"+dir).join(" ");
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(activeWordCells.has(key)?" active-word-cell":"")+(endClass?" "+endClass:"");
-      const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
+      const mark=state.feedback[key]==="wrong"?"×":(state.feedback[key]==="correct"||state.filled[key]?"✓":"");
+      const markMarkup=mark?'<span class="placement-mark '+(mark==="✓"?"placement-correct":"placement-wrong")+'" aria-hidden="true">'+mark+'</span>':"";
+      const letterMarkup=(value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'')+markMarkup;
       const feedbackLabel=state.feedback[key]==="correct"?"верно":state.feedback[key]==="wrong"?"неверно":state.filled[key]?"заполнено":"ещё не проверено";
       cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(value?esc(value)+", ":"")+feedbackLabel+'" title="'+feedbackLabel+'"'+position+'>'+letterMarkup+'</button>');
     }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" data-reserved-cell="'+key+'" aria-hidden="true"'+position+'></div>');
@@ -1328,7 +1344,7 @@ function renderGame(root){
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
-    '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
+    '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">renderRackSlots()</div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
 
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
@@ -1394,12 +1410,12 @@ function renderGame(root){
     event.preventDefault();
     if(source.type==="rack"){
       const index=Number(source.element.dataset.letter),letter=state.letters[index];if(!letter)return;
-      activeDrag={type:"rack",index,letter};
+      activeDrag={type:"rack",index,letter,rackSlot:Number(source.element.dataset.rackSlot)};
       source.element.classList.add("dragging");
     }else{
       const key=source.element.dataset.cell,move=state.pendingMoves.find(m=>m.k===key);if(!move)return;
       state.pendingMoves.splice(state.pendingMoves.indexOf(move),1);
-      activeDrag={type:"pending",key,letter:move.l};
+      activeDrag={type:"pending",key,letter:move.l,rackSlot:move.rackSlot};
       source.element.classList.add("drag-source");
     }
     dragGhost=document.createElement("div");dragGhost.className="qq-drag-ghost";dragGhost.textContent=activeDrag.letter;
@@ -1419,21 +1435,21 @@ function renderGame(root){
     if(target?.matches("[data-cell]")){
       const key=target.dataset.cell;
       if(drag.type==="rack"){
-        if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key))placeAtCell(key,drag.index,root);
+        if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key))placeAtCell(key,drag.index,root,drag.rackSlot);
       }else if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key)){
         if(drag.type==="pending")delete state.feedback[drag.key];
-        state.pendingMoves.push({k:key,l:drag.letter});
+        state.pendingMoves.push({k:key,l:drag.letter,rackSlot:drag.rackSlot});
         state.feedback[key]=String(drag.letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[key]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
         state.playerRacks[state.turn]=state.letters;renderGame(root);
       }else{
-        state.pendingMoves.push({k:drag.key,l:drag.letter});
+        state.pendingMoves.push({k:drag.key,l:drag.letter,rackSlot:drag.rackSlot});
         if(drag.type==="pending")state.feedback[drag.key]=String(drag.letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[drag.key]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
         renderGame(root);
       }
     }else if(target?.matches(".hand")||drag.type==="pending"){
-      if(drag.type==="pending"){delete state.feedback[drag.key];state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
+      if(drag.type==="pending"){delete state.feedback[drag.key];const insertAt=availableRackSlots().indexOf(drag.rackSlot);state.letters.splice(insertAt<0?state.letters.length:insertAt,0,drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
     }else if(drag.type==="pending"){
-      delete state.feedback[drag.key];state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root);
+      delete state.feedback[drag.key];const insertAt=availableRackSlots().indexOf(drag.rackSlot);state.letters.splice(insertAt<0?state.letters.length:insertAt,0,drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root);
     }
   };
   root.querySelectorAll("[data-letter]").forEach(b=>b.addEventListener("pointerdown",e=>startDrag(e,{type:"rack",element:b})));
@@ -1455,7 +1471,7 @@ function renderGame(root){
         return;
       }
       const existing=state.pendingMoves.find(m=>m.k===key);
-      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);delete state.feedback[key];state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      if(existing){state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);delete state.feedback[key];const insertAt=availableRackSlots().indexOf(existing.rackSlot);state.letters.splice(insertAt<0?state.letters.length:insertAt,0,existing.l);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
       if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };
