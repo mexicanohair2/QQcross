@@ -136,7 +136,7 @@ function render(){
 }
 function renderHome(){
   const account=state.profile
-    ? '<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>'
+    ? '<div class="profile">'+sharedPlayer(state.profile)+'<span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small class="qq-player-title">'+esc(state.profile.active_title||"Новичок")+'</small></span></div>'
     : state.guest
       ? '<div class="profile"><span class="avatar">🙂</span><span class="profile-copy"><b>Гостевой режим</b><small>Только одиночная игра</small></span></div>'
       : '<div class="profile"><span class="avatar">👤</span><span class="profile-copy"><b>Не выполнен вход</b><small>Сетевые комнаты закрыты</small></span></div>';
@@ -148,7 +148,7 @@ function renderHome(){
       '<section class="card stack"><h2>Игра с друзьями</h2><p class="small muted">Используются авторизация, профили, ники, аватары и серверные комнаты QQCross. В мультиплеере допускаются только реальные подтверждённые аккаунты.</p>'+
         (state.profile?
           '<button class="btn primary full" id="createRoom">Создать комнату</button>'+
-          '<form id="joinForm" class="stack"><label class="label" for="roomCode">Код комнаты друга</label><input class="field" id="roomCode" maxlength="6" autocomplete="off" placeholder="Шесть символов"><button class="btn full" type="submit">Войти в комнату</button></form>'+
+
           '<button class="btn ghost full" id="signOut">Выйти из аккаунта</button>'
           :
           '<form id="loginForm" class="stack"><label class="label" for="email">Почта аккаунта QQCross</label><input class="field" id="email" type="email" autocomplete="email" required placeholder="name@example.com"><label class="label" for="password">Пароль</label><input class="field" id="password" type="password" autocomplete="current-password" required><button class="btn primary full" type="submit">Войти через QQCross</button><p class="small muted">Новый аккаунт здесь не создаётся. Используй существующий QQCross.</p></form>'+
@@ -163,7 +163,6 @@ function renderHome(){
   $("#guestMode")?.addEventListener("click",()=>{state.guest=true;state.profile=null;startBotArtistSolo();});
   $("#loginForm")?.addEventListener("submit",signIn);
   $("#createRoom")?.addEventListener("click",createRoom);
-  $("#joinForm")?.addEventListener("submit",joinRoom);
   $("#signOut")?.addEventListener("click",signOut);
 }
 const requestedRoomCode = (() => {
@@ -288,7 +287,7 @@ function renderPlayers(players=[]){
 function renderLobby(){
   const players=state.room.players||[];
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div><div class="profile"><span class="avatar">'+avatar(state.profile?.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small>Профиль QQCross</small></span></div></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small></span></div></header>'+
     '<section class="card"><div class="small muted" style="text-align:center">ЛОББИ QQCROSS</div><p class="small muted" style="text-align:center;margin:8px 0 0">Друзья присоединяются через приглашения в QQCross. Код комнаты не требуется.</p></section>'+
     '<section class="card stack"><div class="game-meta"><b>Реальные участники</b><span>'+players.length+'/'+state.room.player_limit+'</span></div><div class="player-grid">'+renderPlayers(players)+'</div>'+
     '<div class="notice">'+(isHost()?"После входа друга можно начать раунд. Художник будет выбран сервером случайно.":"Ожидаем начала раунда от создателя.")+'</div>'+
@@ -345,7 +344,7 @@ function renderChoosing(){
   const artist=state.room.public_state?.artist_id===state.profile?.id;
   const choices=state.room.private?.choices||[];
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small></span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
     '<section class="card stack"><h2>'+(artist?"Выбери слово для рисунка":"Художник выбирает слово")+'</h2><p class="small muted">'+(artist?"Слово увидишь только ты. Можно обновить варианты сколько угодно раз.":"Остальные участники не увидят слово, пока раунд не закончится.")+'</p>'+
     (artist?'<div class="choice-grid">'+choices.map((word,i)=>'<button class="btn choice wordChoice" data-word="'+esc(word)+'">'+esc(word)+'</button>').join("")+'</div><button class="btn full" id="refreshChoices">Другие слова</button>':'<div class="notice">Ожидаем подтверждения слова художником…</div>')+
     '<div class="game-meta"><span>Раунд '+esc(state.room.round_no)+'</span><span>'+esc(state.room.players?.length||0)+' игроков</span></div></section></section>';
@@ -365,9 +364,11 @@ async function confirmWord(word){
 }
 function historyMarkup(guesses=[]){
   if(!guesses.length)return '<div class="small muted" style="text-align:center">Пока нет догадок. Отправить первую может любой игрок, кроме художника.</div>';
-  return guesses.slice(-30).reverse().map((g)=>
-    '<div class="guess-row"><span class="avatar">'+avatar(g.avatar)+'</span><b>'+esc(g.nickname||"Игрок")+'</b><span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>'
-  ).join("");
+  return guesses.slice(-30).reverse().map(g=>{
+    const member=(state.room?.players||[]).find(p=>p.nickname===g.nickname)||{};
+    const person={...member,nickname:g.nickname||"Игрок",avatar:g.avatar??member.avatar,active_title:member.active_title||"Новичок"};
+    return '<div class="guess-row">'+playerCard(person,g.correct?"Угадал":"Догадка")+'<span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>';
+  }).join("");
 }
 function drawToolsMarkup(enabled = isArtist() && state.room?.status === "playing"){
   if(!enabled)return "";
@@ -394,7 +395,7 @@ function renderOnlineGame(){
       drawToolsMarkup(artist&&!finished)+
       (artist&&!finished?'<div class="notice">Секретное слово: <strong>'+esc(room.private?.word||"")+'</strong>. Рисуй, не пиши буквы.</div>':'')+
     '</section>'+
-    '<section class="card stack"><div class="game-meta"><b>История догадок</b><span>'+guesses.length+'</span></div><div class="guess-history">'+historyMarkup(guesses)+'</div>'+
+    '<section class="card stack"><div class="game-meta"><b>Игроки</b><span>'+room.players.length+'/'+room.player_limit+'</span></div><div class="player-grid">'+renderPlayers(room.players||[])+'</div><div class="game-meta"><b>История догадок</b><span>'+guesses.length+'</span></div><div class="guess-history">'+historyMarkup(guesses)+'</div>'+
       (!finished&&!artist?'<form id="guessForm" class="guess-form"><input class="field" id="guessInput" maxlength="30" autocomplete="off" placeholder="Что нарисовано?" required><button class="btn primary" type="submit">Отправить</button></form>':"")+
       (finished?(String(room.public_state?.solved_by)===String(state.profile?.id)?'<button class="btn primary full" id="nextRound">Теперь ты художник</button>':'<div class="notice">Следующий художник — игрок, который угадал слово. Ожидаем его действия.</div>'):"")+
     '</section></section>';
