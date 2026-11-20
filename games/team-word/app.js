@@ -429,13 +429,15 @@ async function loadRoomFriends() {
   try {
     const friends = await rpc("qq_party_list_friends", { p_room_id: state.roomId });
     if (!friends?.length) {
-      root.innerHTML = '<p class="small muted">Добавь друзей в QQCross — здесь появится список для приглашения.</p>';
+      root.innerHTML = '<p class="small muted">Добавь друзей во вкладке «Друзья» в QQCross.</p>';
       return;
     }
-    root.innerHTML = friends.map(friend => {
+    const people=await hydrateRoomPlayers(friends.map(friend=>({...friend,id:friend.user_id,nickname:friend.username})));
+    root.innerHTML = people.map(friend => {
       const disabled = friend.in_room || friend.already_invited;
       const label = friend.in_room ? "Уже в комнате" : friend.already_invited ? "Приглашение отправлено" : "Пригласить";
-      return '<div class="room-friend-row"><span class="avatar">'+avatar(friend.avatar)+'</span><span class="room-friend-name">'+esc(friend.username)+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
+      return '<div class="room-friend-row">'+playerCard(friend,disabled?"В лобби":"Друг")+
+        '<button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id||friend.id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button => {
       button.addEventListener("click", async () => {
