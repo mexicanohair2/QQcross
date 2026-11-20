@@ -707,7 +707,8 @@ async function loadMatchInbox(){
     invites.innerHTML=combined||'<p class="small muted">Новых приглашений нет.</p>';
   }
 
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  const onlineHosts=await hydratePublicProfiles((mr.data||[]).map(x=>({...x,id:x.host_id,username:x.host_username})));
+  if(matches)matches.innerHTML=onlineHosts.length?onlineHosts.map(x=>'<div class="card"><div class="qq-profile-open" data-profile-id="'+esc(x.id)+'">'+playerCardMarkup(x,undefined,"Создатель партии",true)+'</div><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
 
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{
     b.disabled=true;
@@ -749,6 +750,7 @@ async function loadMatchInbox(){
       if(invites&&!invites.querySelector(".card"))invites.innerHTML='<p class="small muted">Новых приглашений нет.</p>';
     }catch(e){toast(e.message||"Не удалось отклонить приглашение");b.disabled=false}
   });
+  matches?.querySelectorAll("[data-profile-id]").forEach(b=>b.onclick=()=>{const p=onlineHosts.find(x=>String(x.id)===String(b.dataset.profileId));if(p)showPlayerProfile(p)});
   document.querySelectorAll(".open-online-match").forEach(b=>b.onclick=()=>openOnlineMatch(b.dataset.id));
   document.querySelectorAll(".delete-online-match").forEach(b=>b.onclick=async()=>{
    const id=b.dataset.id;
