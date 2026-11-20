@@ -28,7 +28,7 @@
 <link rel="manifest" href="./manifest.json?v=qqcross-brand-20261117">
 <link rel="stylesheet" href="./styles.css?v=20261120-phone-fit-5rack-v5">
 <link rel="stylesheet" href="./brand.css?v=qqcross-brand-20261117">
-<link rel="stylesheet" href="./theme-polish.css?v=20261119-theme-polish-v1">
+<link rel="stylesheet" href="./theme-polish.css?v=20261121-theme-polish-v2">
 <link rel="stylesheet" href="./visual-repair.css?v=20261120-phone-fit-5rack-v5">
 <link rel="stylesheet" href="./ui-refresh.css?v=20261121-dark-cherry-v1">
 <link rel="stylesheet" href="./scanword-fix.css?v=20261121-scanword-layout-v6">
@@ -39,10 +39,10 @@
 <div id="app"><div class="boot-splash" role="status" aria-live="polite">
   <div class="boot-scene" aria-hidden="true">
     <span class="boot-orbit boot-orbit-one"></span><span class="boot-orbit boot-orbit-two"></span>
-    <div class="boot-mark"><img src="./icon.svg?v=qqcross-brand-20261117" alt="QQCross"></div>
+    <div class="boot-mark"><span class="boot-monogram">QQ</span></div>
     <div class="boot-tiles"><i>С</i><i>Л</i><i>О</i><i>В</i><i>А</i></div>
   </div>
-  <img class="boot-brand-logo" src="./assets/qqcross-logo.svg" alt="QQCross">
+  <div class="boot-brand-logo" role="img" aria-label="QQCross">QQCross</div>
   <p class="boot-caption">Загрузка игры…</p>
   <div class="boot-progress" aria-hidden="true"><span></span></div>
   <div class="boot-footnote">Собираем слова и готовим поле</div>
@@ -73,7 +73,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261121-scanword-refill-slot-v15";
+    app.src="./app.js?v=20261121-profile-folds-v16";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};

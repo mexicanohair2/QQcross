@@ -108,3 +108,67 @@ test("preserves an explicit appearance preference during legacy theme migration"
   expect(await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"))).toBe("burgundy");
   expect(await page.evaluate(() => localStorage.getItem("qqcross_appearance_mode_v1"))).toBe("dark");
 });
+
+
+test("profile titles and achievements collapse independently and remember their state", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('.nav button[data-tab="Профиль"]').click();
+
+  const titles = page.locator('[data-settings-toggle="profile-titles"]');
+  const achievements = page.locator('[data-settings-toggle="profile-achievements"]');
+  await expect(titles).toHaveAttribute("aria-expanded", "true");
+  await expect(achievements).toHaveAttribute("aria-expanded", "true");
+  await titles.click();
+  await expect(titles).toHaveAttribute("aria-expanded", "false");
+  await expect(page.locator("#qq-settings-body-profile-titles")).toHaveAttribute("aria-hidden", "true");
+  await expect(achievements).toHaveAttribute("aria-expanded", "true");
+
+  await achievements.click();
+  await expect(achievements).toHaveAttribute("aria-expanded", "false");
+  await page.locator('.nav button[data-tab="Главная"]').click();
+  await page.locator('.nav button[data-tab="Профиль"]').click();
+  await expect(titles).toHaveAttribute("aria-expanded", "false");
+  await expect(achievements).toHaveAttribute("aria-expanded", "false");
+
+  await titles.click();
+  await expect(titles).toHaveAttribute("aria-expanded", "true");
+  await expect(page.locator("#qqActiveTitle")).toBeVisible();
+  expect(pageErrors).toEqual([]);
+});
+
+test("loading screen logo, tiles, and progress use the saved theme palette", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("qqcross_theme_v1", "forest");
+    localStorage.setItem("qqcross_appearance_mode_v1", "dark");
+  });
+  await page.route("**/app.js*", route => route.fulfill({
+    status: 200,
+    contentType: "application/javascript",
+    body: ""
+  }));
+  await page.goto("/");
+  const splash = page.locator(".boot-splash");
+  await expect(splash).toBeVisible();
+  await expect(page.locator(".boot-monogram")).toHaveText("QQ");
+  await expect(page.locator(".boot-brand-logo")).toHaveText("QQCross");
+  const palette = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const mark = getComputedStyle(document.querySelector(".boot-mark"));
+    const tile = getComputedStyle(document.querySelector(".boot-tiles i"));
+    const progress = getComputedStyle(document.querySelector(".boot-progress span"));
+    return {
+      accent: root.getPropertyValue("--qq-theme-accent").trim(),
+      mark: mark.backgroundImage,
+      tile: tile.backgroundImage,
+      progress: progress.backgroundImage
+    };
+  });
+  expect(palette.accent).not.toBe("");
+  expect(palette.mark).toContain("linear-gradient");
+  expect(palette.tile).toContain("linear-gradient");
+  expect(palette.progress).toContain("linear-gradient");
+});
