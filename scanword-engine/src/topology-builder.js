@@ -191,16 +191,20 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // The special 11-letter layout keeps its crossing rows intact. Ordinary
-  // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven ? 0 : 5 + Math.floor(random() * 5);
+  // On special boards, the 11-letter column and its first crossing cells
+  // are immutable: mutations are restricted to columns 4..6. The same
+  // independent topology validator decides whether each mutation is safe.
+  const targetMutations = includeSpecialEleven
+    ? 3 + Math.floor(random() * 3)
+    : 5 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
-    // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
+    // Keep the special path in column 1, its row-crossing letters in
+    // columns 1..3, and mutate only the remaining interior region.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
     const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
