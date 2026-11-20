@@ -125,7 +125,7 @@
   if(reduced())return;
   if(!canvas){
    activeType=root.dataset.qqAmbience;
-   canvas=document.createElement("canvas");canvas.className="qq-ambience-canvas";canvas.setAttribute("aria-hidden","true");document.body.appendChild(canvas);
+   canvas=document.createElement("canvas");canvas.className="qq-ambience-canvas";canvas.dataset.qqAmbienceLayer="true";canvas.setAttribute("aria-hidden","true");document.body.appendChild(canvas);
    ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});if(!ctx){remove();return}
    resize();if("ResizeObserver"in window){observer=new ResizeObserver(resize);observer.observe(document.documentElement)}else window.addEventListener("resize",resize,{passive:true});
   }
