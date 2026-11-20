@@ -257,3 +257,21 @@
 .game-screen .placement-mark.placement-wrong{background:#a62f42!important;color:#fff!important}
 .game-screen .scanword-board>.scan-cell.cell.pending-cell.correct{outline:2px solid #8bd6a5!important;outline-offset:-2px!important}
 .game-screen .scanword-board>.scan-cell.cell.pending-cell.wrong{outline:2px solid #ff9cac!important;outline-offset:-2px!important}
+
+/* Center the five fixed rack slots against the whole panel, not the space left of the check button. */
+.game-screen .letter-area{
+  position:relative!important;
+  grid-template-columns:minmax(0,1fr)!important;
+}
+.game-screen .letter-area>.hand{
+  grid-column:1!important;
+  justify-self:center!important;
+}
+.game-screen .letter-area>.check-turn{
+  position:absolute!important;
+  right:9px!important;
+  bottom:9px!important;
+  grid-column:auto!important;
+  grid-row:auto!important;
+  z-index:3!important;
+}
