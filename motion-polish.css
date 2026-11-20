@@ -55,7 +55,7 @@
 .boot-splash{background:radial-gradient(ellipse at 50% 42%,#351525 0%,#1b0b16 42%,#09070b 100%)!important;gap:12px!important}
 .boot-scene{transform:scale(.96);animation:qq-boot-breathe 3.2s ease-in-out infinite!important}
 .boot-mark{width:96px!important;height:96px!important;border-radius:27px!important;border:1px solid #b77a9c66!important;background:linear-gradient(145deg,#51253e,#1a0b17)!important;box-shadow:0 14px 44px #0008,0 0 30px #8c3c6a22!important}
-.boot-mark img{width:82%!important;height:82%!important;object-fit:contain;animation:qq-boot-mark 3.2s ease-in-out infinite}
+.boot-qq{font-family:system-ui,sans-serif;font-size:38px;font-weight:900;letter-spacing:-.1em;padding-right:.1em;background:linear-gradient(145deg,#fff0fa,#d8a2c2 55%,#8c496b);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 8px 24px #d18db333;animation:qq-boot-mark 3.2s ease-in-out infinite}.boot-tiles{display:none!important}.qq-game-icon svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .boot-orbit{animation-duration:18s!important;opacity:.48}
 .boot-tiles i{animation-duration:2.9s!important}
 .boot-progress{background:#ffffff12!important;border:1px solid #ffffff16!important}
@@ -65,4 +65,4 @@
 @keyframes qq-boot-breathe{0%,100%{transform:scale(.96)}50%{transform:scale(1.015)}}
 @keyframes qq-boot-mark{0%,100%{filter:drop-shadow(0 0 3px #d18db355)}50%{filter:drop-shadow(0 0 13px #d18db388)}}
 @media(max-width:380px){.qq-frame-shop-grid{gap:7px}.qq-frame-shop-card{padding:9px 6px}.qq-frame-preview .qq-avatar-frame{width:60px;height:60px}.qq-home-player,.qq-daily-player{padding:10px}.qq-score-players{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}}
-@media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img,.boot-qq{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
