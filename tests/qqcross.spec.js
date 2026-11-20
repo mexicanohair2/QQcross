@@ -782,6 +782,8 @@ test("QuickDraw neural recognizer loads and runs an inference in the browser", a
   await page.setViewportSize({ width: 1280, height: 900 });
   await startGuestHome(page);
   await page.locator('[data-party-game="qq-draw"]').click();
+  await expect(page.locator(".qq-party-lobby-screen")).toBeVisible();
+  await page.locator("#partyLobbySolo").click();
   const frame = page.frameLocator("#qqPartyGameFrame");
   await expect(frame.locator("#app")).toBeVisible();
   const result = await frame.locator("html").evaluate(async () => {
