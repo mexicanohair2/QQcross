@@ -33,6 +33,8 @@
 <link rel="stylesheet" href="./ui-refresh.css?v=20261121-dark-cherry-v1">
 <link rel="stylesheet" href="./scanword-fix.css?v=20261121-grade7-terminal-v1">
 <link rel="stylesheet" href="./party-games.css?v=20261121-party-games-v1">
+<link rel="stylesheet" href="./player-ui.css?v=20261121-player-identity-v1">
+<link rel="stylesheet" href="./motion-polish.css?v=20261121-motion-polish-v1">
 <script src="./ambience.js?v=20261121-natural-particles-v2" defer></script>
 <title>QQCross</title>
 </head>
@@ -40,8 +42,8 @@
 <div id="app"><div class="boot-splash" role="status" aria-live="polite">
   <div class="boot-scene" aria-hidden="true">
     <span class="boot-orbit boot-orbit-one"></span><span class="boot-orbit boot-orbit-two"></span>
-    <div class="boot-mark"><img src="./icon.svg?v=qqcross-brand-20261117" alt="QQCross"></div>
-    <div class="boot-tiles"><i>С</i><i>Л</i><i>О</i><i>В</i><i>А</i></div>
+    <div class="boot-mark"><span class="boot-qq" aria-label="QQCross">QQ</span></div>
+    
   </div>
   <img class="boot-brand-logo" src="./assets/qqcross-logo.svg" alt="QQCross">
   <p class="boot-caption">Загрузка игры…</p>
@@ -61,9 +63,10 @@
 })();
 </script>
 <script src="./audio.js?v=20261107-audio-v1"></script>
-<script src="./wordle.js?v=20261108-key-order-v2"></script>
-<script src="./new-games.js?v=20261120-remove-wheel-v3"></script>
+<script src="./wordle.js?v=20261121-player-identity-v1"></script>
+<script src="./new-games.js?v=20261121-player-identity-v1"></script>
 <script src="./progression.js?v=20261120-remove-wheel-v3"></script>
+<script src="./player-ui.js?v=20261121-player-identity-v1"></script>
 <script src="./encyclopedia.js?v=20261109-grid-8x12-v30"></script>
 <script>
 (function(){
@@ -74,7 +77,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261121-party-games-v1";
+    app.src="./app.js?v=20261121-player-lobby-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};

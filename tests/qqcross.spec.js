@@ -473,7 +473,7 @@ test("the redesigned shop contains the bulb item and level rewards are idempoten
   await page.locator('[data-tab="Магазин"]').click();
   await expect(page.locator(".qq-shop-item")).toHaveCount(4);
   const bulb = page.locator('.qq-shop-item:has(button[data-item="bulb"])');
-  await expect(bulb).toContainText("💡");
+  await expect(bulb.locator(".qq-shop-icon svg")).toBeVisible();
   await expect(bulb).toContainText("5 · 100");
   await expect(bulb).toContainText("10 · 200");
   await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
@@ -741,6 +741,8 @@ test("opens Team Word inside QQCross with the shared theme bridge", async ({ pag
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestHome(page);
   await page.locator('[data-party-game="team-word"]').click();
+  await expect(page.locator(".qq-party-lobby-screen")).toBeVisible();
+  await page.locator("#partyLobbySolo").click();
   const frame = page.frameLocator("#qqPartyGameFrame");
   await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/team-word\/index\.html/);
   await expect(frame.locator("#app")).toBeVisible();
@@ -760,6 +762,8 @@ test("opens QQ Draw inside QQCross and keeps its drawing canvas within the phone
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestHome(page);
   await page.locator('[data-party-game="qq-draw"]').click();
+  await expect(page.locator(".qq-party-lobby-screen")).toBeVisible();
+  await page.locator("#partyLobbySolo").click();
   const frame = page.frameLocator("#qqPartyGameFrame");
   await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/qq-draw\/index\.html/);
   await expect(frame.locator("#app")).toBeVisible();
@@ -778,6 +782,8 @@ test("QuickDraw neural recognizer loads and runs an inference in the browser", a
   await page.setViewportSize({ width: 1280, height: 900 });
   await startGuestHome(page);
   await page.locator('[data-party-game="qq-draw"]').click();
+  await expect(page.locator(".qq-party-lobby-screen")).toBeVisible();
+  await page.locator("#partyLobbySolo").click();
   const frame = page.frameLocator("#qqPartyGameFrame");
   await expect(frame.locator("#app")).toBeVisible();
   const result = await frame.locator("html").evaluate(async () => {

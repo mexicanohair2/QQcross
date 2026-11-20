@@ -44,6 +44,31 @@ function esc(value) {
 function avatar(index) {
   return AVATARS[Number.isInteger(Number(index)) ? Math.max(0,Math.min(9,Number(index))) : 0];
 }
+function sharedAvatar(player={},size="md"){
+  try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderAvatar)return ui.renderAvatar(player,size)}catch{}
+  return '<span class="avatar">'+avatar(player.avatar)+'</span>';
+}
+function playerCard(player={},meta="Участник",score){
+ const p={...player,username:player.username||player.nickname||"Игрок"};
+ const shownScore=score!==undefined?score:(p.points!==undefined?Number(p.points):undefined);
+ const shownMeta=(meta||"Участник")+(shownScore!==undefined?" · очки профиля":"");
+ try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderCard)return ui.renderCard(p,{meta:shownMeta,score:shownScore,compact:true,size:"sm"})}catch{}
+ return '<div class="player">'+(typeof sharedPlayer==="function"?sharedPlayer(p):sharedAvatar(p))+'<span class="profile-copy"><b>'+esc(p.username)+'</b><small>'+esc(shownMeta)+'</small></span>'+(shownScore!==undefined?'<strong>'+shownScore+'</strong>':"")+'</div>';
+}
+function mergeParentProfile(data){
+ try{const parent=window.parent!==window?window.parent.QQCrossPlayerProfile:null;if(parent&&String(parent.id)===String(data.id))return {...data,...parent,avatar:Number(parent.avatar??data.avatar)||0}}catch{}
+ return data;
+}
+async function hydrateRoomPlayers(players=[]){
+ if(!supabase||!players.length)return players;
+ const ids=players.map(p=>p.user_id||p.id).filter(Boolean);if(!ids.length)return players;
+ try{
+  const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title,wins,games,points").in("id",ids);
+  if(error)throw error;
+  const map=new Map((data||[]).map(p=>[String(p.id),p]));
+  return players.map(p=>({...p,...(map.get(String(p.user_id||p.id))||{}),id:p.user_id||p.id,username:p.username||p.nickname}));
+ }catch(error){console.warn("Team Word player cosmetics:",error);return players.map(p=>({...p,id:p.user_id||p.id,username:p.nickname}))}
+}
 function toast(message) {
   let node = $(".toast");
   if (!node) {
@@ -80,15 +105,13 @@ function requireNetworkProfile() {
 }
 async function loadProfile(userId) {
   if (!supabase) throw new Error("Supabase SDK не загрузился.");
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id,username,avatar")
-    .eq("id", userId)
-    .single();
-  if (error) throw error;
-  if (!data) throw new Error("Профиль QQCross не найден.");
-  state.profile = { id: data.id, username: data.username, avatar: Number(data.avatar) || 0 };
-  state.guest = false;
+  let result=await supabase.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title").eq("id",userId).single();
+  if(result.error)result=await supabase.from("profiles").select("id,username,avatar").eq("id",userId).single();
+  if(result.error)throw result.error;
+  if(!result.data)throw new Error("Профиль QQCross не найден.");
+  const data=result.data;
+  state.profile=mergeParentProfile({id:data.id,username:data.username,avatar:Number(data.avatar)||0,avatarUrl:data.avatar_url||"",avatar_url:data.avatar_url||"",frameId:data.frame_id||"classic",frame_id:data.frame_id||"classic",active_title:data.active_title||"Новичок"});
+  state.guest=false;
 }
 function stopRoomWatch() {
   clearInterval(state.pollTimer);
@@ -125,7 +148,7 @@ function render() {
 }
 function renderHome() {
   const user = state.profile
-    ? '<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>'
+    ? '<div class="profile">'+sharedAvatar(state.profile)+'<span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small class="qq-player-title">'+esc(state.profile.active_title||"Новичок")+'</small></span></div>'
     : state.guest
       ? '<div class="profile"><span class="avatar">🙂</span><span class="profile-copy"><b>Гостевой режим</b><small>Только одиночная игра</small></span></div>'
       : '<div class="profile"><span class="avatar">👤</span><span class="profile-copy"><b>Не выполнен вход</b><small>Сетевые комнаты закрыты</small></span></div>';
@@ -148,11 +171,6 @@ function renderHome() {
         <p class="small muted">Комнаты, профили, ники и аватары используют общий Supabase QQCross. В сетевой игре участвуют только подтверждённые аккаунты.</p>
         ${state.profile ? `
           <button class="btn primary full" id="createRoom">Создать комнату</button>
-          <form id="joinForm" class="stack">
-            <label class="label" for="roomCode">Код комнаты друга</label>
-            <input class="field" id="roomCode" inputmode="text" maxlength="6" autocomplete="off" placeholder="Например, A7K2Q9">
-            <button class="btn full" type="submit">Войти в комнату</button>
-          </form>
           <button class="btn ghost full" id="signOut">Выйти из аккаунта</button>
         ` : `
           <form id="loginForm" class="stack">
@@ -321,6 +339,7 @@ async function refreshRoom(showErrors = true) {
   if (!state.roomId || !supabase) return;
   try {
     const data = await rpc("qq_party_get_room", { p_room_id: state.roomId });
+    data.players=await hydrateRoomPlayers(data.players||[]);
     const changed = JSON.stringify(data) !== JSON.stringify(state.room);
     state.room = data;
     state.roomCode = data.code;
@@ -375,11 +394,7 @@ async function copyRoomCode() {
   }
 }
 function renderPlayers(players = []) {
-  return players.map((player) => `
-    <div class="player">
-      <span class="avatar">${avatar(player.avatar)}</span>
-      <span style="min-width:0"><b>${esc(player.nickname)}</b><small>${Number(player.seat) === 1 ? "Создатель комнаты" : "Участник"}</small></span>
-    </div>`).join("");
+  return players.map(player=>playerCard({...player,username:player.username||player.nickname},Number(player.seat)===1?"Создатель комнаты":"Участник")).join("");
 }
 function renderLobby() {
   const players = state.room.players || [];
@@ -388,13 +403,11 @@ function renderLobby() {
     <section class="screen">
       <header class="topbar">
         <div class="brand"><span class="logo">QQ</span><span>TEAM WORD · ЛОББИ</span></div>
-        <div class="profile"><span class="avatar">${avatar(state.profile?.avatar)}</span><span class="profile-copy"><b>${esc(state.profile?.username)}</b><small>Подключён к QQCross</small></span></div>
+        <div class="profile">${sharedAvatar(state.profile||{})}<span class="profile-copy"><b>${esc(state.profile?.username)}</b><small class="qq-player-title">${esc(state.profile?.active_title||"Новичок")}</small><small class="qq-player-points">Очки: ${Number(state.profile?.points||0)}</small></span></div>
       </header>
       <section class="card">
-        <div class="small muted" style="text-align:center">КОД ДЛЯ ДРУЗЕЙ</div>
-        <div class="room-code">${esc(state.room.code)}</div>
-        <button class="btn full" id="copyCode">Скопировать код приглашения</button>
-        <p class="small muted" style="text-align:center;margin:10px 0 0">Отправь код друзьям. Они войдут в ту же комнату через свои аккаунты QQCross.</p>
+        <div class="small muted" style="text-align:center">ЛОББИ QQCROSS</div>
+        <p class="small muted" style="text-align:center;margin:8px 0 0">Друзья присоединяются через приглашения в QQCross. Код комнаты не требуется.</p>
       </section>
       <section class="card stack">
         <div class="game-meta"><b>Участники</b><span>${players.length}/${state.room.player_limit}</span></div>
@@ -408,7 +421,6 @@ function renderLobby() {
         <div id="roomFriends"><p class="small muted">Загружаем список друзей…</p></div>
       </section>
     </section>`;
-  $("#copyCode").onclick = copyRoomCode;
   $("#startRound")?.addEventListener("click", startOnlineRound);
   loadRoomFriends();
   $("#leaveRoom").onclick = leaveRoom;
@@ -419,13 +431,15 @@ async function loadRoomFriends() {
   try {
     const friends = await rpc("qq_party_list_friends", { p_room_id: state.roomId });
     if (!friends?.length) {
-      root.innerHTML = '<p class="small muted">Добавь друзей в QQCross — здесь появится список для приглашения.</p>';
+      root.innerHTML = '<p class="small muted">Добавь друзей во вкладке «Друзья» в QQCross.</p>';
       return;
     }
-    root.innerHTML = friends.map(friend => {
+    const people=await hydrateRoomPlayers(friends.map(friend=>({...friend,id:friend.user_id,nickname:friend.username})));
+    root.innerHTML = people.map(friend => {
       const disabled = friend.in_room || friend.already_invited;
       const label = friend.in_room ? "Уже в комнате" : friend.already_invited ? "Приглашение отправлено" : "Пригласить";
-      return '<div class="room-friend-row"><span class="avatar">'+avatar(friend.avatar)+'</span><span class="room-friend-name">'+esc(friend.username)+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
+      return '<div class="room-friend-row">'+playerCard(friend,disabled?"В лобби":"Друг")+
+        '<button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id||friend.id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button => {
       button.addEventListener("click", async () => {
@@ -451,19 +465,11 @@ async function loadRoomFriends() {
 }
 function renderHistory(guesses = []) {
   if (!guesses.length) return '<p class="small muted" style="text-align:center">Пока нет попыток. Первое слово может отправить любой игрок.</p>';
-  return guesses.slice().reverse().map((guess) => {
-    const letters = normalizeWord(guess.word).split("");
-    const feedback = Array.isArray(guess.feedback) ? guess.feedback : [];
-    return `
-      <div class="guess-row">
-        <div class="guess-player">
-          <span class="avatar">${avatar(guess.avatar)}</span>
-          <b>${esc(guess.nickname || "Игрок")}</b>
-        </div>
-        <div class="guess-cells">
-          ${letters.map((letter,index) => '<span class="guess-cell '+esc(feedback[index]||"miss")+'">'+esc(letter.toUpperCase())+'</span>').join("")}
-        </div>
-      </div>`;
+  return guesses.slice().reverse().map(guess=>{
+    const letters=normalizeWord(guess.word).split(""),feedback=Array.isArray(guess.feedback)?guess.feedback:[];
+    const member=(state.room?.players||[]).find(p=>p.nickname===guess.nickname)||{};
+    const person={...member,nickname:guess.nickname||"Игрок",avatar:guess.avatar??member.avatar,active_title:member.active_title||"Новичок"};
+    return '<div class="guess-row"><div class="guess-player">'+playerCard(person,guess.correct?"Верно":"Попытка")+'</div><div class="guess-cells">'+letters.map((letter,index)=>'<span class="guess-cell '+esc(feedback[index]||"miss")+'">'+esc(letter.toUpperCase())+'</span>').join("")+'</div></div>';
   }).join("");
 }
 function renderKeyboard(length) {
@@ -506,10 +512,12 @@ function renderOnlineGame() {
     <section class="screen">
       <header class="topbar">
         <div class="brand"><span class="logo">QQ</span><span>TEAM WORD</span></div>
+        <div class="profile">${sharedAvatar(state.profile||{})}<span class="profile-copy"><b>${esc(state.profile?.username||"Игрок")}</b><small class="qq-player-title">${esc(state.profile?.active_title||"Новичок")}</small></span></div>
         <button class="btn ghost" id="leaveRoom">Выйти</button>
       </header>
       <section class="card stack">
         <div class="game-meta"><span>Общее слово · ${length} букв</span><span id="nextReveal">${finished ? "Раунд завершён" : "Новая буква через "+next+" сек."}</span></div>
+        <div class="player-grid qq-party-player-strip">${renderPlayers(room.players||[])}</div>
         <div class="word-slots">${Array.from({length},(_,index)=>'<div class="word-slot '+(open.has(index)?"open":"")+'">'+(open.get(index)||"")+'</div>').join("")}</div>
         ${finished ? '<div class="result"><h2 class="success">Слово отгадано!</h2><p class="muted">Ответ: <b>'+esc(publicState.solution||"")+'</b></p><p class="small muted">Победитель: место '+esc(publicState.winner_seat ?? "—")+'</p></div>' : '<p class="small muted" style="text-align:center;margin:0">Все игроки угадывают одновременно. Сервер открывает одну новую букву каждые 60 секунд.</p>'}
       </section>
@@ -652,7 +660,7 @@ function renderBotTyping(typing) {
   if (!typing) return "";
   const letters = normalizeWord(typing.word).split("");
   return `<div class="guess-row bot-typing" aria-label="${esc(typing.nickname)} печатает">
-    <div class="guess-player"><span class="avatar">${avatar(typing.avatar)}</span><b>${esc(typing.nickname)}</b><small>печатает…</small></div>
+    <div class="guess-player">${playerCard({nickname:typing.nickname,avatar:typing.avatar,active_title:"Бот"},"Печатает…")}</div>
     <div class="guess-cells">${letters.map((letter,index) => `<span class="guess-cell ${index < typing.typed ? "miss" : "pending"}">${index < typing.typed ? esc(letter.toUpperCase()) : ""}</span>`).join("")}</div>
   </div>`;
 }
@@ -664,6 +672,7 @@ function renderSoloGame() {
     <section class="screen">
       <header class="topbar">
         <div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div>
+        <div class="profile">${sharedAvatar(state.profile||{})}<span class="profile-copy"><b>${esc(state.profile?.username||"Игрок")}</b><small class="qq-player-title">${esc(state.profile?.active_title||"Новичок")}</small></span></div>
         <button class="btn ghost" id="soloExit">Выйти</button>
       </header>
       <section class="card stack">

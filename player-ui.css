@@ -1,0 +1,32 @@
+/* Shared QQCross player identity and collectible avatar frames. */
+.qq-avatar-frame{--qq-frame-a:#9c8ba9;--qq-frame-b:#55465f;position:relative;display:inline-grid;place-items:center;flex:0 0 auto;width:46px;height:46px;padding:3px;border-radius:50%;isolation:isolate;background:linear-gradient(145deg,var(--qq-frame-a),var(--qq-frame-b) 48%,var(--qq-frame-a));box-shadow:0 0 0 1px #ffffff18,0 3px 10px #0005}
+.qq-avatar-frame:before{content:"";position:absolute;inset:1px;border:1px solid #ffffff70;border-radius:50%;pointer-events:none;z-index:2}
+.qq-avatar-core{width:100%;height:100%;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:var(--qq-theme-panel-2,var(--panel2));border:2px solid #21151f}
+.qq-avatar-core img{width:100%;height:100%;object-fit:cover}
+.qq-avatar-fallback{font-size:23px;line-height:1}
+.qq-avatar-frame:after{content:"";position:absolute;top:-2px;left:50%;width:7px;height:7px;transform:translateX(-50%) rotate(45deg);border-radius:2px;background:var(--qq-frame-a);box-shadow:0 0 0 1px #fff6;z-index:3}
+.qq-frame-classic{--qq-frame-a:#c5b9cf;--qq-frame-b:#64556f}
+.qq-frame-amethyst{--qq-frame-a:#d9b2f3;--qq-frame-b:#68458e;box-shadow:0 0 0 1px #b98cdb66,0 3px 12px #6f3c9a55}
+.qq-frame-amethyst:after{background:#d9b2f3;box-shadow:0 0 8px #d9b2f3}
+.qq-frame-royal{--qq-frame-a:#e4c08a;--qq-frame-b:#75404d;box-shadow:0 0 0 1px #d3a66b77,0 3px 12px #65253255}
+.qq-frame-royal:after{background:#e4c08a}
+.qq-frame-sakura{--qq-frame-a:#efbfd9;--qq-frame-b:#936080}
+.qq-frame-sakura:after{background:#efbfd9;box-shadow:0 0 7px #e9a9cb}
+.qq-frame-obsidian{--qq-frame-a:#b3a0b4;--qq-frame-b:#40303f}
+.qq-frame-obsidian:after{background:#b3a0b4}
+.qq-avatar-sm{width:36px;height:36px;padding:2px}.qq-avatar-sm .qq-avatar-fallback{font-size:19px}
+.qq-avatar-md{width:46px;height:46px}.qq-avatar-lg{width:66px;height:66px;padding:4px}.qq-avatar-lg .qq-avatar-fallback{font-size:32px}
+.qq-player-card{display:flex;align-items:center;gap:10px;min-width:0;padding:9px 10px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-card,var(--panel));transition:background .38s ease,border-color .38s ease,transform .42s cubic-bezier(.2,.7,.2,1)}
+.qq-player-card.is-active{border-color:var(--qq-theme-accent,var(--purple));background:var(--qq-theme-panel-2,var(--panel2));box-shadow:0 0 0 1px color-mix(in srgb,var(--qq-theme-accent,var(--purple)) 30%,transparent)}
+.qq-player-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.qq-player-copy>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.qq-player-title{display:block;color:var(--qq-theme-muted,var(--muted));font-size:10px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qq-player-meta{font-size:10px;color:var(--qq-theme-muted,var(--muted))}.qq-player-points{font-size:9px;line-height:1.25;color:var(--qq-theme-muted,var(--muted));font-variant-numeric:tabular-nums}
+.qq-player-score{flex:0 0 auto;font-size:15px;font-variant-numeric:tabular-nums;color:var(--qq-theme-text,var(--text))}
+.qq-player-card.is-compact{padding:6px 8px;gap:7px}.qq-player-card.is-compact .qq-player-copy>b{font-size:11px}.qq-player-card.is-compact .qq-player-title{font-size:9px}.qq-player-card.is-compact .qq-player-score{font-size:13px}
+.qq-profile-identity{display:flex;align-items:center;gap:12px;min-width:0}
+.qq-profile-modal-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:#09050bd9;backdrop-filter:blur(8px)}
+.qq-profile-modal{width:min(100%,420px);max-height:min(82dvh,680px);overflow:auto;padding:18px;border:1px solid var(--qq-theme-border,var(--line));border-radius:22px;background:var(--qq-theme-panel,var(--panel));box-shadow:0 24px 70px #0009;animation:qq-profile-arrive .48s cubic-bezier(.2,.75,.2,1) both}
+.qq-profile-modal .qq-profile-identity{justify-content:center;margin:8px 0 18px}.qq-profile-modal .qq-player-copy{text-align:left}.qq-profile-modal .qq-profile-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.qq-profile-modal .qq-profile-stat{padding:10px;border-radius:12px;background:var(--qq-theme-card,var(--panel2))}
+.qq-profile-open{cursor:pointer}.qq-profile-open:focus-visible{outline:2px solid var(--qq-theme-accent,var(--purple));outline-offset:3px}
+@keyframes qq-profile-arrive{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.qq-player-card,.qq-profile-modal{animation:none;transition:none}}
