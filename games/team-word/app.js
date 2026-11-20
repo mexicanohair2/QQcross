@@ -50,8 +50,10 @@ function sharedAvatar(player={},size="md"){
 }
 function playerCard(player={},meta="Участник",score){
  const p={...player,username:player.username||player.nickname||"Игрок"};
- try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderCard)return ui.renderCard(p,{meta,score,compact:true,size:"sm"})}catch{}
- return '<div class="player">'+sharedAvatar(p)+'<span class="profile-copy"><b>'+esc(p.username)+'</b><small>'+esc(meta)+'</small></span></div>';
+ const shownScore=score!==undefined?score:(p.points!==undefined?Number(p.points):undefined);
+ const shownMeta=(meta||"Участник")+(shownScore!==undefined?" · очки профиля":"");
+ try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderCard)return ui.renderCard(p,{meta:shownMeta,score:shownScore,compact:true,size:"sm"})}catch{}
+ return '<div class="player">'+(typeof sharedPlayer==="function"?sharedPlayer(p):sharedAvatar(p))+'<span class="profile-copy"><b>'+esc(p.username)+'</b><small>'+esc(shownMeta)+'</small></span>'+(shownScore!==undefined?'<strong>'+shownScore+'</strong>':"")+'</div>';
 }
 function mergeParentProfile(data){
  try{const parent=window.parent!==window?window.parent.QQCrossPlayerProfile:null;if(parent&&String(parent.id)===String(data.id))return {...data,...parent,avatar:Number(parent.avatar??data.avatar)||0}}catch{}
