@@ -403,7 +403,7 @@ function renderLobby() {
     <section class="screen">
       <header class="topbar">
         <div class="brand"><span class="logo">QQ</span><span>TEAM WORD · ЛОББИ</span></div>
-        <div class="profile">${sharedAvatar(state.profile||{})}<span class="profile-copy"><b>${esc(state.profile?.username)}</b><small class="qq-player-title">${esc(state.profile?.active_title||"Новичок")}</small></span></div>
+        <div class="profile">${sharedAvatar(state.profile||{})}<span class="profile-copy"><b>${esc(state.profile?.username)}</b><small class="qq-player-title">${esc(state.profile?.active_title||"Новичок")}</small><small class="qq-player-points">Очки: ${Number(state.profile?.points||0)}</small></span></div>
       </header>
       <section class="card">
         <div class="small muted" style="text-align:center">ЛОББИ QQCROSS</div>
