@@ -94,3 +94,75 @@ export function replayDrawingEvents(events) {
   }
   return strokes.filter((stroke)=>!undone.has(stroke.id));
 }
+
+// Small offline recognizer for common silhouettes. It reads stroke geometry only;
+// it never receives the secret word and does not fall back to random answers.
+export function recognizeDrawing(strokes = []) {
+  const valid = (strokes || []).map((stroke) => ({
+    points: (stroke?.points || []).filter((p) => Number.isFinite(Number(p.x)) && Number.isFinite(Number(p.y)))
+      .map((p) => ({ x: Number(p.x), y: Number(p.y) }))
+  })).filter((stroke) => stroke.points.length >= 2);
+  if (!valid.length) return [];
+
+  const all = valid.flatMap((stroke) => stroke.points);
+  const minX = Math.min(...all.map((p) => p.x)), maxX = Math.max(...all.map((p) => p.x));
+  const minY = Math.min(...all.map((p) => p.y)), maxY = Math.max(...all.map((p) => p.y));
+  const diagonal = Math.hypot(maxX - minX, maxY - minY) || 1;
+  const center = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
+  const features = valid.map(({ points }) => {
+    const xs = points.map((p) => p.x), ys = points.map((p) => p.y);
+    const sx = Math.min(...xs), ex = Math.max(...xs), sy = Math.min(...ys), ey = Math.max(...ys);
+    const width = ex - sx, height = ey - sy, boxDiagonal = Math.hypot(width, height) || 1;
+    let length = 0;
+    for (let i = 1; i < points.length; i += 1) length += Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+    const chord = Math.hypot(points[0].x - points[points.length-1].x, points[0].y - points[points.length-1].y);
+    const closed = points.length >= 7 && chord <= boxDiagonal * 0.24;
+    let twiceArea = 0;
+    if (closed) for (let i = 0; i < points.length; i += 1) {
+      const a = points[i], b = points[(i+1) % points.length];
+      twiceArea += a.x * b.y - b.x * a.y;
+    }
+    const perimeter = closed ? length + chord : length;
+    const circularity = perimeter > 0 ? (4 * Math.PI * Math.abs(twiceArea / 2)) / (perimeter * perimeter) : 0;
+    let corners = 0;
+    for (let i = 2; i < points.length - 2; i += 1) {
+      const a = points[i-2], b = points[i], c = points[i+2];
+      const ux = a.x-b.x, uy = a.y-b.y, vx = c.x-b.x, vy = c.y-b.y;
+      const denom = Math.hypot(ux,uy) * Math.hypot(vx,vy);
+      if (!denom) continue;
+      const angle = Math.acos(Math.max(-1, Math.min(1, (ux*vx+uy*vy)/denom)));
+      if (angle > 0.78) corners += 1;
+    }
+    const aspect = width / Math.max(height, 0.0001);
+    const isCircle = closed && circularity > 0.42 && aspect > 0.55 && aspect < 1.8;
+    const isTriangle = closed && corners >= 2 && corners <= 5 && circularity < 0.58;
+    const isRectangle = closed && corners >= 3 && corners <= 7 && circularity >= 0.12 && circularity < 0.78;
+    const line = !closed && length > diagonal * 0.12 && chord > 0 && length / chord < 1.55;
+    const angle = Math.atan2(points[points.length-1].y-points[0].y, points[points.length-1].x-points[0].x);
+    const tiny = boxDiagonal < diagonal * 0.12;
+    const radial = line && Math.min(
+      Math.hypot(points[0].x-center.x, points[0].y-center.y),
+      Math.hypot(points[points.length-1].x-center.x, points[points.length-1].y-center.y)
+    ) < diagonal * 0.2;
+    return { isCircle, isTriangle, isRectangle, line, angle, tiny, radial };
+  });
+  const count = (key) => features.filter((f) => f[key]).length;
+  const circles = count("isCircle"), triangles = count("isTriangle"), rectangles = count("isRectangle");
+  const lines = features.filter((f) => f.line), dots = count("tiny"), radial = count("radial");
+  let parallel = 0;
+  for (let i = 0; i < lines.length; i += 1) for (let j = i+1; j < lines.length; j += 1) {
+    const diff = Math.abs(Math.atan2(Math.sin(lines[i].angle-lines[j].angle), Math.cos(lines[i].angle-lines[j].angle)));
+    if (Math.min(diff, Math.PI-diff) < 0.28) parallel += 1;
+  }
+  const ranked = [];
+  const add = (word, score, minimum = 0.62) => { if (score >= minimum) ranked.push({ word, confidence: Math.min(0.96, Number(score.toFixed(2))) }); };
+  if (circles >= 1 && radial >= 4) add("солнце", 0.28 + Math.min(radial,8)*0.085 + Math.min(circles,2)*0.12, 0.68);
+  if (circles >= 2 && rectangles >= 1) add("машина", 0.35 + Math.min(circles,2)*0.22 + Math.min(rectangles,2)*0.22, 0.78);
+  if (circles >= 2 && lines.length >= 2) add("велосипед", 0.32 + Math.min(circles,2)*0.22 + Math.min(lines.length,4)*0.09, 0.78);
+  if (circles >= 1 && triangles >= 1) add("рыба", 0.34 + Math.min(circles,2)*0.24 + Math.min(triangles,2)*0.22, 0.76);
+  if (triangles >= 1 && dots >= 2) add("пицца", 0.38 + Math.min(triangles,2)*0.24 + Math.min(dots,4)*0.08, 0.76);
+  if (circles >= 1 && triangles >= 2 && dots >= 2) add("кошка", 0.24 + Math.min(circles,2)*0.18 + Math.min(triangles,2)*0.22 + Math.min(dots,3)*0.08, 0.78);
+  if (circles >= 1 && parallel >= 2) add("арбуз", 0.35 + Math.min(circles,2)*0.2 + Math.min(parallel,4)*0.1, 0.78);
+  if (rectangles >= 1 && lines.length >= 1 && dots >= 2) add("домино", 0.34 + Math.min(rectangles,2)*0.2 + Math.min(lines.length,2)*0.12 + Math.min(dots,3)*0.08, 0.78);
+  return ranked.sort((a,b) => b.confidence-a.confidence);
+}
