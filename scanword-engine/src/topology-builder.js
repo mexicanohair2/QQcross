@@ -191,9 +191,11 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // The special 11-letter layout keeps its crossing rows intact. Ordinary
-  // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven ? 0 : 5 + Math.floor(random() * 5);
+  // Denser masks are explored experimentally to raise the number of real
+  // answer slots while preserving the same independent topology checks.
+  // Special boards only mutate columns 4–6, so the 11-letter path in column 1
+  // and the reserved crossing column 3 remain untouched.
+  const targetMutations = 12 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
