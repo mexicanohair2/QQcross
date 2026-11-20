@@ -44,6 +44,29 @@ function esc(value) {
 function avatar(index) {
   return AVATARS[Number.isInteger(Number(index)) ? Math.max(0,Math.min(9,Number(index))) : 0];
 }
+function sharedAvatar(player={},size="md"){
+  try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderAvatar)return ui.renderAvatar(player,size)}catch{}
+  return '<span class="avatar">'+avatar(player.avatar)+'</span>';
+}
+function playerCard(player={},meta="Участник",score){
+ const p={...player,username:player.username||player.nickname||"Игрок"};
+ try{const ui=window.QQPlayerUI||window.parent?.QQPlayerUI;if(ui?.renderCard)return ui.renderCard(p,{meta,score,compact:true,size:"sm"})}catch{}
+ return '<div class="player">'+sharedAvatar(p)+'<span class="profile-copy"><b>'+esc(p.username)+'</b><small>'+esc(meta)+'</small></span></div>';
+}
+function mergeParentProfile(data){
+ try{const parent=window.parent!==window?window.parent.QQCrossPlayerProfile:null;if(parent&&String(parent.id)===String(data.id))return {...data,...parent,avatar:Number(parent.avatar??data.avatar)||0}}catch{}
+ return data;
+}
+async function hydrateRoomPlayers(players=[]){
+ if(!supabase||!players.length)return players;
+ const ids=players.map(p=>p.user_id||p.id).filter(Boolean);if(!ids.length)return players;
+ try{
+  const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title,wins,games,points").in("id",ids);
+  if(error)throw error;
+  const map=new Map((data||[]).map(p=>[String(p.id),p]));
+  return players.map(p=>({...p,...(map.get(String(p.user_id||p.id))||{}),id:p.user_id||p.id,username:p.username||p.nickname}));
+ }catch(error){console.warn("Team Word player cosmetics:",error);return players.map(p=>({...p,id:p.user_id||p.id,username:p.nickname}))}
+}
 function toast(message) {
   let node = $(".toast");
   if (!node) {
@@ -80,15 +103,13 @@ function requireNetworkProfile() {
 }
 async function loadProfile(userId) {
   if (!supabase) throw new Error("Supabase SDK не загрузился.");
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id,username,avatar")
-    .eq("id", userId)
-    .single();
-  if (error) throw error;
-  if (!data) throw new Error("Профиль QQCross не найден.");
-  state.profile = { id: data.id, username: data.username, avatar: Number(data.avatar) || 0 };
-  state.guest = false;
+  let result=await supabase.from("profiles").select("id,username,avatar,avatar_url,frame_id,active_title").eq("id",userId).single();
+  if(result.error)result=await supabase.from("profiles").select("id,username,avatar").eq("id",userId).single();
+  if(result.error)throw result.error;
+  if(!result.data)throw new Error("Профиль QQCross не найден.");
+  const data=result.data;
+  state.profile=mergeParentProfile({id:data.id,username:data.username,avatar:Number(data.avatar)||0,avatarUrl:data.avatar_url||"",avatar_url:data.avatar_url||"",frameId:data.frame_id||"classic",frame_id:data.frame_id||"classic",active_title:data.active_title||"Новичок"});
+  state.guest=false;
 }
 function stopRoomWatch() {
   clearInterval(state.pollTimer);
@@ -321,6 +342,7 @@ async function refreshRoom(showErrors = true) {
   if (!state.roomId || !supabase) return;
   try {
     const data = await rpc("qq_party_get_room", { p_room_id: state.roomId });
+    data.players=await hydrateRoomPlayers(data.players||[]);
     const changed = JSON.stringify(data) !== JSON.stringify(state.room);
     state.room = data;
     state.roomCode = data.code;
@@ -375,11 +397,7 @@ async function copyRoomCode() {
   }
 }
 function renderPlayers(players = []) {
-  return players.map((player) => `
-    <div class="player">
-      <span class="avatar">${avatar(player.avatar)}</span>
-      <span style="min-width:0"><b>${esc(player.nickname)}</b><small>${Number(player.seat) === 1 ? "Создатель комнаты" : "Участник"}</small></span>
-    </div>`).join("");
+  return players.map(player=>playerCard({...player,username:player.username||player.nickname},Number(player.seat)===1?"Создатель комнаты":"Участник")).join("");
 }
 function renderLobby() {
   const players = state.room.players || [];
@@ -391,10 +409,8 @@ function renderLobby() {
         <div class="profile"><span class="avatar">${avatar(state.profile?.avatar)}</span><span class="profile-copy"><b>${esc(state.profile?.username)}</b><small>Подключён к QQCross</small></span></div>
       </header>
       <section class="card">
-        <div class="small muted" style="text-align:center">КОД ДЛЯ ДРУЗЕЙ</div>
-        <div class="room-code">${esc(state.room.code)}</div>
-        <button class="btn full" id="copyCode">Скопировать код приглашения</button>
-        <p class="small muted" style="text-align:center;margin:10px 0 0">Отправь код друзьям. Они войдут в ту же комнату через свои аккаунты QQCross.</p>
+        <div class="small muted" style="text-align:center">ЛОББИ QQCROSS</div>
+        <p class="small muted" style="text-align:center;margin:8px 0 0">Друзья присоединяются через приглашения в QQCross. Код комнаты не требуется.</p>
       </section>
       <section class="card stack">
         <div class="game-meta"><b>Участники</b><span>${players.length}/${state.room.player_limit}</span></div>
@@ -408,7 +424,6 @@ function renderLobby() {
         <div id="roomFriends"><p class="small muted">Загружаем список друзей…</p></div>
       </section>
     </section>`;
-  $("#copyCode").onclick = copyRoomCode;
   $("#startRound")?.addEventListener("click", startOnlineRound);
   loadRoomFriends();
   $("#leaveRoom").onclick = leaveRoom;
