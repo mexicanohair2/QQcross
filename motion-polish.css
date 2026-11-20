@@ -23,6 +23,7 @@
 .qq-frame-preview{display:grid;place-items:center;min-height:78px;width:100%;background:radial-gradient(circle, #ffffff0a,transparent 72%)}
 .qq-frame-preview .qq-avatar-frame{width:68px;height:68px}
 .qq-frame-shop-card .btn{width:100%;margin-top:auto}
+.qq-extra-player,.qq-wordle-player{display:flex;justify-content:flex-end;align-items:center;margin:4px 0 10px;padding:7px 10px;border:1px solid var(--qq-theme-border,var(--line));border-radius:13px;background:var(--qq-theme-card,var(--panel))}.qq-extra-player .qq-profile-identity,.qq-wordle-player .qq-profile-identity{gap:8px}.qq-extra-player .qq-avatar-frame,.qq-wordle-player .qq-avatar-frame{width:34px;height:34px}.qq-extra-player .qq-player-title,.qq-wordle-player .qq-player-title{font-size:9px}
 .qq-party-lobby-screen{padding-bottom:max(22px,env(safe-area-inset-bottom))}
 .qq-party-friend-option{display:flex;align-items:center;gap:9px;margin:8px 0;padding:7px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-card,var(--panel));cursor:pointer}
 .qq-party-friend-option input{flex:0 0 19px;width:19px;height:19px;accent-color:var(--qq-theme-accent,var(--purple))}
@@ -43,6 +44,7 @@
 .qq-settings-toggle svg{transition:transform .42s var(--qq-motion-ease)}
 .qq-settings-section.is-collapsed .qq-settings-toggle svg{transform:rotate(-90deg)}
 /* Slower, softer entrance and interaction timing in the newer modes. */
+.app>.screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}.app>.screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}.app .btn{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
 .qq-extra-screen,.qq-cody-app,.qq-wordle-screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}
 .qq-extra-screen .card,.qq-cody-app .card,.qq-wordle-screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}
 .qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
