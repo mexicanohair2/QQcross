@@ -81,3 +81,9 @@ test("QuickDraw model output maps supported classes to Russian guesses and filte
   assert.equal(mapped.length,2);
   assert.ok(mapped[0].confidence>mapped[1].confidence);
 });
+
+test("model labels always map to a single Russian word accepted by the solo input",()=>{
+  const mapped=mapQuickDrawPredictions([0.9],["mailbox"],1);
+  assert.equal(mapped[0].word,"ящик");
+  assert.match(mapped[0].word,/^[а-яё]{4,20}$/);
+});
