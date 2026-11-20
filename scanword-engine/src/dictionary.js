@@ -48,6 +48,7 @@ export function normalizeDifficultyBand(value) {
 }
 
 export function getDifficultyQuotaCounts(total, distribution = {}) {
+  distribution = distribution ?? {};
   const count = Math.max(0, Math.floor(Number(total) || 0));
   const weights = {
     2: Number.isFinite(Number(distribution.easy)) ? Math.max(0, Number(distribution.easy)) : 0.2,
@@ -97,7 +98,7 @@ export function inferDifficulty(raw, question, imageKey = null, answer = '') {
   if (raw?.logic === true) return wordCount >= 9 || answerLength >= 9 ? 4 : 3;
   if (answerLength <= 4 && wordCount <= 5 && text.length <= 42) return 2;
   if (answerLength <= 6 && wordCount <= 3 && text.length <= 35) return 2;
-  if (answerLength >= 10 && wordCount >= 6) return 4;
+  if (answerLength >= 9 && wordCount >= 8) return 4;
   return 3;
 }
 
