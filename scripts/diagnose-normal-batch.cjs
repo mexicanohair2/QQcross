@@ -21,6 +21,7 @@ async function main() {
   let specialElevenCount = 0;
   let specialElevenRequestedCount = 0;
   const specialElevenMisses = [];
+  const directionCounts = { right: 0, left: 0, down: 0, up: 0 };
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
@@ -40,9 +41,13 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true
     });
     const words = result.scanword.words;
+    for (const word of words) {
+      if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+    }
     const imageWords = words.filter(word => word.imageKey);
     const distinctImageClueCells = new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size;
     if (distinctImageClueCells !== 5) {
@@ -66,6 +71,8 @@ async function main() {
       specialAttemptsUsed: result.stats.specialElevenAttempted,
       generationAttempts: result.stats.attempts,
       score: result.scanword.metadata.score,
+      difficultyCounts: validation.metrics.difficultyCounts,
+      difficultyQuotas: validation.metrics.difficultyQuotas,
       answers: words.length,
       questionCells: validation.metrics.questionCells,
       letters: validation.metrics.letters,
@@ -93,6 +100,7 @@ async function main() {
     specialElevenMissedCount: specialElevenMisses.length,
     specialElevenMisses,
     expectedSpecialElevenRange: [20, 20],
+    directionCounts,
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
     medianTwoLetterAnswers: twoLetterCounts[Math.floor(twoLetterCounts.length/2)],
@@ -104,6 +112,11 @@ async function main() {
   fs.mkdirSync("artifacts", { recursive: true });
   fs.writeFileSync("artifacts/scanword-100-report.json", JSON.stringify(report, null, 2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
+  for (const direction of ['right', 'left', 'down', 'up']) {
+    if (directionCounts[direction] === 0) {
+      throw new Error('The 100-puzzle production batch did not exercise direction: ' + direction);
+    }
+  }
   if (successful.some(run => run.musicNoteAnswers.length > 0)) {
     throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
   }
