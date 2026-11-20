@@ -1033,7 +1033,7 @@ function buildScanwordInWorker(entries, overrides={}){
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-native-8x12-v1");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v2");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
@@ -1304,7 +1304,7 @@ function renderGame(root){
       const arrowGlyph={right:"→",down:"↓"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
        const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
-      if(terminalOnly.has(key)&&!puzzle.clueKeys?.has(key)){
+      if(terminalOnly.has(key)&&!(startWordsAt.get(key)||[]).length){
         const endArrows="";
         cells.push('<div class="scan-cell scan-grid-cell scan-boundary scan-terminal" data-boundary-cell="'+key+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" aria-hidden="true"'+position+'>'+endArrows+'</div>');
       }else{
