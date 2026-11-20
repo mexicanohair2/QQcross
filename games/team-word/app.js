@@ -505,7 +505,7 @@ function renderOnlineGame() {
       <section class="card stack">
         <div class="game-meta"><span>Общее слово · ${length} букв</span><span id="nextReveal">${finished ? "Раунд завершён" : "Новая буква через "+next+" сек."}</span></div>
         <div class="word-slots">${Array.from({length},(_,index)=>'<div class="word-slot '+(open.has(index)?"open":"")+'">'+(open.get(index)||"")+'</div>').join("")}</div>
-        ${finished ? '<div class="result"><h2 class="success">Слово отгадано!</h2><p class="muted">Ответ: <b>'+esc(publicState.solution||"")+'</b></p><p class="small muted">Победитель: место '+esc(publicState.winner_seat ?? "—")+'</p></div>' : '<p class="small muted" style="text-align:center;margin:0">Все игроки угадывают одновременно. Сервер открывает одну новую букву каждые 15 секунд.</p>'}
+        ${finished ? '<div class="result"><h2 class="success">Слово отгадано!</h2><p class="muted">Ответ: <b>'+esc(publicState.solution||"")+'</b></p><p class="small muted">Победитель: место '+esc(publicState.winner_seat ?? "—")+'</p></div>' : '<p class="small muted" style="text-align:center;margin:0">Все игроки угадывают одновременно. Сервер открывает одну новую букву каждые 60 секунд.</p>'}
       </section>
       <section class="card stack" style="min-height:0">
         <div class="game-meta"><b>Общая история</b><span>${guesses.length} попыток</span></div>
