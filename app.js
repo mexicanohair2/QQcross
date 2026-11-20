@@ -1034,7 +1034,7 @@ function refreshPracticeButton(){
   button.disabled=scanwordPreparing;
   button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
-const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v1";
+const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v2";
 let scanwordSequenceFallback=0;
 function getNextScanwordSequenceIndex(){
   let persisted=0;
