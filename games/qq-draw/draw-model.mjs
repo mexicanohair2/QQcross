@@ -41,7 +41,7 @@ export function mapQuickDrawPredictions(probabilities, classNames, limit = 6) {
   return probabilities.map((confidence,index)=>({
     word: CLASS_TO_RUSSIAN[classNames[index]],
     confidence: Number(confidence)
-  })).filter(item=>item.word && Number.isFinite(item.confidence) && item.confidence>0.002)
+  })).filter(item=>item.word && /^[а-яё]{4,20}$/.test(item.word) && Number.isFinite(item.confidence) && item.confidence>0.002)
     .sort((a,b)=>b.confidence-a.confidence)
     .filter((item,index,all)=>all.findIndex(other=>other.word===item.word)===index)
     .slice(0,limit);
