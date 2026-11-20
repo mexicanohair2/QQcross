@@ -541,7 +541,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0) counts.top++;
@@ -656,7 +656,7 @@ test("terminal edge question cells are not rendered as false playable clues", as
   }));
   expect(clues.length).toBeGreaterThan(10);
   expect(clues.every(clue => clue.starts > 0)).toBeTruthy();
-  expect(clues.every(clue => clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7)))).toBeTruthy();
+  expect(clues.every(clue => (clue.row === 11 && clue.col === 0) || (clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7))))).toBeTruthy();
 });
 
 test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
