@@ -123,6 +123,26 @@ test("question popup is clear and contains no quick hints; the separate bulb too
   expect(bulbs).toBe(4);
 });
 
+test("question dialog supports keyboard navigation and restores focus after Escape", async ({ page }) => {
+  await startGuestGame(page);
+  const trigger=page.locator("[data-clue-cell]").first();
+  await trigger.focus();
+  await trigger.click();
+  const dialog=page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await expect(dialog).toHaveAttribute("aria-modal","true");
+  await expect(dialog).toHaveAttribute("aria-labelledby","clue-popup-heading");
+  const dialogButtons=dialog.locator("button");
+  await expect(dialogButtons.first()).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(dialogButtons.last()).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(dialogButtons.first()).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
 test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
   await startGuestGame(page);
   const pictureClue = page.locator(".scan-clue-picture").first();
