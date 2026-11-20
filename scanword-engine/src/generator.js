@@ -1,6 +1,6 @@
 import { CONFIG } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
-import { solveSlotsCsp } from './csp.js';
+import { maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
@@ -230,6 +230,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             }
             candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
+              clueCell: { ...orientation.clueCell },
               coordinates: orientation.coordinates
             });
           }
@@ -274,7 +275,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       }
 
       const imageKeys = new Set();
-      let logicSlots = 0;
+      const imageDomains = [];
+      const imageClueCellDomains = [];
+      const logicClueCellDomains = [];
       let minimumDomain = Infinity;
       let totalDomain = 0;
       for (const domain of domains) {
@@ -283,30 +286,54 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         )).size;
         minimumDomain = Math.min(minimumDomain, answerCount);
         totalDomain += Math.min(answerCount, 40);
-        if (domain.options.some(option => option.entry.imageKey)) {
-          for (const option of domain.options) {
-            if (option.entry.imageKey) imageKeys.add(option.entry.imageKey);
+
+        const candidateImageKeys = new Set();
+        const candidateImageClueCells = new Set();
+        const candidateLogicClueCells = new Set();
+        for (const option of domain.options) {
+          const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+          if (option.entry.imageKey) {
+            imageKeys.add(option.entry.imageKey);
+            candidateImageKeys.add(option.entry.imageKey);
+            candidateImageClueCells.add(clueKey);
           }
+          if (option.entry.logic === true) candidateLogicClueCells.add(clueKey);
         }
-        if (domain.options.some(option => option.entry.logic === true)) logicSlots++;
+        if (candidateImageKeys.size) imageDomains.push([...candidateImageKeys]);
+        if (candidateImageClueCells.size) imageClueCellDomains.push([...candidateImageClueCells]);
+        if (candidateLogicClueCells.size) logicClueCellDomains.push([...candidateLogicClueCells]);
       }
 
-      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) {
+      const imageAssignmentCapacity = maximumDistinctAssignmentCount(imageDomains);
+      const imageClueCellCapacity = maximumDistinctAssignmentCount(imageClueCellDomains);
+      const logicClueCellCapacity = maximumDistinctAssignmentCount(logicClueCellDomains);
+      const imageCapacityValid = imageAssignmentCapacity >= requiredImageCount
+        && imageClueCellCapacity >= requiredImageCount;
+      const logicCapacityValid = logicClueCellCapacity >= minimumLogicClueCells;
+
+      if (!imageCapacityValid || !logicCapacityValid) {
         planDiagnostics.contentRequirementsRejected++;
         if (!planDiagnostics.firstContentFailure) {
           planDiagnostics.firstContentFailure = {
             answer: entry.answer,
             rows: topology.rows,
-            availableImageKeys: imageKeys.size,
+            distinctImageKeys: imageKeys.size,
+            imageAssignmentCapacity,
+            imageClueCellCapacity,
             requiredImageCount,
-            logicSlots,
+            logicClueCellCapacity,
             minimumLogicClueCells,
             domains: domains.map(domain => ({
               slotId: domain.slot.id,
               length: domain.slot.length,
               candidateCount: domain.options.length,
               imageKeys: [...new Set(domain.options.map(option => option.entry.imageKey).filter(Boolean))],
-              logicCandidateCount: domain.options.filter(option => option.entry.logic === true).length
+              imageClueCells: [...new Set(domain.options.filter(option => option.entry.imageKey).map(option =>
+                option.clueCell.row + ',' + option.clueCell.col
+              ))],
+              logicClueCells: [...new Set(domain.options.filter(option => option.entry.logic === true).map(option =>
+                option.clueCell.row + ',' + option.clueCell.col
+              ))]
             }))
           };
         }
@@ -328,7 +355,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         // Prefer grade-seven medium/easy long answers when geometry is
         // otherwise comparable; do not let a specialist 11-letter word win
         // solely because its crossing domains happen to be broader.
-        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots
+        score: minimumDomain * 100000 + totalDomain * 100
+          + imageAssignmentCapacity * 10000 + imageClueCellCapacity * 1000
+          + logicClueCellCapacity * 100
           + (normalizeDifficultyBand(entry.difficulty) === 3 ? 50000
             : normalizeDifficultyBand(entry.difficulty) === 2 ? 25000 : 0),
         tie: random()
