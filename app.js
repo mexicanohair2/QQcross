@@ -973,21 +973,24 @@ function checkWords(){
   return newlyCompleted;
 }
 async function loadCloudProfile(userId,generation=null){
-  const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
-  if(error)throw error;
+  let result=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points,avatar_url,frame_id,active_title").eq("id",userId).single();
+  if(result.error){
+    const fallback=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
+    if(fallback.error)throw fallback.error;
+    result=fallback;
+  }
+  const data=result.data;
   const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
+  let cosmetics=[];
+  try{const c=await supabaseClient.from("qqcross_player_cosmetics").select("cosmetic_id").eq("user_id",userId);if(!c.error)cosmetics=(c.data||[]).map(x=>x.cosmetic_id)}catch{}
   let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
   const items=defaultItems();items.bulb=0;
   if(inventoryError){
     console.warn("QQCross inventory:",inventoryError);
-    if(saved&&saved.id===userId&&saved.items&&typeof saved.items==="object"){
-      Object.keys(items).forEach(key=>{const value=saved.items[key];if(Number.isInteger(value)&&value>=0)items[key]=value});
-    }
-  }else{
-    (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
-  }
+    if(saved&&saved.id===userId&&saved.items&&typeof saved.items==="object")Object.keys(items).forEach(key=>{const value=saved.items[key];if(Number.isInteger(value)&&value>=0)items[key]=value});
+  }else (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
   if(generation!==null&&generation!==authGeneration)return;
-  state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
+  state.profile={id:data.id,username:data.username,avatar:data.avatar||0,avatarUrl:data.avatar_url||saved?.avatarUrl||"",avatar_url:data.avatar_url||saved?.avatarUrl||"",frameId:data.frame_id||saved?.frameId||"classic",frame_id:data.frame_id||saved?.frameId||"classic",activeTitle:data.active_title||"Новичок",active_title:data.active_title||"Новичок",cosmetics,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
   authRestoreError="";
   await window.QQProgression?.setCloud?.(supabaseClient,userId);
   await applyProgressRewards();
