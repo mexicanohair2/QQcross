@@ -181,13 +181,45 @@ function normalizeItems(items){const normalized={...defaultItems(),...(items||{}
 function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));syncQQCrossPlayerProfile();window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="party-game"){renderPartyGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="party-game"){renderPartyGame(root);return}if(state.screen==="party-lobby"){renderPartyLobby(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+function renderPartyLobby(root){
+ const game=state.partyGame==="qq-draw"?"qq-draw":"team-word";
+ const title=game==="qq-draw"?"QQ Draw":"Team Word";
+ root.innerHTML='<div class="screen qq-party-lobby-screen"><div class="top"><button class="btn" id="partyLobbyBack">← Назад</button><b>'+title+' · Лобби</b><span></span></div><section class="card"><h3>Пригласи друзей</h3><p class="small muted">Выбери от одного до двух друзей. Комната создастся автоматически — вводить коды не нужно.</p><div id="partyLobbyFriends"><p class="muted small">Загружаем друзей…</p></div><button class="btn primary full" id="partyLobbyCreate">Создать лобби и пригласить</button></section></div>';
+ $("#partyLobbyBack").onclick=()=>{state.screen="";render()};
+ const out=$("#partyLobbyFriends");
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){out.innerHTML='<p class="muted small">Для игры с друзьями войди в аккаунт QQCross.</p>';$("#partyLobbyCreate").disabled=true;return}
+ supabaseClient.rpc("list_qqcross_friends").then(async({data,error})=>{
+  if(error)throw error;
+  const friends=await hydratePublicProfiles(data||[]);
+  if(!friends.length){out.innerHTML='<p class="muted small">Список друзей пока пуст. Сначала добавь друзей во вкладке «Друзья».</p>';$("#partyLobbyCreate").disabled=true;return}
+  out.innerHTML=friends.map(p=>'<label class="qq-party-friend-option"><input type="checkbox" value="'+esc(p.id)+'">'+playerCardMarkup(p,undefined,undefined,true)+'</label>').join("");
+  out.querySelectorAll(".qq-party-friend-option input").forEach(input=>input.onchange=()=>{
+   const selected=out.querySelectorAll("input:checked");
+   if(selected.length>2){input.checked=false;toast("В одной комнате можно выбрать не больше двух друзей")}
+  });
+ }).catch(e=>{out.textContent=e.message||"Не удалось загрузить друзей";$("#partyLobbyCreate").disabled=true});
+ $("#partyLobbyCreate").onclick=async()=>{
+  const ids=Array.from(out.querySelectorAll("input:checked")).map(x=>x.value);
+  if(ids.length<1||ids.length>2){toast("Выбери одного или двух друзей");return}
+  const button=$("#partyLobbyCreate");button.disabled=true;button.textContent="Создаём лобби…";
+  try{
+   const {data,error}=await supabaseClient.rpc("qq_party_create_room",{p_game:game==="team-word"?"team_word":"crocodile",p_nickname:state.profile.username,p_player_limit:3,p_public_state:{}});
+   if(error)throw error;
+   state.partyRoomCode=data.code;state.partyRoomId=data.room_id;
+   const results=await Promise.allSettled(ids.map(friendId=>supabaseClient.rpc("qq_party_invite_friend",{p_room_id:data.room_id,p_friend_id:friendId})));
+   const failed=results.filter(x=>x.status==="rejected"||x.value?.error);
+   state.screen="party-game";render();
+   if(failed.length)toast("Лобби создано, но не все приглашения отправились");
+  }catch(e){toast(e.message||"Не удалось создать лобби");button.disabled=false;button.textContent="Создать лобби и пригласить"}
+ };
+}
 function renderPartyGame(root){
  const game=state.partyGame==="qq-draw"?"qq-draw":"team-word";
  const title=game==="qq-draw"?"QQ Draw":"Team Word";
  const path=game==="qq-draw"?"./games/qq-draw/index.html":"./games/team-word/index.html";
- root.innerHTML='<section class="qq-party-game-screen"><header class="qq-party-game-top"><button class="btn" id="partyGameBack" type="button">← Назад</button><b>'+title+'</b><span style="width:64px"></span></header><p class="qq-party-launch-note">Общий профиль QQCross · единая система комнат · оформление синхронизировано с выбранной темой</p><iframe class="qq-party-game-frame" id="qqPartyGameFrame" title="'+title+'" src="'+path+'?embedded=1" loading="eager" allow="clipboard-read; clipboard-write"></iframe></section>';
- $("#partyGameBack").onclick=()=>{state.screen="";state.partyGame="";render()};
+ root.innerHTML='<section class="qq-party-game-screen"><header class="qq-party-game-top"><button class="btn" id="partyGameBack" type="button">← Назад</button><b>'+title+'</b><span style="width:64px"></span></header><iframe class="qq-party-game-frame" id="qqPartyGameFrame" title="'+title+'" src="'+path+'?embedded=1'+(state.partyRoomCode?"&room="+encodeURIComponent(state.partyRoomCode):"")+'" loading="eager" allow="clipboard-read; clipboard-write"></iframe></section>';
+ $("#partyGameBack").onclick=()=>{state.screen="";state.partyGame="";state.partyRoomCode=null;state.partyRoomId=null;render()};
 }
 function renderDaily(root){
  const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
@@ -705,10 +737,8 @@ async function loadMatchInbox(){
       if(!data?.accepted||!data.code)throw new Error("Не удалось принять приглашение.");
       const isTeamWord=data.game==="team_word";
       const gameUrl=isTeamWord?"./games/team-word/index.html":"./games/qq-draw/index.html";
-      const title=isTeamWord?"Открыть Team Word":"Открыть QQ Draw";
-      const card=b.closest(".qq-party-invite-card");
-      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Комната '+esc(data.code)+'</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room='+encodeURIComponent(data.code)+'" target="_blank" rel="noopener">'+title+'</a>';
-      toast("Ты присоединился к комнате. Открой игру по кнопке.");
+      state.partyGame=isTeamWord?"team-word":"qq-draw";state.partyRoomCode=data.code;state.partyRoomId=data.room_id;state.screen="party-game";render();
+      toast("Ты присоединился к лобби "+(isTeamWord?"Team Word":"QQ Draw")+".");
     }catch(e){
       b.disabled=false;b.textContent="Принять";
       toast(e.message||"Не удалось принять приглашение");
