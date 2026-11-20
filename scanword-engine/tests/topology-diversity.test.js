@@ -63,6 +63,43 @@ test('rejects the impossible full top-row plus full left-column request before t
   assert.equal(result.feasibility.conflicts[0].availableLettersBetweenClues, 1);
 });
 
+test('special 11-letter layouts vary without mutating the reserved crossing columns', () => {
+  const patterns = new Set();
+  const samples = [
+    [3, 7, 10], [3, 7, 11], [3, 8, 10], [3, 8, 11],
+    [3, 9, 11], [4, 7, 10], [4, 7, 11], [4, 8, 10],
+    [4, 8, 11], [5, 8, 10], [5, 8, 11], [5, 9, 11]
+  ];
+
+  for (let index = 0; index < samples.length; index++) {
+    const result = generateTopology({
+      seed: 4109 + index * 7919,
+      includeSpecialEleven: true,
+      specialSplitRows: samples[index],
+      mutationBudget: 48,
+      maxAttempts: 1
+    });
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.topology.validation.valid, true);
+    assert.equal(result.topology.pattern[0][0], '.');
+    assert.equal(result.topology.pattern[0][1], '#');
+    for (let row = 1; row < 12; row++) {
+      assert.equal(result.topology.pattern[row][0], '#');
+      assert.equal(result.topology.pattern[row][1], '.');
+      assert.equal(result.topology.pattern[row][2], '.');
+      assert.equal(result.topology.pattern[row][3], '.');
+    }
+    assert.equal(
+      result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length,
+      1
+    );
+    patterns.add(result.topology.pattern.join('/'));
+  }
+
+  assert.ok(patterns.size >= 4, 'special layouts should vary through validated internal mutations; got ' + patterns.size);
+});
+
 test('topology generation is deterministic for a fixed seed', () => {
   const options = { seed: 90317, includeSpecialEleven: true, maxAttempts: 192 };
   const first = generateTopology(options);
