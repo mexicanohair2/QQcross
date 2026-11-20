@@ -136,3 +136,48 @@ html[data-qq-mode="light"] .btn.primary,html[data-qq-mode="light"] .btn.blue{col
 
 /* The QQCross Sakura mark stays pearl/graphite even in a rose or violet UI palette. */
 .ambience-preview-sakura{color:#eef1ef!important;filter:grayscale(1);text-shadow:0 1px 5px rgba(225,232,230,.22)}
+
+
+/* Natural canvas ambience: particles above the burgundy haze and below every control. */
+body::before{display:none!important;content:none!important}
+.qq-ambience-canvas{
+ position:fixed!important;inset:0!important;z-index:1!important;
+ display:block!important;width:100vw!important;height:100dvh!important;
+ opacity:.94!important;pointer-events:none!important;contain:strict;
+}
+body::after{
+ content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+ background:
+  radial-gradient(ellipse at 13% 18%,rgba(105,20,49,.23),transparent 54%),
+  radial-gradient(ellipse at 86% 78%,rgba(76,12,35,.20),transparent 58%);
+ opacity:.82;
+}
+#app{position:relative!important;z-index:2!important}
+
+/* Dark Cherry: deep cherry-wine base with restrained rosewood accents. */
+html[data-qq-theme="burgundy"]{
+ --qq-base:#210710;
+ --qq-base-deep:#090207;
+ --qq-glass:rgba(43,10,22,.93);
+ --qq-theme-border:#572536;
+ --qq-theme-accent:#b77a8d;
+ --qq-theme-muted:#c9aab6;
+ --qq-theme-press-glow:rgba(183,122,141,.28);
+ --qq-theme-press-border:rgba(196,139,157,.42);
+}
+html[data-qq-theme="burgundy"] body::after{
+ background:
+  radial-gradient(ellipse at 18% 14%,rgba(130,25,57,.34),transparent 55%),
+  radial-gradient(ellipse at 82% 80%,rgba(92,13,40,.28),transparent 60%),
+  linear-gradient(145deg,rgba(54,7,24,.24),rgba(12,2,7,.08));
+ opacity:1;
+}
+.theme-swatch-burgundy{
+ background:linear-gradient(145deg,#a34a65,#4b1027 58%,#210710)!important;
+}
+.ambience-preview-sakura{
+ color:#efa8be!important;filter:none!important;
+ text-shadow:0 1px 7px rgba(226,139,171,.32)!important;
+}
+html[data-qq-mode="light"] body::after{opacity:.22}
+html[data-qq-reduce-motion="true"] .qq-ambience-canvas{display:none!important}
