@@ -1,6 +1,7 @@
-const MODEL_BASE = "https://cdn.jsdelivr.net/gh/jinnyday0719/quickdraw-resnet@bb1d600a7b2139e0f36cb199eac8ab30dda71e4f/web/tfjs_model";
-const MODEL_URL = MODEL_BASE + "/model.json";
-const CLASSES_URL = MODEL_BASE + "/class.json";
+const MODEL_BASES = [
+  "https://cdn.jsdelivr.net/gh/jinnyday0719/quickdraw-resnet@bb1d600a7b2139e0f36cb199eac8ab30dda71e4f/web/tfjs_model",
+  "https://raw.githubusercontent.com/jinnyday0719/quickdraw-resnet/bb1d600a7b2139e0f36cb199eac8ab30dda71e4f/web/tfjs_model"
+];
 
 const CLASS_TO_RUSSIAN = Object.freeze({
   "airplane":"самолет","apple":"яблоко","banana":"банан","basket":"корзина","bear":"медведь",
@@ -93,24 +94,29 @@ export async function loadDrawingModel() {
   await ensureTensorFlow();
   if (!modelPromise) {
     modelPromise = (async()=>{
-      const model = await window.tf.loadLayersModel(MODEL_URL);
-      try {
-        const response = await fetch(CLASSES_URL);
-        if (!response.ok) throw new Error("Не удалось загрузить классы модели.");
-        const classes = await response.json();
-        if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape[model.outputs[0].shape.length-1]) {
-          throw new Error("Список классов модели не совпадает с выходом нейросети.");
+      let lastError = null;
+      for (const base of MODEL_BASES) {
+        let model = null;
+        try {
+          model = await window.tf.loadLayersModel(base + "/model.json");
+          const response = await fetch(base + "/class.json");
+          if (!response.ok) throw new Error("Не удалось загрузить классы модели.");
+          const classes = await response.json();
+          if (!Array.isArray(classes) || classes.length !== model.outputs[0].shape[model.outputs[0].shape.length-1]) {
+            throw new Error("Список классов модели не совпадает с выходом нейросети.");
+          }
+          const warmup = window.tf.zeros([1,28,28,1]);
+          let output = null;
+          try { output = model.predict(warmup); }
+          finally { output?.dispose(); warmup.dispose(); }
+          loadedModel=model;loadedClasses=classes;
+          return {model,classes};
+        } catch(error) {
+          model?.dispose();
+          lastError=error;
         }
-        const warmup = window.tf.zeros([1,28,28,1]);
-        let output = null;
-        try { output = model.predict(warmup); }
-        finally { output?.dispose(); warmup.dispose(); }
-        loadedModel=model;loadedClasses=classes;
-        return {model,classes};
-      } catch(error) {
-        model.dispose();
-        throw error;
       }
+      throw lastError || new Error("Не удалось загрузить модель распознавания.");
     })().catch(error=>{modelPromise=null;throw error;});
   }
   return modelPromise;
