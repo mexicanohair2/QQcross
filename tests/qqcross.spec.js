@@ -645,6 +645,10 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await expect(pending).toBeVisible();
   await expect(pending).toHaveClass(/(correct|wrong)/);
   await expect(pending.locator(".cell-letter")).toHaveText(/[А-ЯЁ]/);
+  await expect(pending.locator(".placement-mark")).toHaveText(/[✓×]/);
+  await expect(page.locator(".hand .letter")).toHaveCount(4);
+  await expect(page.locator(".hand .letter-slot-empty")).toHaveCount(1);
+  await expect(page.locator(".hand .letter, .hand .letter-slot-empty")).toHaveCount(5);
 });
 
 test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {
