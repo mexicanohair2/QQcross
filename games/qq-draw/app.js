@@ -715,7 +715,7 @@ function startBotArtistSolo(){
 }
 function renderSoloSetup(){
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div><button class="btn ghost" id="soloBack">Назад</button></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username||"Игрок")+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small></span></div><button class="btn ghost" id="soloBack">Назад</button></header>'+
     '<section class="card stack"><h2>Ты художник</h2><p class="small muted">Напиши слово, которое будут угадывать два простых бота. Они не получают твой ответ и пробуют случайные варианты с задержкой.</p>'+
     '<form id="soloSetupForm" class="stack"><label class="label" for="soloWord">Секретное слово</label><input class="field" id="soloWord" maxlength="20" minlength="4" autocomplete="off" placeholder="Например, велосипед" required><button class="btn primary full" type="submit">Начать рисовать</button></form></section></section>';
   $("#soloBack").onclick=()=>{state.solo=null;renderHome();};
@@ -778,7 +778,7 @@ function renderSoloGame(){
   const guesses=solo.guesses||[];
   const finished=solo.status==="finished";
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div><button class="btn ghost" id="soloExit">В меню</button></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div><div class="profile">'+sharedPlayer(state.profile||{})+'<span class="profile-copy"><b>'+esc(state.profile?.username||"Игрок")+'</b><small class="qq-player-title">'+esc(state.profile?.active_title||"Новичок")+'</small></span></div><button class="btn ghost" id="soloExit">В меню</button></header>'+
     '<section class="card stack"><div class="game-meta"><span>'+(botArtist?"Бот рисует":"Ты рисуешь")+'</span><span>'+guesses.length+' догадок</span></div>'+
       '<div class="canvas-wrap"><canvas id="drawCanvas" aria-label="Одиночный холст"></canvas><span class="canvas-label">'+(botArtist?"Рисунок бота":"Твой рисунок")+'</span></div>'+
       (botArtist&&!finished?'<form id="guessForm" class="guess-form"><input class="field" id="guessInput" maxlength="30" autocomplete="off" placeholder="Что нарисовано?" required><button class="btn primary" type="submit">Угадать</button></form>':"")+
