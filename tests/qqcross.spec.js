@@ -88,8 +88,8 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
     };
   });
   expect(geometry.cellCount).toBe(96);
-  expect(geometry.columns).toBe(8);
-  expect(geometry.rows).toBe(12);
+  expect(geometry.columns, JSON.stringify({ ...geometry, display: await scanBoard.evaluate(board => getComputedStyle(board).display), inlineStyle: await scanBoard.getAttribute('style') })).toBe(8);
+  expect(geometry.rows, JSON.stringify(geometry)).toBe(12);
   expect(geometry.explicitColumns).toBe(8);
   expect(geometry.explicitRows).toBe(12);
   expect(geometry.positiveCells).toBe(96);
