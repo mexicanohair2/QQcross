@@ -607,6 +607,49 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
+test("solo scanword is untimed, keeps five centered letter tiles, and immediately marks placed letters", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".hand .letter")).toHaveCount(5);
+  await expect(page.locator("#timer")).toHaveCount(0);
+  await expect(page.locator("#clock")).toHaveCount(0);
+  const hand = await page.locator(".hand").evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    const letters = [...node.querySelectorAll(".letter")].map(el => el.getBoundingClientRect());
+    return {
+      hand: { left: rect.left, right: rect.right, center: (rect.left + rect.right) / 2 },
+      letters: letters.map(r => ({ left: r.left, right: r.right, width: r.width, height: r.height }))
+    };
+  });
+  expect(hand.letters).toHaveLength(5);
+  expect(hand.letters.every(item => Math.abs(item.width - item.height) <= 1)).toBeTruthy();
+  const tile = page.locator(".hand .letter").first();
+  const cell = page.locator(".scanword-board .cell").first();
+  const from = await tile.boundingBox();
+  const to = await cell.boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const pending = page.locator(".scanword-board .cell.pending-cell").first();
+  await expect(pending).toBeVisible();
+  await expect(pending).toHaveClass(/(correct|wrong)/);
+  await expect(pending.locator(".cell-letter")).toHaveText(/[А-ЯЁ]/);
+});
+
+test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const clues = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    return { row, col, starts: Number(node.dataset.clueStartCount || 0) };
+  }));
+  expect(clues.length).toBeGreaterThan(10);
+  expect(clues.every(clue => clue.starts > 0)).toBeTruthy();
+  expect(clues.every(clue => clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7)))).toBeTruthy();
+});
+
 test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
