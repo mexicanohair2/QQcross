@@ -59,3 +59,12 @@ import { TEAM_WORD_REVEAL_INTERVAL_MS } from "../game-logic.mjs";
 test("Team Word reveals one letter every 60 seconds", () => {
   assert.equal(TEAM_WORD_REVEAL_INTERVAL_MS, 60_000);
 });
+
+import { TEAM_WORD_BOT_THINK_MIN_MS, TEAM_WORD_BOT_THINK_MAX_MS, TEAM_WORD_BOT_TYPING_INTERVAL_MS } from "../game-logic.mjs";
+
+test("Team Word bots use bounded thinking time and progressive letter entry", () => {
+  assert.equal(TEAM_WORD_BOT_THINK_MIN_MS, 12_000);
+  assert.equal(TEAM_WORD_BOT_THINK_MAX_MS, 20_000);
+  assert.equal(TEAM_WORD_BOT_TYPING_INTERVAL_MS, 280);
+  assert.ok(TEAM_WORD_BOT_THINK_MAX_MS > TEAM_WORD_BOT_THINK_MIN_MS);
+});
