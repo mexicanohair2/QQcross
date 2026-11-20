@@ -49,7 +49,7 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(1);
   await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
-  const geometry = await scanBoard.evaluate(board => {
+  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().left))).size)).toBe(8);\n  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().top))).size)).toBe(12);\n  const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
     const xTracks = new Set(cells.map(cell => Math.round(cell.getBoundingClientRect().left)));
     const yTracks = new Set(cells.map(cell => Math.round(cell.getBoundingClientRect().top)));
@@ -88,7 +88,7 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
+  expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(5);
@@ -618,6 +618,6 @@ test("scanword always includes five pictures and at least three logical question
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
   expect(clueLayout.length).toBeGreaterThan(0);
-  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
