@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
@@ -115,28 +115,39 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
+  // The old split-row loop generated many nominally different plans that
+  // actually reused the same three fixed masks. Sample a compact, reproducible
+  // set of layouts and use a row-derived seed so validated internal mutations
+  // produce genuinely different crossing lengths while preserving columns 1..3.
+  const rowPatterns = [
+    [3, 7, 10], [3, 7, 11], [3, 8, 10], [3, 8, 11],
+    [3, 9, 11], [4, 7, 10], [4, 7, 11], [4, 8, 10],
+    [4, 8, 11], [5, 8, 10], [5, 8, 11], [5, 9, 11]
+  ];
 
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
-      includeSpecialEleven: true,
-      specialSplitRows: rows,
-      maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
-    })
-  })).filter(item => item.result.ok);
+  const topologySignatures = new Set();
+  const topologies = rowPatterns.map(rows => {
+    const seed = rows.reduce((value, row) => Math.imul(value ^ row, 16777619), 2166136261) >>> 0;
+    return {
+      rows,
+      patternKey: 'split-' + rows.join('-'),
+      specialPattern: null,
+      result: generateTopology({
+        seed,
+        includeSpecialEleven: true,
+        specialSplitRows: rows,
+        mutationBudget: 48,
+        maxAttempts: 1,
+        maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
+      })
+    };
+  }).filter(item => {
+    if (!item.result.ok) return false;
+    const signature = item.result.topology.pattern.join('/');
+    if (topologySignatures.has(signature)) return false;
+    topologySignatures.add(signature);
+    return true;
+  });
 
   // The independently audited two-short-slot layout is valid only when its
   // eleven-letter boundary answer is present. Keep it as a dedicated CSP
@@ -150,12 +161,16 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     maxTwoLetterSlots: 4
   });
   if (lowShortTopology.ok) {
-    topologies.push({
-      rows: [3, 7, 11],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
-      result: lowShortTopology
-    });
+    const signature = lowShortTopology.topology.pattern.join('/');
+    if (!topologySignatures.has(signature)) {
+      topologySignatures.add(signature);
+      topologies.push({
+        rows: [3, 7, 11],
+        patternKey: 'low-short',
+        specialPattern: lowShortPattern,
+        result: lowShortTopology
+      });
+    }
   }
 
   const plans = [];
@@ -167,7 +182,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     arcConsistencyRejected: 0,
     shortAnswerMatchingRejected: 0,
     contentRequirementsRejected: 0,
-    viablePlans: 0
+    viablePlans: 0,
+    distinctSpecialAnswers: 0,
+    distinctTopologyPatterns: topologies.length
   };
 
   for (const entry of entries) {
@@ -293,6 +310,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
       plans.push({
         answer: entry.answer,
+        answerDifficultyBand: normalizeDifficultyBand(entry.difficulty),
         rows: topology.rows,
         patternKey: topology.patternKey ?? ('split-' + topology.rows.join('-')),
         specialPattern: topology.specialPattern,
@@ -302,18 +320,48 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
         ])),
-        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots,
+        // Prefer grade-seven medium/easy long answers when geometry is
+        // otherwise comparable; do not let a specialist 11-letter word win
+        // solely because its crossing domains happen to be broader.
+        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots
+          + (normalizeDifficultyBand(entry.difficulty) === 3 ? 50000
+            : normalizeDifficultyBand(entry.difficulty) === 2 ? 25000 : 0),
         tie: random()
       });
     }
   }
 
   planDiagnostics.viablePlans = plans.length;
+  planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
+
+  // Keep the strongest topology for each answer first, then interleave the
+  // next-best topologies. This prevents the first bounded CSP retries from
+  // spending their entire budget on near-identical layouts for one word.
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
-  const rankedPlans = plans.map(plan => ({
+  const plansByAnswer = new Map();
+  for (const plan of plans) {
+    const key = canonicalAnswerKey(plan.answer, { foldYo });
+    if (!plansByAnswer.has(key)) plansByAnswer.set(key, []);
+    plansByAnswer.get(key).push(plan);
+  }
+  const answerGroups = [...plansByAnswer.values()];
+  const interleavedPlans = [];
+  for (let round = 0; ; round++) {
+    let added = false;
+    for (const group of answerGroups) {
+      if (group[round]) {
+        interleavedPlans.push(group[round]);
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+
+  const rankedPlans = interleavedPlans.map(plan => ({
     answer: plan.answer,
+    answerDifficultyBand: plan.answerDifficultyBand,
     rows: plan.rows,
     patternKey: plan.patternKey,
     specialPattern: plan.specialPattern,
@@ -660,6 +708,9 @@ export function generateScanword(inputDictionary, options = {}) {
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
     dictionaryStats: prepared.stats,
     lastDiagnostic: bestDiagnostic,
-    requestedSpecialEleven: wantsEleven
+    requestedSpecialEleven: wantsEleven,
+    specialElevenPlanDiagnostics: wantsEleven ? specialPlanDiagnostics : null,
+    specialElevenPlanCount: specialPlanPool.length,
+    specialElevenAttemptCount: specialAttempts
   });
 }
