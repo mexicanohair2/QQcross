@@ -249,7 +249,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
-    // Production may restrict directions; generic CSP tests can retain all valid orientations.
+    // Production uses all four directions; geometrically invalid orientations are
+    // excluded by the slot endpoints and the independent validator.
     if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
