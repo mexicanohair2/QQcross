@@ -1042,8 +1042,7 @@ function getNextScanwordSequenceIndex(){
     const stored=Number(localStorage.getItem(SCANWORD_SEQUENCE_KEY));
     if(Number.isSafeInteger(stored)&&stored>0)persisted=stored;
   }catch{}
-  scanwordSequenceFallback=Math.max(scanwordSequenceFallback,persisted)+1;
-  return scanwordSequenceFallback;
+  return Math.max(scanwordSequenceFallback,persisted)+1;
 }
 function saveScanwordSequenceIndex(index){
   if(Number.isSafeInteger(index)&&index>scanwordSequenceFallback)scanwordSequenceFallback=index;
