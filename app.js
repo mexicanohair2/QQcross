@@ -1471,7 +1471,7 @@ function renderGame(root){
         return;
       }
       const existing=state.pendingMoves.find(m=>m.k===key);
-      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);delete state.feedback[key];state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      if(existing){state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);delete state.feedback[key];const insertAt=availableRackSlots().indexOf(existing.rackSlot);state.letters.splice(insertAt<0?state.letters.length:insertAt,0,existing.l);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
       if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };
