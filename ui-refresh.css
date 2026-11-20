@@ -113,7 +113,9 @@ html[data-qq-ambience="sakura"] body::before{display:none!important}
 
 /* Natural canvas particles own every ambience effect; disable the old striped CSS approximation. */
 body::before{display:none!important;content:none!important}
-.qq-ambience-canvas{z-index:0!important;opacity:.94!important;pointer-events:none!important}
+.qq-ambience-canvas{z-index:1!important;opacity:.94!important;pointer-events:none!important}
+body::after{z-index:0!important}
+#app{position:relative!important;z-index:2!important}
 body::after{
   content:"";
   position:fixed;
