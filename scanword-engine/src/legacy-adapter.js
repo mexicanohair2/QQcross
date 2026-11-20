@@ -59,8 +59,12 @@ export function toLegacyPuzzle(scanword, options = {}) {
       || clueRow < 0 || clueRow >= 12 || clueCol < 0 || clueCol >= 8) {
       throw new Error('Вопрос ответа ' + word.id + ' расположен вне сетки 8×12.');
     }
-    if (clueRow === 11 || clueCol === 7) {
-      throw new Error('Вопрос ответа ' + word.id + ' расположен на нижнем или правом краю сетки.');
+    if (clueRow === 11 || (clueCol === 7 && !(clueRow === 0 && word.direction === 'down'))) {
+      throw new Error('Вопрос ответа ' + word.id + ' ошибочно расположен на нижнем или правом краю сетки.');
+    }
+    if ((clueRow === 0 && clueCol > 0 && word.direction !== 'down')
+      || (clueCol === 0 && clueRow > 0 && word.direction !== 'right')) {
+      throw new Error('Внешняя вопросная клетка ответа ' + word.id + ' направлена неверно.');
     }
     if (scanword.grid[clueRow][clueCol]?.type !== 'question') {
       throw new Error('Вопрос ответа ' + word.id + ' не находится в клетке-вопросе.');
