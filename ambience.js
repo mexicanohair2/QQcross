@@ -3,7 +3,7 @@
  "use strict";
  const root=document.documentElement;
  const TYPES=["forest","sakura","autumn","rain","fireflies","stars","fog"];
- let canvas=null,ctx=null,raf=0,last=0,width=1,height=1,dpr=1,particles=[],observer=null;
+ let canvas=null,ctx=null,raf=0,last=0,width=1,height=1,dpr=1,particles=[],observer=null,activeType=null;
  const rand=(a,b)=>a+Math.random()*(b-a);
  const reduced=()=>root.dataset.qqReduceMotion==="true"||window.matchMedia?.("(prefers-reduced-motion: reduce)").matches||document.hidden;
  const palettes={
@@ -120,15 +120,19 @@
   raf=requestAnimationFrame(frame);
  }
  function stop(){if(raf)cancelAnimationFrame(raf);raf=0;if(ctx)ctx.clearRect(0,0,width,height)}
- function remove(){stop();if(observer){observer.disconnect();observer=null}else window.removeEventListener("resize",resize);if(canvas){canvas.remove();canvas=null;ctx=null}particles=[]}
+ function remove(){stop();if(observer){observer.disconnect();observer=null}else window.removeEventListener("resize",resize);if(canvas){canvas.remove();canvas=null;ctx=null}particles=[];activeType=null}
  function start(){
-  if(canvas||reduced())return;
-  canvas=document.createElement("canvas");canvas.className="qq-ambience-canvas";canvas.setAttribute("aria-hidden","true");document.body.appendChild(canvas);
-  ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});if(!ctx){remove();return}
-  resize();if("ResizeObserver"in window){observer=new ResizeObserver(resize);observer.observe(document.documentElement)}else window.addEventListener("resize",resize,{passive:true});
-  last=performance.now();raf=requestAnimationFrame(frame);
+  if(reduced())return;
+  if(!canvas){
+   activeType=root.dataset.qqAmbience;
+   canvas=document.createElement("canvas");canvas.className="qq-ambience-canvas";canvas.setAttribute("aria-hidden","true");document.body.appendChild(canvas);
+   ctx=canvas.getContext("2d",{alpha:true,desynchronized:true});if(!ctx){remove();return}
+   resize();if("ResizeObserver"in window){observer=new ResizeObserver(resize);observer.observe(document.documentElement)}else window.addEventListener("resize",resize,{passive:true});
+  }
+  /* A hidden tab can let the animation frame exit. Re-arm it when the tab becomes visible. */
+  if(!raf){last=performance.now();raf=requestAnimationFrame(frame)}
  }
- function sync(){const type=root.dataset.qqAmbience;if(TYPES.includes(type)&&!reduced()){if(canvas&&particles[0]?.type!==type)remove();start()}else remove()}
+ function sync(){const type=root.dataset.qqAmbience;if(TYPES.includes(type)&&!reduced()){if(canvas&&activeType!==type)remove();start()}else remove()}
  new MutationObserver(sync).observe(root,{attributes:true,attributeFilter:["data-qq-ambience","data-qq-reduce-motion"]});
  document.addEventListener("visibilitychange",sync,{passive:true});
  window.matchMedia?.("(prefers-reduced-motion: reduce)")?.addEventListener?.("change",sync);
