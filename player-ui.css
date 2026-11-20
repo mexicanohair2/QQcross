@@ -20,7 +20,7 @@
 .qq-player-card.is-active{border-color:var(--qq-theme-accent,var(--purple));background:var(--qq-theme-panel-2,var(--panel2));box-shadow:0 0 0 1px color-mix(in srgb,var(--qq-theme-accent,var(--purple)) 30%,transparent)}
 .qq-player-copy{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.qq-player-copy>b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .qq-player-title{display:block;color:var(--qq-theme-muted,var(--muted));font-size:10px;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.qq-player-meta{font-size:10px;color:var(--qq-theme-muted,var(--muted))}
+.qq-player-meta{font-size:10px;color:var(--qq-theme-muted,var(--muted))}.qq-player-points{font-size:9px;line-height:1.25;color:var(--qq-theme-muted,var(--muted));font-variant-numeric:tabular-nums}
 .qq-player-score{flex:0 0 auto;font-size:15px;font-variant-numeric:tabular-nums;color:var(--qq-theme-text,var(--text))}
 .qq-player-card.is-compact{padding:6px 8px;gap:7px}.qq-player-card.is-compact .qq-player-copy>b{font-size:11px}.qq-player-card.is-compact .qq-player-title{font-size:9px}.qq-player-card.is-compact .qq-player-score{font-size:13px}
 .qq-profile-identity{display:flex;align-items:center;gap:12px;min-width:0}
