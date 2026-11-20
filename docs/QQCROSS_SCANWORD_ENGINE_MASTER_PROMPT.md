@@ -4,7 +4,7 @@ You are the lead algorithm engineer responsible for finishing and integrating th
 
 ## 0. Mission and definition of done
 
-Deliver a production-grade generator for complete, readable, diverse QQCross scanwords on a fixed 8-column × 12-row board (96 cells). Every cell must have an explicit valid role. Every word must have a real Russian clue and dictionary answer. All intersections must match. Clues must be embedded in the grid. The optional 11-letter mechanic must occur approximately 25% of successful generated boards over a large batch. Generation must be seeded, bounded, independently validated, exportable as JSON, and compatible with the live QQCross game.
+Deliver a production-grade generator for complete, readable, diverse QQCross scanwords on a fixed 8-column × 12-row board (96 cells). Every cell must have an explicit valid role. Every word must have a real Russian clue and dictionary answer. All intersections must match. Clues must be embedded in the grid. The optional 11-letter mechanic should occur about once per five successfully generated boards (20%): never more than once in a five-board sequence, and only where the real answer and topology can be solved. Generation must be seeded, bounded, independently validated, exportable as JSON, and compatible with the live QQCross game.
 
 Do not call the task complete because one board was generated, code compiles, or a single unit test passes. Completion requires large seeded batches, full gameplay regression tests, and mobile viewport verification.
 
@@ -43,7 +43,7 @@ Question cells are part of the grid, not a separate detached list. Additional qu
 
 ## 3. Eleven-letter mechanic and geometry
 
-Set specialElevenLetterChance = 0.25. Across a sufficiently large batch of successful boards, target approximately 25%; do not force the feature if no valid answer or valid topology exists. No artificial words, appended letters or fake suffixes.
+Set specialElevenLetterChance = 0.20. In sequential production play, request the special board once every five successful generations. Do not count a failed generation; retry the same sequence position. Do not force the feature if no valid answer or valid topology exists. No artificial words, appended letters or fake suffixes.
 
 The intended special clue is at (0,1), with an 11-letter answer running down through (1,1)..(11,1). This exactly consumes the 11 cells below the clue. Therefore this one special answer must be explicitly allowed to terminate at the bottom board edge without a separate terminal clue cell. This is a narrow, named boundary-answer exception, not a global relaxation of normal terminal rules. If the current engine assumes every answer has an in-board terminal question cell, redesign the data model to support this exception correctly.
 
@@ -170,7 +170,7 @@ Test:
 9. no accidental unregistered runs;
 10. every word/question/dictionary record matches;
 11. special 11-letter coordinates and exact length;
-12. 25% special frequency across at least 400 successful boards, reporting success denominator separately from failed attempts;
+12. 20% special frequency across at least 400 successful boards, reporting successful-board denominator separately from failed attempts;
 13. batches of 1, 10, 100 and 400+ seeded boards;
 14. same-seed determinism and different-seed diversity;
 15. history penalties and bounded memory;
