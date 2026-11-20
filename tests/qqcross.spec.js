@@ -49,7 +49,8 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(1);
   await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
-  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().left))).size)).toBe(8);\n  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().top))).size)).toBe(12);\n  const geometry = await scanBoard.evaluate(board => {
+  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().left))).size)).toBe(8);
+  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().top))).size)).toBe(12);\n  const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
     const xTracks = new Set(cells.map(cell => Math.round(cell.getBoundingClientRect().left)));
     const yTracks = new Set(cells.map(cell => Math.round(cell.getBoundingClientRect().top)));
