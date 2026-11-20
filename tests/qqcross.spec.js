@@ -86,7 +86,7 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
   await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
-  await expect(page.locator(".scan-grid-cell.scan-boundary")).toHaveAttribute("aria-hidden", "true");
+  expect(await page.locator(".scan-grid-cell.scan-boundary").evaluateAll(nodes => nodes.every(node => node.getAttribute("aria-hidden") === "true"))).toBeTruthy();
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
