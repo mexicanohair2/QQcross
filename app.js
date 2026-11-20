@@ -61,7 +61,7 @@ function currentPlayerProfile(){
  const progress=window.QQProgression?.get?.()||{};
  const image=state.profile?.avatarUrl||state.profile?.avatar_url||getAvatarImage();
  let frame=state.profile?.frameId||state.profile?.frame_id||"classic";
- try{frame=localStorage.getItem("qqcross_frame_"+String(state.profile?.id||"guest"))||frame}catch{}
+ if(!state.profile?.frame_id&&(!state.profile?.id||String(state.profile.id).startsWith("local-"))){try{frame=localStorage.getItem("qqcross_frame_"+String(state.profile?.id||"guest"))||frame}catch{}}
  return {...(state.profile||{}),avatarUrl:image,avatar_url:image,frameId:frame,frame_id:frame,activeTitle:progress.activeTitle||state.profile?.activeTitle||state.profile?.active_title||"Новичок",active_title:progress.activeTitle||state.profile?.activeTitle||state.profile?.active_title||"Новичок"};
 }
 function syncQQCrossPlayerProfile(){
