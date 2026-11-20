@@ -92,7 +92,7 @@ async function main() {
     specialElevenCount,
     specialElevenMissedCount: specialElevenMisses.length,
     specialElevenMisses,
-    expectedSpecialElevenRange: [25, 25],
+    expectedSpecialElevenRange: [20, 20],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
     medianTwoLetterAnswers: twoLetterCounts[Math.floor(twoLetterCounts.length/2)],
@@ -107,8 +107,8 @@ async function main() {
   if (successful.some(run => run.musicNoteAnswers.length > 0)) {
     throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
   }
-  if (specialElevenRequestedCount !== 25 || specialElevenCount !== 25) {
-    throw new Error('Exactly every fourth of 100 puzzles must contain the eleven-letter answer; requested=' + specialElevenRequestedCount + ', generated=' + specialElevenCount);
+  if (specialElevenRequestedCount !== 20 || specialElevenCount !== 20) {
+    throw new Error('Exactly every fifth of 100 puzzles must contain the eleven-letter answer; requested=' + specialElevenRequestedCount + ', generated=' + specialElevenCount);
   }
   if (report.maximumTwoLetterAnswers > 6) {
     throw new Error("A production scanword contains more than six two-letter answers.");
