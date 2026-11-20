@@ -45,11 +45,11 @@
 .qq-settings-section.is-collapsed .qq-settings-toggle svg{transform:rotate(-90deg)}
 /* Slower, softer entrance and interaction timing in the newer modes. */
 .app>.screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}.app>.screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}.app .btn{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
-.qq-extra-screen,.qq-cody-app,.qq-wordle-screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}
-.qq-extra-screen .card,.qq-cody-app .card,.qq-wordle-screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}
-.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
-.qq-extra-screen button:active,.qq-cody-app button:active,.qq-wordle-screen button:active{transform:scale(.985)}
-.qq-extra-screen .word-slot,.qq-extra-screen .guess-cell,.qq-cody-app .word-slot,.qq-wordle-screen .word-cell{transition:background .4s ease,border-color .4s ease,transform .45s var(--qq-motion-ease)}
+.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.wordle-screen{animation:qq-screen-in .56s var(--qq-motion-ease) both}
+.qq-extra-screen .card,.qq-cody-app .card,.qq-wordle-screen .card,.wordle-screen .card{animation:qq-card-in .62s var(--qq-motion-ease) both}
+.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.wordle-screen button{transition:transform .4s var(--qq-motion-ease),background .4s ease,border-color .4s ease,box-shadow .4s ease}
+.qq-extra-screen button:active,.qq-cody-app button:active,.qq-wordle-screen button:active,.wordle-screen button:active{transform:scale(.985)}
+.qq-extra-screen .word-slot,.qq-extra-screen .guess-cell,.qq-cody-app .word-slot,.qq-wordle-screen .word-cell,.wordle-screen .wordle-tile{transition:background .4s ease,border-color .4s ease,transform .45s var(--qq-motion-ease)}
 .qq-extra-screen .level-card,.qq-cody-app .clue-card{transition:transform .45s var(--qq-motion-ease),border-color .42s ease,box-shadow .42s ease}
 @keyframes qq-screen-in{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
 @keyframes qq-card-in{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
@@ -67,4 +67,4 @@
 @keyframes qq-boot-breathe{0%,100%{transform:scale(.96)}50%{transform:scale(1.015)}}
 @keyframes qq-boot-mark{0%,100%{filter:drop-shadow(0 0 3px #d18db355)}50%{filter:drop-shadow(0 0 13px #d18db388)}}
 @media(max-width:380px){.qq-frame-shop-grid{gap:7px}.qq-frame-shop-card{padding:9px 6px}.qq-frame-preview .qq-avatar-frame{width:60px;height:60px}.qq-home-player,.qq-daily-player{padding:10px}.qq-score-players{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}}
-@media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img,.boot-qq{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
+@media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img,.boot-qq{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
