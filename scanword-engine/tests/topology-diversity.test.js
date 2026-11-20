@@ -45,8 +45,8 @@ test('seeded topology generation produces broad geometric variety while preservi
     '64 seeds should generate at least 12 distinct topologies; got ' + patterns.size
   );
   assert.ok(
-    questionCounts.size >= 3,
-    'topology clue density should vary across seeds; got ' + [...questionCounts].join(', ')
+    questionCounts.size >= 2,
+    'topology clue density should retain more than one valid level after removing false edge starts; got ' + [...questionCounts].join(', ')
   );
 });
 

@@ -735,7 +735,9 @@ function placeAtCell(k,letterIndex,root){
   if(state.loupeActive){toast("Нажми на клетку, чтобы открыть букву");return}
   if(expected[k]===undefined||state.filled[k]||state.pendingMoves.some(m=>m.k===k)){toast("Клетка уже занята");return}
   const letter=state.letters[letterIndex];if(!letter)return;
-  state.pendingMoves.push({k,l:letter});window.QQAudio?.play("letter");delete state.feedback[k];
+  state.pendingMoves.push({k,l:letter});
+  state.feedback[k]=String(letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[k]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
+  window.QQAudio?.play("letter");
   state.letters.splice(letterIndex,1);state.playerRacks[state.turn]=state.letters;renderGame(root);
 }
 async function finishTurn(root,timeout=false){
@@ -760,11 +762,11 @@ async function finishTurn(root,timeout=false){
   if(state.screen!=="game"){render();return}
   if(!state.rackNeedsRefill)state.rackNeedsRefill=Array(state.partySize).fill(false);
   state.rackNeedsRefill[state.turn]=true;
-  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},520)}return}
+  if(state.onlineMatchId){await saveOnlineTurn(correct+newlyCompleted.length*5,!!state.onlineFinished);if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame($("#app"))},1400)}return}
   if(state.partySize>1){state.turn=(state.turn+1)%state.partySize;if(state.turn===0)state.round=(state.round||1)+1;}
   else state.round=(state.round||1)+1;
   state.seconds=(state.round||1)<=1?90:60;state.turnDeadlineAt=Date.now()+state.seconds*1000;state.selectedLetter=-1;ensureWordLetter(state.turn);state.letters=state.playerRacks[state.turn];renderGame(root);
-  if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},520)}
+  if(incorrect||correct){setTimeout(()=>{incorrectKeys.forEach(k=>{delete state.returning[k];delete state.feedback[k]});correctKeys.forEach(k=>delete state.feedback[k]);if(state.screen==="game")renderGame(root)},1400)}
 
 }
 function refillRack(player){const rack=state.playerRacks[player]||(state.playerRacks[player]=[]);const count=Math.min(Math.max(0,5-rack.length),letterBag.length);if(!count)return [];const added=drawLetters(count);rack.push(...added);return added;}
@@ -978,7 +980,13 @@ function compactScanwordClue(value){
   return String(value||"").replace(/\s+/g," ").trim();
 }
 function fitScanwordClue(value,answer=""){
-  return compactScanwordClue(value);
+  const clue=compactScanwordClue(value);
+  const maxLength=36;
+  if(clue.length<=maxLength)return clue;
+  let shortened=clue.slice(0,maxLength-1);
+  const lastSpace=shortened.lastIndexOf(" ");
+  if(lastSpace>=22)shortened=shortened.slice(0,lastSpace);
+  return shortened.replace(/[\s,;:—-]+$/,"")+"…";
 }
 function clonePreparedScanword(source){
   return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
@@ -1025,7 +1033,7 @@ function buildScanwordInWorker(entries, overrides={}){
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-native-8x12-v1");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v2");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
@@ -1270,11 +1278,14 @@ function renderGame(root){
   }
   state.letters=state.playerRacks[state.turn]||[];
   const aiTurn=!!state.aiMatch&&state.turn===1;
+  const untimedSolo=state.partySize===1&&!state.aiMatch&&!state.onlineMatchId;
   const onlineIsMyTurn=(!state.onlineMatchId||state.onlinePlayers[state.turn]?.id===state.profile?.id)&&!aiTurn;
   state.pendingMoves=state.pendingMoves||[];
   const pending={};state.pendingMoves.forEach(m=>pending[m.k]=m.l);
   const clueAt=new Map(),startWordsAt=new Map();puzzle.words.forEach(w=>{const key=w.clueCell.join(","),list=clueAt.get(key)||[];list.push(w);clueAt.set(key,list);const starts=startWordsAt.get(key)||[];starts.push(w);startWordsAt.set(key,starts)});
   const wordTerminals=new Map(),terminalOnly=new Set(),directionDelta={right:[0,1],left:[0,-1],down:[1,0],up:[-1,0]};
+  const directionGlyph={right:"→",left:"←",down:"↓",up:"↑"};
+  const directionLabels={right:"→ По горизонтали",left:"← По горизонтали",down:"↓ По вертикали",up:"↑ По вертикали"};
   puzzle.words.forEach(w=>{const last=w.cells[w.cells.length-1],delta=directionDelta[w.dir],key=(last[0]+delta[0])+","+(last[1]+delta[1]),list=wordTerminals.get(key)||[];list.push(w);wordTerminals.set(key,list)});
   for(const [key,ended] of wordTerminals)if(!(clueAt.get(key)||[]).length){clueAt.set(key,ended);terminalOnly.add(key)}
   const activeWord=puzzle.words.find(w=>w.id===state.selectedWord&&!state.completed?.has(w.id))||puzzle.words.find(w=>!state.completed?.has(w.id))||puzzle.words[0];
@@ -1292,10 +1303,9 @@ function renderGame(root){
       const fullClueTitle=wordsAt.map(w=>w.clue).join(" | ");
       const picture=pictureWord?'<img class="scan-clue-image" src="./assets/scanword/'+esc(pictureWord.imageKey)+'.svg" alt="'+esc(pictureWord.answer)+'" loading="eager" decoding="async">':'<span class="scan-clue-text" style="--clue-length:'+single.length+'">'+esc(single)+'</span>';
       const clueTitle=pictureWord&&wordsAt.length===1?"Что изображено на картинке?":fullClueTitle;
-      const arrowGlyph={right:"→",down:"↓"};
       const arrowWords=(startWordsAt.get(key)||[]).length?startWordsAt.get(key):(wordTerminals.get(key)||[]);
-       const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(arrowGlyph[w.dir]||"") +'</span>').join("");
-      if(terminalOnly.has(key)&&!puzzle.clueKeys?.has(key)){
+       const arrows=arrowWords.map(w=>'<span class="scan-arrow scan-arrow-'+w.dir+'" aria-hidden="true">'+(directionGlyph[w.dir]||"") +'</span>').join("");
+      if(terminalOnly.has(key)&&!(startWordsAt.get(key)||[]).length){
         const endArrows="";
         cells.push('<div class="scan-cell scan-grid-cell scan-boundary scan-terminal" data-boundary-cell="'+key+'" data-terminal-for="'+esc((wordTerminals.get(key)||[]).join(","))+'" aria-hidden="true"'+position+'>'+endArrows+'</div>');
       }else{
@@ -1308,7 +1318,8 @@ function renderGame(root){
       const endClass=(wordEnds.get(key)||[]).map(dir=>"answer-end-"+dir).join(" ");
       const cls=(state.filled[key]?"filled":"")+(pending[key]?" pending-cell":"")+(hint?" hinted-cell":"")+(state.feedback[key]==="wrong"?" wrong":"")+(state.feedback[key]==="correct"?" correct":"")+(wordFlash?" word-complete-flash":"")+(activeWordCells.has(key)?" active-word-cell":"")+(endClass?" "+endClass:"");
       const letterMarkup=value?'<span class="cell-letter">'+esc(value)+'</span>':hint?'<span class="hint-letter" aria-hidden="true">'+esc(hint)+'</span>':'';
-      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква в слове"'+position+'>'+letterMarkup+'</button>');
+      const feedbackLabel=state.feedback[key]==="correct"?"верно":state.feedback[key]==="wrong"?"неверно":state.filled[key]?"заполнено":"ещё не проверено";
+      cells.push('<button type="button" class="scan-cell scan-grid-cell cell '+cls+'" data-cell="'+key+'" aria-label="Буква '+(value?esc(value)+", ":"")+feedbackLabel+'" title="'+feedbackLabel+'"'+position+'>'+letterMarkup+'</button>');
     }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" data-reserved-cell="'+key+'" aria-hidden="true"'+position+'></div>');
     else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
@@ -1318,20 +1329,8 @@ function renderGame(root){
     '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
-    const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
-    if(!hintWord)return;
-    const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
-    if(level!=="strong"){
-      if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-      out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
-    }
-    const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
-    if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-    if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
-  });
+    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
+
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
     const id=state.onlineMatchId;if(!id)return;
@@ -1353,40 +1352,34 @@ function renderGame(root){
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Открыть букву</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
+      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОС В КЛЕТКЕ</div><div class="clue-popup-subtitle">Прочитай вопрос и посмотри направление ответа</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Закрыть</button></div>';
       const options=popup.querySelector(".clue-popup-options");
-      popup.addEventListener("click",event=>{
-        const button=event.target.closest("[data-smart-hint]");
-        if(!button)return;
-        const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
-        const out=popup.querySelector("#scanwordHintMessage");
-        if(!hintWord||!out)return;
-        const level=button.dataset.smartHint;
-        if(level!=="strong"){
-          if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-          out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
-        }
-        const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
-        if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-        if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-        state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");popup.remove();renderGame(root);toast("Подсказка использована: открыта правильная буква");
-      });
+      const popupHeading=popup.querySelector(".clue-popup-number");
+      const popupSubtitle=popup.querySelector(".clue-popup-subtitle");
       const close=()=>popup.remove();
       const showQuestion=word=>{
         state.selectedWord=word.id;
-        options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
+        popupHeading.textContent="ВОПРОС";
+        popupSubtitle.textContent="Найди ответ и собери его из букв на панели";
+        options.innerHTML='<div class="clue-popup-direction"></div><div class="clue-popup-text"></div><div class="clue-popup-length"></div><div class="clue-popup-help">Перетащи нужные буквы с нижней панели в пустые клетки сетки.</div>'+(wordsAt.length>1?'<button type="button" class="clue-popup-back">← К другим вопросам</button>':"");
+        options.querySelector(".clue-popup-direction").textContent=directionLabels[word.dir]||"Направление не определено";
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
-        const shownDirection=word.dir;
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",down:"вниз"}[shownDirection]||"из сохранённой партии")+" · Ответ: "+count+" "+form;
-        options.querySelector(".clue-popup-back").onclick=()=>showChoices();
+        options.querySelector(".clue-popup-length").textContent="Ответ: "+count+" "+form;
+        options.querySelector(".clue-popup-back")?.addEventListener("click",showChoices);
       };
       const showChoices=()=>{
         if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
+        popupHeading.textContent="В ЭТОЙ КЛЕТКЕ НАЧИНАЮТСЯ СЛОВА";
+        popupSubtitle.textContent="Выбери направление, чтобы увидеть вопрос";
         options.innerHTML="";
         [...wordsAt].sort((a,b)=>Number(!!b.logic)-Number(!!a.logic)).forEach(word=>{
           const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
-          choice.textContent=({right:"→ Вправо",down:"↓ Вниз"}[word.dir]||"Сохранённый ответ")+" · "+fitScanwordClue(word.clueShort||word.clue);
+          const direction=document.createElement("span");direction.className="clue-popup-choice-direction";
+          direction.textContent=directionLabels[word.dir]||"Направление не определено";
+          const clue=document.createElement("span");clue.className="clue-popup-choice-text";
+          clue.textContent=word.imageKey?"Что изображено на картинке?":word.clue;
+          choice.append(direction,clue);
           choice.onclick=()=>showQuestion(word);options.append(choice);
         });
       };
@@ -1428,12 +1421,19 @@ function renderGame(root){
       if(drag.type==="rack"){
         if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key))placeAtCell(key,drag.index,root);
       }else if(expected[key]!==undefined&&!state.filled[key]&&!state.pendingMoves.some(m=>m.k===key)){
-        state.pendingMoves.push({k:key,l:drag.letter});state.playerRacks[state.turn]=state.letters;renderGame(root);
-      }else{state.pendingMoves.push({k:drag.key,l:drag.letter});renderGame(root)}
+        if(drag.type==="pending")delete state.feedback[drag.key];
+        state.pendingMoves.push({k:key,l:drag.letter});
+        state.feedback[key]=String(drag.letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[key]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
+        state.playerRacks[state.turn]=state.letters;renderGame(root);
+      }else{
+        state.pendingMoves.push({k:drag.key,l:drag.letter});
+        if(drag.type==="pending")state.feedback[drag.key]=String(drag.letter).toUpperCase().replace(/Ё/g,"Е")===String(expected[drag.key]).toUpperCase().replace(/Ё/g,"Е")?"correct":"wrong";
+        renderGame(root);
+      }
     }else if(target?.matches(".hand")||drag.type==="pending"){
-      if(drag.type==="pending"){state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
+      if(drag.type==="pending"){delete state.feedback[drag.key];state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root)}
     }else if(drag.type==="pending"){
-      state.pendingMoves.push({k:drag.key,l:drag.letter});renderGame(root);
+      delete state.feedback[drag.key];state.letters.push(drag.letter);state.playerRacks[state.turn]=state.letters;renderGame(root);
     }
   };
   root.querySelectorAll("[data-letter]").forEach(b=>b.addEventListener("pointerdown",e=>startDrag(e,{type:"rack",element:b})));
@@ -1455,7 +1455,7 @@ function renderGame(root){
         return;
       }
       const existing=state.pendingMoves.find(m=>m.k===key);
-      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);state.playerRacks[state.turn]=state.letters;renderGame(root);return}
+      if(existing){state.letters.push(existing.l);state.pendingMoves.splice(state.pendingMoves.indexOf(existing),1);delete state.feedback[key];state.playerRacks[state.turn]=state.letters;renderGame(root);return}
       if(state.selectedLetter<0){toast("Перетащи букву из набора в клетку");return}
       const index=state.selectedLetter;state.selectedLetter=-1;placeAtCell(key,index,root);
     };
@@ -1470,7 +1470,7 @@ function renderGame(root){
     toast(state.loupeActive?"Нажми на любую пустую клетку с буквой":"Выбор клетки отменён");
     root.querySelector("#magnifier")?.classList.toggle("active",state.loupeActive);
   };
-  $("#clock").onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
+  const clockButton=$("#clock");if(clockButton)clockButton.onclick=()=>{if(useItem("clock")){state.seconds+=20;renderGame(root)}};
   $("#trash").onclick=()=>{if(!useItem("trash"))return;state.playerRacks[state.turn]=[];state.letters=state.playerRacks[state.turn];refillRack(state.turn);ensureWordLetter(state.turn);renderGame(root)};
   $("#bulb").onclick=()=>{
     if(state.onlineMatchId&&state.onlinePlayers[state.turn]?.id!==state.profile?.id){toast("Сейчас ход другого игрока");return}
@@ -1481,7 +1481,7 @@ function renderGame(root){
   };
   if(aiTurn&&state.aiError){const retry=root.querySelector("#retryAI");if(retry)retry.onclick=()=>{state.aiError="";state.aiThinkingTurn=null;renderGame(root)}}
   if(aiTurn&&!state.aiError){const turnKey=String(state.round||1)+":"+state.turn;if(state.aiThinkingTurn!==turnKey){state.aiThinkingTurn=turnKey;runChatGPTTurn(root,turnKey)}}
-  if(onlineIsMyTurn)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(Date.now()-lastMatchPersistAt>=2000)persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
+  if(onlineIsMyTurn&&!untimedSolo)state.interval=setInterval(()=>{state.seconds=Math.max(0,Math.ceil(((state.turnDeadlineAt||Date.now())-Date.now())/1000));const timer=$("#timer");if(timer)timer.textContent="⏱ "+state.seconds;if(Date.now()-lastMatchPersistAt>=2000)persistCurrentMatch();if(state.seconds<=0){clearInterval(state.interval);finishTurn(root,true)}},250);
 }
 
 

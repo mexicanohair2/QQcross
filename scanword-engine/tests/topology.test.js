@@ -215,3 +215,37 @@ test('offers the exact optional eleven-letter vertical boundary slot', () => {
   assert.deepEqual(special.coordinates[0], { row: 1, col: 1 });
   assert.deepEqual(special.coordinates[10], { row: 11, col: 1 });
 });
+
+
+test('right and bottom edge questions are terminal endpoints, not outward clue starts', () => {
+  const horizontalGrid = makeGrid();
+  setQuestion(horizontalGrid, 4, 1);
+  setQuestion(horizontalGrid, 4, 7);
+  setQuestion(horizontalGrid, 11, 0);
+  setQuestion(horizontalGrid, 11, 6);
+  const horizontalSlots = deriveWordSlots(horizontalGrid, { allowSpecialElevenBoundary: false }).slots;
+  const rightEdgeSlot = horizontalSlots.find(slot =>
+    slot.axis === 'horizontal' && slot.endpoints[0].row === 4
+      && slot.endpoints[1].col === 7
+  );
+  const bottomRowSlot = horizontalSlots.find(slot =>
+    slot.axis === 'horizontal' && slot.endpoints[0].row === 11
+      && slot.endpoints[1].col === 6
+  );
+
+  const verticalGrid = makeGrid();
+  setQuestion(verticalGrid, 1, 5);
+  setQuestion(verticalGrid, 11, 5);
+  const verticalSlots = deriveWordSlots(verticalGrid, { allowSpecialElevenBoundary: false }).slots;
+  const bottomEdgeSlot = verticalSlots.find(slot =>
+    slot.axis === 'vertical' && slot.endpoints[0].col === 5
+      && slot.endpoints[1].row === 11
+  );
+
+  assert.ok(rightEdgeSlot);
+  assert.ok(bottomRowSlot);
+  assert.ok(bottomEdgeSlot);
+  assert.equal(rightEdgeSlot.requiredDirection, 'right');
+  assert.equal(bottomRowSlot.requiredDirection, 'right');
+  assert.equal(bottomEdgeSlot.requiredDirection, 'down');
+});

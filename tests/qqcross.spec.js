@@ -49,6 +49,8 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   expect(await page.locator('.scan-clue[data-clue-cell^="0,"]').count()).toBeGreaterThanOrEqual(1);
   await expect(page.locator('.scan-clue[data-clue-cell$=",0"]')).toHaveCount(11);
   expect(await page.locator(".scan-arrow").count()).toBeGreaterThanOrEqual(await page.locator(".scan-clue").count());
+  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().left))).size)).toBe(8);
+  await expect.poll(() => scanBoard.evaluate(board => new Set([...board.querySelectorAll(':scope > .scan-grid-cell')].map(cell => Math.round(cell.getBoundingClientRect().top))).size)).toBe(12);
   const geometry = await scanBoard.evaluate(board => {
     const cells = [...board.querySelectorAll(":scope > .scan-grid-cell")];
     const xTracks = new Set(cells.map(cell => Math.round(cell.getBoundingClientRect().left)));
@@ -82,13 +84,14 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-clue-terminal")).not.toHaveCount(0);
   await expect(page.locator(".scan-filler")).toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.cell, .scan-grid-cell.scan-clue, .scan-grid-cell.scan-boundary")).toHaveCount(95);
-  await expect(page.locator(".scan-grid-cell.scan-boundary")).toHaveCount(0);
+  await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
+  expect(await page.locator(".scan-grid-cell.scan-boundary").evaluateAll(nodes => nodes.every(node => node.getAttribute("aria-hidden") === "true"))).toBeTruthy();
   await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
   await expect(page.locator(".scan-clue-image")).toHaveCount(5);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueFontSizes.every(size => size >= 7)).toBeTruthy();
+  expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
   expect(new Set(pictureSources).size).toBe(5);
@@ -100,25 +103,24 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   expect(pageErrors, "The app should not throw uncaught JavaScript errors").toEqual([]);
 });
 
-test("three scanword hint levels are available and successful hints are counted", async ({ page }) => {
+test("question popup is clear and contains no quick hints; the separate bulb tool still works", async ({ page }) => {
   await startGuestGame(page);
   await page.locator("[data-clue-cell]").first().click();
   const clueChoices = page.locator(".clue-popup-choice");
   if (await clueChoices.count()) await clueChoices.first().click();
-  await expect(page.locator("[data-smart-hint='light']")).toBeVisible();
-  await expect(page.locator("[data-smart-hint='medium']")).toBeVisible();
-  await expect(page.locator("[data-smart-hint='strong']")).toBeVisible();
-  await page.locator("[data-smart-hint='light']").click();
-  await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
-  await page.locator("[data-smart-hint='medium']").click();
-  await expect(page.locator("#scanwordHintMessage")).not.toBeEmpty();
-  await page.locator("[data-smart-hint='strong']").click();
+  await expect(page.locator(".clue-popup-text")).not.toBeEmpty();
+  await expect(page.locator(".clue-popup-direction")).toBeVisible();
+  await expect(page.locator(".clue-popup-length")).toContainText("Ответ:");
+  await expect(page.locator(".clue-popup-help")).toContainText("Перетащи");
+  await expect(page.locator(".scanword-smart-hints")).toHaveCount(0);
+  await expect(page.locator("[data-smart-hint]")).toHaveCount(0);
+  await page.locator(".clue-popup-close").click();
   await page.locator("#bulb").click();
-  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(2);
+  await expect(page.locator(".scanword-board .hinted-cell")).toHaveCount(1);
   const count = await page.evaluate(() => window.QQProgression.get().stats.hintsUsed);
   const bulbs = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")).items.bulb);
-  expect(count).toBe(4);
-  expect(bulbs).toBe(1);
+  expect(count).toBe(1);
+  expect(bulbs).toBe(4);
 });
 
 test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
@@ -148,17 +150,22 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   await expect(page.locator(".letter")).toHaveCount(5);
   expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
-  const letterStyle = await page.locator(".letter").first().evaluate(async node => {
-    node.classList.add("letter-enter");
-    await Promise.all(node.getAnimations().map(animation => animation.finished.catch(() => {})));
+  const letterGeometry = await page.locator(".letter").evaluateAll(nodes => nodes.map(node => {
+    const rect = node.getBoundingClientRect();
     const style = getComputedStyle(node);
-    return { filter: style.filter, transform: style.transform };
-  });
-  expect(letterStyle.filter).toBe("none");
-  expect(["none","matrix(1, 0, 0, 1, 0, 0)"]).toContain(letterStyle.transform);
-  const clueSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
-  expect(clueSizes.length).toBeGreaterThan(0);
-  expect(clueSizes.every(size => size >= 6)).toBeTruthy();
+    return { width: rect.width, height: rect.height, aspectRatio: style.aspectRatio, maxHeight: style.maxHeight };
+  }));
+  expect(letterGeometry).toHaveLength(5);
+  expect(letterGeometry.every(tile => tile.width >= 36 && tile.height >= 36 && Math.abs(tile.width - tile.height) <= 1)).toBeTruthy();
+  const handFit = await page.locator(".hand").evaluate(node => ({client:node.clientWidth,scroll:node.scrollWidth}));
+  expect(handFit.scroll).toBeLessThanOrEqual(handFit.client + 1);
+  const clueData = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => ({
+    size: parseFloat(getComputedStyle(node).fontSize),
+    length: node.textContent.length,
+    boxHeight: node.clientHeight
+  })));
+  expect(clueData.length).toBeGreaterThan(0);
+  expect(clueData.every(item => item.size >= 6 && item.length <= 36)).toBeTruthy();
 });
 
 test("opens full text for an ordinary text clue from its cell", async ({ page }) => {
@@ -534,7 +541,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0) counts.top++;
@@ -553,15 +560,21 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     return row >= 3 && row <= 8 && col >= 3 && col <= 5;
   }).length);
   expect(centerClues).toBeGreaterThanOrEqual(3);
-  const rightBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => node.dataset.boundaryCell));
-  expect(rightBoundaries.length).toBeLessThanOrEqual(2);
-  expect(rightBoundaries.every(key => { const [row,col] = key.split(",").map(Number); return row === 0 || row === 11 || col === 0 || col === 7; })).toBeTruthy();
-  await expect(board.locator('.scan-clue[data-clue-cell="11,7"]')).toHaveCount(1);
+  const terminalBoundaries = await board.locator(".scan-boundary").evaluateAll(nodes => nodes.map(node => ({
+    key: node.dataset.boundaryCell,
+    terminalFor: node.dataset.terminalFor,
+    interactive: node.hasAttribute("data-clue-cell") || node.tagName === "BUTTON"
+  })));
+  expect(terminalBoundaries.length).toBeGreaterThan(0);
+  expect(terminalBoundaries.every(cell => cell.terminalFor && !cell.interactive)).toBeTruthy();
+  await expect(board.locator('.scan-boundary[data-boundary-cell="11,7"]')).toHaveCount(1);
+  await expect(board.locator('.scan-clue[data-clue-cell="11,7"]')).toHaveCount(0);
   const clueCells = await board.locator(".scan-clue").evaluateAll(nodes => nodes.map(node => {
     const text = node.querySelector(".scan-clue-text");
     return { starts: Number(node.dataset.clueStartCount || 0), hasText: !!text?.textContent.trim(), visible: !!text && getComputedStyle(text).display !== "none" && text.getBoundingClientRect().width > 0 };
   }));
   expect(clueCells.length).toBeGreaterThan(10);
+  expect(clueCells.every(cell => cell.starts > 0)).toBeTruthy();
   expect(clueCells.some(cell => cell.starts > 0 && cell.hasText && cell.visible)).toBeTruthy();
   const pageFit = await page.evaluate(() => ({
     width: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
@@ -601,6 +614,51 @@ test("scanword autosave avoids writing the full match snapshot on every timer ti
 });
 
 
+test("solo scanword is untimed, keeps five centered letter tiles, and immediately marks placed letters", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
+  await expect(page.locator(".hand .letter")).toHaveCount(5);
+  await expect(page.locator("#timer")).toHaveCount(0);
+  await expect(page.locator("#clock")).toHaveCount(0);
+  const hand = await page.locator(".hand").evaluate(node => {
+    const rect = node.getBoundingClientRect();
+    const letters = [...node.querySelectorAll(".letter")].map(el => el.getBoundingClientRect());
+    return {
+      hand: { left: rect.left, right: rect.right, center: (rect.left + rect.right) / 2 },
+      letters: letters.map(r => ({ left: r.left, right: r.right, width: r.width, height: r.height }))
+    };
+  });
+  expect(hand.letters).toHaveLength(5);
+  expect(hand.letters.every(item => Math.abs(item.width - item.height) <= 1)).toBeTruthy();
+  const tileCenter=(hand.letters[0].left+hand.letters[4].right)/2;
+  expect(Math.abs(tileCenter-hand.hand.center)).toBeLessThanOrEqual(2);
+  const tile = page.locator(".hand .letter").first();
+  const cell = page.locator(".scanword-board .cell").first();
+  const from = await tile.boundingBox();
+  const to = await cell.boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const pending = page.locator(".scanword-board .cell.pending-cell").first();
+  await expect(pending).toBeVisible();
+  await expect(pending).toHaveClass(/(correct|wrong)/);
+  await expect(pending.locator(".cell-letter")).toHaveText(/[А-ЯЁ]/);
+});
+
+test("terminal edge question cells are not rendered as false playable clues", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const clues = await page.locator(".scanword-board .scan-clue").evaluateAll(nodes => nodes.map(node => {
+    const [row, col] = node.dataset.clueCell.split(",").map(Number);
+    return { row, col, starts: Number(node.dataset.clueStartCount || 0) };
+  }));
+  expect(clues.length).toBeGreaterThan(10);
+  expect(clues.every(clue => clue.starts > 0)).toBeTruthy();
+  expect(clues.every(clue => (clue.row === 11 && clue.col === 0) || (clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7))))).toBeTruthy();
+});
+
 test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
@@ -614,6 +672,6 @@ test("scanword always includes five pictures and at least three logical question
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
   expect(clueLayout.length).toBeGreaterThan(0);
-  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });

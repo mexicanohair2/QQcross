@@ -54,6 +54,27 @@ export function toLegacyPuzzle(scanword, options = {}) {
     }
     const clue = String(word.question ?? '').trim();
     if (!clue) throw new Error('У ответа ' + word.id + ' отсутствует вопрос.');
+    const clueRow = Number(word.clue?.row), clueCol = Number(word.clue?.col);
+    if (!Number.isInteger(clueRow) || !Number.isInteger(clueCol)
+      || clueRow < 0 || clueRow >= 12 || clueCol < 0 || clueCol >= 8) {
+      throw new Error('Вопрос ответа ' + word.id + ' расположен вне сетки 8×12.');
+    }
+    if (scanword.grid[clueRow][clueCol]?.type !== 'question') {
+      throw new Error('Вопрос ответа ' + word.id + ' не находится в клетке-вопросе.');
+    }
+    const delta = {
+      right: [0, 1], down: [1, 0], left: [0, -1], up: [-1, 0]
+    }[word.direction];
+    word.coordinates.forEach((point, index) => {
+      const row = clueRow + delta[0] * (index + 1);
+      const col = clueCol + delta[1] * (index + 1);
+      if (point.row !== row || point.col !== col || row < 0 || row >= 12 || col < 0 || col >= 8) {
+        throw new Error('Ответ ' + word.id + ' выходит за границы или неверно направлен от клетки-вопроса.');
+      }
+      if (scanword.grid[row][col]?.type !== 'letter') {
+        throw new Error('Ответ ' + word.id + ' пересекает клетку, которая не является буквой.');
+      }
+    });
     return {
       id: String(word.id), answer: String(word.answer), sourceAnswer: String(word.answer),
       clue, clueShort: String(word.clueShort || compactClue(clue)), isEmoji: hasEmoji(clue),

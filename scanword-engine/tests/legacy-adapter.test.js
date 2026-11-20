@@ -39,3 +39,18 @@ test('preserves the native 8-column by 12-row grid and all answer directions', (
   assert.deepEqual(byId.up.clueCell, [7, 4]);
   assert.deepEqual(byId.up.cells, [[6, 4], [5, 4]]);
 });
+
+
+test('rejects answer coordinates that extend beyond the 8x12 grid', () => {
+  const scanword = makeScanword();
+  const down = scanword.words.find(word => word.id === 'down');
+  down.coordinates[1] = { row: 12, col: 4 };
+  assert.throws(() => toLegacyPuzzle(scanword), /выходит за границы|неверно направлен/u);
+});
+
+test('rejects a question whose answer direction points outside the grid', () => {
+  const scanword = makeScanword();
+  const left = scanword.words.find(word => word.id === 'left');
+  left.direction = 'right';
+  assert.throws(() => toLegacyPuzzle(scanword), /выходит за границы|неверно направлен/u);
+});
