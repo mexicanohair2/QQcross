@@ -14,7 +14,14 @@ const THEME_PRESETS=[
  ["orchid","Орхидея","Глубокий ягодный"],["graphite","Графит","Серебристо-графитовый"]
 ];
 const THEME_IDS=new Set(THEME_PRESETS.map(([id])=>id));
-let activeTheme=(()=>{try{const saved=localStorage.getItem(THEME_KEY);return THEME_IDS.has(saved)?saved:(saved==="dark"?"purple":"burgundy")}catch{return "burgundy"}})();
+let activeTheme=(()=>{try{
+ const saved=localStorage.getItem(THEME_KEY);
+ if(saved==="light"&&localStorage.getItem("qqcross_appearance_mode_v1")===null)localStorage.setItem("qqcross_appearance_mode_v1","light");
+ const migrated=saved==="black"?"graphite":saved==="dark"?"purple":saved==="light"?"burgundy":saved;
+ const theme=THEME_IDS.has(migrated)?migrated:"burgundy";
+ if(saved&&saved!==theme)localStorage.setItem(THEME_KEY,theme);
+ return theme;
+}catch{return "burgundy"}})();
 function applyTheme(theme=activeTheme){
  const root=document.documentElement,previousTheme=root.dataset.qqTheme;
  activeTheme=THEME_IDS.has(theme)?theme:"burgundy";
@@ -1571,7 +1578,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261120-native-8x12-v1",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261120-native-8x12-v2",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
