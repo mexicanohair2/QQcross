@@ -780,7 +780,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         if (imageKeys.size) imageDomains.push([...imageKeys]);
 
         const logicClueKeys = new Set(candidates
-          .filter(candidate => candidate.entry.logic === true)
+          .filter(candidate => candidate.entry.logic === true
+            && !state.usedLogicClues.has(pointKey(candidate.clueCell)))
           .map(candidate => pointKey(candidate.clueCell)));
         if (logicClueKeys.size) logicClueDomains.push([...logicClueKeys]);
 
