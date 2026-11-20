@@ -179,6 +179,38 @@ function hasUnassignedOutgoingOption(questionKeys, unassignedSlots, directionUse
   return true;
 }
 
+/**
+ * Maximum number of slots that can receive distinct resource keys. Used for
+ * image assets and unique clue-cell quotas so a late CSP dead end is pruned
+ * before consuming every remaining slot.
+ */
+export function maximumDistinctAssignmentCount(domains) {
+  const normalized = domains
+    .map(domain => [...new Set(domain ?? [])].filter(value => value !== null && value !== undefined && value !== '').sort())
+    .filter(domain => domain.length > 0)
+    .sort((a, b) => a.length - b.length);
+  const ownerByValue = new Map();
+
+  function augment(slotIndex, visited) {
+    for (const value of normalized[slotIndex]) {
+      if (visited.has(value)) continue;
+      visited.add(value);
+      const owner = ownerByValue.get(value);
+      if (owner === undefined || augment(owner, visited)) {
+        ownerByValue.set(value, slotIndex);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  let assigned = 0;
+  for (let slotIndex = 0; slotIndex < normalized.length; slotIndex++) {
+    if (augment(slotIndex, new Set())) assigned++;
+  }
+  return assigned;
+}
+
 function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, requiredImageCount, minimumLogicClueCells) {
   if (requiredImageCount - usedImages.size > unassignedCount) return false;
   if (minimumLogicClueCells - usedLogicClues.size > unassignedCount) return false;
@@ -721,6 +753,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     } else {
       const selectionOrder = shuffle(unassigned, random);
       let chosenContentPriority = -1;
+      const imageDomains = [];
+      const logicClueDomains = [];
       for (const slot of selectionOrder) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
@@ -739,6 +773,16 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id, slotLength: slot.length });
           return false;
         }
+
+        const imageKeys = new Set(candidates
+          .filter(candidate => candidate.entry.imageKey)
+          .map(candidate => candidate.entry.imageKey));
+        if (imageKeys.size) imageDomains.push([...imageKeys]);
+
+        const logicClueKeys = new Set(candidates
+          .filter(candidate => candidate.entry.logic === true)
+          .map(candidate => pointKey(candidate.clueCell)));
+        if (logicClueKeys.size) logicClueDomains.push([...logicClueKeys]);
 
         // Select slots that can still satisfy mandatory content quotas before
         // unconstrained slots. Candidate ranking already puts eligible image
@@ -765,6 +809,31 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           chosenContentPriority = contentPriority;
         }
       }
+
+      const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
+      const availableImageAssignments = maximumDistinctAssignmentCount(imageDomains);
+      if (availableImageAssignments < remainingImageQuota) {
+        recordDeadEnd({
+          reason: 'IMAGE_CAPACITY_UNREACHABLE',
+          required: remainingImageQuota,
+          available: availableImageAssignments,
+          openSlots: unassigned.length
+        });
+        return false;
+      }
+
+      const remainingLogicQuota = Math.max(0, minimumLogicClueCells - state.usedLogicClues.size);
+      const availableLogicClues = maximumDistinctAssignmentCount(logicClueDomains);
+      if (availableLogicClues < remainingLogicQuota) {
+        recordDeadEnd({
+          reason: 'LOGIC_CLUE_CAPACITY_UNREACHABLE',
+          required: remainingLogicQuota,
+          available: availableLogicClues,
+          openSlots: unassigned.length
+        });
+        return false;
+      }
+
       recordSearchChoice(chosenSlot, chosenCandidates);
     }
 
