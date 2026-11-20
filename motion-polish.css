@@ -23,7 +23,7 @@
 .qq-frame-preview{display:grid;place-items:center;min-height:78px;width:100%;background:radial-gradient(circle, #ffffff0a,transparent 72%)}
 .qq-frame-preview .qq-avatar-frame{width:68px;height:68px}
 .qq-frame-shop-card .btn{width:100%;margin-top:auto}
-.qq-extra-player,.qq-wordle-player{display:flex;justify-content:flex-end;align-items:center;margin:4px 0 10px;padding:7px 10px;border:1px solid var(--qq-theme-border,var(--line));border-radius:13px;background:var(--qq-theme-card,var(--panel))}.qq-extra-player .qq-profile-identity,.qq-wordle-player .qq-profile-identity{gap:8px}.qq-extra-player .qq-avatar-frame,.qq-wordle-player .qq-avatar-frame{width:34px;height:34px}.qq-extra-player .qq-player-title,.qq-wordle-player .qq-player-title{font-size:9px}
+.qq-extra-player,.qq-wordle-player{display:flex;justify-content:flex-end;align-items:center;margin:1px 0 4px;padding:3px 7px;border:1px solid var(--qq-theme-border,var(--line));border-radius:13px;background:var(--qq-theme-card,var(--panel))}.qq-extra-player .qq-profile-identity,.qq-wordle-player .qq-profile-identity{gap:8px}.qq-extra-player .qq-avatar-frame,.qq-wordle-player .qq-avatar-frame{width:29px;height:29px;padding:2px}.qq-extra-player .qq-player-title,.qq-wordle-player .qq-player-title{font-size:8px}.qq-extra-player .qq-player-points,.qq-wordle-player .qq-player-points{font-size:8px}.qq-extra-player .qq-player-title,.qq-wordle-player .qq-player-title{font-size:9px}
 .qq-party-lobby-screen{padding-bottom:max(22px,env(safe-area-inset-bottom))}
 .qq-party-friend-option{display:flex;align-items:center;gap:9px;margin:8px 0;padding:7px;border:1px solid var(--qq-theme-border,var(--line));border-radius:14px;background:var(--qq-theme-card,var(--panel));cursor:pointer}
 .qq-party-friend-option input{flex:0 0 19px;width:19px;height:19px;accent-color:var(--qq-theme-accent,var(--purple))}
@@ -66,5 +66,6 @@
 .boot-footnote{color:#ad8b9e!important}
 @keyframes qq-boot-breathe{0%,100%{transform:scale(.96)}50%{transform:scale(1.015)}}
 @keyframes qq-boot-mark{0%,100%{filter:drop-shadow(0 0 3px #d18db355)}50%{filter:drop-shadow(0 0 13px #d18db388)}}
+@media(max-width:430px){.wordle-screen .wordle-board{width:min(78vw,300px);margin:4px auto 10px}.wordle-screen .wordle-help{margin-top:6px}.wordle-screen .wordle-footer{margin-top:8px;padding-top:7px}}
 @media(max-width:380px){.qq-frame-shop-grid{gap:7px}.qq-frame-shop-card{padding:9px 6px}.qq-frame-preview .qq-avatar-frame{width:60px;height:60px}.qq-home-player,.qq-daily-player{padding:10px}.qq-score-players{grid-template-columns:repeat(auto-fit,minmax(112px,1fr))}}
 @media(prefers-reduced-motion:reduce){.qq-extra-screen,.qq-cody-app,.qq-wordle-screen,.wordle-screen,.qq-party-game-screen,.boot-scene,.boot-mark img,.boot-qq{animation:none!important}.qq-extra-screen button,.qq-cody-app button,.qq-wordle-screen button,.wordle-screen button,.qq-settings-section .qq-settings-content{transition:none!important}}
