@@ -76,8 +76,11 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
     const boardRect = board.getBoundingClientRect();
     return {
       cellCount: cells.length,
-      columns: countTracks(style.gridTemplateColumns),
-      rows: countTracks(style.gridTemplateRows),
+      // Prefer declared tracks, but fall back to actual rendered cell positions.
+      // Some mobile Chromium frames expose implicit tracks as "none" for one frame
+      // while all 96 explicitly positioned cells already render in the correct grid.
+      columns: countTracks(style.gridTemplateColumns) || new Set(rects.map(rect => Math.round(rect.left * 10) / 10)).size,
+      rows: countTracks(style.gridTemplateRows) || new Set(rects.map(rect => Math.round(rect.top * 10) / 10)).size,
       explicitColumns: explicitColumns.size,
       explicitRows: explicitRows.size,
       positiveCells: rects.filter(rect => rect.width > 0 && rect.height > 0).length,
