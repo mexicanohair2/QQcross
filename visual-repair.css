@@ -278,3 +278,9 @@ html[data-qq-theme] .game-screen .scanword-board>.scan-cell.scan-clue.scan-clue-
 .game-screen .items .timer{display:flex!important;align-items:center!important;justify-content:center!important;min-width:0!important;padding:4px 2px!important;font-size:11px!important}
 @media(max-height:700px){.game-screen{gap:3px!important}.game-screen .scanword-board{width:min(96vw,calc((100dvh - 175px)*.666667))!important;max-height:calc(100dvh - 175px)!important}.game-screen .items .item{padding:2px!important;font-size:9px!important}.game-screen .letter{max-height:34px!important}}
 @media(max-width:360px){.game-screen .scanword-board{gap:1px!important}.game-screen .letter-area{grid-template-columns:auto minmax(0,1fr) 34px!important}.game-screen .items .item{font-size:8px!important}}
+
+/* Keep every readable text clue at 8px or larger; long clues remain fully available in the popup. */
+html[data-qq-theme] .game-screen .scanword-board>.scan-cell.scan-clue:not(.scan-clue-emoji):not(.scan-clue-picture) .scan-clue-text{
+  font-size:clamp(8px,calc(10px - var(--clue-length,20)*.025px),10px)!important;
+  line-height:1.04!important;
+}
