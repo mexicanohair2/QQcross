@@ -207,6 +207,11 @@ function tabIcon(name){
   friends:'<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   shop:'<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
   profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  wordSearch:'<rect x="3" y="3" width="13" height="13" rx="2"/><path d="M6 7h7M6 11h4"/><circle cx="17.5" cy="17.5" r="3.5"/><path d="m20.2 20.2 1.3 1.3"/>',
+  wordle:'<rect x="3" y="3" width="7" height="7" rx="1.2"/><rect x="14" y="3" width="7" height="7" rx="1.2"/><rect x="3" y="14" width="7" height="7" rx="1.2"/><path d="m15 17 2 2 4-5"/>',
+  cody:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M17.5 14v7M14 17.5h7"/>',
+  team:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 21v-1.5A4.5 4.5 0 0 1 7 15h4a4.5 4.5 0 0 1 4.5 4.5V21"/><path d="M16 4.8a3.5 3.5 0 0 1 0 6.4M18 15.2a4.5 4.5 0 0 1 3.5 4.3V21"/>',
+  draw:'<path d="m14 5 5 5"/><path d="M4 20l4.2-.9L20 7.3 16.7 4 4.9 15.8 4 20Z"/><path d="m13 6 5 5"/>',
   settings:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.08-.03a1.7 1.7 0 0 0-1.85.42l-.06.06h-3.4l-.02-.09a1.7 1.7 0 0 0-1.35-1.35l-.09-.02-1.7-2.94.06-.06A1.7 1.7 0 0 0 9.95 14l-.09-.02v-3.4l.09-.02a1.7 1.7 0 0 0 1.35-1.35l.02-.09h3.4l.06.06a1.7 1.7 0 0 0 1.85.42l.08-.03 1.7 2.94-.06.06A1.7 1.7 0 0 0 19.4 15Z"/>'
  };
  return '<svg class="qq-tab-icon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.home)+'</svg>';
@@ -231,7 +236,7 @@ function collapsiblePanel(id,title,body,initialOpen=false){
 function home(){
  const daily='<section class="card qq-daily-entry"><div><span class="pill">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневные испытания</h3><p class="small muted">Сканворд и Wordle · серия прохождений</p></div><button class="btn primary" type="button" data-qq-daily-open data-daily-date="'+(window.QQProgression?.daily?.().date||"")+'">Открыть</button></section>';
  const hero='<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа" data-qq-straw-hat-trigger>👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section>';
- const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><a class="qq-game-launch" href="https://qqcross-team-word.vercel.app/" target="_blank" rel="noopener"><span class="qq-game-icon">👥</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></a><a class="qq-game-launch" href="https://qqcross-qq-draw.vercel.app/" target="_blank" rel="noopener"><span class="qq-game-icon">🎨</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></a></div>';
+ const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">'+tabIcon("wordSearch")+'</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">'+tabIcon("wordle")+'</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">'+tabIcon("cody")+'</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><a class="qq-game-launch" href="https://qqcross-team-word.vercel.app/" target="_blank" rel="noopener"><span class="qq-game-icon">'+tabIcon("team")+'</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></a><a class="qq-game-launch" href="https://qqcross-qq-draw.vercel.app/" target="_blank" rel="noopener"><span class="qq-game-icon">'+tabIcon("draw")+'</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></a></div>';
  return daily+hero+
   collapsiblePanel("home-games","Другие игры",games,true)+
   collapsiblePanel("home-invites","Приглашения в партии",'<div id="matchInvites"><p class="small muted">Загрузка…</p></div>',false)+
@@ -978,7 +983,13 @@ function compactScanwordClue(value){
   return String(value||"").replace(/\s+/g," ").trim();
 }
 function fitScanwordClue(value,answer=""){
-  return compactScanwordClue(value);
+  const clue=compactScanwordClue(value);
+  const maxLength=36;
+  if(clue.length<=maxLength)return clue;
+  let shortened=clue.slice(0,maxLength-1);
+  const lastSpace=shortened.lastIndexOf(" ");
+  if(lastSpace>=22)shortened=shortened.slice(0,lastSpace);
+  return shortened.replace(/[\s,;:—-]+$/,"")+"…";
 }
 function clonePreparedScanword(source){
   return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
@@ -1319,19 +1330,7 @@ function renderGame(root){
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+state.letters.map((l,i)=>'<button class="letter '+(state.selectedLetter===i?'selected':'')+(state.rackNewIndices?.includes(i)?' letter-enter':'')+'" data-letter="'+i+'">'+esc(l)+'</button>').join("")+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button><button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button><button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button><span class="timer" id="timer">⏱ '+state.seconds+'</span></div></div></div>';
-  root.querySelectorAll("[data-smart-hint]").forEach(button=>button.onclick=()=>{
-    const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
-    if(!hintWord)return;
-    const level=button.dataset.smartHint,out=root.querySelector("#scanwordHintMessage");
-    if(level!=="strong"){
-      if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-      out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
-    }
-    const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
-    if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-    if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-    state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");renderGame(root);toast("Подсказка использована: открыта правильная буква");
-  });
+
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{
     const id=state.onlineMatchId;if(!id)return;
@@ -1353,40 +1352,34 @@ function renderGame(root){
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОСЫ</div><div class="clue-popup-options"></div><div class="scanword-smart-hints"><button type="button" data-smart-hint="light">Лёгкая</button><button type="button" data-smart-hint="medium">Средняя</button><button type="button" data-smart-hint="strong">Открыть букву</button></div><div class="scanword-hint-message" id="scanwordHintMessage" aria-live="polite"></div><button type="button" class="clue-popup-close">Понятно</button></div>';
+      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОС В КЛЕТКЕ</div><div class="clue-popup-subtitle">Прочитай вопрос и посмотри направление ответа</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Закрыть</button></div>';
       const options=popup.querySelector(".clue-popup-options");
-      popup.addEventListener("click",event=>{
-        const button=event.target.closest("[data-smart-hint]");
-        if(!button)return;
-        const hintWord=puzzle.words.find(word=>word.id===state.selectedWord)||activeWord;
-        const out=popup.querySelector("#scanwordHintMessage");
-        if(!hintWord||!out)return;
-        const level=button.dataset.smartHint;
-        if(level!=="strong"){
-          if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-          out.textContent=getScanwordHint(hintWord,level);window.QQProgression?.record?.("hintsUsed");return;
-        }
-        const key=hintWord.cells.find(cell=>!state.filled[cell.join(",")]&&!state.pendingMoves.some(m=>m.k===cell.join(","))&&!state.hints?.[cell.join(",")])?.join(",");
-        if(!key){out.textContent="В этом слове больше нет закрытых букв.";return;}
-        if(!useItem("bulb")){out.textContent="Для подсказки нужна лампочка из магазина (20 монет за штуку).";return;}
-        state.hints=state.hints||{};state.hints[key]=expected[key];window.QQProgression?.record?.("hintsUsed");popup.remove();renderGame(root);toast("Подсказка использована: открыта правильная буква");
-      });
+      const popupHeading=popup.querySelector(".clue-popup-number");
+      const popupSubtitle=popup.querySelector(".clue-popup-subtitle");
       const close=()=>popup.remove();
       const showQuestion=word=>{
         state.selectedWord=word.id;
-        options.innerHTML='<div class="clue-popup-text"></div><div class="clue-popup-length"></div><button type="button" class="clue-popup-back">← Другие вопросы</button>';
+        popupHeading.textContent="ВОПРОС";
+        popupSubtitle.textContent="Найди ответ и собери его из букв на панели";
+        options.innerHTML='<div class="clue-popup-direction"></div><div class="clue-popup-text"></div><div class="clue-popup-length"></div><div class="clue-popup-help">Перетащи нужные буквы с нижней панели в пустые клетки сетки.</div>'+(wordsAt.length>1?'<button type="button" class="clue-popup-back">← К другим вопросам</button>':"");
+        options.querySelector(".clue-popup-direction").textContent=word.dir==="right"?"→ По горизонтали":"↓ По вертикали";
         options.querySelector(".clue-popup-text").textContent=word.imageKey?"Что изображено на картинке?":word.clue;
         const count=word.answer.length,form=count===1?"буква":count<=4?"буквы":"букв";
-        const shownDirection=word.dir;
-        options.querySelector(".clue-popup-length").textContent="Направление: "+({right:"вправо",down:"вниз"}[shownDirection]||"из сохранённой партии")+" · Ответ: "+count+" "+form;
-        options.querySelector(".clue-popup-back").onclick=()=>showChoices();
+        options.querySelector(".clue-popup-length").textContent="Ответ: "+count+" "+form;
+        options.querySelector(".clue-popup-back")?.addEventListener("click",showChoices);
       };
       const showChoices=()=>{
         if(wordsAt.length===1){showQuestion(wordsAt[0]);return}
+        popupHeading.textContent="В ЭТОЙ КЛЕТКЕ НАЧИНАЮТСЯ СЛОВА";
+        popupSubtitle.textContent="Выбери направление, чтобы увидеть вопрос";
         options.innerHTML="";
         [...wordsAt].sort((a,b)=>Number(!!b.logic)-Number(!!a.logic)).forEach(word=>{
           const choice=document.createElement("button");choice.type="button";choice.className="clue-popup-choice";
-          choice.textContent=({right:"→ Вправо",down:"↓ Вниз"}[word.dir]||"Сохранённый ответ")+" · "+fitScanwordClue(word.clueShort||word.clue);
+          const direction=document.createElement("span");direction.className="clue-popup-choice-direction";
+          direction.textContent=word.dir==="right"?"→ По горизонтали":"↓ По вертикали";
+          const clue=document.createElement("span");clue.className="clue-popup-choice-text";
+          clue.textContent=word.imageKey?"Что изображено на картинке?":word.clue;
+          choice.append(direction,clue);
           choice.onclick=()=>showQuestion(word);options.append(choice);
         });
       };

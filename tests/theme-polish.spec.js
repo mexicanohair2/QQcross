@@ -108,3 +108,30 @@ test("preserves an explicit appearance preference during legacy theme migration"
   expect(await page.evaluate(() => localStorage.getItem("qqcross_theme_v1"))).toBe("burgundy");
   expect(await page.evaluate(() => localStorage.getItem("qqcross_appearance_mode_v1"))).toBe("dark");
 });
+
+
+test("home game launcher uses one accessible SVG icon family across all game cards", async ({ page }) => {
+  const pageErrors = [];
+  page.on("pageerror", error => pageErrors.push(error.message));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.locator("#guestPlay").click();
+  const cards = page.locator(".qq-game-launch-grid .qq-game-launch");
+  await expect(cards).toHaveCount(5);
+  const icons = page.locator(".qq-game-launch .qq-game-icon > svg.qq-tab-icon");
+  await expect(icons).toHaveCount(5);
+  const audit = await icons.evaluateAll(nodes => nodes.map(node => ({
+    viewBox: node.getAttribute("viewBox"),
+    hidden: node.getAttribute("aria-hidden"),
+    hasDrawing: node.querySelectorAll("path,circle,rect,line,polyline,polygon").length > 0,
+    text: node.textContent.trim()
+  })));
+  expect(audit.every(icon => icon.viewBox === "0 0 24 24" && icon.hidden === "true" && icon.hasDrawing && icon.text === "")).toBe(true);
+  const tileStyle = await cards.first().evaluate(node => {
+    const style = getComputedStyle(node);
+    return { minHeight: parseFloat(style.minHeight), borderRadius: parseFloat(style.borderRadius) };
+  });
+  expect(tileStyle.minHeight).toBeGreaterThanOrEqual(110);
+  expect(tileStyle.borderRadius).toBeGreaterThanOrEqual(14);
+  expect(pageErrors).toEqual([]);
+});
