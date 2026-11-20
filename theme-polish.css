@@ -219,3 +219,67 @@ html[data-qq-reduce-motion="true"].qq-theme-transition #app{
   transition:none!important;
   animation:none!important;
 }
+
+
+/* Theme-aware QQCross loading screen: every highlight follows the active palette. */
+html[data-qq-theme] .boot-splash{
+  background:
+    radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--qq-theme-accent) 22%,transparent),transparent 62%),
+    var(--qq-theme-page)!important;
+  color:var(--qq-theme-text)!important;
+}
+html[data-qq-theme] .boot-splash:before{
+  border-color:color-mix(in srgb,var(--qq-theme-accent) 34%,transparent);
+  box-shadow:0 0 90px color-mix(in srgb,var(--qq-theme-accent) 15%,transparent),
+    inset 0 0 70px color-mix(in srgb,var(--qq-theme-accent) 10%,transparent);
+}
+html[data-qq-theme] .boot-splash:after{
+  border-color:color-mix(in srgb,var(--qq-theme-accent) 16%,transparent);
+}
+html[data-qq-theme] .boot-orbit{border-color:color-mix(in srgb,var(--qq-theme-accent) 42%,transparent)}
+html[data-qq-theme] .boot-orbit-two{border-color:color-mix(in srgb,var(--qq-theme-text) 22%,transparent)}
+html[data-qq-theme] .boot-mark{
+  border-color:color-mix(in srgb,var(--qq-theme-accent) 66%,var(--qq-theme-text) 18%);
+  background:linear-gradient(145deg,
+    color-mix(in srgb,var(--qq-theme-accent) 70%,var(--qq-theme-text) 12%),
+    color-mix(in srgb,var(--qq-theme-accent) 42%,var(--qq-theme-page) 58%) 58%,
+    color-mix(in srgb,var(--qq-theme-accent) 28%,var(--qq-theme-page) 72%));
+  box-shadow:0 18px 55px color-mix(in srgb,var(--qq-theme-accent) 24%,transparent),
+    inset 0 1px 1px color-mix(in srgb,var(--qq-theme-text) 42%,transparent);
+}
+html[data-qq-theme] .boot-monogram{
+  color:var(--qq-theme-text);
+  font-size:48px;font-weight:950;letter-spacing:-7px;padding-right:7px;
+  text-shadow:0 2px 8px color-mix(in srgb,var(--qq-base-deep,#08060d) 42%,transparent);
+}
+html[data-qq-theme] .boot-tiles i{
+  border-color:color-mix(in srgb,var(--qq-theme-accent) 56%,var(--qq-theme-border));
+  background:linear-gradient(145deg,var(--qq-theme-panel),color-mix(in srgb,var(--qq-theme-accent) 22%,var(--qq-theme-panel)));
+  color:var(--qq-theme-text);
+  box-shadow:0 5px 14px color-mix(in srgb,var(--qq-base-deep,#08060d) 42%,transparent);
+}
+html[data-qq-theme] .boot-brand-logo{
+  display:block;width:auto;max-width:82vw;height:auto;margin:10px auto 5px;
+  color:transparent;font-size:clamp(34px,9vw,46px);font-weight:950;
+  line-height:1;letter-spacing:-.065em;
+  background:linear-gradient(135deg,var(--qq-theme-text) 8%,var(--qq-theme-accent) 88%);
+  -webkit-background-clip:text;background-clip:text;
+  filter:drop-shadow(0 7px 18px color-mix(in srgb,var(--qq-theme-accent) 24%,transparent));
+}
+html[data-qq-theme] .boot-caption{color:var(--qq-theme-text);opacity:.86}
+html[data-qq-theme] .boot-footnote{color:var(--qq-theme-muted)}
+html[data-qq-theme] .boot-progress{
+  height:5px;
+  background:color-mix(in srgb,var(--qq-theme-accent) 17%,var(--qq-theme-panel));
+  box-shadow:inset 0 1px 2px color-mix(in srgb,var(--qq-base-deep,#08060d) 30%,transparent);
+}
+html[data-qq-theme] .boot-progress span{
+  background:linear-gradient(90deg,color-mix(in srgb,var(--qq-theme-accent) 55%,var(--qq-theme-text)),var(--qq-theme-accent));
+  box-shadow:0 0 14px color-mix(in srgb,var(--qq-theme-accent) 48%,transparent);
+}
+
+/* Profile sections share the existing accessible, persistent accordion behavior. */
+.qq-profile-fold .qq-settings-heading h3{margin:4px 0;font-size:16px;line-height:1.25}
+.qq-profile-fold .qq-settings-content{max-height:5200px}
+.qq-profile-fold .qq-settings-content[inert]{max-height:0}
+.qq-profile-fold .qq-settings-toggle{width:40px;height:40px;flex-basis:40px}
