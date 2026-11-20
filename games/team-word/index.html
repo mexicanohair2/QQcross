@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#170d18">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Team Word — командная игра в угадывание одного слова.">
+  <title>Team Word — QQCross</title>
+  <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./embed.css"><script src="./theme-bridge.js"></script>
+</head>
+<body>
+  <main id="app" class="app" aria-live="polite">
+    <div class="boot"><span class="logo">QQ</span><p>Загрузка Team Word…</p></div>
+  </main>
+  <script src="./config.js"></script>
+  <script>
+    (function () {
+      var urls = [
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js",
+        "https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"
+      ];
+      function startApp() {
+        if (document.querySelector('script[data-qq-game-app]')) return;
+        var app = document.createElement("script");
+        app.type = "module";
+        app.src = "./app.js";
+        app.dataset.qqGameApp = "true";
+        app.onerror = function () {
+          var message = document.createElement("p");
+          message.className = "notice";
+          message.textContent = "Не удалось загрузить игровой модуль. Обнови страницу.";
+          document.querySelector("#app").appendChild(message);
+        };
+        document.body.appendChild(app);
+      }
+      function load(index) {
+        if (index >= urls.length) {
+          window.QQ_SUPABASE_LOAD_ERROR = true;
+          startApp();
+          return;
+        }
+        var script = document.createElement("script");
+        var settled = false;
+        var timeout = setTimeout(function () {
+          if (settled) return;
+          settled = true;
+          script.remove();
+          load(index + 1);
+        }, 3500);
+        script.src = urls[index];
+        script.onload = function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          if (window.supabase && typeof window.supabase.createClient === "function") startApp();
+          else load(index + 1);
+        };
+        script.onerror = function () {
+          if (settled) return;
+          settled = true;
+          clearTimeout(timeout);
+          load(index + 1);
+        };
+        document.head.appendChild(script);
+      }
+      load(0);
+    })();
+  </script>
+</body>
+</html>

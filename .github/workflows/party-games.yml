@@ -1,0 +1,16 @@
+name: Integrated party game tests
+on:
+  push:
+    branches: [main, "feature/integrate-qq-draw-team-word-20261121"]
+  pull_request:
+    branches: [main]
+jobs:
+  party-games:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check game modules
+        run: npm run test:party

@@ -285,9 +285,10 @@ test("opens the 100-level Russian word-search map and mobile board", async ({ pa
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await expect(page.locator(".qq-game-launch")).toHaveCount(5);
-  await expect(page.locator(".qq-game-launch-grid > button.qq-game-launch")).toHaveCount(3);
-  await expect(page.locator('.qq-game-launch-grid > a[href="https://qqcross-team-word.vercel.app/"]')).toBeVisible();
-  await expect(page.locator('.qq-game-launch-grid > a[href="https://qqcross-qq-draw.vercel.app/"]')).toBeVisible();
+  await expect(page.locator(".qq-game-launch-grid > button.qq-game-launch")).toHaveCount(5);
+  await expect(page.locator('[data-party-game="team-word"]')).toBeVisible();
+  await expect(page.locator('[data-party-game="qq-draw"]')).toBeVisible();
+  await expect(page.locator('.qq-game-launch-grid > a[href*="qqcross-team-word.vercel.app"], .qq-game-launch-grid > a[href*="qqcross-qq-draw.vercel.app"]')).toHaveCount(0);
   await page.locator('[data-extra-game="search"]').click();
   await expect(page.locator(".qq-level-dot")).toHaveCount(100);
   await expect(page.locator('[data-level="1"]')).toBeEnabled();
@@ -726,4 +727,95 @@ test("scanword always includes five pictures and at least three logical question
   expect(clueLayout.length).toBeGreaterThan(0);
   expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
+});
+
+async function startGuestHome(page) {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await expect(page.locator('[data-party-game="team-word"]')).toBeVisible();
+  await expect(page.locator('[data-party-game="qq-draw"]')).toBeVisible();
+}
+
+test("opens Team Word inside QQCross with the shared theme bridge", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="team-word"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/team-word\/index\.html/);
+  await expect(frame.locator("#app")).toBeVisible();
+  await expect(frame.locator("html")).toHaveAttribute("data-qq-theme", /.+/);
+  const layout = await frame.locator("html").evaluate(node => ({
+    width: node.clientWidth,
+    scrollWidth: node.scrollWidth,
+    accent: getComputedStyle(node).getPropertyValue("--accent").trim()
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width + 1);
+  expect(layout.accent).not.toBe("");
+  await page.locator("#partyGameBack").click();
+  await expect(page.locator('[data-party-game="qq-draw"]')).toBeVisible();
+});
+
+test("opens QQ Draw inside QQCross and keeps its drawing canvas within the phone viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="qq-draw"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(page.locator("#qqPartyGameFrame")).toHaveAttribute("src", /games\/qq-draw\/index\.html/);
+  await expect(frame.locator("#app")).toBeVisible();
+  const layout = await frame.locator("html").evaluate(node => ({
+    width: node.clientWidth,
+    scrollWidth: node.scrollWidth
+  }));
+  expect(layout.scrollWidth).toBeLessThanOrEqual(layout.width + 1);
+  await page.locator("#partyGameBack").click();
+  await expect(page.locator("#play-toggle")).toBeVisible();
+});
+
+
+test("QuickDraw neural recognizer loads and runs an inference in the browser", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await startGuestHome(page);
+  await page.locator('[data-party-game="qq-draw"]').click();
+  const frame = page.frameLocator("#qqPartyGameFrame");
+  await expect(frame.locator("#app")).toBeVisible();
+  const result = await frame.locator("html").evaluate(async () => {
+    const { predictDrawing, loadDrawingModel } = await import("./draw-model.mjs");
+    const { model, classes } = await loadDrawingModel();
+    const tf = window.tf;
+    const input = tf.zeros([1, 28, 28, 1]);
+    let output = null;
+    let inferenceValues = [];
+    try {
+      output = model.predict(input);
+      inferenceValues = Array.from(await output.data());
+    } finally {
+      output?.dispose();
+      input.dispose();
+    }
+    const circle = Array.from({ length: 24 }, (_, index) => {
+      const angle = index / 24 * Math.PI * 2;
+      return { x: 0.5 + Math.cos(angle) * 0.18, y: 0.5 + Math.sin(angle) * 0.18 };
+    });
+    const predictions = await predictDrawing([
+      { thickness: 5, points: circle },
+      { thickness: 5, points: [{ x: 0.5, y: 0.25 }, { x: 0.5, y: 0.12 }] },
+      { thickness: 5, points: [{ x: 0.75, y: 0.5 }, { x: 0.88, y: 0.5 }] },
+      { thickness: 5, points: [{ x: 0.5, y: 0.75 }, { x: 0.5, y: 0.88 }] },
+      { thickness: 5, points: [{ x: 0.25, y: 0.5 }, { x: 0.12, y: 0.5 }] }
+    ]);
+    return {
+      classCount: classes.length,
+      outputLength: inferenceValues.length,
+      finiteOutput: inferenceValues.every(Number.isFinite),
+      predictionsAreValid: Array.isArray(predictions)
+        && predictions.length <= 6
+        && predictions.every(item => /^[а-яё]{4,20}$/.test(item.word))
+    };
+  });
+  expect(result.classCount).toBe(345);
+  expect(result.outputLength).toBe(345);
+  expect(result.finiteOutput).toBeTruthy();
+  expect(result.predictionsAreValid).toBeTruthy();
 });

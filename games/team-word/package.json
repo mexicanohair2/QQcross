@@ -1,0 +1,1 @@
+{"name":"qqcross-team-word","version":"1.0.0","private":true,"type":"module","scripts":{"test":"node --check app.js && node --test tests/*.test.mjs"},"devDependencies":{"@playwright/test":"1.55.0"}}

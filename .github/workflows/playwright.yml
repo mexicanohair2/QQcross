@@ -71,6 +71,20 @@ jobs:
           path: data/russian-words-common-25000.json
           retention-days: 1
 
+  party-games:
+    name: Team Word and QQ Draw unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run party game tests
+        run: npm run test:party
+
   e2e:
     name: ${{ matrix.project }}
     needs: prepare-wordle
