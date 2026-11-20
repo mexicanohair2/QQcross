@@ -720,6 +720,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       }
     } else {
       const selectionOrder = shuffle(unassigned, random);
+      let chosenContentPriority = -1;
       for (const slot of selectionOrder) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
@@ -739,15 +740,29 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           return false;
         }
 
+        // Select slots that can still satisfy mandatory content quotas before
+        // unconstrained slots. Candidate ranking already puts eligible image
+        // and new logic clues first within each selected domain; this slot-level
+        // signal prevents MRV from consuming the remaining capacity elsewhere.
+        const imagePriority = state.usedImages.size < requiredImageCount
+          && candidates.some(candidate => Boolean(candidate.entry.imageKey)) ? 2 : 0;
+        const logicPriority = state.usedLogicClues.size < minimumLogicClueCells
+          && candidates.some(candidate => candidate.entry.logic === true
+            && !state.usedLogicClues.has(pointKey(candidate.clueCell))) ? 1 : 0;
+        const contentPriority = imagePriority + logicPriority;
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
-          || candidates.length < chosenCandidates.length
-          || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+          || contentPriority > chosenContentPriority
+          || (contentPriority === chosenContentPriority && candidates.length < chosenCandidates.length)
+          || (contentPriority === chosenContentPriority
+            && candidates.length === chosenCandidates.length
+            && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
           chosenCandidates = candidates;
           chosenDegree = slotDegree;
+          chosenContentPriority = contentPriority;
         }
       }
       recordSearchChoice(chosenSlot, chosenCandidates);
