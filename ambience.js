@@ -91,7 +91,7 @@
   ctx.restore();
  }
  function drawFog(p,t){
-  ctx.save();ctx.globalAlpha=p.opacity;ctx.filter="blur(18px)";const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,p.rx);g.addColorStop(0,p.hue+"0.8)");g.addColorStop(1,p.hue+"0)");ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y,p.rx,p.ry,0,0,Math.PI*2);ctx.fill();ctx.restore();
+  ctx.save();ctx.globalAlpha=p.opacity;const g=ctx.createRadialGradient(p.x,p.y,2,p.x,p.y,p.rx);g.addColorStop(0,p.hue+"0.8)");g.addColorStop(1,p.hue+"0)");ctx.fillStyle=g;ctx.beginPath();ctx.ellipse(p.x,p.y,p.rx,p.ry,0,0,Math.PI*2);ctx.fill();ctx.restore();
  }
  function frame(now){
   raf=0;if(!canvas||!ctx||reduced())return;
