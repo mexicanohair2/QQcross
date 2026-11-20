@@ -1368,11 +1368,25 @@ function renderGame(root){
       const wordsAt=clueAt.get(button.dataset.clueCell)||[];
       if(!wordsAt.length)return;
       const popup=document.createElement("div");popup.className="clue-popup-backdrop";
-      popup.innerHTML='<div class="clue-popup"><div class="clue-popup-number">ВОПРОС В КЛЕТКЕ</div><div class="clue-popup-subtitle">Прочитай вопрос и посмотри направление ответа</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close">Закрыть</button></div>';
+      popup.innerHTML='<div class="clue-popup" role="dialog" aria-modal="true" aria-labelledby="clue-popup-heading" aria-describedby="clue-popup-subtitle" tabindex="-1"><div class="clue-popup-number" id="clue-popup-heading">ВОПРОС В КЛЕТКЕ</div><div class="clue-popup-subtitle" id="clue-popup-subtitle">Прочитай вопрос и посмотри направление ответа</div><div class="clue-popup-options"></div><button type="button" class="clue-popup-close" aria-label="Закрыть вопрос">Закрыть</button></div>';
       const options=popup.querySelector(".clue-popup-options");
       const popupHeading=popup.querySelector(".clue-popup-number");
       const popupSubtitle=popup.querySelector(".clue-popup-subtitle");
-      const close=()=>popup.remove();
+      const previouslyFocused=document.activeElement;
+      const handlePopupKeydown=event=>{
+        if(event.key==="Escape"){event.preventDefault();close();return}
+        if(event.key!=="Tab")return;
+        const focusable=[...popup.querySelectorAll('button:not([disabled]),[href],input:not([disabled]),[tabindex]:not([tabindex="-1"])')].filter(el=>!el.hasAttribute("hidden"));
+        if(!focusable.length){event.preventDefault();return}
+        const first=focusable[0],last=focusable[focusable.length-1],active=document.activeElement;
+        if(event.shiftKey&&(active===first||!popup.contains(active))){event.preventDefault();last.focus()}
+        else if(!event.shiftKey&&(active===last||!popup.contains(active))){event.preventDefault();first.focus()}
+      };
+      const close=()=>{
+        popup.remove();
+        document.removeEventListener("keydown",handlePopupKeydown);
+        if(previouslyFocused?.isConnected)previouslyFocused.focus({preventScroll:true});
+      };
       const showQuestion=word=>{
         state.selectedWord=word.id;
         popupHeading.textContent="ВОПРОС";
@@ -1401,7 +1415,7 @@ function renderGame(root){
       };
       popup.querySelector(".clue-popup-close").onclick=close;
       popup.onclick=event=>{if(event.target===popup)close()};
-      showChoices();document.body.append(popup);
+      showChoices();document.body.append(popup);popup.querySelector(".clue-popup-close").focus({preventScroll:true});document.addEventListener("keydown",handlePopupKeydown);
     };
   });
   let activeDrag=null,dragGhost=null;
