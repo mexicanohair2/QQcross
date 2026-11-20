@@ -601,7 +601,7 @@ document.querySelectorAll(".qq-frame-equip").forEach(b=>b.onclick=async()=>{
  const id=b.dataset.frame;
  try{
   if(supabaseClient&&state.profile.id&&!String(state.profile.id).startsWith("local-")){
-   const {error}=await supabaseClient.from("profiles").update({frame_id:id}).eq("id",state.profile.id);if(error)throw error;
+   const {error}=await supabaseClient.rpc("equip_qqcross_frame",{p_frame_id:id});if(error)throw error;
   }
   state.profile.frameId=id;state.profile.frame_id=id;
   try{localStorage.setItem("qqcross_frame_"+String(state.profile.id||"guest"),id)}catch{}
