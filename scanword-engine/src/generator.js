@@ -192,7 +192,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
           if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
-          if (!['right', 'down'].includes(orientation.direction)) continue;
+          if (!['right', 'left', 'down', 'up'].includes(orientation.direction)) continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -512,7 +512,7 @@ export function generateScanword(inputDictionary, options = {}) {
       requireEveryClueStarts: false,
       requireDifficultyBalance: true,
       difficultyDistribution: options.difficultyDistribution,
-      allowedDirections: ['right', 'down'],
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
