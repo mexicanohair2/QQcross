@@ -6,7 +6,7 @@ const STORE_KEY="qqcross_profile_v2";
 const THEME_KEY="qqcross_theme_v1";
 const MATCHES_KEY="qqcross_local_matches_v1";
 const THEME_PRESETS=[
- ["burgundy","Бордо","Глубокий винный"],["crimson","Гранат","Насыщенный рубиновый"],["ember","Терракота","Тёплая медь"],
+ ["burgundy","Тёмная вишня","Глубокий вишнёвый"],["crimson","Гранат","Насыщенный рубиновый"],["ember","Терракота","Тёплая медь"],
  ["amber","Янтарь","Золотистый янтарь"],["olive","Олива","Тёмный оливковый"],["forest","Хвойный лес","Глубокий зелёный"],
  ["emerald","Изумруд","Холодный изумрудный"],["teal","Бирюза","Зелёно-бирюзовый"],["lagoon","Лагуна","Сине-бирюзовый"],
  ["ocean","Океан","Глубокий морской"],["sapphire","Сапфир","Насыщенный синий"],["indigo","Индиго","Сине-фиолетовый"],
@@ -439,7 +439,7 @@ function profile(){
 }
 function settings(){
  const themes=THEME_PRESETS,audio=window.QQAudio?.getSettings?.()||{music:true,effects:true},choices=BACKGROUNDS;
- const ambiences=[["forest","Зимний лес","Снег и тихие деревья","❄"],["sakura","Сакура","Белые лепестки с естественным падением","✿"],["autumn","Осень","Медленные листья клёна","🍁"],["rain","Дождь","Тихие дождевые линии","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
+ const ambiences=[["forest","Зимний лес","Объёмные снежинки с шестью лучами","❄"],["sakura","Сакура","Розовые лепестки с прожилками и живым падением","✿"],["autumn","Осень","Кленовые листья с прожилками и вращением","🍁"],["rain","Дождь","Отдельные наклонные капли разной длины","🌧"],["fireflies","Светлячки","Мягкие световые точки","✦"],["stars","Звёзды","Медленное мерцание","✧"],["fog","Туман","Плавные туманные слои","☁"],["none","Без анимации","Чистый неподвижный фон","○"]];
  const section=(id,kicker,title,body,initialOpen=false)=>{
   let open=initialOpen;try{const saved=localStorage.getItem("qqcross_settings_section_"+id);if(saved==="collapsed")open=false;else if(saved==="expanded")open=true}catch{}
   return `<section class="card settings-card qq-settings-section ${open?"":"is-collapsed"}" data-settings-section="${id}">
