@@ -136,7 +136,7 @@ Preserve all existing behavior:
 - 90-second turn timer and inventory refill/turn rules;
 - magnifier, clock, trash, bulb/hints, scoring and rewards;
 - save/restore, match history and daily deterministic puzzles;
-- Wordle, word search, word wheel and CodyCross;
+- Wordle, classic word search and CodyCross;
 - themes, shop, progression, PWA/offline and no-ads behavior.
 
 Do not modify Supabase schema or unrelated modes to solve a generator problem. Keep changes small and reversible. If renderer changes are needed, isolate them and add tests.
