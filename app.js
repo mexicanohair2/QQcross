@@ -318,6 +318,20 @@ function tabIcon(name){
  };
  return '<svg class="qq-tab-icon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.home)+'</svg>';
 }
+function uiIcon(name){
+ const paths={
+  search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/><path d="M10.8 7.5v6.6M7.5 10.8h6.6"/>',
+  wordle:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  cody:'<path d="M4 3h7v7H4zM13 3h7v7h-7zM4 12h7v7H4z"/><path d="M16.5 12v8M12.5 16h8"/>',
+  team:'<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0M16 5.5a3 3 0 0 1 0 5.8M17 14a5.5 5.5 0 0 1 4.5 5.5"/>',
+  draw:'<path d="m4 16 10.5-10.5a2.1 2.1 0 0 1 3 3L7 19l-4 1z"/><path d="m12.5 7.5 4 4"/><path d="M3 20h18"/>',
+  magnifier:'<circle cx="10" cy="10" r="6.5"/><path d="m15 15 5 5M10 6.5v7M6.5 10h7"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3M7 7l1 13h8l1-13M10 10v7M14 10v7"/>',
+  bulb:'<path d="M9 18h6M10 22h4M8 14a6 6 0 1 1 8 0c-1 .8-1.5 1.8-1.5 3h-5c0-1.2-.5-2.2-1.5-3Z"/>'
+ };
+ return '<svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(paths[name]||paths.search)+'</svg>';
+}
 function renderShell(root){
  applyProgressRewards();
  const tabs=[["Главная","home"],["Поиск","search"],["История","history"],["Друзья","friends"],["Магазин","shop"],["Профиль","profile"]];
@@ -338,7 +352,7 @@ function collapsiblePanel(id,title,body,initialOpen=false){
 function home(){
  const daily='<section class="card qq-daily-entry"><div><span class="pill">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневные испытания</h3><p class="small muted">Сканворд и Wordle · серия прохождений</p></div><button class="btn primary" type="button" data-qq-daily-open data-daily-date="'+(window.QQProgression?.daily?.().date||"")+'">Открыть</button></section>';
  const hero='<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа" data-qq-straw-hat-trigger>👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section>';
- const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><button type="button" class="qq-game-launch" data-party-game="team-word"><span class="qq-game-icon">👥</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></button><button type="button" class="qq-game-launch" data-party-game="qq-draw"><span class="qq-game-icon">🎨</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></button></div>';
+ const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">'+uiIcon("search")+'</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">'+uiIcon("wordle")+'</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">'+uiIcon("cody")+'</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><button type="button" class="qq-game-launch" data-party-game="team-word"><span class="qq-game-icon">'+uiIcon("team")+'</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></button><button type="button" class="qq-game-launch" data-party-game="qq-draw"><span class="qq-game-icon">'+uiIcon("draw")+'</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></button></div>';
  const identity='<section class="card qq-home-player">' +(window.QQPlayerUI?.renderProfile?window.QQPlayerUI.renderProfile(currentPlayerProfile(),"lg"):"<b>"+esc(state.profile.username)+"</b>") + '<span class="qq-home-player-coins">🪙 '+Number(state.profile.coins||0)+'</span></section>';
  return identity+daily+hero+
   collapsiblePanel("home-games","Другие игры",games,true)+
@@ -439,7 +453,7 @@ async function watchSocialUpdates(){
     });
 }
 function shop(){
- const products=[["magnifier","⌕","Лупа","Проверка и подсказка"],["clock","◷","Часы","Добавить 20 секунд"],["trash","↻","Перемешать","Обновить набор букв"],["bulb","✧","Подсказка","Подсветить одну букву"]];
+ const products=[["magnifier",uiIcon("magnifier"),"Лупа","Проверка и подсказка"],["clock",uiIcon("clock"),"Часы","Добавить 20 секунд"],["trash",uiIcon("trash"),"Перемешать","Обновить набор букв"],["bulb",uiIcon("bulb"),"Подсказка","Подсветить одну букву"]];
  const frames=window.QQPlayerUI?.frames||[];
  const owned=new Set(["classic",...(state.profile.cosmetics||[])]);
  const current=state.profile.frameId||state.profile.frame_id||"classic";
