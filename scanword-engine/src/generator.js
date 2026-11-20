@@ -388,12 +388,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
     ? options.sequenceIndex
     : null;
-  // Production supplies a 1-based generation sequence: every fourth new
-  // scanword must contain the eleven-letter boundary answer. Direct callers
-  // without a sequence index keep the seeded-probability fallback.
+  // Production uses a five-puzzle cadence: the special boundary answer
+  // appears no more than once in every five generated scanwords.
+  // Direct callers without a sequence index use the matching 20% fallback.
   const wantsEleven = hasElevenLetterAnswers && (
     sequenceIndex !== null
-      ? sequenceIndex % 4 === 0
+      ? sequenceIndex % 5 === 0
       : random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE)
   );
   // Build and rank the compatible special plan pool once per puzzle. Re-running
