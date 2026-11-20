@@ -275,3 +275,11 @@
   grid-row:auto!important;
   z-index:3!important;
 }
+
+
+/* Keyboard focus remains visible inside the scanword question dialog. */
+.clue-popup :focus-visible{
+  outline:2px solid var(--qq-theme-accent,#d08b9e)!important;
+  outline-offset:3px!important;
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--qq-theme-accent,#d08b9e) 20%,transparent)!important;
+}
