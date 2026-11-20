@@ -1,3 +1,5 @@
+const { test, expect } = require("@playwright/test");
+
 test("migrates the legacy black theme to the current graphite palette", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("qqcross_theme_v1", "black");
@@ -21,7 +23,7 @@ test("migrates the legacy light theme to the light appearance mode", async ({ pa
   expect(await page.evaluate(() => localStorage.getItem("qqcross_appearance_mode_v1"))).toBe("light");
 });
 
-const { test, expect } = require("@playwright/test");
+
 
 test("full-spectrum themes persist and the settings sections collapse correctly", async ({ page }) => {
   const pageErrors = [];
