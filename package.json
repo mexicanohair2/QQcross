@@ -7,7 +7,7 @@
     "test:e2e": "playwright test",
     "test:e2e:mobile": "playwright test --project=mobile-chromium",
     "test:scanword": "node scripts/validate-scanwords.js && node scripts/verify-scanword.cjs",
-    "test:party": "node --check games/qq-draw/app.js && node --check games/team-word/app.js && node --test games/qq-draw/tests/*.test.mjs games/team-word/tests/*.test.mjs"
+    "test:party": "node --check app.js && node --check player-ui.js && node --check games/qq-draw/app.js && node --check games/team-word/app.js && node --test tests/player-ui.test.mjs games/qq-draw/tests/*.test.mjs games/team-word/tests/*.test.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.65.0"
