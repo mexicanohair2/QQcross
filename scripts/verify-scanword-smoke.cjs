@@ -38,7 +38,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true
     });
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
@@ -67,6 +68,8 @@ async function main() {
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
+      difficultyCounts: validation.metrics.difficultyCounts,
+      difficultyQuotas: validation.metrics.difficultyQuotas,
       specialRequested: result.stats.specialElevenRequested,
       specialGenerated: special,
       musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
