@@ -1,4 +1,7 @@
 export const TEAM_WORD_REVEAL_INTERVAL_MS = 60_000;
+export const TEAM_WORD_BOT_THINK_MIN_MS = 12_000;
+export const TEAM_WORD_BOT_THINK_MAX_MS = 20_000;
+export const TEAM_WORD_BOT_TYPING_INTERVAL_MS = 280;
 
 export const TEAM_WORDS = Object.freeze([
   "арбуз","банан","берег","билет","белка","бочка","ветер","вилка","вишня","волна",
