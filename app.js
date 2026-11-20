@@ -1067,7 +1067,7 @@ function buildScanwordInWorker(entries, overrides={}){
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
     maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
-    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
+    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.2
   };
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
