@@ -302,11 +302,12 @@ async function loadRoomFriends(){
   const root=$("#roomFriends");if(!root||!state.roomId)return;
   try{
     const friends=await rpc("qq_party_list_friends",{p_room_id:state.roomId});
-    if(!friends?.length){root.innerHTML='<p class="small muted">Добавь друзей в QQCross — здесь появится список для приглашения.</p>';return;}
-    root.innerHTML=friends.map(friend=>{
+    if(!friends?.length){root.innerHTML='<p class="small muted">Добавь друзей во вкладке «Друзья» в QQCross.</p>';return;}
+    const people=await hydrateRoomPlayers(friends.map(f=>({...f,id:f.user_id,nickname:f.username})));
+    root.innerHTML=people.map(friend=>{
       const disabled=friend.in_room||friend.already_invited;
       const label=friend.in_room?"Уже в комнате":friend.already_invited?"Приглашение отправлено":"Пригласить";
-      return '<div class="room-friend-row"><span class="avatar">'+avatar(friend.avatar)+'</span><span class="room-friend-name">'+esc(friend.username)+'</span><button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+      return '<div class="room-friend-row">'+playerCard(friend,disabled?"В лобби":"Друг")+'<button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id||friend.id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button=>button.addEventListener("click",async()=>{
       button.disabled=true;button.textContent="Отправляем…";
@@ -386,7 +387,7 @@ function renderOnlineGame(){
   const finished=room.status==="finished";
   const winner=(guesses||[]).find((g)=>g.correct);
   const topMessage=finished
-    ? '<div class="result"><h2 class="success">Слово угадано!</h2><p><span class="avatar">'+avatar(winner?.avatar)+'</span> <b>'+esc(winner?.nickname||"Игрок")+'</b></p><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
+    ? '<div class="result"><h2 class="success">Слово угадано!</h2><div class="qq-winner-card">'+playerCard((room.players||[]).find(p=>p.nickname===winner?.nickname)||{nickname:winner?.nickname||"Игрок",avatar:winner?.avatar},"Угадал слово")+'</div><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
     : '<div class="game-meta"><span>'+(artist?"Ты художник — рисуй слово":"Угадывай рисунок")+'</span><span>Раунд '+esc(room.round_no)+'</span></div>';
   appRoot.innerHTML=
     '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
