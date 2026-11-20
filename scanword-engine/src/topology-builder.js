@@ -284,7 +284,7 @@ export function generateTopology(options = {}) {
       random,
       mutationBudget,
       maxTwoLetterSlots,
-      includeSpecialEleven && !Array.isArray(options.specialPattern)
+      includeSpecialEleven && (!Array.isArray(options.specialPattern) || options.mutateSpecialPattern === true)
     );
     if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');
