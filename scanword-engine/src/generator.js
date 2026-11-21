@@ -300,7 +300,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             candidateImageClueCells.add(clueKey);
           }
           if (option.entry.logic === true) candidateLogicClueCells.add(clueKey);
-          candidateDifficultyIds[normalizeDifficultyBand(option.entry.difficulty)].add(option.entry.id);
+          candidateDifficultyIds[normalizeDifficultyBand(option.entry.difficulty)].add(canonicalAnswerKey(option.entry.answer, { foldYo }));
         }
         if (candidateImageKeys.size) imageDomains.push([...candidateImageKeys]);
         if (candidateImageClueCells.size) imageClueCellDomains.push([...candidateImageClueCells]);
