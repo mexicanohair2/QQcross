@@ -39,5 +39,19 @@
     "clue": "Крупный зверь с хоботом и речное животное с клешнями.",
     "logic": true,
     "sharedClueGroup": "v22_elephant_crayfish"
+  },
+  {
+    "id": "etalon_v22_table_mind_shared_table",
+    "answer": "СТОЛ",
+    "clue": "Предмет мебели и способность человека мыслить.",
+    "clueShort": "Предмет мебели и способность человека мыслить.",
+    "sharedClueGroup": "v22_table_mind"
+  },
+  {
+    "id": "etalon_v22_table_mind_shared_mind",
+    "answer": "УМ",
+    "clue": "Предмет мебели и способность человека мыслить.",
+    "clueShort": "Предмет мебели и способность человека мыслить.",
+    "sharedClueGroup": "v22_table_mind"
   }
 ]
