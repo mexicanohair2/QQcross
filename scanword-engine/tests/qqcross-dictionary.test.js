@@ -34,6 +34,7 @@ test('calibrates missing clue difficulty toward a readable middle-school level',
   assert.equal(byId.longFlag.difficulty, 4);
   assert.equal(byId.shortMedium.difficulty, 3);
   assert.equal(byId.expert.difficulty, 4);
+  assert.equal(prepared.stats.shortQuestionWarnings, 0, 'Flag and picture prompts are valid short clue formats.');
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(2));
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(4));
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(5));
@@ -125,6 +126,8 @@ test('audits the real production dictionary without losing valid content', () =>
   assert.ok(prepared.entries.some(item => item.answer.length === 11));
   assert.ok(prepared.entries.some(item => item.imageKey));
   assert.ok(prepared.entries.some(item => item.logic));
+  assert.equal(prepared.stats.shortQuestionWarnings, 0);
+  assert.ok(productionDictionary.every(item => item.answer.length >= 2 && item.answer.length <= 11));
   assert.ok(indexes.byLength.size > 0);
   assert.ok(indexes.byLetter.size > 0);
   assert.ok(prepared.stats.rejected > 0);
