@@ -237,12 +237,14 @@ test('keeps an image-backed special eleven-letter answer eligible under strict i
     }]
   };
   const result = solveSlotsCsp([specialSlot], [
-    { id: 'camera', answer: 'ФОТОАППАРАТ', question: 'Что изображено на картинке?', imageKey: 'camera' }
+    { id: 'camera', answer: 'ФОТОАППАРАТ', question: 'Что изображено на картинке?', imageKey: 'camera' },
+    { id: 'electronics', answer: 'ЭЛЕКТРОНИКА', question: 'Что изображено на картинке?', imageKey: 'electronics' }
   ], {
     seed: 12,
     requiredImageCount: 1,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
+    preferredSpecialAnswer: 'ФОТОАППАРАТ',
     enforcePreferredImagePlacements: true,
     preferredImagePlacementsBySlot: new Map(),
     allowedDirections: ['down'],
