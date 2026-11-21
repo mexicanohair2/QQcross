@@ -675,7 +675,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     // against the current crossing letters and can backtrack them if later
     // word assignments prove incompatible.
     for (const slot of remainingSlots) {
-      const candidates = makePlacementCandidates(slot, state, indexes, {
+      let candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
         requireDifficultyBalance: options.requireDifficultyBalance === true,
@@ -690,6 +690,18 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
         enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random).filter(candidate => Boolean(candidate.entry.imageKey));
+
+      // The special spine may be considered by this image-first phase before
+      // any word is placed. Keep it pinned to the planner's chosen answer so
+      // its letters still match the AC-3-pruned domains for every crossing.
+      if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && options.preferredSpecialAnswer) {
+        const preferredKey = canonicalAnswerKey(options.preferredSpecialAnswer, {
+          foldYo: options.foldYo === true
+        });
+        candidates = candidates.filter(candidate =>
+          canonicalAnswerKey(candidate.entry.answer, { foldYo: options.foldYo === true }) === preferredKey
+        );
+      }
 
       if (!candidates.length) continue;
 
