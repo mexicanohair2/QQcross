@@ -54,7 +54,7 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 - Never change the agreed **8×12** dimensions.
 - Keep the native 8-column × 12-row portrait play surface large and centered in the available phone game area; it must not shrink to a small tile or force horizontal scrolling. Preserve row/column coordinates and answer directions unchanged from the validated model.
 - Preserve the visual clue-cell language, small direction indicators and compact composition from the screenshot. The live playable board uses the same 8-column × 12-row portrait orientation as its validated source topology.
-- QQCross production answers run only right and down. Leftward and upward answers are disabled in the generator and are not shown as playable directions. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's visible arrows are a visual reference, not a restriction on production directions.
+- QQCross engine placement supports all four directions: right, left, down and up. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The renderer already provides distinct arrow glyphs and labels for all four directions.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note
@@ -72,6 +72,12 @@ The official maker page and its embedded canvas were inspected through rendered-
 - Desktop Chromium and mobile Chromium Playwright suites: passed.
 - Stress generation timing: median 498 ms, p95 729 ms, maximum 840 ms.
 
+
+## Current engine policy update
+
+- Difficulty is normalized to three accessible bands and each generated board is constrained to a 20% easy / 60% medium / 20% challenging mix. This is currently implemented on the scanword-engine feature branch and remains subject to the full seeded batch tests.
+- The special 11-letter answer remains exactly one fixed path from (0,1) down column 1. The current engine branch schedules it once every five sequential puzzles (20%), rather than the older one-in-four policy recorded in the historical 2026-11-17 validation note above.
+- The mandatory complete top row plus complete left column has a structural conflict under the two-letter minimum and single special boundary path. See `docs/QQCROSS_SCANWORD_TOPOLOGY_MODEL.md`; do not mistake the older 3-anchor layout for implementation of the new all-top-cells requirement.
 
 ## Engine geometry and play-screen orientation
 
