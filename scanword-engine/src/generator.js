@@ -662,6 +662,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   planDiagnostics.viablePlans = plans.length;
   planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
+  planDiagnostics.noCompatiblePlans = plans.length === 0;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
 
@@ -795,11 +796,11 @@ export function generateScanword(inputDictionary, options = {}) {
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
   // Prefer exactly one low-short topology attempt when it has a compatible
