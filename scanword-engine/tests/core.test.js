@@ -51,6 +51,49 @@ test('special short-word planning respects crossing letters and exact difficulty
   }), false, 'The special answer and image placements must leave room in the exact easy quota.');
 });
 
+test('short-slot feasibility reserves picture answers and clue directions correctly', () => {
+  const pictureOnly = {
+    slotId: 'short-picture',
+    options: [{
+      answerKey: 'ЕЖ',
+      answer: 'ЁЖ',
+      difficulty: 2,
+      imageKey: 'hedgehog',
+      clueKey: '8,7',
+      direction: 'up',
+      coordinates: [{ row: 9, col: 7 }, { row: 10, col: 7 }]
+    }]
+  };
+  const textOnly = {
+    slotId: 'short-text',
+    options: [{
+      answerKey: 'УМ',
+      answer: 'УМ',
+      difficulty: 3,
+      clueKey: '3,4',
+      direction: 'down',
+      coordinates: [{ row: 4, col: 4 }, { row: 5, col: 4 }]
+    }]
+  };
+
+  assert.equal(canAssignDistinctShortAnswers([pictureOnly, textOnly], {
+    assignedSlotIds: new Set(['short-picture']),
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), true, 'A slot already assigned as an image is not a remaining short word.');
+
+  assert.equal(canAssignDistinctShortAnswers([pictureOnly, textOnly], {
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), false, 'An unreserved image-backed answer cannot fill a text short slot.');
+
+  assert.equal(canAssignDistinctShortAnswers([textOnly], {
+    usedDirections: new Set(['3,4|down']),
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 0, 3: 1, 4: 0 }
+  }), false, 'A clue direction already occupied by the special or image plan cannot be reused.');
+});
+
 test('special eleven-letter answer is scheduled no more than once per five puzzles', () => {
   const selected = Array.from({ length: 30 }, (_, index) => index + 1)
     .filter(sequenceIndex => shouldRequestSpecialElevenLetter(sequenceIndex));
