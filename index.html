@@ -32,7 +32,7 @@
 <link rel="stylesheet" href="./visual-repair.css?v=20261120-phone-fit-5rack-v5">
 <link rel="stylesheet" href="./ui-refresh.css?v=20261121-dark-cherry-v1">
 <link rel="stylesheet" href="./scanword-fix.css?v=20261121-grade7-terminal-v1">
-<link rel="stylesheet" href="./party-games.css?v=20261121-party-games-v1">
+<link rel="stylesheet" href="./party-games.css?v=20261121-party-games-v1">\n<link rel="stylesheet" href="./assets/player-identity.css?v=20261121-identity-v1">\n<link rel="stylesheet" href="./experience-polish.css?v=20261121-identity-v1">
 <script src="./ambience.js?v=20261121-natural-particles-v2" defer></script>
 <title>QQCross</title>
 </head>
@@ -60,7 +60,7 @@
   setTimeout(function(){showBootError("Игра не завершила запуск за 15 секунд. Возможно, не загрузился один из файлов.")},15000);
 })();
 </script>
-<script src="./audio.js?v=20261107-audio-v1"></script>
+<script src="./assets/player-identity.js?v=20261121-identity-v1"></script>\n<script src="./audio.js?v=20261107-audio-v1"></script>
 <script src="./wordle.js?v=20261108-key-order-v2"></script>
 <script src="./new-games.js?v=20261120-remove-wheel-v3"></script>
 <script src="./progression.js?v=20261120-remove-wheel-v3"></script>
@@ -74,7 +74,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261121-party-games-v1";
+    app.src="./app.js?v=20261121-profile-identity-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
