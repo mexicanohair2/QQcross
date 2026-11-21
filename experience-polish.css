@@ -28,3 +28,31 @@
 .qq-profile-dialog__stats .qq-profile-stat:nth-child(3n){background:linear-gradient(130deg,rgba(121,50,87,.17),rgba(255,255,255,.035))}
 .qq-settings-heading{align-items:center}
 @media(prefers-reduced-motion:reduce){.boot-mark,.boot-orbit-one,.boot-orbit-two,.boot-tiles i,.boot-progress span{animation:none!important}.qq-extra-screen .btn,.qq-extra-screen .card,.qq-extra-screen .qq-search-cell,.qq-extra-screen .qq-cody-cell,.wordle-screen .wordle-tile,.wordle-screen .wordle-key,.qq-party-game-screen .btn,.qq-party-game-screen .card{transition:none!important}}
+
+/* QQ monogram loading screen: warm burgundy base, premium light lettering and slow breathing. */
+.boot-splash{
+ background:radial-gradient(ellipse at 50% 40%,rgba(105,32,69,.26),transparent 43%),linear-gradient(155deg,#090609 0%,#1b0812 58%,#08070b 100%)!important;
+}
+.boot-mark{
+ width:108px!important;height:108px!important;display:grid!important;place-items:center!important;
+ padding:0!important;overflow:visible!important;
+ border:1px solid rgba(222,166,197,.54)!important;border-radius:31px!important;
+ background:linear-gradient(145deg,#55273f 0%,#351526 58%,#1b0e1a 100%)!important;
+ box-shadow:0 18px 55px rgba(0,0,0,.62),inset 0 1px 1px rgba(255,255,255,.16),0 0 26px rgba(150,65,108,.2)!important;
+}
+.boot-mark span:last-child{
+ display:block!important;padding:0 .13em .08em 0!important;
+ font-family:Georgia,"Times New Roman",serif!important;
+ font-size:54px!important;font-weight:900!important;letter-spacing:-.13em!important;
+ line-height:1!important;
+ background:linear-gradient(150deg,#fff8fc 3%,#e6c5d6 38%,#bd8aa8 66%,#fff2f8 94%)!important;
+ background-clip:text!important;-webkit-background-clip:text!important;
+ color:transparent!important;-webkit-text-fill-color:transparent!important;
+ text-shadow:0 2px 0 rgba(44,12,30,.4),0 8px 22px rgba(0,0,0,.48)!important;
+}
+.boot-orbit-one{border-color:rgba(184,101,144,.34)!important}
+.boot-orbit-two{border-color:rgba(173,126,164,.22)!important}
+.boot-caption,.boot-footnote{color:rgba(238,214,228,.72)!important}
+.boot-progress{background:rgba(201,151,179,.12)!important}
+.boot-progress span{background:linear-gradient(90deg,#71304f,#c88cab,#e6ccdc)!important}
+@media(max-width:380px){.boot-mark{width:96px!important;height:96px!important}.boot-mark span:last-child{font-size:48px!important}}
