@@ -141,6 +141,7 @@ jobs:
           name: playwright-${{ matrix.project }}
           path: |
             playwright-report/
-            test-results/
+            test-results/**/*.png
+            test-results/**/error-context.md
           if-no-files-found: ignore
           retention-days: 7
