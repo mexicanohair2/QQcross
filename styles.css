@@ -928,7 +928,7 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{
  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:4!important;
  overflow:hidden!important;overflow-wrap:anywhere!important;word-break:normal!important;hyphens:auto!important;
- font-size:clamp(6px,calc(10px - var(--qq-cody-clue-length,20)*.045px),9px)!important;
+ font-size:clamp(6px,var(--qq-cody-clue-size,9px),9px)!important;
  line-height:1.08!important;font-weight:700!important;
 }
 .qq-cody-app.qq-cody-playing .qq-cody-row-cells{
@@ -946,13 +946,13 @@ html[data-qq-theme="light"] .scanword-board>.scan-cell.scan-clue{
 @media(max-width:390px){
  .qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,43%) minmax(0,57%)!important;gap:2px!important}
  .qq-cody-app.qq-cody-playing .qq-cody-row-clue{padding:2px 3px!important}
- .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{font-size:clamp(6px,calc(9px - var(--qq-cody-clue-length,20)*.04px),8px)!important;line-height:1.06!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{font-size:clamp(6px,var(--qq-cody-clue-size,8px),8px)!important;line-height:1.06!important}
  .qq-cody-app.qq-cody-playing .qq-cody-row-cells .qq-cody-cell{font-size:clamp(8px,2.5vw,12px)!important}
 }
 @media(max-height:680px){
  .qq-cody-app.qq-cody-playing .qq-cody-row-clue{padding:2px 3px!important}
  .qq-cody-app.qq-cody-playing .qq-cody-row-meta{font-size:7px!important;margin-bottom:1px!important}
- .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{-webkit-line-clamp:4!important;font-size:clamp(6px,calc(8px - var(--qq-cody-clue-length,20)*.025px),7.5px)!important;line-height:1.04!important}
+ .qq-cody-app.qq-cody-playing .qq-cody-row-clue-text{-webkit-line-clamp:4!important;font-size:clamp(6px,var(--qq-cody-clue-size,7px),7.5px)!important;line-height:1.04!important}
 }
 @media(orientation:landscape) and (max-height:520px){
  .qq-cody-app.qq-cody-playing .qq-cody-row{grid-template-columns:minmax(0,40%) minmax(0,60%)!important}
