@@ -108,10 +108,11 @@ async function loadPartyProfiles(ids=[]){
 }
 function playerCard(player={},options={}){
   const profile=state.playerProfiles[String(player.user_id||player.id||"")]||{};
-  const merged={...player,...profile,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
-  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:false,score:options.score===undefined?player.score:options.score});
+  const merged={...player,...profile,id:profile.id||player.user_id||player.id,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
+  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:!!options.clickable,score:options.score===undefined?player.score:options.score});
   return '<span class="avatar">'+avatar(player.avatar)+'</span><b>'+esc(player.nickname||player.username||"Игрок")+'</b>';
 }
+if(window.QQIdentity?.bindProfileClicks)window.QQIdentity.bindProfileClicks(supabase);
 function stopRoomWatch() {
   clearInterval(state.pollTimer);
   state.pollTimer = null;
@@ -403,7 +404,7 @@ async function copyRoomCode() {
 function renderPlayers(players = []) {
   return players.map((player) => `
     <div class="player qq-party-player">
-      ${playerCard(player,{size:"sm",score:player.score})}
+      ${playerCard(player,{size:"sm",score:player.score,clickable:true})}
       <small>${Number(player.seat) === 1 ? "Создатель комнаты" : "Участник"}</small>
     </div>`).join("");
 }
@@ -450,7 +451,7 @@ async function loadRoomFriends() {
     root.innerHTML = friends.map(friend => {
       const disabled = friend.in_room || friend.already_invited;
       const label = friend.in_room ? "Уже в лобби" : friend.already_invited ? "Приглашение отправлено" : "Пригласить";
-      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm"})+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
+      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm",clickable:true})+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button => {
       button.addEventListener("click", async () => {
@@ -481,7 +482,7 @@ function renderHistory(guesses = []) {
     const feedback = Array.isArray(guess.feedback) ? guess.feedback : [];
     return `
       <div class="guess-row">
-        <div class="guess-player">${playerCard({...guess,user_id:guess.user_id||state.room?.players?.find(player=>player.nickname===guess.nickname)?.user_id},{size:"sm",compact:true})}</div>
+        <div class="guess-player">${playerCard({...guess,user_id:guess.user_id||state.room?.players?.find(player=>player.nickname===guess.nickname)?.user_id},{size:"sm",compact:true,clickable:true})}</div>
         <div class="guess-cells">
           ${letters.map((letter,index) => '<span class="guess-cell '+esc(feedback[index]||"miss")+'">'+esc(letter.toUpperCase())+'</span>').join("")}
         </div>
