@@ -460,6 +460,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     [4, 8, 11], [5, 8, 10], [5, 8, 11], [5, 9, 11]
   ];
 
+  const plannerStarted = now();
+  const topologyStarted = now();
   const topologySignatures = new Set();
   const topologies = [];
   for (const rows of rowPatterns) {
@@ -513,6 +515,13 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     });
   }
 
+  const topologyBuildElapsedMs = now() - topologyStarted;
+  const planningStarted = now();
+  let candidateDomainElapsedMs = 0;
+  let arcConsistencyElapsedMs = 0;
+  let shortMatchingElapsedMs = 0;
+  let contentCapacityElapsedMs = 0;
+  let imageSelectionElapsedMs = 0;
   const plans = [];
   const uniqueAnswers = new Set();
   const planDiagnostics = {
@@ -542,6 +551,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     ]));
 
     for (const topology of topologies) {
+      const candidateDomainStarted = now();
       const domains = [];
       let valid = true;
 
@@ -584,6 +594,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         domains.push({ slot, options: candidates });
       }
 
+      candidateDomainElapsedMs += now() - candidateDomainStarted;
+
       // Independent word domains can all look valid while their crossing
       // letters are mutually impossible. Enforce arc consistency across the
       // complete slot graph before ranking a special 11-letter plan.
@@ -591,8 +603,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         planDiagnostics.missingSlotDomains++;
         continue;
       }
+      const arcStarted = now();
       const arcDiagnostics = {};
-      if (!enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics)) {
+      const arcIsConsistent = enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics);
+      arcConsistencyElapsedMs += now() - arcStarted;
+      if (!arcIsConsistent) {
         planDiagnostics.arcConsistencyRejected++;
         if (!planDiagnostics.firstArcFailure) {
           planDiagnostics.firstArcFailure = {
@@ -612,6 +627,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
       initialDifficultyCounts[specialDifficultyBand]++;
 
+      const shortMatchingStarted = now();
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
         .map(domain => domain.options.map(option => ({
@@ -624,16 +640,20 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         (index + 1) + ',1',
         foldYo && letter === 'Ё' ? 'Е' : letter
       ]));
-      if (!canAssignDistinctShortAnswers(shortDomains, {
+      }));
+      const shortMatchingValid = canAssignDistinctShortAnswers(shortDomains, {
         excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
         letterUses: specialLetters,
         difficultyCounts: initialDifficultyCounts,
         difficultyQuotas,
         foldYo
-      })) {
+      });
+      shortMatchingElapsedMs += now() - shortMatchingStarted;
+      if (!shortMatchingValid) {
         planDiagnostics.shortAnswerMatchingRejected++;
         continue;
       }
+      const contentCapacityStarted = now();
       const imageKeys = new Set(specialHasImage ? [entry.imageKey] : []);
       const imageDomains = [];
       const imageClueCellDomains = [];
@@ -690,6 +710,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         && imageClueCellCapacity + (specialHasImage ? 1 : 0) >= requiredImageCount;
       const logicCapacityValid = logicClueCellCapacity + (specialHasLogic ? 1 : 0) >= minimumLogicClueCells;
 
+      contentCapacityElapsedMs += now() - contentCapacityStarted;
       if (!imageCapacityValid || !logicCapacityValid || !difficultyCapacityValid) {
         planDiagnostics.contentRequirementsRejected++;
         if (!planDiagnostics.firstContentFailure) {
@@ -721,6 +742,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
+      const imageSelectionStarted = now();
       const compatibleImageSelection = chooseCompatibleImageSelection(
         domains,
         requiredImageCount,
@@ -731,6 +753,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         shortDomains,
         requirements.minimumLogicClueCells ?? 3
       );
+      imageSelectionElapsedMs += now() - imageSelectionStarted;
       if (!compatibleImageSelection) {
         planDiagnostics.imageAssignmentRejected++;
         continue;
@@ -776,9 +799,26 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         tie: random()
       });
     }
+    const minimumViablePlans = Math.max(2, Number(requirements.minimumViableSpecialPlans ?? 10));
+    const minimumDistinctAnswers = Math.max(2, Number(requirements.minimumDistinctSpecialAnswers ?? 5));
+    if (plans.length >= minimumViablePlans
+      && new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size >= minimumDistinctAnswers) {
+      planDiagnostics.earlyStopped = true;
+      break;
+    }
   }
 
   planDiagnostics.viablePlans = plans.length;
+  planDiagnostics.plannerTimings = {
+    topologyBuildMs: Math.round(topologyBuildElapsedMs),
+    candidateDomainMs: Math.round(candidateDomainElapsedMs),
+    arcConsistencyMs: Math.round(arcConsistencyElapsedMs),
+    shortMatchingMs: Math.round(shortMatchingElapsedMs),
+    contentCapacityMs: Math.round(contentCapacityElapsedMs),
+    imageSelectionMs: Math.round(imageSelectionElapsedMs),
+    planningMs: Math.round(now() - planningStarted),
+    totalMs: Math.round(now() - plannerStarted)
+  };
   planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
   planDiagnostics.noCompatiblePlans = plans.length === 0;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
