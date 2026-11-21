@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyQuotaCounts, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyQuotaCounts, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
 import { ALLOWED_SPECIAL_SHORT_ANSWERS, maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
