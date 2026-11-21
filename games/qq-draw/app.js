@@ -380,6 +380,7 @@ function drawToolsMarkup(enabled = isArtist() && state.room?.status === "playing
 function renderOnlineGame(){
   const room=state.room;
   const guesses=room.public_state?.guesses||[];
+  const playersWithScore=(room.players||[]).map(player=>({...player,score:guesses.filter(guess=>String(guess.user_id)===String(player.user_id)&&guess.correct).length}));
   const artist=isArtist();
   const finished=room.status==="finished";
   const winner=(guesses||[]).find((g)=>g.correct);
@@ -389,7 +390,7 @@ function renderOnlineGame(){
   appRoot.innerHTML=
     '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
     '<section class="card stack">'+topMessage+
-      '<div class="qq-score-strip">'+renderPlayers(room.players||[])+'</div>'+
+      '<div class="qq-score-strip">'+renderPlayers(playersWithScore)+'</div>'+
       '<div class="canvas-wrap"><canvas id="drawCanvas" aria-label="Игровой холст"></canvas><span class="canvas-label">'+(artist?"Твой холст": "Рисунок художника")+'</span></div>'+
       drawToolsMarkup(artist&&!finished)+
       (artist&&!finished?'<div class="notice">Секретное слово: <strong>'+esc(room.private?.word||"")+'</strong>. Рисуй, не пиши буквы.</div>':'')+
