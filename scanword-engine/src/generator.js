@@ -495,6 +495,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
+      const specialClueKey = '0,1';
+      const specialHasImage = Boolean(entry.imageKey);
+      const specialHasLogic = entry.logic === true;
+      const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
+      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
+      const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
+      initialDifficultyCounts[specialDifficultyBand]++;
+
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
         .map(domain => domain.options.map(option => ({
@@ -517,14 +525,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         planDiagnostics.shortAnswerMatchingRejected++;
         continue;
       }
-
-      const specialClueKey = '0,1';
-      const specialHasImage = Boolean(entry.imageKey);
-      const specialHasLogic = entry.logic === true;
-      const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
-      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
-      const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
-      initialDifficultyCounts[specialDifficultyBand]++;
       const imageKeys = new Set(specialHasImage ? [entry.imageKey] : []);
       const imageDomains = [];
       const imageClueCellDomains = [];
