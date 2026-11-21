@@ -302,6 +302,10 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
       }
       const plannedDomain = options.allowedEntryIdsBySlot?.get(slot.id);
       if (plannedDomain && !plannedDomain.has(entry.id)) continue;
+      const plannedPlacements = options.allowedPlacementsBySlot?.get(slot.id);
+      if (plannedPlacements && !plannedPlacements.has(
+        entry.id + '|' + clueKey + '|' + orientation.direction
+      )) continue;
       if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
