@@ -23,6 +23,30 @@ async function startGuestGame(page) {
     // The initial rack refill intentionally animates for 520 ms and re-renders the board once.
     // Wait for that one-time entrance to finish before measuring or interacting with hit targets.
     await expect(page.locator(".letter.letter-enter")).toHaveCount(0, { timeout: 5_000 });
+    const hitProbe = await page.evaluate(async () => {
+      const target = document.querySelector("[data-clue-cell]");
+      if (!target) return { error: "no clue cell" };
+      const rect = target.getBoundingClientRect();
+      const x = rect.left + rect.width / 2, y = rect.top + rect.height / 2;
+      const frames = [];
+      for (let i = 0; i < 8; i++) {
+        await new Promise(requestAnimationFrame);
+        const r = target.getBoundingClientRect();
+        frames.push([r.left, r.top, r.width, r.height].map(n => Math.round(n * 100) / 100));
+      }
+      const hit = document.elementFromPoint(x, y);
+      const style = getComputedStyle(target);
+      return {
+        rect: [rect.left, rect.top, rect.width, rect.height],
+        frames,
+        stable: new Set(frames.map(v => v.join(","))).size === 1,
+        target: target.outerHTML.slice(0, 260),
+        hit: hit ? { tag: hit.tagName, className: String(hit.className || ""), clue: hit.closest("[data-clue-cell]")?.dataset.clueCell || null } : null,
+        style: { display: style.display, visibility: style.visibility, pointerEvents: style.pointerEvents, position: style.position, zIndex: style.zIndex, transform: style.transform, animation: style.animation, transition: style.transition },
+        scroll: { y: scrollY, height: document.documentElement.scrollHeight, viewport: document.documentElement.clientHeight }
+      };
+    });
+    console.log("QQCROSS_HIT_PROBE " + JSON.stringify(hitProbe));
   } catch (error) {
     const state = await page.evaluate(() => ({
       practice: (() => {
@@ -625,6 +649,12 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await expect(page.locator(".scanword-board")).toBeVisible({ timeout: 20_000 });
   await expect(page.locator(".hand .letter")).toHaveCount(5);
   const originalLetters=await page.locator(".hand .letter").allTextContents();
+  await page.evaluate(() => {
+    window.__qqPointerTrail = [];
+    const describe = node => node ? {tag:node.tagName,className:String(node.className||""),cell:node.closest("[data-cell]")?.dataset.cell||null,letter:node.closest("[data-letter]")?.dataset.letter||null} : null;
+    document.addEventListener("pointerdown",event=>window.__qqPointerTrail.push({type:"down",target:describe(event.target),button:event.button,x:event.clientX,y:event.clientY}),true);
+    document.addEventListener("pointerup",event=>window.__qqPointerTrail.push({type:"up",target:describe(event.target),button:event.button,x:event.clientX,y:event.clientY,hit:describe(document.elementFromPoint(event.clientX,event.clientY))}),true);
+  });
   await expect(page.locator("#timer")).toHaveCount(0);
   await expect(page.locator("#clock")).toHaveCount(0);
   const hand = await page.locator(".hand").evaluate(node => {
@@ -650,6 +680,7 @@ test("solo scanword is untimed, keeps five centered letter tiles, and immediatel
   await page.mouse.down();
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 8 });
   await page.mouse.up();
+  console.log("QQCROSS_DRAG_PROBE " + JSON.stringify(await page.evaluate(() => ({trail:window.__qqPointerTrail,ghost:!!document.querySelector(".qq-drag-ghost"),pending:document.querySelectorAll(".scanword-board .cell.pending-cell").length}))));
   const pending = page.locator(".scanword-board .cell.pending-cell").first();
   await expect(pending).toBeVisible();
   await expect(pending).toHaveClass(/(correct|wrong)/);
