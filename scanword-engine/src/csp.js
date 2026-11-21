@@ -317,6 +317,18 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         if (state.usedImages.has(entry.imageKey)) continue;
         if (state.usedImageClueCells.has(clueKey)) continue;
         if (state.usedImages.size >= options.requiredImageCount) continue;
+
+        // The special-plan search already found a mutually compatible set of
+        // image placements. Keep those exact choices fixed in production:
+        // an unplanned image can consume a crossing letter and invalidate
+        // the remaining prevalidated image matching.
+        if (options.enforcePreferredImagePlacements === true) {
+          const planned = options.preferredImagePlacementsBySlot?.get(slot.id);
+          if (!planned
+            || planned.entryId !== entry.id
+            || planned.clueKey !== clueKey
+            || planned.direction !== orientation.direction) continue;
+        }
       }
 
       const isNewLogicClue = entry.logic && !state.usedLogicClues.has(clueKey);
