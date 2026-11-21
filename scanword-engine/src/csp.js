@@ -302,6 +302,10 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
       }
       const plannedDomain = options.allowedEntryIdsBySlot?.get(slot.id);
       if (plannedDomain && !plannedDomain.has(entry.id)) continue;
+      const plannedPlacements = options.allowedPlacementKeysBySlot?.get(slot.id);
+      if (plannedPlacements && !plannedPlacements.has(
+        entry.id + '|' + orientation.direction + '|' + clueKey
+      )) continue;
       if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
@@ -601,6 +605,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
         enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random);
@@ -681,6 +686,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
         enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random).filter(candidate => Boolean(candidate.entry.imageKey));
@@ -840,6 +846,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
         enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random);
@@ -900,6 +907,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
           allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
           enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
         }, random);
