@@ -38,7 +38,7 @@ The engine has seed-based randomness and explicit limits for topology attempts, 
 
 ## Production dictionary status
 
-The repository dictionary currently has 2,287 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
+The current production audit reports 2,289 source records, 2,211 valid clue variants, 2,027 unique playable answers, 78 rejected records, 46 picture-key records, 83 raw 11-letter records and 709 raw logic-tagged records. The latest wording pass improved 92 short clues; 174 short prompts remain, including flag/image labels that are intentionally compact. The audit reports zero suspicious duplicate-question groups across different answers. Runtime counts are reported by prepareDictionary() and CI. This is not a 25,000- or 50,000-word scanword dictionary.
 
 ## Verification
 
