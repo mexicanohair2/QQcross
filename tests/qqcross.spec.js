@@ -473,7 +473,7 @@ test("the redesigned shop contains the bulb item and level rewards are idempoten
   await page.locator('[data-tab="Магазин"]').click();
   await expect(page.locator(".qq-shop-item")).toHaveCount(4);
   const bulb = page.locator('.qq-shop-item:has(button[data-item="bulb"])');
-  await expect(bulb).toContainText("💡");
+  await expect(bulb.locator(".qq-game-svg")).toHaveCount(1);
   await expect(bulb).toContainText("5 · 100");
   await expect(bulb).toContainText("10 · 200");
   await page.evaluate(async () => { await window.QQEconomy.awardLevel("search", 998); });
