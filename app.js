@@ -58,7 +58,7 @@ document.documentElement.dataset.qqReduceMotion=localStorage.getItem("qqcross_re
 function avatarStorageKey(){return "qqcross_avatar_image_"+String(state.profile?.id||"guest");}
 function getAvatarImage(){try{const v=localStorage.getItem(avatarStorageKey());return v&&/^data:image\/(webp|png|jpeg);base64,/.test(v)?v:"";}catch{return "";}}
 function avatarMarkup(size=""){
-  const image=String(state.profile?.avatar_url||"").startsWith("https://")?state.profile.avatar_url:getAvatarImage();
+  const image=getAvatarImage()||(String(state.profile?.avatar_url||"").startsWith("https://")?state.profile.avatar_url:"");
   return image?'<img class="qq-avatar-image '+size+'" src="'+esc(image)+'" alt="Моя аватарка">':(AVATARS[state.profile?.avatar]||"🐱");
 }
 function saveAvatarFile(file){
@@ -75,8 +75,15 @@ function saveAvatarFile(file){
       canvas.toBlob(async blob=>{
         if(!blob){toast("Не удалось обработать изображение.");return}
         const id=String(state.profile?.id||"");
+        const oldUrl=state.profile?.avatar_url||"";
+        let localData="";
+        try{
+          localData=canvas.toDataURL("image/webp",.82);
+          localStorage.setItem(avatarStorageKey(),localData);
+          state.profile.avatar_url=localData;
+          save();render();
+        }catch(_){toast("Не удалось сохранить изображение на устройстве. Попробуй файл поменьше.");return}
         if(supabaseClient&&id&&!id.startsWith("local-")){
-          const oldUrl=state.profile.avatar_url||"";
           const path=id+"/avatar-"+Date.now()+".webp";
           try{
             const {error:uploadError}=await supabaseClient.storage.from("avatars").upload(path,blob,{contentType:"image/webp",cacheControl:"31536000",upsert:false});
@@ -86,14 +93,18 @@ function saveAvatarFile(file){
             const {error:updateError}=await supabaseClient.from("profiles").update({avatar_url:publicUrl}).eq("id",id);
             if(updateError){await supabaseClient.storage.from("avatars").remove([path]);throw updateError}
             state.profile.avatar_url=publicUrl;
+            localStorage.removeItem(avatarStorageKey());
             if(typeof playerProfileCache!=="undefined"){playerProfileCache.delete(id);playerProfileCache.set(id,{...state.profile});playerProfileCacheAt.set(id,Date.now())}
             save();render();toast("Аватарка сохранена в QQCross и будет видна в играх.");
             const oldMatch=oldUrl.match(/\/storage\/v1\/object\/public\/avatars\/(.+)$/);
             if(oldMatch&&decodeURIComponent(oldMatch[1]).startsWith(id+"/"))supabaseClient.storage.from("avatars").remove([decodeURIComponent(oldMatch[1])]).catch(()=>{});
-          }catch(error){toast(error.message||"Не удалось загрузить аватарку в облако.")}
+          }catch(error){
+            state.profile.avatar_url=localData;
+            save();render();
+            toast("Аватарка сохранена на этом устройстве. Не удалось синхронизировать: "+(error.message||"ошибка облака"));
+          }
         }else{
-          try{const dataUrl=canvas.toDataURL("image/webp",.82);localStorage.setItem(avatarStorageKey(),dataUrl);state.profile.avatar_url=dataUrl;save();render();toast("Аватарка сохранена на этом устройстве. Для синхронизации войди в аккаунт.");}
-          catch(_){toast("Не удалось сохранить изображение. Попробуй файл поменьше.");}
+          save();render();toast("Аватарка сохранена на этом устройстве. Для синхронизации войди в аккаунт.");
         }
       },"image/webp",.82);
     };
@@ -158,7 +169,7 @@ async function loadPlayerProfiles(ids=[]){
 function playerIdentityMarkup(player={},options={}){
   const person={...player};
   if(state.profile&&String(person.id||"")===String(state.profile.id)){
-    person.avatar_url=person.avatar_url||state.profile.avatar_url||getAvatarImage();
+    person.avatar_url=getAvatarImage()||person.avatar_url||state.profile.avatar_url||"";
     person.active_frame=person.active_frame||state.profile.active_frame||"standard";
     person.active_title=person.active_title||state.profile.active_title||window.QQProgression?.get?.().activeTitle||"Новичок";
     person.username=person.username||state.profile.username;
@@ -1111,7 +1122,7 @@ async function loadCloudProfile(userId,generation=null){
   await window.QQProgression?.setCloud?.(supabaseClient,userId);
   const {data:identity,error:identityError}=await supabaseClient.rpc("get_qqcross_player_profile",{target_user_id:userId});
   if(identityError)throw identityError;
-  state.profile.avatar_url=identity.avatar_url||state.profile.avatar_url||"";
+  state.profile.avatar_url=getAvatarImage()||identity.avatar_url||state.profile.avatar_url||"";
   state.profile.active_frame=identity.active_frame||"standard";
   state.profile.owned_frames=Array.isArray(identity.owned_frames)?identity.owned_frames:["standard"];
   const progressionTitle=window.QQProgression?.get?.().activeTitle||identity.active_title||"Новичок";
