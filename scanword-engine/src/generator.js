@@ -26,7 +26,8 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
 
   const ordered = domains.map(domain => {
     const unique = new Map();
-    for (const candidate of domain) {
+    const candidates = Array.isArray(domain) ? domain : (domain?.options ?? []);
+    for (const candidate of candidates) {
       const answerKey = typeof candidate === 'string'
         ? canonicalAnswerKey(candidate, { foldYo })
         : candidate.answerKey ?? canonicalAnswerKey(candidate.answer, { foldYo });
@@ -104,7 +105,7 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
 
   return assign(0);
 }
-function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = []) {
+export function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = []) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
   const specialClueKey = '0,1';
@@ -238,7 +239,11 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
     for (const candidate of chosen.candidates) {
       const added = add(candidate);
-      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
+      const occupiedSlots = new Set(selected.map(item => item.slotId));
+      const remainingShortDomains = shortDomains.filter(domain =>
+        Array.isArray(domain) || !occupiedSlots.has(domain.slotId)
+      );
+      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(remainingShortDomains, {
         excludedAnswers: usedAnswers,
         letterUses,
         difficultyCounts: usedDifficultyCounts,
@@ -505,12 +510,15 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
 
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
-        .map(domain => domain.options.map(option => ({
-          answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
-          answer: option.entry.answer,
-          difficulty: normalizeDifficultyBand(option.entry.difficulty),
-          coordinates: option.coordinates
-        })));
+        .map(domain => ({
+          slotId: domain.slot.id,
+          options: domain.options.map(option => ({
+            answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
+            answer: option.entry.answer,
+            difficulty: normalizeDifficultyBand(option.entry.difficulty),
+            coordinates: option.coordinates
+          }))
+        }));
       const specialLetters = new Map([...entry.answer].map((letter, index) => [
         (index + 1) + ',1',
         foldYo && letter === 'Ё' ? 'Е' : letter
