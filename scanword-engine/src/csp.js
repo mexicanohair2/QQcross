@@ -281,7 +281,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   // Pronouns and other filler entries are intentionally excluded.
   const allowedShortAnswers = options.allowedShortAnswers instanceof Set
     ? options.allowedShortAnswers
-    : ALLOWED_SPECIAL_SHORT_ANSWERS;
+    : new Set((options.allowedShortAnswers ?? [...ALLOWED_SPECIAL_SHORT_ANSWERS]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
     // Production uses all four directions; geometrically invalid orientations are
     // excluded by the slot endpoints and the independent validator.
