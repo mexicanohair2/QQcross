@@ -57,3 +57,11 @@ test("cloud profile hydration never replaces a saved custom avatar with an empty
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
   assert.match(app, /state\.profile\.avatar_url=identity\.avatar_url\|\|state\.profile\.avatar_url\|\|""/);
 });
+
+
+test("score-strip theme colors only apply to direct score labels, not nested avatar spans", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.score-strip > span\{/);
+  assert.match(css, /html\[data-qq-theme\] \.score-strip > span\{/);
+  assert.doesNotMatch(css, /html\[data-qq-theme\] \.score-strip span\{/);
+});
