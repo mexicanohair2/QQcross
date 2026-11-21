@@ -1,0 +1,55 @@
+/* Shared profile identity: avatar, owned frame, nickname and title. */
+.qq-player-identity{display:inline-flex;align-items:center;gap:10px;min-width:0;max-width:100%;text-align:left;color:inherit;vertical-align:middle}
+.qq-player-identity__copy{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;line-height:1.2}
+.qq-player-name{font-size:.94rem;font-weight:760;overflow-wrap:anywhere}
+.qq-player-title{display:block;color:var(--qq-muted,#bdaab7);font-size:.76rem;font-weight:570;line-height:1.25}
+.qq-player-note{color:var(--qq-muted,#bdaab7);font-size:.72rem}
+.qq-player-score{display:inline-flex;gap:5px;align-items:center;margin-top:3px;color:var(--qq-muted,#c4b4c0);font-size:.75rem}
+.qq-player-score b{color:var(--qq-text,#f8edf4);font-variant-numeric:tabular-nums}
+.qq-player-identity--clickable{width:100%;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;border-radius:14px}
+.qq-player-identity--clickable:focus-visible{outline:2px solid var(--qq-accent,#b77a9e);outline-offset:3px}
+.qq-player-identity--clickable:hover .qq-player-name{color:var(--qq-accent-strong,#ebbed3)}
+.qq-player-identity--compact{gap:7px}
+.qq-player-identity--compact .qq-player-name{font-size:.82rem}
+.qq-player-identity--compact .qq-player-title{font-size:.68rem}
+.qq-player-avatar{--qq-avatar-size:48px;position:relative;isolation:isolate;display:inline-grid;place-items:center;width:var(--qq-avatar-size);height:var(--qq-avatar-size);flex:0 0 var(--qq-avatar-size);vertical-align:middle}
+.qq-player-avatar--xs{--qq-avatar-size:32px}
+.qq-player-avatar--sm{--qq-avatar-size:40px}
+.qq-player-avatar--md{--qq-avatar-size:50px}
+.qq-player-avatar--lg{--qq-avatar-size:68px}
+.qq-player-avatar--xl{--qq-avatar-size:88px}
+.qq-player-avatar__face{position:absolute;inset:15%;z-index:0;display:grid;place-items:center;overflow:hidden;border-radius:50%;background:radial-gradient(circle at 35% 25%,rgba(255,255,255,.18),rgba(80,25,55,.84) 68%,rgba(20,8,18,.98));box-shadow:inset 0 0 0 1px rgba(255,238,248,.22),0 2px 8px rgba(0,0,0,.28);font-size:calc(var(--qq-avatar-size)*.42);line-height:1}
+.qq-player-avatar__face img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
+.qq-player-avatar__ornament{position:absolute;inset:0;z-index:1;display:block;width:100%;height:100%;object-fit:contain;pointer-events:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.28))}
+.qq-daily-profile{display:flex;align-items:center;gap:12px;margin:0 0 12px;padding:12px 14px;border:1px solid rgba(189,130,164,.22);border-radius:19px;background:linear-gradient(125deg,rgba(75,24,54,.44),rgba(37,20,43,.42) 62%,rgba(74,37,66,.28));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.qq-daily-profile .qq-player-identity{flex:1}
+.qq-daily-profile__stats{display:flex;flex-direction:column;align-items:flex-end;gap:3px;color:var(--qq-muted,#c3aebd);font-size:.72rem;white-space:nowrap}
+.qq-daily-profile__stats b{font-size:.91rem;color:var(--qq-text,#f5eaf1);font-variant-numeric:tabular-nums}
+.qq-shop-frames{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+.qq-frame-product{display:flex;flex-direction:column;align-items:center;gap:7px;min-width:0;padding:14px 10px;border:1px solid rgba(190,132,165,.2);border-radius:18px;background:linear-gradient(145deg,rgba(69,30,55,.38),rgba(30,18,35,.68));text-align:center}
+.qq-frame-product.is-equipped{border-color:rgba(203,145,178,.62);box-shadow:inset 0 0 0 1px rgba(205,150,184,.12)}
+.qq-frame-product__name{font-weight:760;font-size:.9rem}
+.qq-frame-product__desc{min-height:2.2em;color:var(--qq-muted,#bdaab7);font-size:.72rem;line-height:1.35}
+.qq-frame-product__price{font-size:.78rem;color:var(--qq-muted,#c8b5c1);font-variant-numeric:tabular-nums}
+.qq-frame-product .btn{width:100%;min-height:38px;padding:8px}
+.qq-frame-product .qq-player-avatar{margin:2px auto 1px}
+.qq-player-card{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:10px 12px;border:1px solid rgba(183,125,157,.16);border-radius:16px;background:linear-gradient(120deg,rgba(65,27,51,.24),rgba(36,21,39,.3))}
+.qq-player-card.is-active{border-color:rgba(207,151,184,.58);background:linear-gradient(120deg,rgba(105,41,72,.36),rgba(57,31,61,.38));box-shadow:0 0 0 1px rgba(183,125,157,.08)}
+.qq-score-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,155px),1fr));gap:8px;width:100%;margin:4px 0 12px}
+.qq-score-strip .qq-player-card{min-width:0}
+.qq-profile-dialog-backdrop{position:fixed;inset:0;z-index:10010;display:grid;place-items:center;padding:18px;background:rgba(8,4,10,.78);backdrop-filter:blur(12px)}
+.qq-profile-dialog{width:min(100%,430px);max-height:min(82dvh,690px);overflow:auto;padding:18px;border:1px solid rgba(190,132,165,.34);border-radius:24px;background:linear-gradient(145deg,#2b1024,#1b1123 62%,#21101c);box-shadow:0 20px 70px rgba(0,0,0,.55)}
+.qq-profile-dialog__head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.qq-profile-dialog__stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
+.qq-profile-stat{padding:11px;border-radius:14px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.055)}
+.qq-profile-stat b{display:block;font-size:1.12rem;font-variant-numeric:tabular-nums}
+.qq-profile-stat small{color:var(--qq-muted,#bdaab7);font-size:.73rem}
+.qq-profile-dialog__close{width:38px;height:38px;flex:0 0 38px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.05);color:inherit;font-size:20px}
+.qq-game-svg{display:block;width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.qq-game-launch .qq-game-icon{display:grid;place-items:center;width:49px;height:49px;border:1px solid rgba(204,145,179,.25);border-radius:15px;background:linear-gradient(145deg,rgba(119,52,91,.36),rgba(45,25,52,.55));color:#e2b4ce;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.qq-game-launch .qq-game-svg{width:28px;height:28px}
+.qq-profile-achievements{margin-top:8px}
+.qq-profile-achievements .qq-settings-content{padding-top:5px}
+.qq-player-modal-muted{margin-top:12px;color:var(--qq-muted,#bdaab7);font-size:.78rem}
+@media(max-width:420px){.qq-shop-frames{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.qq-frame-product{padding:11px 8px}.qq-player-avatar--lg{--qq-avatar-size:62px}.qq-daily-profile{padding:10px}.qq-player-identity{gap:8px}}
+@media(prefers-reduced-motion:reduce){.qq-player-identity--clickable,.qq-frame-product,.qq-player-avatar__ornament{transition:none!important;animation:none!important}}
