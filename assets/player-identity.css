@@ -89,3 +89,34 @@
 @media(prefers-reduced-motion:reduce){
  .qq-settings-toggle svg,.qq-settings-content,.qq-game-launch{transition:none!important}
 }
+
+/* Main navigation icons are framed like small QQCross relics, not plain glyphs. */
+.nav button .ni{
+ display:grid;place-items:center;width:38px;height:35px;margin:0 auto 3px;
+ color:#c7aab9;border:1px solid rgba(190,132,165,.16);border-radius:13px;
+ background:linear-gradient(145deg,rgba(91,43,68,.28),rgba(35,19,35,.62));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.045);
+ transition:transform 360ms cubic-bezier(.2,.7,.25,1),color 360ms ease,border-color 360ms ease,background 360ms ease,box-shadow 360ms ease;
+}
+.nav button .qq-tab-icon{width:21px;height:21px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.22))}
+.nav button.active .ni{
+ color:#f1d6e5;border-color:rgba(210,155,185,.52);
+ background:linear-gradient(145deg,rgba(134,64,98,.62),rgba(66,34,62,.76));
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 13px rgba(30,8,22,.25),0 0 17px rgba(167,94,134,.12);
+ transform:translateY(-2px);
+}
+.nav button:not(.active):hover .ni{color:#e2c3d4;border-color:rgba(198,143,173,.34);transform:translateY(-1px)}
+.qq-settings-gear{
+ display:grid;place-items:center;width:40px;height:40px;border:1px solid rgba(199,145,175,.25);
+ border-radius:14px;background:linear-gradient(145deg,rgba(85,37,65,.3),rgba(32,18,34,.54));
+ color:#e4bfd2;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+ transition:transform 360ms ease,border-color 360ms ease,background 360ms ease;
+}
+.qq-settings-gear:active{transform:rotate(18deg) scale(.96)}
+.qq-settings-gear .qq-tab-icon{width:21px;height:21px}
+.coins{
+ padding:7px 10px;border:1px solid rgba(195,145,170,.2);border-radius:13px;
+ background:linear-gradient(145deg,rgba(96,52,73,.28),rgba(37,20,35,.42));
+ color:#ecd2df;font-variant-numeric:tabular-nums;
+}
+@media(prefers-reduced-motion:reduce){.nav button .ni,.qq-settings-gear{transition:none!important}}
