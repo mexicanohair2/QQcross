@@ -37,8 +37,14 @@ async function main() {
     rejectedReasons: result.rejectedReasons ?? {},
     diagnostics: result.lastDiagnostic ?? null,
     generationStats: result.stats ?? null,
-    specialElevenPlanDiagnostics: result.stats?.specialElevenPlanDiagnostics ?? null,
-    specialElevenFailureDiagnostics: result.stats?.specialElevenFailureDiagnostics ?? null,
+    specialElevenPlanDiagnostics: result.specialElevenPlanDiagnostics
+      ?? result.stats?.specialElevenPlanDiagnostics
+      ?? null,
+    specialElevenPlanCount: result.specialElevenPlanCount ?? null,
+    specialElevenAttemptCount: result.specialElevenAttemptCount ?? null,
+    specialElevenFailureDiagnostics: result.specialElevenFailureDiagnostics
+      ?? result.stats?.specialElevenFailureDiagnostics
+      ?? null,
     dictionaryStats: result.dictionaryStats ?? null,
     success: result.ok ? {
       answers: result.scanword.words.length,
