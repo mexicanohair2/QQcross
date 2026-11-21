@@ -61,6 +61,7 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       seen.add(identity);
       options.push({
         ...option,
+        slotId: domain.slot.id,
         answerKey,
         clueKey,
         directionKey
