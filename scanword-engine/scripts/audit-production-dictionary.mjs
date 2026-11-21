@@ -33,7 +33,10 @@ for (const item of raw) {
   if (answer.length === 1) oneLetterAnswers++;
   if (answer.length > 11) overlengthAnswers++;
   if (!clue) emptyClues++;
-  if (clue.length > 0 && clue.length < 15) shortClues++;
+  const isFlagPrompt = !/[А-Яа-яЁё]/u.test(clue)
+    && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(clue);
+  if (clue.length > 0 && clue.length < 15
+    && !item?.imageKey && item?.logic !== true && !isFlagPrompt) shortClues++;
   if (clue.length > 110) longClues++;
   if (item?.imageKey) imageRecords++;
   if (item?.logic === true) logicRecords++;
