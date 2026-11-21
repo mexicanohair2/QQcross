@@ -524,8 +524,15 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       (index + 1) + ',1',
       letter
     ]));
+    let viablePlansForAnswer = 0;
+    const maximumPlansPerAnswer = Math.max(1, Number(requirements.maximumPlansPerSpecialAnswer ?? 2));
 
     for (const topology of topologies) {
+      if (viablePlansForAnswer >= maximumPlansPerAnswer) break;
+      // The conventional split masks are a fallback only when this answer
+      // has no compatible low-short layout. Avoid searching them again for
+      // answers that already have a valid low-short plan.
+      if (topology.patternKey.startsWith('split-') && viablePlansForAnswer > 0) break;
       const candidateDomainStarted = now();
       const domains = [];
       let valid = true;
@@ -772,6 +779,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             : specialDifficultyBand === 2 ? 25000 : 0),
         tie: random()
       });
+      viablePlansForAnswer++;
     }
     // Two independent answers and a small set of viable topologies are
     // enough for the bounded production retry window. Enumerating every
