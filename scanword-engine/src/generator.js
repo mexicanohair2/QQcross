@@ -435,7 +435,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
       mutateSpecialPattern: true,
       mutationBudget: 48,
       maxAttempts: 1,
-      maxTwoLetterSlots: 3
+      maxTwoLetterSlots: 4
     });
     if (!lowShortTopology.ok) continue;
     const signature = lowShortTopology.topology.pattern.join('/');
@@ -461,7 +461,8 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
     imageAssignmentRejected: 0,
     viablePlans: 0,
     distinctSpecialAnswers: 0,
-    distinctTopologyPatterns: topologies.length
+    distinctTopologyPatterns: topologies.length,
+    lowShortTopologiesConsidered: topologies.filter(item => item.patternKey.startsWith('low-short-')).length
   };
 
   for (const entry of entries) {
@@ -686,12 +687,18 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
         }
         planDiagnostics.imageSelectionSearchNodes = (planDiagnostics.imageSelectionSearchNodes ?? 0)
           + imageSelectionDiagnostics.searchNodes;
+        const failureExample = {
+          answer: entry.answer,
+          rows: topology.rows,
+          patternKey: topology.patternKey,
+          ...imageSelectionDiagnostics
+        };
         if ((planDiagnostics.imageSelectionFailureExamples?.length ?? 0) < 4) {
-          (planDiagnostics.imageSelectionFailureExamples ??= []).push({
-            answer: entry.answer,
-            rows: topology.rows,
-            ...imageSelectionDiagnostics
-          });
+          (planDiagnostics.imageSelectionFailureExamples ??= []).push(failureExample);
+        }
+        if (topology.patternKey.startsWith('low-short-')
+          && (planDiagnostics.lowShortImageSelectionFailureExamples?.length ?? 0) < 8) {
+          (planDiagnostics.lowShortImageSelectionFailureExamples ??= []).push(failureExample);
         }
         continue;
       }
