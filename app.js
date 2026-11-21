@@ -1026,7 +1026,7 @@ function fitScanwordClue(value,answer=""){
   return shortened.replace(/[\s,;:—-]+$/,"")+"…";
 }
 function clonePreparedScanword(source){
-  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,sequenceIndex:source.sequenceIndex??null,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
 }
 function refreshPracticeButton(){
   const button=$("#practice");
@@ -1056,9 +1056,6 @@ function buildScanwordInWorker(entries, overrides={}){
   const sequenceIndex=Number.isSafeInteger(overrides.sequenceIndex)&&overrides.sequenceIndex>0
     ? overrides.sequenceIndex
     : countSequence?getNextScanwordSequenceIndex():null;
-  const rememberSequence=()=>{
-    if(countSequence&&Number.isSafeInteger(sequenceIndex)&&sequenceIndex>0)saveScanwordSequenceIndex(sequenceIndex);
-  };
   const generationOptions={
     seed,
     ...(sequenceIndex===null?{}:{sequenceIndex}),
@@ -1070,7 +1067,9 @@ function buildScanwordInWorker(entries, overrides={}){
   };
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
-    return adapter.toLegacyPuzzle(scanword,{sequence:seed});
+    const puzzle=adapter.toLegacyPuzzle(scanword,{sequence:seed});
+    puzzle.sequenceIndex=sequenceIndex;
+    return puzzle;
   };
   const runOnMainThread=async()=>{
     const engine=await import("./scanword-engine/src/generator.js");
@@ -1079,9 +1078,7 @@ function buildScanwordInWorker(entries, overrides={}){
       const reason=result.reason?" ("+result.reason+")":"";
       throw new Error((result.message||"Не удалось создать сканворд")+reason);
     }
-    const puzzle=await adapt(result.scanword);
-    rememberSequence();
-    return puzzle;
+    return adapt(result.scanword);
   };
   if(typeof Worker!=="function")return runOnMainThread();
   return new Promise((resolve,reject)=>{
@@ -1110,7 +1107,6 @@ function buildScanwordInWorker(entries, overrides={}){
         cleanup();
         try{
           const puzzle=await adapt(data.scanword);
-          rememberSequence();
           resolve(puzzle);
         }catch(error){reject(error)}
       };
@@ -1153,6 +1149,9 @@ function makeRandomPuzzle(){
   const built=preparedScanword?clonePreparedScanword(preparedScanword):null;
   preparedScanword=null;
   if(!built){puzzle=null;letterBag=[];return false}
+  // Count a scanword only when it is actually consumed by a game, not when
+  // the next board is merely pre-generated in the background.
+  saveScanwordSequenceIndex(built.sequenceIndex);
   puzzle=built;
   puzzle.words.forEach(w=>w.cells.forEach((c,i)=>{
     const key=c.join(","),letter=w.answer[i];
