@@ -16,7 +16,8 @@ const $ = (selector) => document.querySelector(selector);
 const app = $("#app");
 const state = {
   profile: null,
-  playerProfiles: {},\n  playerProfileUpdatedAt: {},
+  playerProfiles: {},
+  playerProfileUpdatedAt: {},
   guest: false,
   screen: "home",
   roomId: null,
@@ -88,7 +89,9 @@ async function loadProfile(userId) {
     .single();
   if (error) throw error;
   if (!data) throw new Error("Профиль QQCross не найден.");
-  state.profile = { ...data, avatar: Number(data.avatar) || 0 };\n  state.playerProfiles[String(data.id)] = state.profile;\n  state.playerProfileUpdatedAt[String(data.id)] = Date.now();
+  state.profile = { ...data, avatar: Number(data.avatar) || 0 };
+  state.playerProfiles[String(data.id)] = state.profile;
+  state.playerProfileUpdatedAt[String(data.id)] = Date.now();
   state.guest = false;
 }
 async function loadPartyProfiles(ids=[]){
