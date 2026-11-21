@@ -90,6 +90,41 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
 });
 
+test('AC-3 maps reversed leftward and upward answers by physical crossing cell', () => {
+  const horizontal = {
+    slot: {
+      coordinates: [{ row: 4, col: 1 }, { row: 4, col: 2 }]
+    },
+    options: [
+      {
+        entry: { answer: 'CA' },
+        coordinates: [{ row: 4, col: 2 }, { row: 4, col: 1 }],
+        direction: 'left'
+      },
+      {
+        entry: { answer: 'CB' },
+        coordinates: [{ row: 4, col: 2 }, { row: 4, col: 1 }],
+        direction: 'left'
+      }
+    ]
+  };
+  const vertical = {
+    slot: {
+      coordinates: [{ row: 3, col: 1 }, { row: 4, col: 1 }]
+    },
+    options: [{
+      entry: { answer: 'EA' },
+      coordinates: [{ row: 3, col: 1 }, { row: 4, col: 1 }],
+      direction: 'down'
+    }]
+  };
+  const domains = [horizontal, vertical];
+
+  assert.equal(enforceCrossingArcConsistency(domains), true);
+  assert.deepEqual(horizontal.options.map(option => option.entry.answer), ['CA']);
+  assert.deepEqual(vertical.options.map(option => option.entry.answer), ['EA']);
+});
+ 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
   assert.equal(CONFIG.TOTAL_CELLS, 96); assert.equal(grid.length, 12); assert.ok(grid.every(r => r.length === 8)); assert.ok(assertGridDimensions(grid));
