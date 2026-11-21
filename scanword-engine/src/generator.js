@@ -105,7 +105,7 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
 
   return assign(0);
 }
-export function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = []) {
+export function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = [], diagnostics = null) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
   const specialClueKey = '0,1';
@@ -114,7 +114,24 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
     foldYo && letter === 'Ё' ? 'Е' : letter
   ]));
   const required = Math.max(0, requiredImageCount - (specialHasImage ? 1 : 0));
-  if (required === 0) return [];
+  const stats = diagnostics ?? {};
+  Object.assign(stats, {
+    required,
+    imageDomainCount: 0,
+    imageOptionCount: 0,
+    searchNodes: 0,
+    maxNodesHit: false,
+    remainingDomainRejects: 0,
+    viableDomainRejects: 0,
+    matchingCapacityRejects: 0,
+    shortAnswerRejects: 0,
+    skippedDomainFailures: 0,
+    found: false
+  });
+  if (required === 0) {
+    stats.found = true;
+    return [];
+  }
 
   const domainsWithImages = domains.map(domain => {
     const seen = new Set();
@@ -138,6 +155,9 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
     }
     return { slotId: domain.slot.id, options };
   }).filter(domain => domain.options.length);
+
+  stats.imageDomainCount = domainsWithImages.length;
+  stats.imageOptionCount = domainsWithImages.reduce((sum, domain) => sum + domain.options.length, 0);
 
   const selected = [];
   const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
@@ -207,7 +227,14 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
 
   function search(remainingDomains) {
     if (selected.length >= required) return true;
-    if (nodes++ >= maxNodes || selected.length + remainingDomains.length < required) return false;
+    if (nodes++ >= maxNodes) {
+      stats.maxNodesHit = true;
+      return false;
+    }
+    if (selected.length + remainingDomains.length < required) {
+      stats.remainingDomainRejects++;
+      return false;
+    }
 
     const viableDomains = [];
     for (const domain of remainingDomains) {
@@ -215,7 +242,10 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
       if (candidates.length) viableDomains.push({ ...domain, candidates });
     }
     const needed = required - selected.length;
-    if (viableDomains.length < needed) return false;
+    if (viableDomains.length < needed) {
+      stats.viableDomainRejects++;
+      return false;
+    }
 
     const assetDomains = viableDomains.map(domain =>
       [...new Set(domain.candidates.map(candidate => candidate.entry.imageKey))]
@@ -226,9 +256,13 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
     const clueDomains = viableDomains.map(domain =>
       [...new Set(domain.candidates.map(candidate => candidate.clueKey))]
     );
-    if (maximumDistinctAssignmentCount(assetDomains) < needed
-      || maximumDistinctAssignmentCount(answerDomains) < needed
-      || maximumDistinctAssignmentCount(clueDomains) < needed) return false;
+    const assetCapacity = maximumDistinctAssignmentCount(assetDomains);
+    const answerCapacity = maximumDistinctAssignmentCount(answerDomains);
+    const clueCapacity = maximumDistinctAssignmentCount(clueDomains);
+    if (assetCapacity < needed || answerCapacity < needed || clueCapacity < needed) {
+      stats.matchingCapacityRejects++;
+      return false;
+    }
 
     viableDomains.sort((a, b) =>
       a.candidates.length - b.candidates.length
@@ -250,14 +284,20 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
         difficultyQuotas: plannedDifficultyQuotas,
         foldYo
       });
+      if (!shortAnswersRemainFeasible) stats.shortAnswerRejects++;
       if (shortAnswersRemainFeasible && search(rest)) return true;
       undo(candidate, added);
     }
 
-    return search(rest);
+    const skipped = search(rest);
+    if (!skipped) stats.skippedDomainFailures++;
+    return skipped;
   }
 
-  return search(domainsWithImages) ? selected.map(candidate => ({
+  const found = search(domainsWithImages);
+  stats.searchNodes = nodes;
+  stats.found = found;
+  return found ? selected.map(candidate => ({
     slotId: candidate.slotId,
     entryId: candidate.entry.id,
     answer: candidate.entry.answer,
@@ -620,6 +660,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
         continue;
       }
 
+      const imageSelectionDiagnostics = {};
       const compatibleImageSelection = chooseCompatibleImageSelection(
         domains,
         requiredImageCount,
@@ -627,10 +668,31 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
         foldYo,
         requirements.imageSelectionSearchNodes ?? 2500,
         difficultyQuotas,
-        shortDomains
+        shortDomains,
+        imageSelectionDiagnostics
       );
       if (!compatibleImageSelection) {
         planDiagnostics.imageAssignmentRejected++;
+        const failures = planDiagnostics.imageSelectionFailures ??= {
+          maxNodesHit: 0,
+          remainingDomainRejects: 0,
+          viableDomainRejects: 0,
+          matchingCapacityRejects: 0,
+          shortAnswerRejects: 0,
+          skippedDomainFailures: 0
+        };
+        for (const key of Object.keys(failures)) {
+          if (imageSelectionDiagnostics[key]) failures[key] += imageSelectionDiagnostics[key] ? 1 : 0;
+        }
+        planDiagnostics.imageSelectionSearchNodes = (planDiagnostics.imageSelectionSearchNodes ?? 0)
+          + imageSelectionDiagnostics.searchNodes;
+        if ((planDiagnostics.imageSelectionFailureExamples?.length ?? 0) < 4) {
+          (planDiagnostics.imageSelectionFailureExamples ??= []).push({
+            answer: entry.answer,
+            rows: topology.rows,
+            ...imageSelectionDiagnostics
+          });
+        }
         continue;
       }
 
