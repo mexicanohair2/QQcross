@@ -1,5 +1,5 @@
 import { CONFIG } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyQuotaCounts, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
 import { maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
@@ -278,6 +278,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       const imageDomains = [];
       const imageClueCellDomains = [];
       const logicClueCellDomains = [];
+      const difficultyDomains = { 2: [], 3: [], 4: [] };
       let minimumDomain = Infinity;
       let totalDomain = 0;
       for (const domain of domains) {
@@ -290,6 +291,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidateImageKeys = new Set();
         const candidateImageClueCells = new Set();
         const candidateLogicClueCells = new Set();
+        const candidateDifficultyIds = { 2: new Set(), 3: new Set(), 4: new Set() };
         for (const option of domain.options) {
           const clueKey = option.clueCell.row + ',' + option.clueCell.col;
           if (option.entry.imageKey) {
@@ -298,20 +300,33 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             candidateImageClueCells.add(clueKey);
           }
           if (option.entry.logic === true) candidateLogicClueCells.add(clueKey);
+          candidateDifficultyIds[normalizeDifficultyBand(option.entry.difficulty)].add(option.entry.id);
         }
         if (candidateImageKeys.size) imageDomains.push([...candidateImageKeys]);
         if (candidateImageClueCells.size) imageClueCellDomains.push([...candidateImageClueCells]);
         if (candidateLogicClueCells.size) logicClueCellDomains.push([...candidateLogicClueCells]);
+        for (const level of [2, 3, 4]) {
+          if (candidateDifficultyIds[level].size) difficultyDomains[level].push([...candidateDifficultyIds[level]]);
+        }
       }
 
       const imageAssignmentCapacity = maximumDistinctAssignmentCount(imageDomains);
       const imageClueCellCapacity = maximumDistinctAssignmentCount(imageClueCellDomains);
       const logicClueCellCapacity = maximumDistinctAssignmentCount(logicClueCellDomains);
+      const difficultyQuotas = getDifficultyQuotaCounts(domains.length, requirements.difficultyDistribution);
+      const difficultyCapacities = {
+        2: maximumDistinctAssignmentCount(difficultyDomains[2]),
+        3: maximumDistinctAssignmentCount(difficultyDomains[3]),
+        4: maximumDistinctAssignmentCount(difficultyDomains[4])
+      };
+      const difficultyCapacityValid = [2, 3, 4].every(level =>
+        difficultyCapacities[level] >= difficultyQuotas[level]
+      );
       const imageCapacityValid = imageAssignmentCapacity >= requiredImageCount
         && imageClueCellCapacity >= requiredImageCount;
       const logicCapacityValid = logicClueCellCapacity >= minimumLogicClueCells;
 
-      if (!imageCapacityValid || !logicCapacityValid) {
+      if (!imageCapacityValid || !logicCapacityValid || !difficultyCapacityValid) {
         planDiagnostics.contentRequirementsRejected++;
         if (!planDiagnostics.firstContentFailure) {
           planDiagnostics.firstContentFailure = {
@@ -323,6 +338,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             requiredImageCount,
             logicClueCellCapacity,
             minimumLogicClueCells,
+            difficultyCapacities,
+            difficultyQuotas,
             domains: domains.map(domain => ({
               slotId: domain.slot.id,
               length: domain.slot.length,
