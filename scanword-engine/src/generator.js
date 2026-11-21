@@ -638,6 +638,15 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
         ])),
+        // Keep the exact AC-3-supported entry + clue + direction tuples.
+        // Entry-only filtering re-opened reverse orientations that the plan
+        // had already removed, causing large, futile CSP backtracking trees.
+        allowedPlacementsBySlot: new Map(domains.map(domain => [
+          domain.slot.id,
+          new Set(domain.options.map(option =>
+            option.entry.id + '|' + option.clueCell.row + ',' + option.clueCell.col + '|' + option.direction
+          ))
+        ])),
         preferredImagePlacementsBySlot: new Map(compatibleImageSelection.map(item => [
           item.slotId,
           {
@@ -934,6 +943,7 @@ export function generateScanword(inputDictionary, options = {}) {
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      allowedPlacementsBySlot: specialPlan?.allowedPlacementsBySlot,
       preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
       enforcePreferredImagePlacements: useSpecialTopology,
       captureTrace: options.captureTrace === true
