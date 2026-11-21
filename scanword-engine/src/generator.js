@@ -15,8 +15,9 @@ function now() {
 export function canAssignDistinctShortAnswers(domains, options = {}) {
   const excludedAnswers = options.excludedAnswers ?? new Set();
   const foldYo = options.foldYo === true;
-  const initialLetters = options.letterUses instanceof Map ? new Map(options.letterUses) : new Map();
-  const workingLetters = new Map(initialLetters);
+  const workingLetters = options.letterUses instanceof Map ? new Map(options.letterUses) : new Map();
+  const usedDirections = options.usedDirections instanceof Set ? new Set(options.usedDirections) : new Set();
+  const assignedSlotIds = options.assignedSlotIds instanceof Set ? options.assignedSlotIds : new Set();
   const difficultyCounts = {
     2: Number(options.difficultyCounts?.[2] ?? 0),
     3: Number(options.difficultyCounts?.[3] ?? 0),
@@ -24,43 +25,56 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
   };
   const difficultyQuotas = options.difficultyQuotas ?? null;
 
-  const ordered = domains.map(domain => {
-    const unique = new Map();
-    for (const candidate of domain) {
-      const answerKey = typeof candidate === 'string'
-        ? canonicalAnswerKey(candidate, { foldYo })
-        : candidate.answerKey ?? canonicalAnswerKey(candidate.answer, { foldYo });
-      if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
-      const difficulty = typeof candidate === 'string'
-        ? 3
-        : normalizeDifficultyBand(candidate.difficulty);
-      if (difficultyQuotas && difficultyCounts[difficulty] >= difficultyQuotas[difficulty]) continue;
+  const ordered = domains
+    .filter(domain => !domain.slotId || !assignedSlotIds.has(domain.slotId))
+    .map(domain => {
+      const candidates = Array.isArray(domain) ? domain : (domain.options ?? []);
+      const unique = new Map();
+      for (const candidate of candidates) {
+        // Picture-backed two-letter answers belong to the image-reservation
+        // phase. They cannot also be treated as ordinary short-word fillers.
+        if (candidate.imageKey) continue;
+        const answerKey = typeof candidate === 'string'
+          ? canonicalAnswerKey(candidate, { foldYo })
+          : candidate.answerKey ?? canonicalAnswerKey(candidate.answer, { foldYo });
+        if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
+        const difficulty = typeof candidate === 'string'
+          ? 3
+          : normalizeDifficultyBand(candidate.difficulty);
+        if (difficultyQuotas && difficultyCounts[difficulty] >= difficultyQuotas[difficulty]) continue;
 
-      const coordinates = typeof candidate === 'string' ? [] : (candidate.coordinates ?? []);
-      const answer = typeof candidate === 'string' ? candidate : candidate.answer;
-      let compatible = true;
-      for (let index = 0; index < coordinates.length; index++) {
-        const point = coordinates[index];
-        const key = point.row + ',' + point.col;
-        const letter = foldYo && answer[index] === 'Ё' ? 'Е' : answer[index];
-        const existing = workingLetters.get(key);
-        if (existing !== undefined && existing !== letter) {
-          compatible = false;
-          break;
+        const coordinates = typeof candidate === 'string' ? [] : (candidate.coordinates ?? []);
+        const answer = typeof candidate === 'string' ? candidate : candidate.answer;
+        const directionKey = typeof candidate === 'string' || !candidate.clueKey || !candidate.direction
+          ? null
+          : candidate.clueKey + '|' + candidate.direction;
+        if (directionKey && usedDirections.has(directionKey)) continue;
+
+        let compatible = true;
+        for (let index = 0; index < coordinates.length; index++) {
+          const point = coordinates[index];
+          const key = point.row + ',' + point.col;
+          const letter = foldYo && answer[index] === 'Ё' ? 'Е' : answer[index];
+          const existing = workingLetters.get(key);
+          if (existing !== undefined && existing !== letter) {
+            compatible = false;
+            break;
+          }
         }
-      }
-      if (!compatible) continue;
+        if (!compatible) continue;
 
-      const placementKey = answerKey + '|' + coordinates.map(point => point.row + ',' + point.col).join(';');
-      if (!unique.has(placementKey)) unique.set(placementKey, {
-        answerKey,
-        answer,
-        difficulty,
-        coordinates
-      });
-    }
-    return [...unique.values()];
-  }).sort((a, b) => a.length - b.length);
+        const placementKey = answerKey + '|' + coordinates.map(point => point.row + ',' + point.col).join(';') + '|' + (directionKey ?? '');
+        if (!unique.has(placementKey)) unique.set(placementKey, {
+          answerKey,
+          answer,
+          difficulty,
+          coordinates,
+          directionKey
+        });
+      }
+      return [...unique.values()];
+    })
+    .sort((a, b) => a.length - b.length);
 
   if (ordered.some(domain => domain.length === 0)) return false;
 
@@ -72,6 +86,7 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
       if (usedAnswers.has(candidate.answerKey)) continue;
       const band = candidate.difficulty;
       if (difficultyQuotas && difficultyCounts[band] >= difficultyQuotas[band]) continue;
+      if (candidate.directionKey && usedDirections.has(candidate.directionKey)) continue;
 
       let compatible = true;
       const addedKeys = [];
@@ -93,7 +108,9 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
       if (compatible) {
         usedAnswers.add(candidate.answerKey);
         difficultyCounts[band]++;
+        if (candidate.directionKey) usedDirections.add(candidate.directionKey);
         if (assign(index + 1)) return true;
+        if (candidate.directionKey) usedDirections.delete(candidate.directionKey);
         difficultyCounts[band]--;
         usedAnswers.delete(candidate.answerKey);
       }
@@ -241,6 +258,8 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
         excludedAnswers: usedAnswers,
         letterUses,
+        usedDirections,
+        assignedSlotIds: new Set(selected.map(item => item.slotId)),
         difficultyCounts: usedDifficultyCounts,
         difficultyQuotas: plannedDifficultyQuotas,
         foldYo
@@ -497,31 +516,20 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
       const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
       const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
-      const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
-      initialDifficultyCounts[specialDifficultyBand]++;
-
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
-        .map(domain => domain.options.map(option => ({
-          answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
-          answer: option.entry.answer,
-          difficulty: normalizeDifficultyBand(option.entry.difficulty),
-          coordinates: option.coordinates
-        })));
-      const specialLetters = new Map([...entry.answer].map((letter, index) => [
-        (index + 1) + ',1',
-        foldYo && letter === 'Ё' ? 'Е' : letter
-      ]));
-      if (!canAssignDistinctShortAnswers(shortDomains, {
-        excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
-        letterUses: specialLetters,
-        difficultyCounts: initialDifficultyCounts,
-        difficultyQuotas,
-        foldYo
-      })) {
-        planDiagnostics.shortAnswerMatchingRejected++;
-        continue;
-      }
+        .map(domain => ({
+          slotId: domain.slot.id,
+          options: domain.options.map(option => ({
+            answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
+            answer: option.entry.answer,
+            difficulty: normalizeDifficultyBand(option.entry.difficulty),
+            imageKey: option.entry.imageKey ?? null,
+            clueKey: option.clueCell.row + ',' + option.clueCell.col,
+            direction: option.direction,
+            coordinates: option.coordinates
+          }))
+        }));
 
       const specialClueKey = '0,1';
       const specialHasImage = Boolean(entry.imageKey);
