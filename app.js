@@ -476,9 +476,10 @@ function shop(){
  const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
  const frameCards=frames.map(frame=>{
   const isOwned=owned.includes(frame.id),equipped=state.profile.active_frame===frame.id;
+  const canAfford=Number(state.profile.coins||0)>=frame.price;
   const action=isOwned
     ?'<button class="btn '+(equipped?'':'primary')+'" data-frame-equip="'+esc(frame.id)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Надета':'Надеть')+'</button>'
-    :'<button class="btn primary" data-frame-buy="'+esc(frame.id)+'">Купить · '+frame.price+' 🪙</button>';
+    :'<button class="btn primary" data-frame-buy="'+esc(frame.id)+'" '+(canAfford?'':'disabled title="Недостаточно монет"')+'>Купить · '+frame.price+' 🪙</button>';
   return '<article class="qq-frame-product '+(equipped?'is-equipped':'')+'">'+
    (window.QQIdentity?.framePreview?window.QQIdentity.framePreview(state.profile,frame.id,"lg"):'')+
    '<b class="qq-frame-product__name">'+esc(frame.name)+'</b>'+
@@ -602,8 +603,17 @@ function settings(){
 }
 
 function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm");if(aiForm)aiForm.onsubmit=e=>{e.preventDefault();askQQCrossAI($("#qqAiAskInput")?.value||"")};const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=async()=>{window.QQProgression?.setActiveTitle(activeTitle.value);if(state.profile?.id&&supabaseClient&&!String(state.profile.id).startsWith("local-")){const {error}=await supabaseClient.from("profiles").update({active_title:activeTitle.value}).eq("id",state.profile.id);if(error)toast("Титул выбран локально, но не синхронизирован");else state.profile.active_title=activeTitle.value}playerProfileCache.set(String(state.profile.id),{...state.profile});playerProfileCacheAt.set(String(state.profile.id),Date.now());render()};document.querySelectorAll("[data-frame-buy]").forEach(button=>button.onclick=async()=>{
- const id=button.dataset.frameBuy;
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Чтобы покупать рамки, войди в облачный аккаунт.");return}
+ const id=button.dataset.frameBuy,frame=(window.QQIdentity?.frames||[]).find(item=>item.id===id);
+ if(!frame)return;
+ const userId=String(state.profile?.id||""),isCloud=!!supabaseClient&&!!userId&&!userId.startsWith("local-");
+ if(!isCloud){
+  const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+  if(owned.includes(id)){toast("Рамка уже есть в коллекции");return}
+  if(Number(state.profile.coins||0)<frame.price){toast("Не хватает монет");return}
+  state.profile.coins=Number(state.profile.coins||0)-frame.price;
+  state.profile.owned_frames=[...owned,id];state.profile.active_frame=id;
+  save();render();toast("Рамка куплена и надета");return;
+ }
  button.disabled=true;button.textContent="Покупаем…";
  try{
   const {data,error}=await supabaseClient.rpc("purchase_qqcross_frame",{target_frame_id:id});
@@ -614,8 +624,12 @@ function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm")
  }catch(error){toast(error.message||"Не удалось купить рамку");button.disabled=false;button.textContent="Повторить"}
 });
 document.querySelectorAll("[data-frame-equip]").forEach(button=>button.onclick=async()=>{
- const id=button.dataset.frameEquip;
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Рамки синхронизируются после входа в аккаунт.");return}
+ const id=button.dataset.frameEquip,userId=String(state.profile?.id||""),isCloud=!!supabaseClient&&!!userId&&!userId.startsWith("local-");
+ const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+ if(!owned.includes(id)){toast("Эта рамка ещё не куплена");return}
+ if(!isCloud){
+  state.profile.active_frame=id;save();render();toast("Рамка применена");return;
+ }
  button.disabled=true;button.textContent="Применяем…";
  try{
   const {data,error}=await supabaseClient.rpc("equip_qqcross_frame",{target_frame_id:id});
