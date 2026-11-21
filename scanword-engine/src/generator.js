@@ -406,7 +406,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
       specialSplitRows: rows,
       mutationBudget: 48,
       maxAttempts: 1,
-      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
+      maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 4
     });
     if (!result.ok) continue;
     const signature = result.topology.pattern.join('/');
@@ -435,7 +435,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
       mutateSpecialPattern: true,
       mutationBudget: 48,
       maxAttempts: 1,
-      maxTwoLetterSlots: 4
+      maxTwoLetterSlots: 2
     });
     if (!lowShortTopology.ok) continue;
     const signature = lowShortTopology.topology.pattern.join('/');
