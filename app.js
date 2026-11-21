@@ -405,9 +405,11 @@ async function loadSocialData(){
     if(fr.error)throw fr.error;
     if(ir.error)throw ir.error;
     if(orq.error)throw orq.error;
-    list.innerHTML=fr.data?.length?fr.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+'</b></div>').join(""):'<p class="muted small">Пока нет друзей.</p>';
-    incoming.innerHTML=ir.data?.length?ir.data.map(p=>'<div class="card"><div class="row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+' хочет добавить тебя в друзья</b></div><div class="grid2"><button class="btn primary respond-friend" data-id="'+esc(p.request_id)+'" data-accept="true">Принять</button><button class="btn respond-friend" data-id="'+esc(p.request_id)+'" data-accept="false">Отклонить</button></div></div>').join(""):'<p class="muted small">Новых заявок нет.</p>';
-    if(outgoing)outgoing.innerHTML=orq.data?.length?orq.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><div class="grow"><b>'+esc(p.username)+'</b><div class="small muted">Ожидает ответа</div></div><span class="pill">Отправлено</span></div>').join(""):'<p class="muted small">Нет ожидающих заявок.</p>';
+    const profiles=await loadPlayerProfiles([...(fr.data||[]).map(p=>p.id),...(ir.data||[]).map(p=>p.sender_id),...(orq.data||[]).map(p=>p.receiver_id)]);
+    const identity=p=>playerIdentityMarkup(profiles.get(String(p.id||p.sender_id||p.receiver_id))||p,{size:"sm",clickable:true});
+    list.innerHTML=fr.data?.length?fr.data.map(p=>'<div class="card">'+identity(p)+'</div>').join(""):'<p class="muted small">Пока нет друзей.</p>';
+    incoming.innerHTML=ir.data?.length?ir.data.map(p=>'<div class="card"><div class="row"><div class="grow">'+identity({...p,id:p.sender_id})+'</div><span class="small muted">Заявка в друзья</span></div><div class="grid2"><button class="btn primary respond-friend" data-id="'+esc(p.request_id)+'" data-accept="true">Принять</button><button class="btn respond-friend" data-id="'+esc(p.request_id)+'" data-accept="false">Отклонить</button></div></div>').join(""):'<p class="muted small">Новых заявок нет.</p>';
+    if(outgoing)outgoing.innerHTML=orq.data?.length?orq.data.map(p=>'<div class="card row"><div class="grow">'+identity({...p,id:p.receiver_id})+'<div class="small muted">Ожидает ответа</div></div><span class="pill">Отправлено</span></div>').join(""):'<p class="muted small">Нет ожидающих заявок.</p>';
     incoming.querySelectorAll(".respond-friend").forEach(b=>b.onclick=async()=>{
       b.disabled=true;
       try{
@@ -591,7 +593,8 @@ async function loadLobbyFriends(){
  try{
   const {data,error}=await supabaseClient.rpc("list_qqcross_friends");if(error)throw error;
   if(!data?.length){out.textContent="Сначала добавь друзей во вкладке «Друзья».";return}
-  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b></label>').join("");
+  const profiles=await loadPlayerProfiles(data.map(p=>p.id));
+  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="grow">'+playerIdentityMarkup(profiles.get(String(p.id))||p,{size:"sm",clickable:false})+'</span></label>').join("");
  }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
 }
 function puzzleSnapshot(){
@@ -620,7 +623,8 @@ async function refreshPartyLobby(){
  if(!state.pendingMatchId)return;const out=$("#partyStatus");if(!out)return;
  try{
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
-  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
+  const profiles=await loadPlayerProfiles(data.players.map(p=>p.id));
+  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row between"><div class="grow">'+playerIdentityMarkup(profiles.get(String(p.id))||p,{size:"sm",clickable:true})+'</div><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
   const b=$("#startOnlineMatch");if(b){b.disabled=data.host_id!==state.profile.id||data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;if(data.host_id!==state.profile.id)b.hidden=true;}
  }catch(e){out.textContent=e.message||"Ошибка"}
 }
@@ -628,6 +632,7 @@ async function startOnlineMatch(){
  const b=$("#startOnlineMatch");if(b){b.disabled=true;b.textContent="Запускаем…"}
  try{
   const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
+  await loadPlayerProfiles((data.players||[]).map(p=>p.id));
   const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||s.puzzle.words.map(w=>w.clueCell.join(","))),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
@@ -741,6 +746,7 @@ async function openOnlineMatch(id){
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:id});if(error)throw error;
   if(data.status==="waiting"){if(data.host_id===state.profile.id){state.pendingMatchId=id;state.screen="lobby";renderLobby($("#app"))}else toast("Создатель ещё не запустил партию");return}
   if(!data.game_state)throw new Error("Состояние партии ещё не готово");
+  await loadPlayerProfiles((data.players||[]).map(p=>p.id));
   applyOnlineMatch(data);
  }catch(e){toast(e.message||"Не удалось открыть партию")}
 }
@@ -770,7 +776,7 @@ function applyOnlineMatch(m){
 async function refreshOnlineMatch(force=false){
  if(!state.onlineMatchId)return;
  try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
-  if((force||data.state_version>state.onlineVersion)&&data.game_state)applyOnlineMatch(data);
+  if((force||data.state_version>state.onlineVersion)&&data.game_state){await loadPlayerProfiles((data.players||[]).map(p=>p.id));applyOnlineMatch(data);}
   else if(data.status==="finished"&&!state.rewardSubmitted)awardOnlineResult();
  }catch(e){console.warn("QQCross online refresh:",e)}
 }
@@ -1462,10 +1468,13 @@ function renderGame(root){
     }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" data-reserved-cell="'+key+'" aria-hidden="true"'+position+'></div>');
     else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
-  const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
-  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  const scores=Array.from({length:state.partySize},(_,i)=>{
+    const raw=state.onlineMatchId?(state.onlinePlayers[i]||{}):(i===0?state.profile:{username:state.aiMatch?"ChatGPT":"Игрок "+(i+1),avatar:1,active_title:state.aiMatch?"ИИ-соперник":"Игрок"});
+    const person=raw?.id?(playerProfileCache.get(String(raw.id))||raw):raw;
+    return '<div class="qq-player-card '+(i===state.turn?'is-active':'')+'">'+playerIdentityMarkup(person,{size:"sm",compact:true,clickable:!!person?.id,score:(state.playerScores||[])[i]||0})+'</div>';
+  }).join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
-    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
+    '<div class="score-strip qq-score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+renderRackSlots()+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
     '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
