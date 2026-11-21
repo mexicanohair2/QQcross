@@ -153,6 +153,12 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
   await expect(page.locator(".letter")).toHaveCount(5);
   expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
+  const scanCells = await page.locator(".scanword-board > .scan-grid-cell").evaluateAll(nodes => nodes.map(node => {
+    const rect = node.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  }));
+  expect(scanCells).toHaveLength(96);
+  expect(scanCells.every(cell => Math.abs(cell.width - cell.height) <= 1.5)).toBeTruthy();
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterGeometry = await page.locator(".letter").evaluateAll(nodes => nodes.map(node => {
     const rect = node.getBoundingClientRect();
