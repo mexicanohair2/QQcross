@@ -324,10 +324,9 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         if (state.usedImageClueCells.has(clueKey)) continue;
         if (state.usedImages.size >= options.requiredImageCount) continue;
 
-        // The special-plan search already found a mutually compatible set of
-        // image placements. Keep those exact choices fixed in production:
-        // an unplanned image can consume a crossing letter and invalidate
-        // the remaining prevalidated image matching.
+        // When a caller explicitly enforces a prevalidated image plan, keep
+        // those exact choices fixed. Without such a plan, the live CSP may
+        // explore alternative picture placements and backtrack on crossings.
         if (options.enforcePreferredImagePlacements === true
           && slot.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
           const planned = options.preferredImagePlacementsBySlot?.get(slot.id);
@@ -670,10 +669,11 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     const imageAnswerDomains = [];
     const imageClueCellDomains = [];
 
-    // Reserve the complete picture quota immediately after the special
-    // eleven-letter spine and its short crossing slots are assigned. Without
-    // this phase, ordinary MRV can consume crossing letters in the only slots
-    // that still admit the five distinct image answers.
+    // Reserve the complete picture quota before ordinary word assignment on
+    // every topology. This keeps scarce image domains from being consumed by
+    // unconstrained MRV choices. The live CSP evaluates the picture candidates
+    // against the current crossing letters and can backtrack them if later
+    // word assignments prove incompatible.
     for (const slot of remainingSlots) {
       const candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
