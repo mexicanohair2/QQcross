@@ -13,7 +13,7 @@ const AVATARS = ["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉",
 const $ = (selector) => document.querySelector(selector);
 const appRoot = $("#app");
 const state = {
-  profile:null,playerProfiles:{},guest:false,roomId:null,room:null,roomCode:null,
+  profile:null,playerProfiles:{},playerProfileUpdatedAt:{},guest:false,roomId:null,room:null,roomCode:null,
   channel:null,pollTimer:null,eventTimer:null,busy:false,
   color:"#29202b",thickness:5,eraser:false,
   drawEvents:[],lastServerSequence:0,nextSequence:1,drawRound:null,
@@ -77,19 +77,19 @@ async function loadProfile(userId){
   const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").eq("id",userId).single();
   if(error) throw error;
   if(!data) throw new Error("Профиль QQCross не найден.");
-  state.profile={...data,avatar:Number(data.avatar)||0};\n  state.playerProfiles[String(data.id)]=state.profile;
+  state.profile={...data,avatar:Number(data.avatar)||0};\n  state.playerProfiles[String(data.id)]=state.profile;\n  state.playerProfileUpdatedAt[String(data.id)]=Date.now();
   state.guest=false;
 }
 async function loadPartyProfiles(ids=[]){
   if(!state.playerProfiles)state.playerProfiles={};
   const unique=[...new Set((ids||[]).map(id=>String(id||"")).filter(Boolean))];
   if(state.profile?.id)state.playerProfiles[String(state.profile.id)]=state.profile;
-  const missing=unique.filter(id=>!state.playerProfiles[id]);
+  const missing=unique.filter(id=>!state.playerProfiles[id]||Date.now()-(state.playerProfileUpdatedAt[id]||0)>60000);
   if(!missing.length||!supabase)return;
   try{
     const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("id",missing);
     if(error)throw error;
-    (data||[]).forEach(profile=>state.playerProfiles[String(profile.id)]=profile);
+    (data||[]).forEach(profile=>{const id=String(profile.id);state.playerProfiles[id]=profile;state.playerProfileUpdatedAt[id]=Date.now()});
   }catch(error){console.warn("QQ Draw player profiles:",error)}
 }
 function playerCard(player={},options={}){
