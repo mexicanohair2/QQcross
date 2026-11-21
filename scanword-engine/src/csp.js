@@ -2,6 +2,8 @@ import { CONFIG, DIRECTIONS } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, getDifficultyQuotaCounts, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
+export const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set(['ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС', 'АС'].map(canonicalAnswerKey));
+
 function pointKey(point) {
   return point.row + ',' + point.col;
 }
@@ -277,9 +279,9 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
   // Only a curated set of real, familiar Russian two-letter words is allowed.
   // Pronouns and other filler entries are intentionally excluded.
-  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
-  ]).map(canonicalAnswerKey));
+  const allowedShortAnswers = options.allowedShortAnswers instanceof Set
+    ? options.allowedShortAnswers
+    : ALLOWED_SPECIAL_SHORT_ANSWERS;
   for (const orientation of slot.directionOptions ?? []) {
     // Production uses all four directions; geometrically invalid orientations are
     // excluded by the slot endpoints and the independent validator.
