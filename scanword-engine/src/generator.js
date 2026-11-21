@@ -36,6 +36,145 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
+function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500) {
+  const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
+  const specialHasImage = Boolean(specialEntry.imageKey);
+  const specialClueKey = '0,1';
+  const specialLetters = new Map([...specialEntry.answer].map((letter, index) => [
+    (index + 1) + ',1',
+    foldYo && letter === 'Ё' ? 'Е' : letter
+  ]));
+  const required = Math.max(0, requiredImageCount - (specialHasImage ? 1 : 0));
+  if (required === 0) return [];
+
+  const domainsWithImages = domains.map(domain => {
+    const seen = new Set();
+    const options = [];
+    for (const option of domain.options) {
+      const entry = option.entry;
+      if (!entry.imageKey || entry.imageKey === specialEntry.imageKey) continue;
+      const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
+      const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+      const directionKey = clueKey + '|' + option.direction;
+      const identity = answerKey + '|' + directionKey + '|' + entry.imageKey;
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      options.push({
+        ...option,
+        answerKey,
+        clueKey,
+        directionKey
+      });
+    }
+    return { slotId: domain.slot.id, options };
+  }).filter(domain => domain.options.length);
+
+  const selected = [];
+  const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
+  const usedAnswers = new Set([specialAnswerKey]);
+  const usedClues = new Set(specialHasImage ? [specialClueKey] : []);
+  const usedDirections = new Set([specialClueKey + '|down']);
+  const letterUses = new Map(specialLetters);
+  let nodes = 0;
+
+  const canAdd = candidate => {
+    if (usedAssets.has(candidate.entry.imageKey)
+      || usedAnswers.has(candidate.answerKey)
+      || usedClues.has(candidate.clueKey)
+      || usedDirections.has(candidate.directionKey)) return false;
+    for (let index = 0; index < candidate.coordinates.length; index++) {
+      const point = candidate.coordinates[index];
+      const key = point.row + ',' + point.col;
+      const letter = foldYo && candidate.entry.answer[index] === 'Ё'
+        ? 'Е'
+        : candidate.entry.answer[index];
+      const existing = letterUses.get(key);
+      if (existing !== undefined && existing !== letter) return false;
+    }
+    return true;
+  };
+
+  const add = candidate => {
+    usedAssets.add(candidate.entry.imageKey);
+    usedAnswers.add(candidate.answerKey);
+    usedClues.add(candidate.clueKey);
+    usedDirections.add(candidate.directionKey);
+    const added = [];
+    for (let index = 0; index < candidate.coordinates.length; index++) {
+      const point = candidate.coordinates[index];
+      const key = point.row + ',' + point.col;
+      if (!letterUses.has(key)) {
+        const letter = foldYo && candidate.entry.answer[index] === 'Ё'
+          ? 'Е'
+          : candidate.entry.answer[index];
+        letterUses.set(key, letter);
+        added.push(key);
+      }
+    }
+    selected.push(candidate);
+    return added;
+  };
+
+  const undo = (candidate, added) => {
+    selected.pop();
+    usedAssets.delete(candidate.entry.imageKey);
+    usedAnswers.delete(candidate.answerKey);
+    usedClues.delete(candidate.clueKey);
+    usedDirections.delete(candidate.directionKey);
+    for (const key of added) letterUses.delete(key);
+  };
+
+  function search(remainingDomains) {
+    if (selected.length >= required) return true;
+    if (nodes++ >= maxNodes || selected.length + remainingDomains.length < required) return false;
+
+    const viableDomains = [];
+    for (const domain of remainingDomains) {
+      const candidates = domain.options.filter(canAdd);
+      if (candidates.length) viableDomains.push({ ...domain, candidates });
+    }
+    const needed = required - selected.length;
+    if (viableDomains.length < needed) return false;
+
+    const assetDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.entry.imageKey))]
+    );
+    const answerDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.answerKey))]
+    );
+    const clueDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.clueKey))]
+    );
+    if (maximumDistinctAssignmentCount(assetDomains) < needed
+      || maximumDistinctAssignmentCount(answerDomains) < needed
+      || maximumDistinctAssignmentCount(clueDomains) < needed) return false;
+
+    viableDomains.sort((a, b) =>
+      a.candidates.length - b.candidates.length
+      || a.slotId.localeCompare(b.slotId)
+    );
+    const chosen = viableDomains[0];
+    const rest = remainingDomains.filter(domain => domain.slotId !== chosen.slotId);
+
+    for (const candidate of chosen.candidates) {
+      const added = add(candidate);
+      if (search(rest)) return true;
+      undo(candidate, added);
+    }
+
+    return search(rest);
+  }
+
+  return search(domainsWithImages) ? selected.map(candidate => ({
+    slotId: candidate.slotId,
+    entryId: candidate.entry.id,
+    answer: candidate.entry.answer,
+    imageKey: candidate.entry.imageKey,
+    clueCell: { ...candidate.clueCell },
+    direction: candidate.direction
+  })) : null;
+}
+
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
   const positions = domains.map(domain => new Map(
     domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
@@ -187,6 +326,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     arcConsistencyRejected: 0,
     shortAnswerMatchingRejected: 0,
     contentRequirementsRejected: 0,
+    imageAssignmentRejected: 0,
     viablePlans: 0,
     distinctSpecialAnswers: 0,
     distinctTopologyPatterns: topologies.length
@@ -234,6 +374,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
               clueCell: { ...orientation.clueCell },
+              direction: orientation.direction,
               coordinates: orientation.coordinates
             });
           }
@@ -369,6 +510,18 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
+      const compatibleImageSelection = chooseCompatibleImageSelection(
+        domains,
+        requiredImageCount,
+        entry,
+        foldYo,
+        requirements.imageSelectionSearchNodes ?? 2500
+      );
+      if (!compatibleImageSelection) {
+        planDiagnostics.imageAssignmentRejected++;
+        continue;
+      }
+
       plans.push({
         answer: entry.answer,
         answerDifficultyBand: normalizeDifficultyBand(entry.difficulty),
@@ -380,6 +533,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         allowedEntryIdsBySlot: new Map(domains.map(domain => [
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
+        ])),
+        preferredImagePlacementsBySlot: new Map(compatibleImageSelection.map(item => [
+          item.slotId,
+          {
+            entryId: item.entryId,
+            clueKey: item.clueCell.row + ',' + item.clueCell.col,
+            direction: item.direction
+          }
         ])),
         // Prefer grade-seven medium/easy long answers when geometry is
         // otherwise comparable; do not let a specialist 11-letter word win
