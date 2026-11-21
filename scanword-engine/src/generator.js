@@ -44,15 +44,19 @@ function canAssignDistinctShortAnswers(domains, options = {}) {
     return [...new Set(answers)].sort();
   }).sort((a, b) => a.length - b.length);
   const used = new Set();
+  const failedStates = new Set();
 
   function assign(index) {
     if (index === ordered.length) return true;
+    const stateKey = index + '|' + [...used].sort().join(',');
+    if (failedStates.has(stateKey)) return false;
     for (const answer of ordered[index]) {
       if (used.has(answer)) continue;
       used.add(answer);
       if (assign(index + 1)) return true;
       used.delete(answer);
     }
+    failedStates.add(stateKey);
     return false;
   }
 
