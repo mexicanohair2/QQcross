@@ -640,6 +640,14 @@ test('allows curated two-letter Russian words and rejects pronoun filler', () =>
   assert.equal(meaningful.ok, true, meaningful.message);
   assert.equal(meaningful.words[0].answer, 'УМ');
 
+  const ace = solveSlotsCsp(
+    [shortSlot],
+    [entry('short-as', 'АС', 'Мастер своего дела, особенно опытный пилот.')],
+    options
+  );
+  assert.equal(ace.ok, true, ace.message);
+  assert.equal(ace.words[0].answer, 'АС');
+
   const filler = solveSlotsCsp(
     [shortSlot],
     [entry('short-my', 'МЫ', 'Местоимение для обозначения группы людей.')],
