@@ -425,6 +425,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
   const plans = [];
   const uniqueAnswers = new Set();
+  const maxViablePlans = Math.max(1, Math.min(
+    32,
+    Number.isInteger(requirements.maxViableSpecialPlans) ? requirements.maxViableSpecialPlans : 4
+  ));
+  let planSearchTruncated = false;
   const planDiagnostics = {
     elevenLetterAnswers: 0,
     topologiesConsidered: topologies.length,
@@ -438,7 +443,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     distinctTopologyPatterns: topologies.length
   };
 
-  for (const entry of entries) {
+  planSearch: for (const entry of entries) {
     if (entry.answer.length !== 11) continue;
     planDiagnostics.elevenLetterAnswers++;
     const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
@@ -666,9 +671,20 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             : specialDifficultyBand === 2 ? 25000 : 0),
         tie: random()
       });
+      // One validated topology per distinct 11-letter answer is enough for
+      // the bounded production retry pool. Stop after a small diverse set;
+      // scanning every dictionary entry made a single special board take
+      // more than 13 seconds before CSP even started.
+      if (plans.length >= maxViablePlans) {
+        planSearchTruncated = true;
+        break planSearch;
+      }
+      break;
     }
   }
 
+  planDiagnostics.planSearchTruncated = planSearchTruncated;
+  planDiagnostics.maxViablePlans = maxViablePlans;
   planDiagnostics.viablePlans = plans.length;
   planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
@@ -835,7 +851,7 @@ export function generateScanword(inputDictionary, options = {}) {
     Number.isInteger(options.specialPlanOffset) ? options.specialPlanOffset : 0
   ));
   const specialAttempts = wantsEleven
-    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 2, specialPlanSequence.length - specialPlanOffset)
+    ? Math.min(maxTopologies, options.specialTopologyAttempts ?? 4, specialPlanSequence.length - specialPlanOffset)
     : 0;
   let bestDiagnostic = null;
   const specialElevenPlanDiagnostics = [];
