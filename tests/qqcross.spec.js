@@ -887,9 +887,11 @@ test("scanword player avatars stay compact inside the score strip", async ({ pag
   await expect(avatars).not.toHaveCount(0);
   const dimensions = await avatars.evaluateAll(nodes => nodes.map(node => {
     const rect = node.getBoundingClientRect();
-    return { width: rect.width, height: rect.height, declared: getComputedStyle(node).width };
+    const face = node.querySelector(".qq-player-avatar__face")?.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, faceWidth: face?.width || 0, faceHeight: face?.height || 0 };
   }));
   expect(dimensions.every(item => item.width <= 48 && item.height <= 48 && item.width >= 30 && item.height >= 30)).toBeTruthy();
+  expect(dimensions.every(item => item.faceWidth <= item.width * .82 && item.faceHeight <= item.height * .82)).toBeTruthy();
 });
 
 test("Cody crossword long clues keep their complete text inside each clue row", async ({ page }) => {
