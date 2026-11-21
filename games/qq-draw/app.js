@@ -13,7 +13,7 @@ const AVATARS = ["🐱","🦝","🐶","🦁","🐯","🦨","🤡","🐍","🐉",
 const $ = (selector) => document.querySelector(selector);
 const appRoot = $("#app");
 const state = {
-  profile:null,guest:false,roomId:null,room:null,roomCode:null,
+  profile:null,playerProfiles:{},guest:false,roomId:null,room:null,roomCode:null,
   channel:null,pollTimer:null,eventTimer:null,busy:false,
   color:"#29202b",thickness:5,eraser:false,
   drawEvents:[],lastServerSequence:0,nextSequence:1,drawRound:null,
@@ -74,11 +74,29 @@ function requireNetworkProfile(){
   return true;
 }
 async function loadProfile(userId){
-  const {data,error}=await supabase.from("profiles").select("id,username,avatar").eq("id",userId).single();
+  const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").eq("id",userId).single();
   if(error) throw error;
   if(!data) throw new Error("Профиль QQCross не найден.");
-  state.profile={id:data.id,username:data.username,avatar:Number(data.avatar)||0};
+  state.profile={...data,avatar:Number(data.avatar)||0};\n  state.playerProfiles[String(data.id)]=state.profile;
   state.guest=false;
+}
+async function loadPartyProfiles(ids=[]){
+  if(!state.playerProfiles)state.playerProfiles={};
+  const unique=[...new Set((ids||[]).map(id=>String(id||"")).filter(Boolean))];
+  if(state.profile?.id)state.playerProfiles[String(state.profile.id)]=state.profile;
+  const missing=unique.filter(id=>!state.playerProfiles[id]);
+  if(!missing.length||!supabase)return;
+  try{
+    const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("id",missing);
+    if(error)throw error;
+    (data||[]).forEach(profile=>state.playerProfiles[String(profile.id)]=profile);
+  }catch(error){console.warn("QQ Draw player profiles:",error)}
+}
+function playerCard(player={},options={}){
+  const profile=state.playerProfiles[String(player.user_id||player.id||"")]||{};
+  const merged={...player,...profile,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
+  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:false,score:options.score===undefined?player.score:options.score});
+  return '<span class="avatar">'+avatar(player.avatar)+'</span><b>'+esc(player.nickname||player.username||"Игрок")+'</b>';
 }
 function stopWatch(){
   clearInterval(state.pollTimer);clearInterval(state.eventTimer);
@@ -106,7 +124,7 @@ function render(){
 }
 function renderHome(){
   const account=state.profile
-    ? '<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>'
+    ? (window.QQIdentity?.cardMarkup?window.QQIdentity.cardMarkup(state.profile,{size:"md",compact:true}):'<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>')
     : state.guest
       ? '<div class="profile"><span class="avatar">🙂</span><span class="profile-copy"><b>Гостевой режим</b><small>Только одиночная игра</small></span></div>'
       : '<div class="profile"><span class="avatar">👤</span><span class="profile-copy"><b>Не выполнен вход</b><small>Сетевые комнаты закрыты</small></span></div>';
@@ -118,7 +136,7 @@ function renderHome(){
       '<section class="card stack"><h2>Игра с друзьями</h2><p class="small muted">Используются авторизация, профили, ники, аватары и серверные комнаты QQCross. В мультиплеере допускаются только реальные подтверждённые аккаунты.</p>'+
         (state.profile?
           '<button class="btn primary full" id="createRoom">Создать комнату</button>'+
-          '<form id="joinForm" class="stack"><label class="label" for="roomCode">Код комнаты друга</label><input class="field" id="roomCode" maxlength="6" autocomplete="off" placeholder="Шесть символов"><button class="btn full" type="submit">Войти в комнату</button></form>'+
+          '<p class="small muted">Присоединяйся к приглашениям от друзей через лобби QQCross. Ввод кодов не требуется.</p>'+
           '<button class="btn ghost full" id="signOut">Выйти из аккаунта</button>'
           :
           '<form id="loginForm" class="stack"><label class="label" for="email">Почта аккаунта QQCross</label><input class="field" id="email" type="email" autocomplete="email" required placeholder="name@example.com"><label class="label" for="password">Пароль</label><input class="field" id="password" type="password" autocomplete="current-password" required><button class="btn primary full" type="submit">Войти через QQCross</button><p class="small muted">Новый аккаунт здесь не создаётся. Используй существующий QQCross.</p></form>'+
@@ -133,11 +151,15 @@ function renderHome(){
   $("#guestMode")?.addEventListener("click",()=>{state.guest=true;state.profile=null;startBotArtistSolo();});
   $("#loginForm")?.addEventListener("submit",signIn);
   $("#createRoom")?.addEventListener("click",createRoom);
-  $("#joinForm")?.addEventListener("submit",joinRoom);
+
   $("#signOut")?.addEventListener("click",signOut);
 }
 const requestedRoomCode = (() => {
   try { return (new URLSearchParams(location.search).get("room") || "").trim().toUpperCase(); }
+  catch { return ""; }
+})();
+const requestedRoomId = (() => {
+  try { return (new URLSearchParams(location.search).get("room_id") || "").trim(); }
   catch { return ""; }
 })();
 async function signIn(event){
@@ -149,7 +171,11 @@ async function signIn(event){
     const {data,error}=await supabase.auth.signInWithPassword({email:$("#email").value.trim(),password:$("#password").value});
     if(error)throw error;
     await loadProfile(data.user.id);
-    if(requestedRoomCode) {
+    if(requestedRoomId) {
+      state.roomId=requestedRoomId;
+      localStorage.setItem("qq-draw-room",state.roomId);
+      await openRoom();
+    } else if(requestedRoomCode) {
       const joined = await joinRoomByCode(requestedRoomCode);
       if(!joined) render();
     } else { toast("Вход через QQCross выполнен."); render(); }
@@ -231,6 +257,7 @@ async function refreshRoom(showErrors=true){
   if(!state.roomId||!supabase)return;
   try{
     const data=await rpc("qq_party_get_room",{p_room_id:state.roomId});
+    await loadPartyProfiles((data.players||[]).map(player=>player.user_id));
     const previousRound=state.room?.round_no;
     if(previousRound!==undefined&&previousRound!==data.round_no){
       removeDrawOutbox(state.roomId,previousRound);
@@ -252,19 +279,19 @@ async function refreshRoom(showErrors=true){
 function isHost(){return Boolean(state.profile&&state.room?.host_id===state.profile.id);}
 function isArtist(){return Boolean(state.profile&&state.room?.public_state?.artist_id===state.profile.id);}
 function renderPlayers(players=[]){
-  return players.map((p)=>'<div class="player"><span class="avatar">'+avatar(p.avatar)+'</span><span style="min-width:0"><b>'+esc(p.nickname)+'</b><small>'+(String(p.user_id)===String(state.room?.host_id)?"Создатель комнаты":"Участник")+'</small></span></div>').join("");
+  return players.map((p)=>'<div class="player qq-party-player"><div class="grow">'+playerCard(p,{size:"sm",score:p.score})+'</div><small>'+(String(p.user_id)===String(state.room?.host_id)?"Создатель комнаты":"Участник")+'</small></div>').join("");
 }
 function renderLobby(){
   const players=state.room.players||[];
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div><div class="profile"><span class="avatar">'+avatar(state.profile?.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile?.username)+'</b><small>Профиль QQCross</small></span></div></header>'+
-    '<section class="card"><div class="small muted" style="text-align:center">КОД КОМНАТЫ</div><div class="room-code">'+esc(state.room.code)+'</div><button class="btn full" id="copyCode">Скопировать код</button><p class="small muted" style="text-align:center;margin:9px 0 0">Отправь код друзьям. Все зайдут в одну серверную комнату.</p></section>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW · ЛОББИ</span></div>'+(window.QQIdentity?.cardMarkup?window.QQIdentity.cardMarkup(state.profile||{},{size:"md",compact:true}):"")+'</header>'+
+    '<section class="card"><b>Лобби QQCross</b><p class="small muted">Приглашай друзей из списка QQCross ниже. Принятые приглашения появятся здесь автоматически.</p></section>'+
     '<section class="card stack"><div class="game-meta"><b>Реальные участники</b><span>'+players.length+'/'+state.room.player_limit+'</span></div><div class="player-grid">'+renderPlayers(players)+'</div>'+
     '<div class="notice">'+(isHost()?"После входа друга можно начать раунд. Художник будет выбран сервером случайно.":"Ожидаем начала раунда от создателя.")+'</div>'+
     (isHost()?'<button class="btn primary full" id="startRound" '+(players.length<2?"disabled":"")+'>'+(state.busy?"Запуск…":"Начать рисование")+'</button>':"")+
     '<button class="btn ghost full" id="leaveRoom">Выйти из комнаты</button></section>'+
     '<section class="card stack"><h3>Пригласить друзей QQCross</h3><div id="roomFriends"><p class="small muted">Загружаем список друзей…</p></div></section></section>';
-  $("#copyCode").onclick=copyCode;
+
   $("#startRound")?.addEventListener("click",startOnlineRound);
   $("#leaveRoom").onclick=leaveRoom;
   loadRoomFriends();
@@ -274,10 +301,11 @@ async function loadRoomFriends(){
   try{
     const friends=await rpc("qq_party_list_friends",{p_room_id:state.roomId});
     if(!friends?.length){root.innerHTML='<p class="small muted">Добавь друзей в QQCross — здесь появится список для приглашения.</p>';return;}
+    await loadPartyProfiles(friends.map(friend=>friend.user_id));
     root.innerHTML=friends.map(friend=>{
       const disabled=friend.in_room||friend.already_invited;
-      const label=friend.in_room?"Уже в комнате":friend.already_invited?"Приглашение отправлено":"Пригласить";
-      return '<div class="room-friend-row"><span class="avatar">'+avatar(friend.avatar)+'</span><span class="room-friend-name">'+esc(friend.username)+'</span><button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+      const label=friend.in_room?"Уже в лобби":friend.already_invited?"Приглашение отправлено":"Пригласить";
+      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm"})+'</span><button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button=>button.addEventListener("click",async()=>{
       button.disabled=true;button.textContent="Отправляем…";
@@ -336,7 +364,7 @@ async function confirmWord(word){
 function historyMarkup(guesses=[]){
   if(!guesses.length)return '<div class="small muted" style="text-align:center">Пока нет догадок. Отправить первую может любой игрок, кроме художника.</div>';
   return guesses.slice(-30).reverse().map((g)=>
-    '<div class="guess-row"><span class="avatar">'+avatar(g.avatar)+'</span><b>'+esc(g.nickname||"Игрок")+'</b><span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>'
+    '<div class="guess-row"><div class="grow">'+playerCard({...g,user_id:g.user_id||state.room?.players?.find(player=>player.nickname===g.nickname)?.user_id},{size:"sm",compact:true})+'</div><span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>'
   ).join("");
 }
 function drawToolsMarkup(enabled = isArtist() && state.room?.status === "playing"){
@@ -355,11 +383,12 @@ function renderOnlineGame(){
   const finished=room.status==="finished";
   const winner=(guesses||[]).find((g)=>g.correct);
   const topMessage=finished
-    ? '<div class="result"><h2 class="success">Слово угадано!</h2><p><span class="avatar">'+avatar(winner?.avatar)+'</span> <b>'+esc(winner?.nickname||"Игрок")+'</b></p><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
+    ? '<div class="result"><h2 class="success">Слово угадано!</h2><p>'+playerCard({...winner,user_id:winner?.user_id||room.players?.find(player=>player.nickname===winner?.nickname)?.user_id},{size:"md"})+'</p><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
     : '<div class="game-meta"><span>'+(artist?"Ты художник — рисуй слово":"Угадывай рисунок")+'</span><span>Раунд '+esc(room.round_no)+'</span></div>';
   appRoot.innerHTML=
     '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
     '<section class="card stack">'+topMessage+
+      '<div class="qq-score-strip">'+renderPlayers(room.players||[])+'</div>'+
       '<div class="canvas-wrap"><canvas id="drawCanvas" aria-label="Игровой холст"></canvas><span class="canvas-label">'+(artist?"Твой холст": "Рисунок художника")+'</span></div>'+
       drawToolsMarkup(artist&&!finished)+
       (artist&&!finished?'<div class="notice">Секретное слово: <strong>'+esc(room.private?.word||"")+'</strong>. Рисуй, не пиши буквы.</div>':'')+
@@ -798,7 +827,8 @@ async function restore(){
     try{
       const {data,error}=await supabase.auth.getSession();if(error)throw error;
       if(data.session?.user?.id)await loadProfile(data.session.user.id);
-      if(state.profile&&requestedRoomCode)await joinRoomByCode(requestedRoomCode);
+      if(state.profile&&requestedRoomId){state.roomId=requestedRoomId;localStorage.setItem("qq-draw-room",state.roomId);await openRoom();}
+      else if(state.profile&&requestedRoomCode)await joinRoomByCode(requestedRoomCode);
       else {
         const saved=localStorage.getItem("qq-draw-room");
         if(saved&&state.profile){state.roomId=saved;await openRoom();}
