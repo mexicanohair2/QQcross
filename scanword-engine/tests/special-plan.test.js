@@ -36,6 +36,8 @@ test('production special-eleven planner returns unique plans with complete quota
     assert.ok(Array.isArray(plan.rows));
     assert.equal(plan.specialPattern.length, 12);
     assert.ok(plan.allowedEntryIdsBySlot instanceof Map);
+    assert.ok(plan.allowedPlacementsBySlot instanceof Map);
+    assert.ok([...plan.allowedPlacementsBySlot.values()].every(value => value instanceof Set));
     assert.ok(plan.preferredImagePlacementsBySlot instanceof Map);
   }
 });
