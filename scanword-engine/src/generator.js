@@ -12,53 +12,98 @@ function now() {
   return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
 }
 
-function canAssignDistinctShortAnswers(domains, options = {}) {
+export function canAssignDistinctShortAnswers(domains, options = {}) {
   const excludedAnswers = options.excludedAnswers ?? new Set();
-  const letterUses = options.letterUses ?? null;
   const foldYo = options.foldYo === true;
-  const ordered = domains.map(domain => {
-    const answers = [];
-    for (const candidate of domain) {
-      const answerKey = typeof candidate === 'string' ? candidate : candidate.answerKey;
-      if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
-      if (letterUses && typeof candidate !== 'string') {
-        let compatible = true;
-        for (let index = 0; index < candidate.coordinates.length; index++) {
-          const point = candidate.coordinates[index];
-          const key = point.row + ',' + point.col;
-          const letter = foldYo && candidate.answer[index] === 'Ё' ? 'Е' : candidate.answer[index];
-          const existing = letterUses.get(key);
-          if (existing !== undefined && existing !== letter) {
-            compatible = false;
-            break;
-          }
-        }
-        if (!compatible) continue;
-      }
-      answers.push(answerKey);
-    }
-    return [...new Set(answers)].sort();
-  }).sort((a, b) => a.length - b.length);
-  const used = new Set();
-  const failedStates = new Set();
+  const initialLetters = options.letterUses instanceof Map ? new Map(options.letterUses) : new Map();
+  const workingLetters = new Map(initialLetters);
+  const difficultyCounts = {
+    2: Number(options.difficultyCounts?.[2] ?? 0),
+    3: Number(options.difficultyCounts?.[3] ?? 0),
+    4: Number(options.difficultyCounts?.[4] ?? 0)
+  };
+  const difficultyQuotas = options.difficultyQuotas ?? null;
 
+  const ordered = domains.map(domain => {
+    const unique = new Map();
+    for (const candidate of domain) {
+      const answerKey = typeof candidate === 'string'
+        ? canonicalAnswerKey(candidate, { foldYo })
+        : candidate.answerKey ?? canonicalAnswerKey(candidate.answer, { foldYo });
+      if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
+      const difficulty = typeof candidate === 'string'
+        ? 3
+        : normalizeDifficultyBand(candidate.difficulty);
+      if (difficultyQuotas && difficultyCounts[difficulty] >= difficultyQuotas[difficulty]) continue;
+
+      const coordinates = typeof candidate === 'string' ? [] : (candidate.coordinates ?? []);
+      const answer = typeof candidate === 'string' ? candidate : candidate.answer;
+      let compatible = true;
+      for (let index = 0; index < coordinates.length; index++) {
+        const point = coordinates[index];
+        const key = point.row + ',' + point.col;
+        const letter = foldYo && answer[index] === 'Ё' ? 'Е' : answer[index];
+        const existing = workingLetters.get(key);
+        if (existing !== undefined && existing !== letter) {
+          compatible = false;
+          break;
+        }
+      }
+      if (!compatible) continue;
+
+      const placementKey = answerKey + '|' + coordinates.map(point => point.row + ',' + point.col).join(';');
+      if (!unique.has(placementKey)) unique.set(placementKey, {
+        answerKey,
+        answer,
+        difficulty,
+        coordinates
+      });
+    }
+    return [...unique.values()];
+  }).sort((a, b) => a.length - b.length);
+
+  if (ordered.some(domain => domain.length === 0)) return false;
+
+  const usedAnswers = new Set();
   function assign(index) {
     if (index === ordered.length) return true;
-    const stateKey = index + '|' + [...used].sort().join(',');
-    if (failedStates.has(stateKey)) return false;
-    for (const answer of ordered[index]) {
-      if (used.has(answer)) continue;
-      used.add(answer);
-      if (assign(index + 1)) return true;
-      used.delete(answer);
+
+    for (const candidate of ordered[index]) {
+      if (usedAnswers.has(candidate.answerKey)) continue;
+      const band = candidate.difficulty;
+      if (difficultyQuotas && difficultyCounts[band] >= difficultyQuotas[band]) continue;
+
+      let compatible = true;
+      const addedKeys = [];
+      for (let position = 0; position < candidate.coordinates.length; position++) {
+        const point = candidate.coordinates[position];
+        const key = point.row + ',' + point.col;
+        const letter = foldYo && candidate.answer[position] === 'Ё' ? 'Е' : candidate.answer[position];
+        const existing = workingLetters.get(key);
+        if (existing !== undefined && existing !== letter) {
+          compatible = false;
+          break;
+        }
+        if (existing === undefined) {
+          workingLetters.set(key, letter);
+          addedKeys.push(key);
+        }
+      }
+
+      if (compatible) {
+        usedAnswers.add(candidate.answerKey);
+        difficultyCounts[band]++;
+        if (assign(index + 1)) return true;
+        difficultyCounts[band]--;
+        usedAnswers.delete(candidate.answerKey);
+      }
+      for (const key of addedKeys) workingLetters.delete(key);
     }
-    failedStates.add(stateKey);
     return false;
   }
 
   return assign(0);
 }
-
 function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = []) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
@@ -196,6 +241,8 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
         excludedAnswers: usedAnswers,
         letterUses,
+        difficultyCounts: usedDifficultyCounts,
+        difficultyQuotas: plannedDifficultyQuotas,
         foldYo
       });
       if (shortAnswersRemainFeasible && search(rest)) return true;
@@ -453,6 +500,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         .map(domain => domain.options.map(option => ({
           answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
           answer: option.entry.answer,
+          difficulty: normalizeDifficultyBand(option.entry.difficulty),
           coordinates: option.coordinates
         })));
       const specialLetters = new Map([...entry.answer].map((letter, index) => [
@@ -462,6 +510,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       if (!canAssignDistinctShortAnswers(shortDomains, {
         excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
         letterUses: specialLetters,
+        difficultyCounts: initialDifficultyCounts,
+        difficultyQuotas,
         foldYo
       })) {
         planDiagnostics.shortAnswerMatchingRejected++;
@@ -472,6 +522,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       const specialHasImage = Boolean(entry.imageKey);
       const specialHasLogic = entry.logic === true;
       const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
+      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
+      const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
+      initialDifficultyCounts[specialDifficultyBand]++;
       const imageKeys = new Set(specialHasImage ? [entry.imageKey] : []);
       const imageDomains = [];
       const imageClueCellDomains = [];
@@ -516,7 +569,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       const imageAssignmentCapacity = maximumDistinctAssignmentCount(imageDomains);
       const imageClueCellCapacity = maximumDistinctAssignmentCount(imageClueCellDomains);
       const logicClueCellCapacity = maximumDistinctAssignmentCount(logicClueCellDomains);
-      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
       const difficultyCapacities = {
         2: maximumDistinctAssignmentCount(difficultyDomains[2]) + (specialDifficultyBand === 2 ? 1 : 0),
         3: maximumDistinctAssignmentCount(difficultyDomains[3]) + (specialDifficultyBand === 3 ? 1 : 0),
