@@ -53,9 +53,12 @@ test("reproducible migration matches app RPC names and the avatars bucket", asyn
 });
 
 
-test("cloud profile hydration never replaces a saved custom avatar with an empty RPC value", async () => {
+test("cloud profile hydration preserves a locally saved gallery avatar ahead of a registration avatar", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  assert.match(app, /state\.profile\.avatar_url=identity\.avatar_url\|\|state\.profile\.avatar_url\|\|""/);
+  assert.match(app, /state\.profile\.avatar_url=getAvatarImage\(\)\|\|identity\.avatar_url\|\|state\.profile\.avatar_url\|\|""/);
+  assert.match(app, /person\.avatar_url=getAvatarImage\(\)\|\|person\.avatar_url\|\|state\.profile\.avatar_url/);
+  assert.match(app, /localStorage\.setItem\(avatarStorageKey\(\),localData\)/);
+  assert.match(app, /localStorage\.removeItem\(avatarStorageKey\(\)\)/);
 });
 
 
