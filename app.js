@@ -1243,15 +1243,17 @@ function fitScanwordClue(value,answer=""){
   return shortened.replace(/[\s,;:—-]+$/,"")+"…";
 }
 function clonePreparedScanword(source){
-  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
+  return {id:"scanword-"+Date.now()+"-"+Math.random().toString(36).slice(2,7),title:"Сканворд",w:source.w,h:source.h,sequenceIndex:source.sequenceIndex??null,words:source.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(source.used),clueKeys:new Set(source.clueKeys),reservedKeys:new Set(source.reservedKeys||[]),coverage:source.coverage};
 }
 function refreshPracticeButton(){
   const button=$("#practice");
   if(!button)return;
-  button.disabled=scanwordPreparing;
-  button.textContent=scanwordPreparing?"Готовим поле…":preparedScanword?"Играть одному":"Повторить подготовку";
+  // Keep the action available while a board is prepared in the background.
+  // begin() joins the shared preparation promise and locks the button itself.
+  button.disabled=false;
+  button.textContent=scanwordPreparing?"Подготовить поле…":preparedScanword?"Играть одному":"Повторить подготовку";
 }
-const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v1";
+const SCANWORD_SEQUENCE_KEY="qqcross_scanword_sequence_v2";
 let scanwordSequenceFallback=0;
 function getNextScanwordSequenceIndex(){
   let persisted=0;
@@ -1259,8 +1261,7 @@ function getNextScanwordSequenceIndex(){
     const stored=Number(localStorage.getItem(SCANWORD_SEQUENCE_KEY));
     if(Number.isSafeInteger(stored)&&stored>0)persisted=stored;
   }catch{}
-  scanwordSequenceFallback=Math.max(scanwordSequenceFallback,persisted)+1;
-  return scanwordSequenceFallback;
+  return Math.max(scanwordSequenceFallback,persisted)+1;
 }
 function saveScanwordSequenceIndex(index){
   if(Number.isSafeInteger(index)&&index>scanwordSequenceFallback)scanwordSequenceFallback=index;
@@ -1274,9 +1275,6 @@ function buildScanwordInWorker(entries, overrides={}){
   const sequenceIndex=Number.isSafeInteger(overrides.sequenceIndex)&&overrides.sequenceIndex>0
     ? overrides.sequenceIndex
     : countSequence?getNextScanwordSequenceIndex():null;
-  const rememberSequence=()=>{
-    if(countSequence&&Number.isSafeInteger(sequenceIndex)&&sequenceIndex>0)saveScanwordSequenceIndex(sequenceIndex);
-  };
   const generationOptions={
     seed,
     ...(sequenceIndex===null?{}:{sequenceIndex}),
@@ -1284,11 +1282,13 @@ function buildScanwordInWorker(entries, overrides={}){
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
     maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
-    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
+    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.2
   };
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
-    return adapter.toLegacyPuzzle(scanword,{sequence:seed});
+    const puzzle=adapter.toLegacyPuzzle(scanword,{sequence:seed});
+    puzzle.sequenceIndex=sequenceIndex;
+    return puzzle;
   };
   const runOnMainThread=async()=>{
     const engine=await import("./scanword-engine/src/generator.js");
@@ -1297,9 +1297,7 @@ function buildScanwordInWorker(entries, overrides={}){
       const reason=result.reason?" ("+result.reason+")":"";
       throw new Error((result.message||"Не удалось создать сканворд")+reason);
     }
-    const puzzle=await adapt(result.scanword);
-    rememberSequence();
-    return puzzle;
+    return adapt(result.scanword);
   };
   if(typeof Worker!=="function")return runOnMainThread();
   return new Promise((resolve,reject)=>{
@@ -1328,7 +1326,6 @@ function buildScanwordInWorker(entries, overrides={}){
         cleanup();
         try{
           const puzzle=await adapt(data.scanword);
-          rememberSequence();
           resolve(puzzle);
         }catch(error){reject(error)}
       };
@@ -1371,6 +1368,9 @@ function makeRandomPuzzle(){
   const built=preparedScanword?clonePreparedScanword(preparedScanword):null;
   preparedScanword=null;
   if(!built){puzzle=null;letterBag=[];return false}
+  // Count the board only when it is actually consumed by a game, not when
+  // it was merely prepared ahead of time in the background.
+  saveScanwordSequenceIndex(built.sequenceIndex);
   puzzle=built;
   puzzle.words.forEach(w=>w.cells.forEach((c,i)=>{
     const key=c.join(","),letter=w.answer[i];
