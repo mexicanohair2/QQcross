@@ -19,6 +19,10 @@ async function startGuestGame(page) {
   await page.locator("#practice").click();
   try {
     await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator(".scanword-board")).toBeVisible();
+    // The initial rack refill intentionally animates for 520 ms and re-renders the board once.
+    // Wait for that one-time entrance to finish before measuring or interacting with hit targets.
+    await expect(page.locator(".letter.letter-enter")).toHaveCount(0, { timeout: 5_000 });
   } catch (error) {
     const state = await page.evaluate(() => ({
       practice: (() => {
