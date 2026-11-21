@@ -263,47 +263,55 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 }
 
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
-  const positions = domains.map(domain => new Map(
-    domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
-  ));
+  // Intersections are physical cells, not positional indices. A left/up
+  // orientation reverses answer order while the canonical slot coordinates
+  // remain left-to-right/top-to-bottom. AC-3 must compare by coordinate.
+  const cellKeys = domains.map(domain =>
+    new Set(domain.slot.coordinates.map(point => point.row + ',' + point.col))
+  );
   const neighbors = domains.map(() => []);
 
   for (let left = 0; left < domains.length; left++) {
     for (let right = left + 1; right < domains.length; right++) {
-      const shared = [];
-      for (const [key, leftPosition] of positions[left]) {
-        const rightPosition = positions[right].get(key);
-        if (rightPosition !== undefined) shared.push([leftPosition, rightPosition]);
-      }
-      if (!shared.length) continue;
-      neighbors[left].push({ other: right, pairs: shared });
-      neighbors[right].push({
-        other: left,
-        pairs: shared.map(([leftPosition, rightPosition]) => [rightPosition, leftPosition])
-      });
-    }
-  }
-
-  const queue = [];
-  for (let self = 0; self < neighbors.length; self++) {
-    for (const relation of neighbors[self]) {
-      queue.push({ self, other: relation.other, pairs: relation.pairs });
+      const sharedKeys = [...cellKeys[left]].filter(key => cellKeys[right].has(key));
+      if (!sharedKeys.length) continue;
+      neighbors[left].push({ other: right, sharedKeys });
+      neighbors[right].push({ other: left, sharedKeys });
     }
   }
 
   const letterKey = value => foldYo && value === 'Ё' ? 'Е' : value;
-  while (queue.length) {
-    const arc = queue.shift();
+  const signatureFor = (option, domain, sharedKeys) => {
+    const coordinates = Array.isArray(option.coordinates)
+      && option.coordinates.length === option.entry.answer.length
+      ? option.coordinates
+      : domain.slot.coordinates;
+    const lettersByCell = new Map();
+    for (let index = 0; index < coordinates.length; index++) {
+      const point = coordinates[index];
+      lettersByCell.set(point.row + ',' + point.col, letterKey(option.entry.answer[index]));
+    }
+    return sharedKeys.map(key => lettersByCell.get(key) ?? '\u0000').join('');
+  };
+
+  const queue = [];
+  for (let self = 0; self < neighbors.length; self++) {
+    for (const relation of neighbors[self]) {
+      queue.push({ self, other: relation.other, sharedKeys: relation.sharedKeys });
+    }
+  }
+
+  // Cursor-based queue avoids repeated array shifts as AC-3 re-enqueues arcs.
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const arc = queue[cursor];
     const ownDomain = domains[arc.self];
     const otherDomain = domains[arc.other];
     const supportedSignatures = new Set(otherDomain.options.map(option =>
-      arc.pairs.map(([, otherPosition]) => letterKey(option.entry.answer[otherPosition])).join('')
+      signatureFor(option, otherDomain, arc.sharedKeys)
     ));
 
     const revised = ownDomain.options.filter(option =>
-      supportedSignatures.has(
-        arc.pairs.map(([ownPosition]) => letterKey(option.entry.answer[ownPosition])).join('')
-      )
+      supportedSignatures.has(signatureFor(option, ownDomain, arc.sharedKeys))
     );
     if (revised.length === ownDomain.options.length) continue;
 
@@ -315,7 +323,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
         diagnostics.failure = {
           slotId: ownDomain.slot.id,
           againstSlotId: otherDomain.slot.id,
-          sharedPositions: arc.pairs.map(([ownPosition, otherPosition]) => ({ ownPosition, otherPosition })),
+          sharedCells: [...arc.sharedKeys],
           survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
         };
       }
@@ -327,8 +335,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
       queue.push({
         self: relation.other,
         other: arc.self,
-        // Reversing arc direction also reverses each shared-cell index pair.
-        pairs: relation.pairs.map(([selfPosition, otherPosition]) => [otherPosition, selfPosition])
+        sharedKeys: relation.sharedKeys
       });
     }
   }
