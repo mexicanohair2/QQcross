@@ -623,6 +623,107 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     return false;
   }
 
+  function completeSpecialImageSlots(remainingSlots) {
+    if (options.signal?.aborted) {
+      cancelled = true;
+      return false;
+    }
+    if (nodes >= maxNodes || Date.now() - started > maxTimeMs) {
+      budgetExceeded = true;
+      return false;
+    }
+    nodes++;
+    deepest = Math.max(deepest, state.assignments.size);
+
+    if (state.usedImages.size >= requiredImageCount) return search();
+
+    let chosenSlot = null;
+    let chosenCandidates = null;
+    let chosenDegree = -1;
+    const imageAssetDomains = [];
+    const imageAnswerDomains = [];
+    const imageClueCellDomains = [];
+
+    // Reserve the complete picture quota immediately after the special
+    // eleven-letter spine and its short crossing slots are assigned. Without
+    // this phase, ordinary MRV can consume crossing letters in the only slots
+    // that still admit the five distinct image answers.
+    for (const slot of remainingSlots) {
+      const candidates = makePlacementCandidates(slot, state, indexes, {
+        requiredImageCount,
+        minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
+        history: options.history,
+        allowedDirections,
+        repeatWordPenalty: options.repeatWordPenalty,
+        repeatQuestionPenalty: options.repeatQuestionPenalty,
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
+      }, random).filter(candidate => Boolean(candidate.entry.imageKey));
+
+      if (!candidates.length) continue;
+
+      imageAssetDomains.push([...new Set(candidates.map(candidate => candidate.entry.imageKey))]);
+      imageAnswerDomains.push([...new Set(candidates.map(candidate =>
+        canonicalAnswerKey(candidate.entry.answer, { foldYo: options.foldYo === true })
+      ))]);
+      imageClueCellDomains.push([...new Set(candidates.map(candidate => pointKey(candidate.clueCell)))]);
+
+      const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
+      if (
+        chosenCandidates === null
+        || candidates.length < chosenCandidates.length
+        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+      ) {
+        chosenSlot = slot;
+        chosenCandidates = candidates;
+        chosenDegree = slotDegree;
+      }
+    }
+
+    const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
+    const availableAssets = maximumDistinctAssignmentCount(imageAssetDomains);
+    const availableAnswers = maximumDistinctAssignmentCount(imageAnswerDomains);
+    const availableClueCells = maximumDistinctAssignmentCount(imageClueCellDomains);
+    const available = Math.min(availableAssets, availableAnswers, availableClueCells);
+    if (!chosenSlot || available < remainingImageQuota) {
+      recordDeadEnd({
+        reason: 'SPECIAL_IMAGE_CAPACITY_UNREACHABLE',
+        required: remainingImageQuota,
+        available,
+        availableAssets,
+        availableAnswers,
+        availableClueCells,
+        openSlots: remainingSlots.length
+      });
+      return false;
+    }
+
+    recordSearchChoice(chosenSlot, chosenCandidates);
+    const nextSlots = remainingSlots.filter(slot => slot.id !== chosenSlot.id);
+    for (const candidate of chosenCandidates) {
+      addPlacement(candidate);
+      if (completeSpecialImageSlots(nextSlots)) return true;
+      undoPlacement(candidate);
+      if (cancelled || budgetExceeded) return false;
+    }
+
+    // This slot may have an image candidate but still be unnecessary for a
+    // valid five-image matching. Keep the branch that leaves it for ordinary
+    // word assignment so another slot can supply that picture instead.
+    if (completeSpecialImageSlots(nextSlots)) return true;
+    if (cancelled || budgetExceeded) return false;
+
+    recordDeadEnd({
+      reason: 'SPECIAL_IMAGE_ASSIGNMENT_EXHAUSTED',
+      slotId: chosenSlot.id,
+      candidateCount: chosenCandidates.length,
+      openSlots: remainingSlots.length
+    });
+    return false;
+  }
+
   function search() {
     if (options.signal?.aborted) {
       cancelled = true;
@@ -685,6 +786,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (specialAlreadyAssigned) {
       const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
       if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
+      if (state.usedImages.size < requiredImageCount) {
+        return completeSpecialImageSlots(unassigned);
+      }
     }
 
     let chosenSlot = null;
