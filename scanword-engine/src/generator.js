@@ -1,6 +1,6 @@
 import { CONFIG } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyQuotaCounts, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
-import { maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
+import { ALLOWED_SPECIAL_SHORT_ANSWERS, maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
@@ -12,10 +12,6 @@ function now() {
   return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
 }
 
-const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
-  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
-].map(answer => canonicalAnswerKey(answer)));
-
 function canAssignDistinctShortAnswers(domains, options = {}) {
   const excludedAnswers = options.excludedAnswers ?? new Set();
   const letterUses = options.letterUses ?? null;
@@ -24,7 +20,7 @@ function canAssignDistinctShortAnswers(domains, options = {}) {
     const answers = [];
     for (const candidate of domain) {
       const answerKey = typeof candidate === 'string' ? candidate : candidate.answerKey;
-      if (!answerKey || excludedAnswers.has(answerKey)) continue;
+      if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
       if (letterUses && typeof candidate !== 'string') {
         let compatible = true;
         for (let index = 0; index < candidate.coordinates.length; index++) {
