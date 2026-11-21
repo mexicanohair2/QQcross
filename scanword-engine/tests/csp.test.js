@@ -549,6 +549,39 @@ test('allows only an approved picture-backed two-letter scanword answer', () => 
 });
 
 
+test('enforces the exact prevalidated image placement when requested', () => {
+  const imageSlot = slot(
+    'planned-image',
+    { row: 0, col: 1 },
+    { row: 0, col: 4 },
+    [{ row: 0, col: 2 }, { row: 0, col: 3 }],
+    'right',
+    'left'
+  );
+  const dictionary = [
+    { id: 'hedgehog', answer: 'ЁЖ', question: 'Что изображено на картинке?', imageKey: 'hedgehog' },
+    { id: 'poison-image', answer: 'ЯД', question: 'Что изображено на картинке?', imageKey: 'poison' }
+  ];
+  const result = solveSlotsCsp([imageSlot], dictionary, {
+    seed: 92,
+    requiredImageCount: 1,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    preferredImagePlacementsBySlot: new Map([[
+      'planned-image',
+      { entryId: 'hedgehog', clueKey: '0,1', direction: 'right' }
+    ]]),
+    enforcePreferredImagePlacements: true,
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].entryId, 'hedgehog');
+  assert.equal(result.words[0].answer, 'ЁЖ');
+  assert.equal(result.words[0].imageKey, 'hedgehog');
+});
+
 test('allows curated two-letter Russian words and rejects pronoun filler', () => {
   const clueA = { row: 1, col: 1 };
   const clueB = { row: 1, col: 4 };
