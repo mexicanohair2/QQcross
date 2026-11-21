@@ -470,6 +470,34 @@ test("word search shows a question for every target and the bulb marks a startin
   expect(fit.s).toBeLessThanOrEqual(fit.h + 1);
 });
 
+test("guest profiles can buy and equip avatar frames and open the shop from their profile", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.evaluate(() => {
+    const key = "qqcross_profile_v2";
+    const profile = JSON.parse(localStorage.getItem(key));
+    profile.coins = 500;
+    localStorage.setItem(key, JSON.stringify(profile));
+  });
+  await page.reload();
+  await page.locator('[data-tab="Магазин"]').click();
+  const ruby = page.locator('.qq-frame-product:has([data-frame-buy="ruby"])');
+  await ruby.locator('[data-frame-buy="ruby"]').click();
+  await expect(page.locator(".coins")).toContainText("340");
+  await expect(page.locator('[data-frame-equip="ruby"]')).toBeDisabled();
+  const profileAfterBuy = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")));
+  expect(profileAfterBuy.owned_frames).toContain("ruby");
+  expect(profileAfterBuy.active_frame).toBe("ruby");
+  await page.locator('[data-frame-equip="standard"]').click();
+  const profileAfterEquip = await page.evaluate(() => JSON.parse(localStorage.getItem("qqcross_profile_v2")));
+  expect(profileAfterEquip.active_frame).toBe("standard");
+  await page.locator('[data-tab="Профиль"]').click();
+  await expect(page.locator(".qq-profile-cosmetics")).toContainText("Классика");
+  await page.locator("#qqProfileShop").click();
+  await expect(page.locator(".qq-frame-product")).toHaveCount(5);
+});
+
 test("the redesigned shop contains the bulb item and level rewards are idempotent", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
