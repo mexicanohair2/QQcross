@@ -336,7 +336,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
   return domains.every(domain => domain.options.length > 0);
 }
 
-function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
+export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
@@ -663,7 +663,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   planDiagnostics.viablePlans = plans.length;
   planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
-  if (!plans.length) return null;
+  if (!plans.length) return requirements.returnAllPlans === true ? [] : null;
 
   // Keep the strongest topology for each answer first, then interleave the
   // next-best topologies. This prevents the first bounded CSP retries from
@@ -801,6 +801,13 @@ export function generateScanword(inputDictionary, options = {}) {
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
     : [];
+
+  if (wantsEleven && specialPlanPool.length === 0) {
+    return fail('NO_SPECIAL_ELEVEN_PLAN', seed, started, attempts, rejectedReasons, {
+      dictionaryStats: prepared.stats,
+      specialElevenPlanDiagnostics: specialPlanDiagnostics
+    });
+  }
 
   // Prefer exactly one low-short topology attempt when it has a compatible
   // dictionary/CSP domain, then retain the best conventional topology as the
