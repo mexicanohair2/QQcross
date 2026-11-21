@@ -519,6 +519,7 @@ function renderOnlineGame() {
   const revealed = Array.isArray(publicState.revealed) ? publicState.revealed : [];
   const open = new Map(revealed.map((item) => [Number(item.index), normalizeWord(item.letter).toUpperCase()]));
   const guesses = Array.isArray(publicState.guesses) ? publicState.guesses : [];
+  const playersWithScore=(room.players||[]).map(player=>({...player,score:guesses.filter(guess=>String(guess.user_id)===String(player.user_id)&&guess.correct).length}));
   const finished = room.status === "finished";
   const next = publicState.next_reveal_at ? Math.max(0,Math.ceil((new Date(publicState.next_reveal_at).getTime()-Date.now())/1000)) : 0;
   app.innerHTML = `
@@ -534,7 +535,7 @@ function renderOnlineGame() {
       </section>
       <section class="card stack" style="min-height:0">
         <div class="game-meta"><b>Общая история</b><span>${guesses.length} попыток</span></div>
-        <div class="qq-score-strip">${renderPlayers(room.players||[])}</div><div class="guess-history" id="guessHistory">${renderHistory(guesses)}</div>
+        <div class="qq-score-strip">${renderPlayers(playersWithScore)}</div><div class="guess-history" id="guessHistory">${renderHistory(guesses)}</div>
       </section>
       ${finished ? (isHost() ? '<button class="btn primary full" id="nextRound">Новое слово</button>' : '<div class="notice">Ожидаем новый раунд от создателя комнаты.</div>') : `
         <section class="card stack">
