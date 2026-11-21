@@ -1,0 +1,97 @@
+/* QQCross identity and slower, more deliberate motion across every mode. */
+:root{--qq-identity-motion:380ms cubic-bezier(.2,.7,.25,1)}
+.qq-player-identity,.qq-player-avatar__ornament,.qq-frame-product,.qq-frame-product .btn,.qq-player-card,.qq-profile-dialog,.qq-profile-dialog__close{transition:transform var(--qq-identity-motion),border-color var(--qq-identity-motion),background var(--qq-identity-motion),box-shadow var(--qq-identity-motion),opacity var(--qq-identity-motion)}
+.qq-frame-product:hover{transform:translateY(-2px);border-color:rgba(209,155,187,.4)}
+.qq-frame-product .qq-player-avatar{filter:drop-shadow(0 7px 9px rgba(0,0,0,.18))}
+.qq-profile-dialog__head .qq-player-identity{max-width:calc(100% - 50px)}
+.qq-profile-dialog__stats .qq-profile-stat{min-width:0}
+.qq-player-dialog-empty{padding:14px;color:var(--qq-muted,#bdaab7)}
+.qq-player-mini-section{margin-top:14px}
+.qq-player-mini-section h4{margin:0 0 8px;font-size:.85rem}
+.qq-player-modal-backdrop{animation:qq-modal-in 240ms ease both}
+@keyframes qq-modal-in{from{opacity:0}to{opacity:1}}
+.boot-splash{background:radial-gradient(ellipse at 50% 39%,rgba(104,31,71,.24),transparent 42%),linear-gradient(155deg,#0d080d,#1d0814 56%,#09080e)!important}
+.boot-scene{filter:drop-shadow(0 13px 26px rgba(0,0,0,.3))}
+.boot-mark{animation:qq-mark-breathe 4.2s ease-in-out infinite}
+.boot-mark img{filter:drop-shadow(0 0 22px rgba(182,94,142,.18))}
+.boot-orbit-one{animation-duration:18s!important;opacity:.55}
+.boot-orbit-two{animation-duration:25s!important;opacity:.35}
+.boot-tiles i{animation-duration:3.6s!important}
+.boot-progress span{animation-duration:3.8s!important}
+.boot-caption{letter-spacing:.04em}
+@keyframes qq-mark-breathe{0%,100%{transform:scale(.98);filter:drop-shadow(0 0 4px rgba(170,82,133,.12))}50%{transform:scale(1.035);filter:drop-shadow(0 0 15px rgba(170,82,133,.28))}}
+.qq-extra-screen .btn,.qq-extra-screen .card,.qq-extra-screen .qq-search-cell,.qq-extra-screen .qq-cody-cell,.qq-extra-screen .qq-cody-row-clue,.wordle-screen .wordle-tile,.wordle-screen .wordle-key,.qq-party-game-screen .btn,.qq-party-game-screen .card,.qq-party-game-screen .word-slot,.qq-party-game-screen .guess-cell{transition-duration:360ms!important;transition-timing-function:cubic-bezier(.2,.7,.25,1)!important}
+.wordle-screen .wordle-tile{transition-duration:420ms!important}
+.wordle-screen .wordle-tile.pop{animation-duration:340ms!important}
+.qq-extra-screen .qq-search-cell:active,.qq-extra-screen .qq-cody-cell:active,.qq-party-game-screen .btn:active{transform:scale(.975)}
+.qq-score-strip .qq-player-card{min-height:69px}
+.qq-profile-dialog__stats .qq-profile-stat:nth-child(3n){background:linear-gradient(130deg,rgba(121,50,87,.17),rgba(255,255,255,.035))}
+.qq-settings-heading{align-items:center}
+@media(prefers-reduced-motion:reduce){.boot-mark,.boot-orbit-one,.boot-orbit-two,.boot-tiles i,.boot-progress span{animation:none!important}.qq-extra-screen .btn,.qq-extra-screen .card,.qq-extra-screen .qq-search-cell,.qq-extra-screen .qq-cody-cell,.wordle-screen .wordle-tile,.wordle-screen .wordle-key,.qq-party-game-screen .btn,.qq-party-game-screen .card{transition:none!important}}
+
+/* QQ monogram loading screen: warm burgundy base, premium light lettering and slow breathing. */
+.boot-splash{
+ background:radial-gradient(ellipse at 50% 40%,rgba(105,32,69,.26),transparent 43%),linear-gradient(155deg,#090609 0%,#1b0812 58%,#08070b 100%)!important;
+}
+.boot-mark{
+ width:108px!important;height:108px!important;display:grid!important;place-items:center!important;
+ padding:0!important;overflow:visible!important;
+ border:1px solid rgba(222,166,197,.54)!important;border-radius:31px!important;
+ background:linear-gradient(145deg,#55273f 0%,#351526 58%,#1b0e1a 100%)!important;
+ box-shadow:0 18px 55px rgba(0,0,0,.62),inset 0 1px 1px rgba(255,255,255,.16),0 0 26px rgba(150,65,108,.2)!important;
+}
+.boot-mark span:last-child{
+ display:block!important;padding:0 .13em .08em 0!important;
+ font-family:Georgia,"Times New Roman",serif!important;
+ font-size:54px!important;font-weight:900!important;letter-spacing:-.13em!important;
+ line-height:1!important;
+ background:linear-gradient(150deg,#fff8fc 3%,#e6c5d6 38%,#bd8aa8 66%,#fff2f8 94%)!important;
+ background-clip:text!important;-webkit-background-clip:text!important;
+ color:transparent!important;-webkit-text-fill-color:transparent!important;
+ text-shadow:0 2px 0 rgba(44,12,30,.4),0 8px 22px rgba(0,0,0,.48)!important;
+}
+.boot-orbit-one{border-color:rgba(184,101,144,.34)!important}
+.boot-orbit-two{border-color:rgba(173,126,164,.22)!important}
+.boot-caption,.boot-footnote{color:rgba(238,214,228,.72)!important}
+.boot-progress{background:rgba(201,151,179,.12)!important}
+.boot-progress span{background:linear-gradient(90deg,#71304f,#c88cab,#e6ccdc)!important}
+@media(max-width:380px){.boot-mark{width:96px!important;height:96px!important}.boot-mark span:last-child{font-size:48px!important}}
+
+/* Party-game screens use the same calm interaction timing as the main modes. */
+.screen .btn,.screen .card,.screen .player,.screen .room-friend-row,.screen .guess-row,
+.screen .guess-cell,.screen .word-cell,.screen .letter-key,.screen .room-tile{
+ transition-duration:380ms!important;
+ transition-timing-function:cubic-bezier(.2,.7,.25,1)!important;
+}
+.screen .btn:active,.screen .room-friend-row:active{transform:scale(.98)}
+.screen .guess-row,.screen .room-friend-row{transition-property:transform,border-color,background,box-shadow,opacity!important}
+@media(prefers-reduced-motion:reduce){
+ .screen .btn,.screen .card,.screen .player,.screen .room-friend-row,.screen .guess-row,
+ .screen .guess-cell,.screen .word-cell,.screen .letter-key,.screen .room-tile{transition:none!important}
+}
+
+
+/* Keep the 8×12 scanword inside the space left after the player strip and rack. */
+.game-screen .score-strip{
+  position:relative!important;
+  z-index:1!important;
+}
+.game-screen .board-wrap.scanword-wrap{
+  position:relative!important;
+  z-index:2!important;
+  flex:1 1 0!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.game-screen .scanword-board{
+  width:auto!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  aspect-ratio:2 / 3!important;
+}
+
+/* Informational toasts must never capture touch or mouse input. */
+.toast{
+  pointer-events:none!important;
+}

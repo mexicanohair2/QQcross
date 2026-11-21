@@ -58,8 +58,8 @@ document.documentElement.dataset.qqReduceMotion=localStorage.getItem("qqcross_re
 function avatarStorageKey(){return "qqcross_avatar_image_"+String(state.profile?.id||"guest");}
 function getAvatarImage(){try{const v=localStorage.getItem(avatarStorageKey());return v&&/^data:image\/(webp|png|jpeg);base64,/.test(v)?v:"";}catch{return "";}}
 function avatarMarkup(size=""){
-  const image=getAvatarImage();
-  return image?'<img class="qq-avatar-image '+size+'" src="'+image+'" alt="Моя аватарка">':(AVATARS[state.profile?.avatar]||"🐱");
+  const image=String(state.profile?.avatar_url||"").startsWith("https://")?state.profile.avatar_url:getAvatarImage();
+  return image?'<img class="qq-avatar-image '+size+'" src="'+esc(image)+'" alt="Моя аватарка">':(AVATARS[state.profile?.avatar]||"🐱");
 }
 function saveAvatarFile(file){
   if(!file)return;
@@ -72,8 +72,30 @@ function saveAvatarFile(file){
       const side=256,canvas=document.createElement("canvas");canvas.width=side;canvas.height=side;
       const ctx=canvas.getContext("2d"),crop=Math.min(image.width,image.height),sx=(image.width-crop)/2,sy=(image.height-crop)/2;
       ctx.drawImage(image,sx,sy,crop,crop,0,0,side,side);
-      try{localStorage.setItem(avatarStorageKey(),canvas.toDataURL("image/webp",.82));render();toast("Аватарка сохранена на этом устройстве.");}
-      catch(_){toast("Не удалось сохранить изображение. Попробуй файл поменьше.");}
+      canvas.toBlob(async blob=>{
+        if(!blob){toast("Не удалось обработать изображение.");return}
+        const id=String(state.profile?.id||"");
+        if(supabaseClient&&id&&!id.startsWith("local-")){
+          const oldUrl=state.profile.avatar_url||"";
+          const path=id+"/avatar-"+Date.now()+".webp";
+          try{
+            const {error:uploadError}=await supabaseClient.storage.from("avatars").upload(path,blob,{contentType:"image/webp",cacheControl:"31536000",upsert:false});
+            if(uploadError)throw uploadError;
+            const publicUrl=supabaseClient.storage.from("avatars").getPublicUrl(path).data?.publicUrl;
+            if(!publicUrl)throw new Error("Не удалось получить ссылку на аватарку.");
+            const {error:updateError}=await supabaseClient.from("profiles").update({avatar_url:publicUrl}).eq("id",id);
+            if(updateError){await supabaseClient.storage.from("avatars").remove([path]);throw updateError}
+            state.profile.avatar_url=publicUrl;
+            if(typeof playerProfileCache!=="undefined"){playerProfileCache.delete(id);playerProfileCache.set(id,{...state.profile});playerProfileCacheAt.set(id,Date.now())}
+            save();render();toast("Аватарка сохранена в QQCross и будет видна в играх.");
+            const oldMatch=oldUrl.match(/\/storage\/v1\/object\/public\/avatars\/(.+)$/);
+            if(oldMatch&&decodeURIComponent(oldMatch[1]).startsWith(id+"/"))supabaseClient.storage.from("avatars").remove([decodeURIComponent(oldMatch[1])]).catch(()=>{});
+          }catch(error){toast(error.message||"Не удалось загрузить аватарку в облако.")}
+        }else{
+          try{const dataUrl=canvas.toDataURL("image/webp",.82);localStorage.setItem(avatarStorageKey(),dataUrl);state.profile.avatar_url=dataUrl;save();render();toast("Аватарка сохранена на этом устройстве. Для синхронизации войди в аккаунт.");}
+          catch(_){toast("Не удалось сохранить изображение. Попробуй файл поменьше.");}
+        }
+      },"image/webp",.82);
     };
     image.onerror=()=>toast("Не удалось открыть это изображение.");
     image.src=String(reader.result||"");
@@ -113,7 +135,80 @@ function normalizeItems(items){const normalized={...defaultItems(),...(items||{}
 function save(){if(state.profile){localStorage.setItem(STORE_KEY,JSON.stringify(state.profile));window.QQProgression?.syncCloud?.().catch(e=>console.warn("QQCross progression sync:",e))}}
 function toast(t){const el=document.createElement("div");el.className="toast";el.textContent=t;document.body.append(el);setTimeout(()=>el.remove(),2300)}
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function render(){clearInterval(state.interval);const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="party-game"){renderPartyGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
+
+const playerProfileCache=new Map();
+const playerProfileCacheAt=new Map();
+async function loadPlayerProfiles(ids=[]){
+  const unique=[...new Set((ids||[]).map(x=>String(x||"")).filter(Boolean))];
+  if(state.profile?.id){
+    const ownId=String(state.profile.id);
+    playerProfileCache.set(ownId,{...state.profile});
+    playerProfileCacheAt.set(ownId,Date.now());
+  }
+  const missing=unique.filter(id=>!playerProfileCache.has(id)||Date.now()-(playerProfileCacheAt.get(id)||0)>60000);
+  if(missing.length&&supabaseClient){
+    try{
+      const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("id",missing);
+      if(error)throw error;
+      (data||[]).forEach(p=>{const id=String(p.id);playerProfileCache.set(id,p);playerProfileCacheAt.set(id,Date.now())});
+    }catch(error){console.warn("QQCross player profiles:",error)}
+  }
+  return new Map(unique.map(id=>[id,playerProfileCache.get(id)]).filter(x=>!!x[1]));
+}
+function playerIdentityMarkup(player={},options={}){
+  const person={...player};
+  if(state.profile&&String(person.id||"")===String(state.profile.id)){
+    person.avatar_url=person.avatar_url||state.profile.avatar_url||getAvatarImage();
+    person.active_frame=person.active_frame||state.profile.active_frame||"standard";
+    person.active_title=person.active_title||state.profile.active_title||window.QQProgression?.get?.().activeTitle||"Новичок";
+    person.username=person.username||state.profile.username;
+    person.avatar=person.avatar??state.profile.avatar;
+  }
+  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(person,{size:options.size||"md",compact:!!options.compact,clickable:options.clickable??!!person.id,score:options.score,scoreLabel:options.scoreLabel,note:options.note,className:options.className});
+  return '<span class="qq-player-identity"><span class="avatar">'+(AVATARS[person.avatar]||"🐱")+'</span><b>'+esc(person.username||person.nickname||"Игрок")+'</b><small>'+esc(person.active_title||"Новичок")+'</small></span>';
+}
+function bindPlayerProfileClicks(){
+  if(window.__qqPlayerProfileClickBound)return;
+  window.__qqPlayerProfileClickBound=true;
+  document.addEventListener("click",event=>{
+    const trigger=event.target.closest("[data-player-profile]");
+    if(!trigger)return;
+    const id=trigger.dataset.playerProfile;
+    if(id)openPlayerProfile(id);
+  });
+}
+async function openPlayerProfile(userId){
+  if(!supabaseClient||!userId)return;
+  let overlay=document.querySelector(".qq-profile-dialog-backdrop");
+  if(overlay)overlay.remove();
+  overlay=document.createElement("div");overlay.className="qq-profile-dialog-backdrop qq-player-modal-backdrop";
+  overlay.innerHTML='<section class="qq-profile-dialog" role="dialog" aria-modal="true" aria-label="Профиль игрока"><div class="qq-profile-dialog__head"><div id="qqRemoteProfileContent"><p class="qq-player-dialog-empty">Загружаем профиль…</p></div><button type="button" class="qq-profile-dialog__close" aria-label="Закрыть">×</button></div></section>';
+  document.body.append(overlay);
+  const close=()=>overlay.remove();
+  overlay.querySelector(".qq-profile-dialog__close").onclick=close;
+  overlay.addEventListener("click",event=>{if(event.target===overlay)close()});
+  try{
+    const {data,error}=await supabaseClient.rpc("get_qqcross_player_profile",{target_user_id:userId});
+    if(error)throw error;
+    if(!overlay.isConnected)return;
+    const stats=data.stats||{},daily=data.daily||{};
+    const values=[
+      [data.games||0,"Матчи"],[data.wins||0,"Победы"],[data.points||0,"Очки"],
+      [stats.scanwords||0,"Сканворды"],[stats.wordleWins||0,"Победы Wordle"],
+      [stats.searchLevels||0,"Поиск слов"],[stats.codyLevels||0,"Кроссворды"],
+      [stats.wordsFound||0,"Открытые слова"],[daily.currentStreak||0,"Дней подряд"],[daily.bestStreak||0,"Лучшая серия"]
+    ];
+    const statsHtml=values.map(([value,label])=>'<div class="qq-profile-stat"><b>'+esc(value)+'</b><small>'+esc(label)+'</small></div>').join("");
+    const content=overlay.querySelector("#qqRemoteProfileContent");
+    content.innerHTML='<div>'+playerIdentityMarkup(data,{size:"lg",clickable:false})+'</div><p class="qq-player-modal-muted">В QQCross с '+(data.created_at?new Date(data.created_at).toLocaleDateString("ru-RU"):"неизвестной даты")+'</p><div class="qq-profile-dialog__stats">'+statsHtml+'</div>';
+  }catch(error){
+    const content=overlay.querySelector("#qqRemoteProfileContent");
+    if(content)content.innerHTML='<p class="qq-player-dialog-empty">'+esc(error.message||"Не удалось загрузить профиль.")+'</p>';
+  }
+}
+bindPlayerProfileClicks();
+
+function render(){clearInterval(state.interval);if(state.profile)window.QQCrossPlayerProfile={...state.profile,active_title:state.profile.active_title||window.QQProgression?.get?.().activeTitle||"Новичок"};const root=$("#app");if(state.profile&&authRecoveryMode){renderRecovery(root);return}if(!state.profile&&authRestoreError){renderAuthRestore(root);return}if(!state.profile){renderRegister(root);return}if(state.screen==="game"){renderGame(root);return}if(state.screen==="party-game"){renderPartyGame(root);return}if(state.screen==="lobby"){renderLobby(root);return}if(state.screen==="wordle"){renderWordle(root);return}if(state.screen==="daily"){renderDaily(root);return}if(state.screen==="extra"){if(window.QQExtraGames)window.QQExtraGames.mount(root,state.extraMode,()=>{state.screen="";render()});else{root.innerHTML='<div class="screen"><p>Не удалось загрузить дополнительные игры.</p><button class="btn" id="extraBack">Назад</button></div>';$("#extraBack").onclick=()=>{state.screen="";render()}}return}renderShell(root)}
 function renderPartyGame(root){
  const game=state.partyGame==="qq-draw"?"qq-draw":"team-word";
  const title=game==="qq-draw"?"QQ Draw":"Team Word";
@@ -124,7 +219,7 @@ function renderPartyGame(root){
 function renderDaily(root){
  const p=window.QQProgression,d=p?.daily?.()||{date:"",wordleLength:5,completed:{}};
  const done=d.completed||{},stats=p?.get?.().daily||{};
- root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">▦</span><span><b>Ежедневный сканворд</b><small>Поле 8 × 12</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">▥</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
+ root.innerHTML='<div class="screen qq-daily-screen"><div class="top"><button class="btn" id="dailyBack">← Назад</button><b>Ежедневные испытания</b><span></span></div><section class="qq-daily-profile">'+playerIdentityMarkup(state.profile,{size:"lg",clickable:true})+'<div class="qq-daily-profile__stats"><span>Очки</span><b>'+Number(state.profile.points||0)+'</b><span>Монеты · '+Number(state.profile.coins||0)+' 🪙</span></div></section><section class="card qq-daily-hero"><span class="pill">ИСПЫТАНИЕ ДНЯ</span><h2>Два задания. Один день.</h2><p class="muted">Оба задания обновляются раз в сутки и остаются одинаковыми до следующего дня.</p><div class="qq-daily-streak" id="qqDailyStreak">Серия: <b>'+Number(stats.currentStreak||0)+'</b> дней · рекорд: <b>'+Number(stats.bestStreak||0)+'</b></div></section><button class="card qq-daily-task" type="button" data-daily-game="scanword"><span class="qq-daily-task-icon">'+gameIcon("cody")+'</span><span><b>Ежедневный сканворд</b><small>Поле 8 × 12</small></span><strong>'+(done.scanword?"✓":"→")+'</strong></button><button class="card qq-daily-task" type="button" data-daily-game="wordle"><span class="qq-daily-task-icon">'+gameIcon("wordle")+'</span><span><b>Ежедневный Wordle</b><small>Слово из '+d.wordleLength+' букв · 6 попыток</small></span><strong>'+(done.wordle?"✓":"→")+'</strong></button><p class="small muted qq-daily-date">Дата испытания: '+d.date+'</p></div>';
  $("#dailyBack").onclick=()=>{state.screen="";render()};
  root.querySelector("[data-daily-game=scanword]").onclick=()=>startDailyScanword(d);
  root.querySelector("[data-daily-game=wordle]").onclick=()=>{
@@ -221,7 +316,7 @@ function tabIcon(name){
 function renderShell(root){
  applyProgressRewards();
  const tabs=[["Главная","home"],["Поиск","search"],["История","history"],["Друзья","friends"],["Магазин","shop"],["Профиль","profile"]];
- root.innerHTML=`<div class="screen"><div class="top"><button class="qq-settings-gear" id="qqSettingsGear" type="button" aria-label="Настройки" title="Настройки">${tabIcon("settings")}</button><div class="user"><div class="avatar">${avatarMarkup()}</div><div><b>${esc(state.profile.username)}</b><small class="qq-active-title">${esc(window.QQProgression?.get?.().activeTitle||"Новичок")}</small></div></div><button class="qq-header-hat" type="button" data-qq-straw-hat-trigger aria-label="Сенная шляпа">👒</button><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav" aria-label="Основная навигация">${tabs.map(([t,icon])=>`<button type="button" class="${state.tab===t?"active":""}" data-tab="${t}" aria-current="${state.tab===t?"page":"false"}"><span class="ni">${tabIcon(icon)}</span><span class="nav-label">${t}</span></button>`).join("")}</nav>`;
+ root.innerHTML=`<div class="screen"><div class="top"><button class="qq-settings-gear" id="qqSettingsGear" type="button" aria-label="Настройки" title="Настройки">${tabIcon("settings")}</button><div class="user">${playerIdentityMarkup(state.profile,{size:"md",compact:true,clickable:true})}</div><button class="qq-header-hat" type="button" data-qq-straw-hat-trigger aria-label="Сенная шляпа">👒</button><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav" aria-label="Основная навигация">${tabs.map(([t,icon])=>`<button type="button" class="${state.tab===t?"active":""}" data-tab="${t}" aria-current="${state.tab===t?"page":"false"}"><span class="ni">${tabIcon(icon)}</span><span class="nav-label">${t}</span></button>`).join("")}</nav>`;
  root.querySelector("#qqSettingsGear").onclick=()=>{state.tab="Настройки";render()};
  root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});
  wireContent();
@@ -235,11 +330,26 @@ function collapsiblePanel(id,title,body,initialOpen=false){
   '<button class="qq-settings-toggle" type="button" data-settings-toggle="'+id+'" aria-expanded="'+open+'" aria-controls="qq-settings-body-'+id+'" aria-label="'+(open?'Свернуть раздел':'Развернуть раздел')+'"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>'+
   '<div class="qq-settings-content" id="qq-settings-body-'+id+'" aria-hidden="'+(!open)+'" '+(open?'':'inert')+'>'+body+'</div></section>';
 }
+function gameIcon(name){
+ const paths={
+  search:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M8.2 10.8h5.2M10.8 8.2v5.2"/>',
+  wordle:'<rect x="3" y="3" width="5" height="5" rx="1"/><rect x="10" y="3" width="5" height="5" rx="1"/><rect x="17" y="3" width="5" height="5" rx="1"/><rect x="3" y="10" width="5" height="5" rx="1"/><rect x="10" y="10" width="5" height="5" rx="1"/><rect x="17" y="10" width="5" height="5" rx="1"/><path d="M5.5 19.5h13"/>',
+  cody:'<path d="M4 5h16v14H4zM8 9h8M8 13h5M8 16h3"/><path d="m17 3 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2Z"/>',
+  team:'<circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 20c.4-3.2 2.4-5 5.5-5s5.1 1.8 5.5 5M14.5 15.2c2.8-.7 5.5.8 6 3.8"/>',
+  draw:'<path d="m4 17 9.8-9.8 4 4L8 21H4v-4Z"/><path d="m12.7 8.3 2.8-2.8a2.1 2.1 0 0 1 3 0l.1.1a2.1 2.1 0 0 1 0 3L15.8 11"/><path d="m4 17 4 4"/>',
+  magnifier:'<circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5M8.2 10.8h5.2"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+  trash:'<path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m3 3v7m6-7v7"/>',
+  bulb:'<path d="M9 18h6m-5 3h4m-2-19a7 7 0 0 0-4 12.7c.8.6 1 1.2 1 2.3h6c0-1.1.2-1.7 1-2.3A7 7 0 0 0 12 2Z"/>'
+ };
+ return '<svg class="qq-game-svg" viewBox="0 0 24 24" aria-hidden="true">'+(paths[name]||paths.search)+'</svg>';
+}
 function home(){
+ const playerStrip='<section class="qq-daily-profile">'+playerIdentityMarkup(state.profile,{size:"lg",clickable:true})+'<div class="qq-daily-profile__stats"><span>Очки</span><b>'+Number(state.profile.points||0)+'</b><span>Монеты · '+Number(state.profile.coins||0)+' 🪙</span></div></section>';
  const daily='<section class="card qq-daily-entry"><div><span class="pill">КАЖДЫЙ ДЕНЬ</span><h3>Ежедневные испытания</h3><p class="small muted">Сканворд и Wordle · серия прохождений</p></div><button class="btn primary" type="button" data-qq-daily-open data-daily-date="'+(window.QQProgression?.daily?.().date||"")+'">Открыть</button></section>';
  const hero='<section class="card hero home-hero"><div class="home-mark">QQ</div><span class="qq-forest-hat" title="Сенная шляпа" data-qq-straw-hat-trigger>👒</span><h2>QQCross</h2><p class="muted">Сканворды для игры одному и с друзьями</p><button class="btn primary full" id="play-toggle" aria-expanded="'+state.playMenuOpen+'">Играть в сканворд</button>'+(state.playMenuOpen?'<div class="play-options"><button class="btn full" id="practice" '+(scanwordPreparing?'disabled':'')+'>'+(scanwordPreparing?'Готовим поле…':preparedScanword?'Играть одному':'Подготовить поле')+'</button><button class="btn full" id="createParty">Играть с друзьями</button><button class="btn full chatgpt-play-option" id="playChatGPT" aria-expanded="false">Играть с ChatGPT</button></div>':'')+'</section>';
- const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">⌕</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">▦</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">✧</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><button type="button" class="qq-game-launch" data-party-game="team-word"><span class="qq-game-icon">👥</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></button><button type="button" class="qq-game-launch" data-party-game="qq-draw"><span class="qq-game-icon">🎨</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></button></div>';
- return daily+hero+
+ const games='<div class="qq-game-launch-grid"><button class="qq-game-launch" data-extra-game="search"><span class="qq-game-icon">'+gameIcon("search")+'</span><b>Поиск слов</b><small>Найди слова в буквенном поле</small></button><button class="qq-game-launch" id="playWordle"><span class="qq-game-icon">'+gameIcon("wordle")+'</span><b>Wordle</b><small>Угадай слово из пяти букв</small></button><button class="qq-game-launch" data-extra-game="cody"><span class="qq-game-icon">'+gameIcon("cody")+'</span><b>Кроссворды</b><small>Вопросы и секретное слово</small></button><button type="button" class="qq-game-launch" data-party-game="team-word"><span class="qq-game-icon">'+gameIcon("team")+'</span><b>Team Word</b><small>Вместе угадывайте одно слово</small></button><button type="button" class="qq-game-launch" data-party-game="qq-draw"><span class="qq-game-icon">'+gameIcon("draw")+'</span><b>QQ Draw</b><small>Рисуй и угадывай слова</small></button></div>';
+ return playerStrip+daily+hero+
   collapsiblePanel("home-games","Другие игры",games,true)+
   collapsiblePanel("home-invites","Приглашения в партии",'<div id="matchInvites"><p class="small muted">Загрузка…</p></div>',false)+
   collapsiblePanel("home-matches","Мои онлайн-партии",'<div id="myOnlineMatches"><p class="small muted">Загрузка…</p></div>',false);
@@ -271,11 +381,13 @@ async function searchFriends(){
     const {data,error}=await supabaseClient.rpc("search_qqcross_players_with_status",{search_text:q});
     if(error)throw error;
     if(!data?.length){out.innerHTML='<p class="small muted">Игрок не найден.</p>';return}
+    const profiles=await loadPlayerProfiles(data.map(p=>p.id));
     out.innerHTML=data.map(p=>{
       const status=p.relation_status||"none";
       const label=status==="friends"?"Уже друзья":status==="outgoing"?"Заявка отправлена":status==="incoming"?"У него есть заявка — проверь входящие":"Добавить";
       const disabled=status!=="none";
-      return '<div class="card row between"><div class="row"><div class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</div><b>'+esc(p.username)+'</b></div><button class="btn '+(disabled?"":"primary")+' send-friend-request" data-username="'+esc(p.username)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+      const person=profiles.get(String(p.id))||p;
+      return '<div class="card row between"><div class="grow">'+playerIdentityMarkup(person,{size:"sm",clickable:true})+'</div><button class="btn '+(disabled?"":"primary")+' send-friend-request" data-username="'+esc(p.username)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     out.querySelectorAll(".send-friend-request:not(:disabled)").forEach(b=>b.onclick=async()=>{
       b.disabled=true;b.textContent="Отправка…";
@@ -312,9 +424,11 @@ async function loadSocialData(){
     if(fr.error)throw fr.error;
     if(ir.error)throw ir.error;
     if(orq.error)throw orq.error;
-    list.innerHTML=fr.data?.length?fr.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+'</b></div>').join(""):'<p class="muted small">Пока нет друзей.</p>';
-    incoming.innerHTML=ir.data?.length?ir.data.map(p=>'<div class="card"><div class="row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><b>'+esc(p.username)+' хочет добавить тебя в друзья</b></div><div class="grid2"><button class="btn primary respond-friend" data-id="'+esc(p.request_id)+'" data-accept="true">Принять</button><button class="btn respond-friend" data-id="'+esc(p.request_id)+'" data-accept="false">Отклонить</button></div></div>').join(""):'<p class="muted small">Новых заявок нет.</p>';
-    if(outgoing)outgoing.innerHTML=orq.data?.length?orq.data.map(p=>'<div class="card row"><div class="avatar">'+(AVATARS[p.avatar]||"🏳️")+'</div><div class="grow"><b>'+esc(p.username)+'</b><div class="small muted">Ожидает ответа</div></div><span class="pill">Отправлено</span></div>').join(""):'<p class="muted small">Нет ожидающих заявок.</p>';
+    const profiles=await loadPlayerProfiles([...(fr.data||[]).map(p=>p.id),...(ir.data||[]).map(p=>p.sender_id),...(orq.data||[]).map(p=>p.receiver_id)]);
+    const identity=p=>playerIdentityMarkup(profiles.get(String(p.id||p.sender_id||p.receiver_id))||p,{size:"sm",clickable:true});
+    list.innerHTML=fr.data?.length?fr.data.map(p=>'<div class="card">'+identity(p)+'</div>').join(""):'<p class="muted small">Пока нет друзей.</p>';
+    incoming.innerHTML=ir.data?.length?ir.data.map(p=>'<div class="card"><div class="row"><div class="grow">'+identity({...p,id:p.sender_id})+'</div><span class="small muted">Заявка в друзья</span></div><div class="grid2"><button class="btn primary respond-friend" data-id="'+esc(p.request_id)+'" data-accept="true">Принять</button><button class="btn respond-friend" data-id="'+esc(p.request_id)+'" data-accept="false">Отклонить</button></div></div>').join(""):'<p class="muted small">Новых заявок нет.</p>';
+    if(outgoing)outgoing.innerHTML=orq.data?.length?orq.data.map(p=>'<div class="card row"><div class="grow">'+identity({...p,id:p.receiver_id})+'<div class="small muted">Ожидает ответа</div></div><span class="pill">Отправлено</span></div>').join(""):'<p class="muted small">Нет ожидающих заявок.</p>';
     incoming.querySelectorAll(".respond-friend").forEach(b=>b.onclick=async()=>{
       b.disabled=true;
       try{
@@ -357,8 +471,24 @@ async function watchSocialUpdates(){
     });
 }
 function shop(){
- const products=[["magnifier","🔎","Лупа","Проверка и подсказка"],["clock","⏱","Часы","Добавить 20 секунд"],["trash","🗑️","Мусорка","Перемешать набор букв"],["bulb","💡","Подсказка","Подсветить одну букву в игре"]];
- return '<h2>Магазин</h2><p class="small muted qq-shop-note">Предметы для всех игр, кроме Wordle. 5 предметов — 100 монет.</p><div class="qq-shop-grid">'+products.map(([key,ico,name,desc])=>'<article class="qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">'+ico+'</span><span class="qq-shop-item-copy"><b>'+name+'</b><small>'+desc+'</small></span></div><div class="qq-shop-stock">В наличии: <b>'+(state.profile.items[key]||0)+'</b></div><div class="qq-shop-buy"><button class="btn buy" data-item="'+key+'" data-qty="5">5 · 100 🪙</button><button class="btn primary buy" data-item="'+key+'" data-qty="10">10 · 200 🪙</button></div></article>').join("")+'</div>';
+ const products=[["magnifier",gameIcon("magnifier"),"Лупа","Проверка и подсказка"],["clock",gameIcon("clock"),"Часы","Добавить 20 секунд"],["trash",gameIcon("trash"),"Мусорка","Перемешать набор букв"],["bulb",gameIcon("bulb"),"Подсказка","Подсветить одну букву в игре"]];
+ const frames=window.QQIdentity?.frames||[];
+ const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+ const frameCards=frames.map(frame=>{
+  const isOwned=owned.includes(frame.id),equipped=state.profile.active_frame===frame.id;
+  const action=isOwned
+    ?'<button class="btn '+(equipped?'':'primary')+'" data-frame-equip="'+esc(frame.id)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Надета':'Надеть')+'</button>'
+    :'<button class="btn primary" data-frame-buy="'+esc(frame.id)+'">Купить · '+frame.price+' 🪙</button>';
+  return '<article class="qq-frame-product '+(equipped?'is-equipped':'')+'">'+
+   (window.QQIdentity?.framePreview?window.QQIdentity.framePreview(state.profile,frame.id,"lg"):'')+
+   '<b class="qq-frame-product__name">'+esc(frame.name)+'</b>'+
+   '<span class="qq-frame-product__desc">'+esc(frame.description)+'</span>'+
+   '<span class="qq-frame-product__price">'+(isOwned?'В коллекции':frame.price+' монет')+'</span>'+action+'</article>';
+ }).join("");
+ return '<h2>Магазин</h2><p class="small muted qq-shop-note">Оформление профиля и предметы для игр. Баланс: <b>'+Number(state.profile.coins||0)+' 🪙</b></p>'+
+  '<section class="card"><h3>Рамки аватара</h3><p class="small muted">Выбери оформление, которое будет сопровождать твой профиль, друзей и игровые матчи.</p><div class="qq-shop-frames">'+frameCards+'</div></section>'+
+  '<p class="small muted qq-shop-note">Предметы для всех игр, кроме Wordle. 5 предметов — 100 монет.</p><div class="qq-shop-grid">'+
+  products.map(([key,ico,name,desc])=>'<article class="qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">'+ico+'</span><span class="qq-shop-item-copy"><b>'+name+'</b><small>'+desc+'</small></span></div><div class="qq-shop-stock">В наличии: <b>'+(state.profile.items[key]||0)+'</b></div><div class="qq-shop-buy"><button class="btn buy" data-item="'+key+'" data-qty="5">5 · 100 🪙</button><button class="btn primary buy" data-item="'+key+'" data-qty="10">10 · 200 🪙</button></div></article>').join("")+'</div>';
 }
 function encyclopedia(){
  const p=window.QQProgression?.get?.()||{discoveredWords:[]},words=p.discoveredWords||[],history=window.QQEncyclopedia?.history?.()||[];
@@ -438,11 +568,15 @@ function profile(){
  const unlockedCount=catalog.filter(t=>t.unlocked&&!t.secret).length;
  const titleList=catalog.map(t=>'<span class="qq-title-chip '+(t.unlocked?"is-unlocked":"is-locked")+(t.secret?" is-secret":"")+'" title="'+(t.secret&&!t.unlocked?"Секрет: нажми 15 раз на соломенную шляпу":t.unlocked?"Титул открыт":"Откроется после "+t.target+" завершённых сканвордов")+'"><b>'+esc(t.name)+'</b>'+(t.unlocked?'<small>Открыт</small>':t.secret?'<small>'+t.progress+' / '+t.target+' нажатий</small>':'<small>'+t.progress+' / '+t.target+' сканвордов</small>')+'</span>').join("");
  const achievementList=achievements.map(a=>'<div class="qq-achievement '+(a.unlocked?"unlocked":"")+'"><div><b>'+esc(a.name)+'</b><p class="small muted">'+esc(a.desc)+'</p></div><span>'+(a.unlocked?"✓":Math.min(a.value,a.target)+" / "+a.target)+'</span></div>').join("");
- return '<h2>Профиль</h2><div class="card row qq-profile-avatar-card"><div class="avatar big">'+avatarMarkup("big")+'</div><div><h3>'+esc(state.profile.username)+'</h3><span class="muted small">Игрок QQCross · '+esc(p.activeTitle||"Новичок")+'</span><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Загрузить свою аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">Квадратное изображение до 8 МБ. Сохраняется на этом устройстве.</small></div></div>'+
- '<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div><div><b>'+(p.stats.hintsUsed||0)+'</b><div class="muted small">Подсказки</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>'+
- '<section class="card" id="qqTitleInventory"><h3>Коллекция титулов · '+unlockedCount+' / 100</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p></section>'+
- '<section class="card" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>'+
- '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Сбросить демо-профиль</button>';
+ const identity={...state.profile,active_title:p.activeTitle||state.profile.active_title||"Новичок"};
+ const statsBody='<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div><div><b>'+(p.stats.hintsUsed||0)+'</b><div class="muted small">Подсказки</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>';
+ const titlesBody='<section class="card" id="qqTitleInventory"><h3>Коллекция титулов · '+unlockedCount+' / 100</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p></section>';
+ const achievementsBody='<section class="card qq-profile-achievements" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>';
+ return '<h2>Профиль</h2><div class="card qq-profile-avatar-card">'+playerIdentityMarkup(identity,{size:"xl",clickable:false})+'<div class="qq-profile-upload"><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Изменить аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">'+(state.profile.id&&!String(state.profile.id).startsWith("local-")?"Изображение WebP сохраняется в облачном профиле и видно в играх на других устройствах.":"В гостевом режиме аватарка сохраняется только на этом устройстве.")+'</small></div></div>'+
+  collapsiblePanel("profile-stats","Статистика",statsBody,true)+
+  collapsiblePanel("profile-titles","Коллекция титулов",titlesBody,false)+
+  collapsiblePanel("profile-achievements","Достижения",achievementsBody,false)+
+  '<div class="card"><b>Мои предметы</b><p class="small">Лупы: '+state.profile.items.magnifier+'　Часы: '+state.profile.items.clock+'　Мусорки: '+state.profile.items.trash+'</p></div><button class="btn danger full" id="logout">Выйти из аккаунта</button>';
 }
 function settings(){
  const themes=THEME_PRESETS,audio=window.QQAudio?.getSettings?.()||{music:true,effects:true},choices=BACKGROUNDS;
@@ -467,7 +601,30 @@ function settings(){
   ${section("comfort","Удобство","Размер текста и анимации",comfortBody,false)}`;
 }
 
-function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm");if(aiForm)aiForm.onsubmit=e=>{e.preventDefault();askQQCrossAI($("#qqAiAskInput")?.value||"")};const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=()=>{window.QQProgression?.setActiveTitle(activeTitle.value);render()};const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});document.querySelectorAll("[data-party-game]").forEach(b=>b.onclick=()=>{state.partyGame=b.dataset.partyGame;state.screen="party-game";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList"))loadSocialData();if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
+function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm");if(aiForm)aiForm.onsubmit=e=>{e.preventDefault();askQQCrossAI($("#qqAiAskInput")?.value||"")};const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=async()=>{window.QQProgression?.setActiveTitle(activeTitle.value);if(state.profile?.id&&supabaseClient&&!String(state.profile.id).startsWith("local-")){const {error}=await supabaseClient.from("profiles").update({active_title:activeTitle.value}).eq("id",state.profile.id);if(error)toast("Титул выбран локально, но не синхронизирован");else state.profile.active_title=activeTitle.value}playerProfileCache.set(String(state.profile.id),{...state.profile});playerProfileCacheAt.set(String(state.profile.id),Date.now());render()};document.querySelectorAll("[data-frame-buy]").forEach(button=>button.onclick=async()=>{
+ const id=button.dataset.frameBuy;
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Чтобы покупать рамки, войди в облачный аккаунт.");return}
+ button.disabled=true;button.textContent="Покупаем…";
+ try{
+  const {data,error}=await supabaseClient.rpc("purchase_qqcross_frame",{target_frame_id:id});
+  if(error)throw error;
+  if(data?.already_owned)toast("Рамка уже есть в коллекции");
+  else toast("Рамка куплена и надета");
+  await loadCloudProfile(state.profile.id);render();
+ }catch(error){toast(error.message||"Не удалось купить рамку");button.disabled=false;button.textContent="Повторить"}
+});
+document.querySelectorAll("[data-frame-equip]").forEach(button=>button.onclick=async()=>{
+ const id=button.dataset.frameEquip;
+ if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Рамки синхронизируются после входа в аккаунт.");return}
+ button.disabled=true;button.textContent="Применяем…";
+ try{
+  const {data,error}=await supabaseClient.rpc("equip_qqcross_frame",{target_frame_id:id});
+  if(error)throw error;
+  state.profile.active_frame=data.active_frame||id;
+  playerProfileCache.set(String(state.profile.id),{...state.profile});
+  await loadCloudProfile(state.profile.id);render();toast("Рамка применена");
+ }catch(error){toast(error.message||"Не удалось применить рамку");button.disabled=false;button.textContent="Надеть"}
+});const wordleButton=$("#playWordle");if(wordleButton)wordleButton.onclick=()=>{state.screen="wordle";render()};document.querySelectorAll("[data-extra-game]").forEach(b=>b.onclick=()=>{state.extraMode=b.dataset.extraGame;state.screen="extra";render()});document.querySelectorAll("[data-party-game]").forEach(b=>b.onclick=()=>{state.partyGame=b.dataset.partyGame;state.screen="party-game";render()});const toggle=$("#play-toggle");if(toggle)toggle.onclick=()=>{state.playMenuOpen=!state.playMenuOpen;render()};const cp=$("#createParty");if(cp)cp.onclick=()=>{state.screen="lobby";render()};const pr=$("#practice");if(pr)pr.onclick=()=>begin(1);refreshPracticeButton();const gpt=$("#playChatGPT");if(gpt)gpt.onclick=()=>startChatGPTGame(gpt);const ai=$("#acceptInvite");if(ai)ai.onclick=()=>{const size=state.invite.size;state.invite=null;begin(size)};const ri=$("#rejectInvite");if(ri)ri.onclick=()=>{state.invite=null;render();toast("Приглашение отклонено")};const sf=$("#searchFriends");if(sf)sf.onclick=searchFriends;const fi=$("#friendName");if(fi)fi.addEventListener("keydown",e=>{if(e.key==="Enter")searchFriends()});if($("#friendsList")){playerProfileCache.clear();playerProfileCacheAt.clear();loadSocialData()}if($("#matchInvites"))loadMatchInbox();document.querySelectorAll(".buy").forEach(b=>b.onclick=async()=>{
   const qty=+b.dataset.qty,item=b.dataset.item,cost=qty===5?100:200;
   state.profile.items=normalizeItems(state.profile.items);
   if(state.profile.coins<cost){toast("Не хватает монет");return}
@@ -498,7 +655,8 @@ async function loadLobbyFriends(){
  try{
   const {data,error}=await supabaseClient.rpc("list_qqcross_friends");if(error)throw error;
   if(!data?.length){out.textContent="Сначала добавь друзей во вкладке «Друзья».";return}
-  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b></label>').join("");
+  const profiles=await loadPlayerProfiles(data.map(p=>p.id));
+  out.innerHTML=data.map(p=>'<label class="friend-pick"><input type="checkbox" value="'+esc(p.id)+'"><span class="grow">'+playerIdentityMarkup(profiles.get(String(p.id))||p,{size:"sm",clickable:false})+'</span></label>').join("");
  }catch(e){out.textContent=e.message||"Не удалось загрузить друзей"}
 }
 function puzzleSnapshot(){
@@ -527,7 +685,8 @@ async function refreshPartyLobby(){
  if(!state.pendingMatchId)return;const out=$("#partyStatus");if(!out)return;
  try{
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
-  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row"><span class="avatar">'+(AVATARS[p.avatar]||"🐱")+'</span><b>'+esc(p.username)+'</b><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
+  const profiles=await loadPlayerProfiles(data.players.map(p=>p.id));
+  out.innerHTML='<b>Игроки: '+data.players.length+' / '+data.player_limit+'</b>'+data.players.map(p=>'<div class="row between"><div class="grow">'+playerIdentityMarkup(profiles.get(String(p.id))||p,{size:"sm",clickable:true})+'</div><span class="pill">'+(p.status==="accepted"?"Принял":"Ожидает")+'</span></div>').join("");
   const b=$("#startOnlineMatch");if(b){b.disabled=data.host_id!==state.profile.id||data.players.filter(p=>["accepted","playing"].includes(p.status)).length<2;if(data.host_id!==state.profile.id)b.hidden=true;}
  }catch(e){out.textContent=e.message||"Ошибка"}
 }
@@ -535,6 +694,7 @@ async function startOnlineMatch(){
  const b=$("#startOnlineMatch");if(b){b.disabled=true;b.textContent="Запускаем…"}
  try{
   const {data,error}=await supabaseClient.rpc("start_qqcross_match",{target_match_id:state.pendingMatchId});if(error)throw error;
+  await loadPlayerProfiles((data.players||[]).map(p=>p.id));
   const s=data.puzzle_snapshot;puzzle={...s.puzzle,words:s.puzzle.words.map(w=>({...w,cells:w.cells.map(c=>[...c]),clueCell:[...w.clueCell]})),used:new Set(),clueKeys:new Set(s.puzzle.clueKeys||s.puzzle.words.map(w=>w.clueCell.join(","))),reservedKeys:new Set(s.puzzle.reservedKeys||[])};
   Object.keys(expected).forEach(k=>delete expected[k]);Object.assign(expected,s.expected);letterBag=[...(s.letterBag||[])];
   state.onlineMatchId=data.match_id;state.matchId=data.match_id;state.onlinePlayers=data.players;state.onlineVersion=1;state.partySize=data.players.length;state.turn=0;
@@ -560,14 +720,23 @@ async function loadMatchInbox(){
   if(mr.error)throw mr.error;
   if(pr.error)throw pr.error;
 
+  const hostNames=[...new Set([...(ir.data||[]),...(mr.data||[])].map(x=>x.host_username).filter(Boolean))];
+  const hostProfileByName=new Map();
+  if(hostNames.length){
+    const {data:hosts,error:hostError}=await supabaseClient.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("username",hostNames);
+    if(!hostError)(hosts||[]).forEach(person=>hostProfileByName.set(person.username,person));
+  }
+  const hostIdentity=username=>playerIdentityMarkup(hostProfileByName.get(username)||{username},{size:"sm",clickable:!!hostProfileByName.get(username)?.id});
   const classicInvites=ir.data?.length?ir.data.map(x=>
-    '<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
+    '<div class="card">'+hostIdentity(x.host_username)+'<p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
   ).join(""):"";
 
+  await loadPlayerProfiles((pr.data||[]).map(x=>x.sender_id));
   const partyInvites=pr.data?.length?pr.data.map(x=>{
     const gameName=x.game==="team_word"?"Team Word":"QQ Draw";
+    const sender=playerProfileCache.get(String(x.sender_id))||{id:x.sender_id,username:x.sender_username,avatar:x.sender_avatar};
     return '<div class="card qq-party-invite-card" data-invite-id="'+esc(x.invite_id)+'">'+
-      '<b>'+esc(x.sender_username)+'</b>'+
+      playerIdentityMarkup(sender,{size:"sm",clickable:true})+
       '<p class="small muted">Приглашает в '+gameName+' · '+x.player_limit+' мест</p>'+
       '<div class="grid2"><button class="btn primary party-invite-accept" data-id="'+esc(x.invite_id)+'">Принять</button><button class="btn party-invite-decline" data-id="'+esc(x.invite_id)+'">Отклонить</button></div>'+
       '</div>';
@@ -578,7 +747,7 @@ async function loadMatchInbox(){
     invites.innerHTML=combined||'<p class="small muted">Новых приглашений нет.</p>';
   }
 
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card">'+hostIdentity(x.host_username)+'<p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
 
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{
     b.disabled=true;
@@ -604,13 +773,13 @@ async function loadMatchInbox(){
         p_invite_id:b.dataset.id,p_accept:true
       });
       if(error)throw error;
-      if(!data?.accepted||!data.code)throw new Error("Не удалось принять приглашение.");
+      if(!data?.accepted||!data.room_id)throw new Error("Не удалось принять приглашение.");
       const isTeamWord=data.game==="team_word";
       const gameUrl=isTeamWord?"./games/team-word/index.html":"./games/qq-draw/index.html";
       const title=isTeamWord?"Открыть Team Word":"Открыть QQ Draw";
       const card=b.closest(".qq-party-invite-card");
-      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Комната '+esc(data.code)+'</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room='+encodeURIComponent(data.code)+'" target="_blank" rel="noopener">'+title+'</a>';
-      toast("Ты присоединился к комнате. Открой игру по кнопке.");
+      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Ты уже в лобби. Код комнаты не нужен.</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room_id='+encodeURIComponent(data.room_id)+'">'+title+'</a>';
+      toast("Ты присоединился к лобби QQCross.");
     }catch(e){
       b.disabled=false;b.textContent="Принять";
       toast(e.message||"Не удалось принять приглашение");
@@ -648,6 +817,7 @@ async function openOnlineMatch(id){
   const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:id});if(error)throw error;
   if(data.status==="waiting"){if(data.host_id===state.profile.id){state.pendingMatchId=id;state.screen="lobby";renderLobby($("#app"))}else toast("Создатель ещё не запустил партию");return}
   if(!data.game_state)throw new Error("Состояние партии ещё не готово");
+  await loadPlayerProfiles((data.players||[]).map(p=>p.id));
   applyOnlineMatch(data);
  }catch(e){toast(e.message||"Не удалось открыть партию")}
 }
@@ -677,7 +847,7 @@ function applyOnlineMatch(m){
 async function refreshOnlineMatch(force=false){
  if(!state.onlineMatchId)return;
  try{const {data,error}=await supabaseClient.rpc("get_qqcross_match",{target_match_id:state.onlineMatchId});if(error)throw error;
-  if((force||data.state_version>state.onlineVersion)&&data.game_state)applyOnlineMatch(data);
+  if((force||data.state_version>state.onlineVersion)&&data.game_state){await loadPlayerProfiles((data.players||[]).map(p=>p.id));applyOnlineMatch(data);}
   else if(data.status==="finished"&&!state.rewardSubmitted)awardOnlineResult();
  }catch(e){console.warn("QQCross online refresh:",e)}
 }
@@ -905,7 +1075,7 @@ function checkWords(){
   return newlyCompleted;
 }
 async function loadCloudProfile(userId,generation=null){
-  const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,coins,wins,games,points").eq("id",userId).single();
+  const {data,error}=await supabaseClient.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,coins,wins,games,points").eq("id",userId).single();
   if(error)throw error;
   const {data:inventory,error:inventoryError}=await supabaseClient.from("inventory").select("item_type,quantity").eq("user_id",userId);
   let saved=null;try{saved=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
@@ -919,9 +1089,20 @@ async function loadCloudProfile(userId,generation=null){
     (inventory||[]).forEach(row=>{if(Object.prototype.hasOwnProperty.call(items,row.item_type))items[row.item_type]=row.quantity});
   }
   if(generation!==null&&generation!==authGeneration)return;
-  state.profile={id:data.id,username:data.username,avatar:data.avatar||0,coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
+  state.profile={id:data.id,username:data.username,avatar:data.avatar||0,avatar_url:data.avatar_url||"",active_frame:data.active_frame||"standard",active_title:data.active_title||"Новичок",owned_frames:Array.isArray(data.owned_frames)?data.owned_frames:["standard"],coins:data.coins||0,wins:data.wins||0,games:data.games||0,points:data.points||0,items,friends:saved&&saved.id===data.id&&Array.isArray(saved.friends)?saved.friends:[]};
   authRestoreError="";
   await window.QQProgression?.setCloud?.(supabaseClient,userId);
+  const {data:identity,error:identityError}=await supabaseClient.rpc("get_qqcross_player_profile",{target_user_id:userId});
+  if(identityError)throw identityError;
+  state.profile.avatar_url=identity.avatar_url||"";
+  state.profile.active_frame=identity.active_frame||"standard";
+  state.profile.owned_frames=Array.isArray(identity.owned_frames)?identity.owned_frames:["standard"];
+  const progressionTitle=window.QQProgression?.get?.().activeTitle||identity.active_title||"Новичок";
+  state.profile.active_title=progressionTitle;
+  if(progressionTitle!==identity.active_title){
+    supabaseClient.from("profiles").update({active_title:progressionTitle}).eq("id",userId).then(({error})=>{if(error)console.warn("QQCross active title:",error)});
+  }
+  playerProfileCache.set(String(userId),{...state.profile});playerProfileCacheAt.set(String(userId),Date.now());
   await applyProgressRewards();
   save();watchSocialUpdates();
 }
@@ -1369,13 +1550,16 @@ function renderGame(root){
     }else if(puzzle.reservedKeys?.has(key))cells.push('<div class="scan-cell scan-grid-cell scan-empty" data-reserved-cell="'+key+'" aria-hidden="true"'+position+'></div>');
     else cells.push('<div class="scan-cell scan-grid-cell scan-filler" aria-hidden="true"'+position+'></div>');
   }
-  const names=Array.from({length:state.partySize},(_,i)=>state.onlineMatchId?(state.onlinePlayers[i]?.username||("Игрок "+(i+1))):(i===0?"Ты":state.aiMatch?"ChatGPT":"Игрок "+(i+1)));
-  const scores=names.map((n,i)=>'<span class="'+(i===state.turn?'active-player':'')+'">'+esc(n)+': '+((state.playerScores||[])[i]||0)+'</span>').join("");
+  const scores=Array.from({length:state.partySize},(_,i)=>{
+    const raw=state.onlineMatchId?(state.onlinePlayers[i]||{}):(i===0?state.profile:{username:state.aiMatch?"ChatGPT":"Игрок "+(i+1),avatar:1,active_title:state.aiMatch?"ИИ-соперник":"Игрок"});
+    const person=raw?.id?(playerProfileCache.get(String(raw.id))||raw):raw;
+    return '<div class="qq-player-card '+(i===state.turn?'is-active':'')+'">'+playerIdentityMarkup(person,{size:"sm",compact:true,clickable:!!person?.id,score:(state.playerScores||[])[i]||0})+'</div>';
+  }).join("");
   root.innerHTML='<div class="screen game-screen '+(aiTurn?"ai-opponent-turn":"")+'"><div class="top game-topbar"><span class="small muted">Прогресс сохраняется автоматически</span>'+(state.onlineMatchId?'<button type="button" class="btn delete-online-game" id="deleteOnlineMatch">Удалить бой</button>':'')+'</div>'+
-    '<div class="score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
+    '<div class="score-strip qq-score-strip">'+scores+'</div>'+(state.aiMatch?'<div class="ai-turn-status" id="aiTurnStatus">'+(aiTurn?(state.aiError?'<span>'+esc(state.aiError)+'</span> <button class="btn" id="retryAI">Повторить ход</button>':'ChatGPT выбирает вопрос и делает ход…'):'Ты выбираешь буквы и делаешь ход.')+'</div>':'')+
     '<div class="board-wrap scanword-wrap"><div class="scanword-board" style="display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(12,minmax(0,1fr))" data-columns="'+puzzle.w+'" data-rows="'+puzzle.h+'" data-answer-count="'+puzzle.words.length+'" data-terminal-answer-count="'+Array.from(wordTerminals.values()).reduce((sum,ids)=>sum+ids.length,0)+'">'+cells.join("")+'</div></div>'+
     '<div class="game-tools"><div class="letter-area"><span class="letter-label">Буквы</span><div class="hand">'+renderRackSlots()+'</div><button class="btn primary check-turn" id="endturn">✓</button></div>'+
-    '<div class="items"><button class="item" id="magnifier"><strong>🔎 '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>⏱ '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>🗑️ '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>💡 '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
+    '<div class="items"><button class="item" id="magnifier"><strong>'+gameIcon("magnifier")+' '+state.profile.items.magnifier+'</strong>Лупа</button>'+(untimedSolo?'':'<button class="item" id="clock"><strong>'+gameIcon("clock")+' '+state.profile.items.clock+'</strong>Часы</button>')+'<button class="item" id="trash"><strong>'+gameIcon("trash")+' '+state.profile.items.trash+'</strong>Мусорка</button><button class="item" id="bulb"><strong>'+gameIcon("bulb")+' '+(state.profile.items.bulb||0)+'</strong>Подсказка</button>'+(untimedSolo?'':'<span class="timer" id="timer">⏱ '+state.seconds+'</span>')+'</div></div></div>';
 
   const deleteOnlineButton=root.querySelector("#deleteOnlineMatch");
   if(deleteOnlineButton)deleteOnlineButton.onclick=async()=>{

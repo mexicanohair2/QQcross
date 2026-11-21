@@ -16,6 +16,8 @@ const $ = (selector) => document.querySelector(selector);
 const app = $("#app");
 const state = {
   profile: null,
+  playerProfiles: {},
+  playerProfileUpdatedAt: {},
   guest: false,
   screen: "home",
   roomId: null,
@@ -82,14 +84,35 @@ async function loadProfile(userId) {
   if (!supabase) throw new Error("Supabase SDK не загрузился.");
   const { data, error } = await supabase
     .from("profiles")
-    .select("id,username,avatar")
+    .select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points")
     .eq("id", userId)
     .single();
   if (error) throw error;
   if (!data) throw new Error("Профиль QQCross не найден.");
-  state.profile = { id: data.id, username: data.username, avatar: Number(data.avatar) || 0 };
+  state.profile = { ...data, avatar: Number(data.avatar) || 0 };
+  state.playerProfiles[String(data.id)] = state.profile;
+  state.playerProfileUpdatedAt[String(data.id)] = Date.now();
   state.guest = false;
 }
+async function loadPartyProfiles(ids=[]){
+  if(!state.playerProfiles)state.playerProfiles={};
+  const unique=[...new Set((ids||[]).map(id=>String(id||"")).filter(Boolean))];
+  if(state.profile?.id)state.playerProfiles[String(state.profile.id)]=state.profile;
+  const missing=unique.filter(id=>!state.playerProfiles[id]||Date.now()-(state.playerProfileUpdatedAt[id]||0)>60000);
+  if(!missing.length||!supabase)return;
+  try{
+    const {data,error}=await supabase.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("id",missing);
+    if(error)throw error;
+    (data||[]).forEach(profile=>{const id=String(profile.id);state.playerProfiles[id]=profile;state.playerProfileUpdatedAt[id]=Date.now()});
+  }catch(error){console.warn("Team Word player profiles:",error)}
+}
+function playerCard(player={},options={}){
+  const profile=state.playerProfiles[String(player.user_id||player.id||"")]||{};
+  const merged={...player,...profile,id:profile.id||player.user_id||player.id,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
+  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:!!options.clickable,score:options.score===undefined?player.score:options.score});
+  return '<span class="avatar">'+avatar(player.avatar)+'</span><b>'+esc(player.nickname||player.username||"Игрок")+'</b>';
+}
+if(window.QQIdentity?.bindProfileClicks)window.QQIdentity.bindProfileClicks(supabase);
 function stopRoomWatch() {
   clearInterval(state.pollTimer);
   state.pollTimer = null;
@@ -125,7 +148,7 @@ function render() {
 }
 function renderHome() {
   const user = state.profile
-    ? '<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>'
+    ? (window.QQIdentity?.cardMarkup?window.QQIdentity.cardMarkup(state.profile,{size:"md",compact:true}):'<div class="profile"><span class="avatar">'+avatar(state.profile.avatar)+'</span><span class="profile-copy"><b>'+esc(state.profile.username)+'</b><small>Профиль QQCross</small></span></div>')
     : state.guest
       ? '<div class="profile"><span class="avatar">🙂</span><span class="profile-copy"><b>Гостевой режим</b><small>Только одиночная игра</small></span></div>'
       : '<div class="profile"><span class="avatar">👤</span><span class="profile-copy"><b>Не выполнен вход</b><small>Сетевые комнаты закрыты</small></span></div>';
@@ -148,12 +171,7 @@ function renderHome() {
         <p class="small muted">Комнаты, профили, ники и аватары используют общий Supabase QQCross. В сетевой игре участвуют только подтверждённые аккаунты.</p>
         ${state.profile ? `
           <button class="btn primary full" id="createRoom">Создать комнату</button>
-          <form id="joinForm" class="stack">
-            <label class="label" for="roomCode">Код комнаты друга</label>
-            <input class="field" id="roomCode" inputmode="text" maxlength="6" autocomplete="off" placeholder="Например, A7K2Q9">
-            <button class="btn full" type="submit">Войти в комнату</button>
-          </form>
-          <button class="btn ghost full" id="signOut">Выйти из аккаунта</button>
+          <p class="small muted">Открой приглашение от друга или присоединись к нему через список друзей в лобби QQCross.</p>\n          <button class="btn ghost full" id="signOut">Выйти из аккаунта</button>
         ` : `
           <form id="loginForm" class="stack">
             <label class="label" for="email">Почта аккаунта QQCross</label>
@@ -174,10 +192,14 @@ function renderHome() {
   $("#loginForm")?.addEventListener("submit", signIn);
   $("#signOut")?.addEventListener("click", signOut);
   $("#createRoom")?.addEventListener("click", createRoom);
-  $("#joinForm")?.addEventListener("submit", joinRoom);
+
 }
 const requestedRoomCode = (() => {
   try { return (new URLSearchParams(location.search).get("room") || "").trim().toUpperCase(); }
+  catch { return ""; }
+})();
+const requestedRoomId = (() => {
+  try { return (new URLSearchParams(location.search).get("room_id") || "").trim(); }
   catch { return ""; }
 })();
 
@@ -193,7 +215,11 @@ async function signIn(event) {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     await loadProfile(data.user.id);
-    if (requestedRoomCode) {
+    if (requestedRoomId) {
+      state.roomId=requestedRoomId;
+      localStorage.setItem("qq-team-word-room",state.roomId);
+      await openRoom();
+    } else if (requestedRoomCode) {
       const joined = await joinRoomByCode(requestedRoomCode);
       if (!joined) render();
     } else {
@@ -321,6 +347,7 @@ async function refreshRoom(showErrors = true) {
   if (!state.roomId || !supabase) return;
   try {
     const data = await rpc("qq_party_get_room", { p_room_id: state.roomId });
+    await loadPartyProfiles((data.players||[]).map(player=>player.user_id));
     const changed = JSON.stringify(data) !== JSON.stringify(state.room);
     state.room = data;
     state.roomCode = data.code;
@@ -376,9 +403,9 @@ async function copyRoomCode() {
 }
 function renderPlayers(players = []) {
   return players.map((player) => `
-    <div class="player">
-      <span class="avatar">${avatar(player.avatar)}</span>
-      <span style="min-width:0"><b>${esc(player.nickname)}</b><small>${Number(player.seat) === 1 ? "Создатель комнаты" : "Участник"}</small></span>
+    <div class="player qq-party-player">
+      ${playerCard(player,{size:"sm",score:player.score,clickable:true})}
+      <small>${Number(player.seat) === 1 ? "Создатель комнаты" : "Участник"}</small>
     </div>`).join("");
 }
 function renderLobby() {
@@ -388,13 +415,11 @@ function renderLobby() {
     <section class="screen">
       <header class="topbar">
         <div class="brand"><span class="logo">QQ</span><span>TEAM WORD · ЛОББИ</span></div>
-        <div class="profile"><span class="avatar">${avatar(state.profile?.avatar)}</span><span class="profile-copy"><b>${esc(state.profile?.username)}</b><small>Подключён к QQCross</small></span></div>
+        ${window.QQIdentity?.cardMarkup?window.QQIdentity.cardMarkup(state.profile||{},{size:"md",compact:true}):""}
       </header>
       <section class="card">
-        <div class="small muted" style="text-align:center">КОД ДЛЯ ДРУЗЕЙ</div>
-        <div class="room-code">${esc(state.room.code)}</div>
-        <button class="btn full" id="copyCode">Скопировать код приглашения</button>
-        <p class="small muted" style="text-align:center;margin:10px 0 0">Отправь код друзьям. Они войдут в ту же комнату через свои аккаунты QQCross.</p>
+        <b>Лобби QQCross</b>
+        <p class="small muted">Приглашай друзей из списка ниже. После принятия приглашения они появятся здесь автоматически.</p>
       </section>
       <section class="card stack">
         <div class="game-meta"><b>Участники</b><span>${players.length}/${state.room.player_limit}</span></div>
@@ -408,7 +433,7 @@ function renderLobby() {
         <div id="roomFriends"><p class="small muted">Загружаем список друзей…</p></div>
       </section>
     </section>`;
-  $("#copyCode").onclick = copyRoomCode;
+
   $("#startRound")?.addEventListener("click", startOnlineRound);
   loadRoomFriends();
   $("#leaveRoom").onclick = leaveRoom;
@@ -422,10 +447,11 @@ async function loadRoomFriends() {
       root.innerHTML = '<p class="small muted">Добавь друзей в QQCross — здесь появится список для приглашения.</p>';
       return;
     }
+    await loadPartyProfiles(friends.map(friend=>friend.user_id));
     root.innerHTML = friends.map(friend => {
       const disabled = friend.in_room || friend.already_invited;
-      const label = friend.in_room ? "Уже в комнате" : friend.already_invited ? "Приглашение отправлено" : "Пригласить";
-      return '<div class="room-friend-row"><span class="avatar">'+avatar(friend.avatar)+'</span><span class="room-friend-name">'+esc(friend.username)+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
+      const label = friend.in_room ? "Уже в лобби" : friend.already_invited ? "Приглашение отправлено" : "Пригласить";
+      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm",clickable:true})+'</span><button class="btn '+(disabled?'':'primary')+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?'disabled':'')+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button => {
       button.addEventListener("click", async () => {
@@ -456,10 +482,7 @@ function renderHistory(guesses = []) {
     const feedback = Array.isArray(guess.feedback) ? guess.feedback : [];
     return `
       <div class="guess-row">
-        <div class="guess-player">
-          <span class="avatar">${avatar(guess.avatar)}</span>
-          <b>${esc(guess.nickname || "Игрок")}</b>
-        </div>
+        <div class="guess-player">${playerCard({...guess,user_id:guess.user_id||state.room?.players?.find(player=>player.nickname===guess.nickname)?.user_id},{size:"sm",compact:true,clickable:true})}</div>
         <div class="guess-cells">
           ${letters.map((letter,index) => '<span class="guess-cell '+esc(feedback[index]||"miss")+'">'+esc(letter.toUpperCase())+'</span>').join("")}
         </div>
@@ -500,6 +523,7 @@ function renderOnlineGame() {
   const revealed = Array.isArray(publicState.revealed) ? publicState.revealed : [];
   const open = new Map(revealed.map((item) => [Number(item.index), normalizeWord(item.letter).toUpperCase()]));
   const guesses = Array.isArray(publicState.guesses) ? publicState.guesses : [];
+  const playersWithScore=(room.players||[]).map(player=>({...player,score:guesses.filter(guess=>String(guess.user_id)===String(player.user_id)&&guess.correct).length}));
   const finished = room.status === "finished";
   const next = publicState.next_reveal_at ? Math.max(0,Math.ceil((new Date(publicState.next_reveal_at).getTime()-Date.now())/1000)) : 0;
   app.innerHTML = `
@@ -515,7 +539,7 @@ function renderOnlineGame() {
       </section>
       <section class="card stack" style="min-height:0">
         <div class="game-meta"><b>Общая история</b><span>${guesses.length} попыток</span></div>
-        <div class="guess-history" id="guessHistory">${renderHistory(guesses)}</div>
+        <div class="qq-score-strip">${renderPlayers(playersWithScore)}</div><div class="guess-history" id="guessHistory">${renderHistory(guesses)}</div>
       </section>
       ${finished ? (isHost() ? '<button class="btn primary full" id="nextRound">Новое слово</button>' : '<div class="notice">Ожидаем новый раунд от создателя комнаты.</div>') : `
         <section class="card stack">
@@ -663,7 +687,7 @@ function renderSoloGame() {
   app.innerHTML = `
     <section class="screen">
       <header class="topbar">
-        <div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div>
+        <div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div>${state.profile&&window.QQIdentity?.cardMarkup?window.QQIdentity.cardMarkup(state.profile,{size:"sm",compact:true}):""}
         <button class="btn ghost" id="soloExit">Выйти</button>
       </header>
       <section class="card stack">
@@ -713,7 +737,11 @@ async function restore() {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw error;
       if (data.session?.user?.id) await loadProfile(data.session.user.id);
-      if (state.profile && requestedRoomCode) {
+      if (state.profile && requestedRoomId) {
+        state.roomId=requestedRoomId;
+        localStorage.setItem("qq-team-word-room",state.roomId);
+        await openRoom();
+      } else if (state.profile && requestedRoomCode) {
         await joinRoomByCode(requestedRoomCode);
       } else {
         const savedRoom = localStorage.getItem("qq-team-word-room");
