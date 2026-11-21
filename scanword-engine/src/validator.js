@@ -1,5 +1,5 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { canonicalAnswerKey, getDifficultyQuotaCounts, normalizeAnswer, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
 function pointKey(point) {
@@ -713,6 +713,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     }
   }
 
+  const difficultyCounts = { 2: 0, 3: 0, 4: 0 };
+  for (const word of words) difficultyCounts[normalizeDifficultyBand(word?.difficulty)]++;
+  const difficultyQuotas = getDifficultyQuotaCounts(words.length, options.difficultyDistribution);
+  if (options.requireDifficultyBalance === true
+    && [2, 3, 4].some(level => difficultyCounts[level] !== difficultyQuotas[level])) {
+    add('DIFFICULTY_DISTRIBUTION_MISMATCH', 'Сложность сканворда должна соответствовать пропорции 20% лёгких, 60% средних и 20% сложных вопросов.', {
+      expected: difficultyQuotas,
+      actual: difficultyCounts,
+      percentages: { easy: 20, medium: 60, challenging: 20 }
+    });
+  }
+
   const crossings = [...expectedWordIds.values()].filter(ids => ids.size > 1).length;
   const filledCells = grid.flat().filter(cell => ['corner', 'question', 'letter'].includes(cell?.type)).length;
 
@@ -737,6 +749,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       imageCount: imageWords.length,
       logicClueCells: new Set(words.filter(word => word.logic).map(word => pointKey(word.clue))).size,
       specialElevenLetterWords: specialCount,
+      difficultyCounts,
+      difficultyQuotas,
       registeredNormalSlots: registeredNormalSlots.size,
       reconstructedSlots: discoveredSlots.size
     }
