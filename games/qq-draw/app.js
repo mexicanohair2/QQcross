@@ -96,10 +96,11 @@ async function loadPartyProfiles(ids=[]){
 }
 function playerCard(player={},options={}){
   const profile=state.playerProfiles[String(player.user_id||player.id||"")]||{};
-  const merged={...player,...profile,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
-  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:false,score:options.score===undefined?player.score:options.score});
+  const merged={...player,...profile,id:profile.id||player.user_id||player.id,username:profile.username||player.nickname||player.username,avatar_url:profile.avatar_url||player.avatar_url};
+  if(window.QQIdentity?.cardMarkup)return window.QQIdentity.cardMarkup(merged,{size:options.size||"sm",compact:!!options.compact,clickable:!!options.clickable,score:options.score===undefined?player.score:options.score});
   return '<span class="avatar">'+avatar(player.avatar)+'</span><b>'+esc(player.nickname||player.username||"Игрок")+'</b>';
 }
+if(window.QQIdentity?.bindProfileClicks)window.QQIdentity.bindProfileClicks(supabase);
 function stopWatch(){
   clearInterval(state.pollTimer);clearInterval(state.eventTimer);
   state.pollTimer=null;state.eventTimer=null;
@@ -281,7 +282,7 @@ async function refreshRoom(showErrors=true){
 function isHost(){return Boolean(state.profile&&state.room?.host_id===state.profile.id);}
 function isArtist(){return Boolean(state.profile&&state.room?.public_state?.artist_id===state.profile.id);}
 function renderPlayers(players=[]){
-  return players.map((p)=>'<div class="player qq-party-player"><div class="grow">'+playerCard(p,{size:"sm",score:p.score})+'</div><small>'+(String(p.user_id)===String(state.room?.host_id)?"Создатель комнаты":"Участник")+'</small></div>').join("");
+  return players.map((p)=>'<div class="player qq-party-player"><div class="grow">'+playerCard(p,{size:"sm",score:p.score,clickable:true})+'</div><small>'+(String(p.user_id)===String(state.room?.host_id)?"Создатель комнаты":"Участник")+'</small></div>').join("");
 }
 function renderLobby(){
   const players=state.room.players||[];
@@ -307,7 +308,7 @@ async function loadRoomFriends(){
     root.innerHTML=friends.map(friend=>{
       const disabled=friend.in_room||friend.already_invited;
       const label=friend.in_room?"Уже в лобби":friend.already_invited?"Приглашение отправлено":"Пригласить";
-      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm"})+'</span><button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+      return '<div class="room-friend-row"><span class="grow">'+playerCard({...friend,user_id:friend.user_id},{size:"sm",clickable:true})+'</span><button class="btn '+(disabled?"":"primary")+' room-friend-invite" data-id="'+esc(friend.user_id)+'" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     }).join("");
     root.querySelectorAll(".room-friend-invite:not(:disabled)").forEach(button=>button.addEventListener("click",async()=>{
       button.disabled=true;button.textContent="Отправляем…";
@@ -367,7 +368,7 @@ async function confirmWord(word){
 function historyMarkup(guesses=[]){
   if(!guesses.length)return '<div class="small muted" style="text-align:center">Пока нет догадок. Отправить первую может любой игрок, кроме художника.</div>';
   return guesses.slice(-30).reverse().map((g)=>
-    '<div class="guess-row"><div class="grow">'+playerCard({...g,user_id:g.user_id||state.room?.players?.find(player=>player.nickname===g.nickname)?.user_id},{size:"sm",compact:true})+'</div><span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>'
+    '<div class="guess-row"><div class="grow">'+playerCard({...g,user_id:g.user_id||state.room?.players?.find(player=>player.nickname===g.nickname)?.user_id},{size:"sm",compact:true,clickable:true})+'</div><span>'+(g.correct?'<strong class="success">'+esc(g.word)+'</strong>':esc(g.word))+'</span></div>'
   ).join("");
 }
 function drawToolsMarkup(enabled = isArtist() && state.room?.status === "playing"){
@@ -387,7 +388,7 @@ function renderOnlineGame(){
   const finished=room.status==="finished";
   const winner=(guesses||[]).find((g)=>g.correct);
   const topMessage=finished
-    ? '<div class="result"><h2 class="success">Слово угадано!</h2><p>'+playerCard({...winner,user_id:winner?.user_id||room.players?.find(player=>player.nickname===winner?.nickname)?.user_id},{size:"md"})+'</p><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
+    ? '<div class="result"><h2 class="success">Слово угадано!</h2><p>'+playerCard({...winner,user_id:winner?.user_id||room.players?.find(player=>player.nickname===winner?.nickname)?.user_id},{size:"md",clickable:true})+'</p><p>Ответ: <strong>'+esc(room.public_state?.solution||"")+'</strong></p></div>'
     : '<div class="game-meta"><span>'+(artist?"Ты художник — рисуй слово":"Угадывай рисунок")+'</span><span>Раунд '+esc(room.round_no)+'</span></div>';
   appRoot.innerHTML=
     '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
