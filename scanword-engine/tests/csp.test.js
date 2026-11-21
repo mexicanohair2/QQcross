@@ -759,3 +759,43 @@ test('enforces the exact easy-medium-challenging quota for a completed puzzle', 
   );
 });
 
+test('prunes a branch immediately when the dictionary cannot satisfy every difficulty band', () => {
+  const slots = Array.from({ length: 5 }, (_, index) => {
+    const row = index + 1;
+    return slot(
+      'easy-only-' + index,
+      { row, col: 0 },
+      { row, col: 4 },
+      [{ row, col: 1 }, { row, col: 2 }, { row, col: 3 }],
+      'right',
+      'left'
+    );
+  });
+  const dictionary = [
+    ['КОТ', 2], ['ДОМ', 2], ['ЛЕС', 2]
+  ].map(([answer, difficulty], index) => ({
+    id: 'only-easy-' + index,
+    answer,
+    difficulty,
+    clue: 'Простая тестовая подсказка ' + (index + 1) + '.'
+  }));
+
+  const result = solveSlotsCsp(slots, dictionary, {
+    seed: 220,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    requireDifficultyBalance: true,
+    allowedDirections: ['right'],
+    maxNodes: 2000,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'NO_CSP_SOLUTION');
+  assert.equal(result.lastDeadEnd.reason, 'DIFFICULTY_CAPACITY_UNREACHABLE');
+  assert.equal(result.lastDeadEnd.level, 3);
+  assert.equal(result.lastDeadEnd.required, 3);
+  assert.equal(result.lastDeadEnd.available, 0);
+});
+
