@@ -704,6 +704,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
     patternKey: plan.patternKey,
     specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
+    allowedPlacementsBySlot: plan.allowedPlacementsBySlot,
     preferredImagePlacementsBySlot: plan.preferredImagePlacementsBySlot,
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
