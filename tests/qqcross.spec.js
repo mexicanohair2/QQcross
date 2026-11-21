@@ -474,6 +474,7 @@ test("guest profiles can buy and equip avatar frames and open the shop from thei
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
+  await expect(page.locator('[data-tab="Магазин"]')).toBeVisible();
   await page.evaluate(() => {
     const key = "qqcross_profile_v2";
     const profile = JSON.parse(localStorage.getItem(key));
