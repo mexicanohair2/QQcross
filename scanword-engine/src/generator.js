@@ -791,6 +791,27 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
+    const plannedImageDiagnostics = options.capturePlanDiagnostics && specialPlan
+      ? [...(specialPlan.preferredImagePlacementsBySlot ?? new Map()).entries()].map(([slotId, placement]) => {
+          const slot = topology.slots.find(item => item.id === slotId);
+          const orientation = slot?.directionOptions.find(option =>
+            option.direction === placement.direction
+            && option.clueCell.row === Number(placement.clueKey.split(',')[0])
+            && option.clueCell.col === Number(placement.clueKey.split(',')[1])
+          );
+          const allowedIds = specialPlan.allowedEntryIdsBySlot?.get(slotId);
+          return {
+            slotId,
+            entryId: placement.entryId,
+            clueKey: placement.clueKey,
+            direction: placement.direction,
+            slotExists: Boolean(slot),
+            orientationExists: Boolean(orientation),
+            entryAllowed: Boolean(allowedIds?.has(placement.entryId))
+          };
+        })
+      : null;
+
     const cspSeed = (seed ^ Math.imul(attempt + 1, 104729)) >>> 0;
     const solved = solveSlotsCsp(topology.slots, inputDictionary, {
       seed: cspSeed,
@@ -831,7 +852,8 @@ export function generateScanword(inputDictionary, options = {}) {
         elapsedMs: solved.elapsedMs,
         lastDeadEnd: solved.lastDeadEnd,
         deepestDeadEnd: solved.deepestDeadEnd,
-        ...(options.captureTrace && solved.searchTrace ? { searchTrace: solved.searchTrace } : {})
+        ...(options.captureTrace && solved.searchTrace ? { searchTrace: solved.searchTrace } : {}),
+        ...(plannedImageDiagnostics ? { plannedImageDiagnostics } : {})
       });
       bestDiagnostic = solved;
       continue;
