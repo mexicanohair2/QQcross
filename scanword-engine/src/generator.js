@@ -798,8 +798,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         tie: random()
       });
     }
-    const minimumViablePlans = Math.max(2, Number(requirements.minimumViableSpecialPlans ?? 10));
-    const minimumDistinctAnswers = Math.max(2, Number(requirements.minimumDistinctSpecialAnswers ?? 5));
+    // Two independent answers and a small set of viable topologies are
+    // enough for the bounded production retry window. Enumerating every
+    // eleven-letter word against every mask is much slower than solving CSP.
+    const minimumViablePlans = Math.max(2, Number(requirements.minimumViableSpecialPlans ?? 4));
+    const minimumDistinctAnswers = Math.max(2, Number(requirements.minimumDistinctSpecialAnswers ?? 2));
     if (plans.length >= minimumViablePlans
       && new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size >= minimumDistinctAnswers) {
       planDiagnostics.earlyStopped = true;
