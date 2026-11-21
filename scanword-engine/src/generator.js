@@ -150,10 +150,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
   const usedClues = new Set(specialHasImage ? [specialClueKey] : []);
   const usedDirections = new Set([specialClueKey + '|down']);
   const usedLogicClueCells = new Set(specialEntry.logic === true ? [specialClueKey] : []);
-  const usedQuestions = new Map([[
-    normalizeQuestion(specialEntry.question),
-    [{ entryId: specialEntry.id, imageKey: specialEntry.imageKey ?? null }]
-  ]]);
   const letterUses = new Map(specialLetters);
   let nodes = 0;
 
@@ -162,14 +158,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       || usedAnswers.has(candidate.answerKey)
       || usedClues.has(candidate.clueKey)
       || usedDirections.has(candidate.directionKey)) return false;
-    const questionKey = normalizeQuestion(candidate.entry.question);
-    const previousQuestionUses = usedQuestions.get(questionKey) ?? [];
-    const reusablePicturePrompt = Boolean(
-      candidate.entry.imageKey
-      && /изображено на картинке|показано на картинке/u.test(questionKey)
-      && previousQuestionUses.every(use => use.imageKey && use.imageKey !== candidate.entry.imageKey)
-    );
-    if (previousQuestionUses.length && !reusablePicturePrompt) return false;
     const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
     if (usedDifficultyCounts[difficultyBand] >= plannedDifficultyQuotas[difficultyBand]) return false;
     for (let index = 0; index < candidate.coordinates.length; index++) {
@@ -190,12 +178,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
     usedDifficultyCounts[normalizeDifficultyBand(candidate.entry.difficulty)]++;
     usedClues.add(candidate.clueKey);
     usedDirections.add(candidate.directionKey);
-    const questionKey = normalizeQuestion(candidate.entry.question);
-    if (!usedQuestions.has(questionKey)) usedQuestions.set(questionKey, []);
-    usedQuestions.get(questionKey).push({
-      entryId: candidate.entry.id,
-      imageKey: candidate.entry.imageKey ?? null
-    });
     if (candidate.entry.logic === true) usedLogicClueCells.add(candidate.clueKey);
     const added = [];
     for (let index = 0; index < candidate.coordinates.length; index++) {
@@ -221,11 +203,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
     usedDifficultyCounts[difficultyBand] = Math.max(0, usedDifficultyCounts[difficultyBand] - 1);
     usedClues.delete(candidate.clueKey);
     usedDirections.delete(candidate.directionKey);
-    const questionKey = normalizeQuestion(candidate.entry.question);
-    const questionUses = usedQuestions.get(questionKey) ?? [];
-    const remainingQuestionUses = questionUses.filter(use => use.entryId !== candidate.entry.id);
-    if (remainingQuestionUses.length) usedQuestions.set(questionKey, remainingQuestionUses);
-    else usedQuestions.delete(questionKey);
     if (candidate.entry.logic === true
       && !(specialEntry.logic === true && candidate.clueKey === specialClueKey)
       && !selected.some(item => item.entry.logic === true && item.clueKey === candidate.clueKey)) {
@@ -247,7 +224,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
           // retain a non-picture candidate; CSP cannot add a sixth image.
           if (option.entry.imageKey) return false;
           if (usedDirections.has(clueKey + '|' + option.direction)) return false;
-          if ((usedQuestions.get(normalizeQuestion(option.entry.question)) ?? []).length) return false;
           const band = normalizeDifficultyBand(option.entry.difficulty);
           if (usedDifficultyCounts[band] >= plannedDifficultyQuotas[band]) return false;
           for (let index = 0; index < option.coordinates.length; index++) {
@@ -263,10 +239,7 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       });
 
     if (residualDomains.some(domain => domain.options.length === 0)) return false;
-    if (residualDomains.length === 0) {
-      return [2, 3, 4].every(level => usedDifficultyCounts[level] === plannedDifficultyQuotas[level])
-        && usedLogicClueCells.size >= minimumLogicClueCells;
-    }
+    if (residualDomains.length === 0) return true;
 
     // The chosen picture placements must leave every other word domain alive,
     // not merely preserve a matching for the two-letter crossings.
@@ -276,10 +249,6 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       ...new Set(domain.options.map(option => canonicalAnswerKey(option.entry.answer, { foldYo })))
     ]);
     if (maximumDistinctAssignmentCount(answerDomains) < residualDomains.length) return false;
-    const questionDomains = residualDomains.map(domain => [
-      ...new Set(domain.options.map(option => normalizeQuestion(option.entry.question)))
-    ]);
-    if (maximumDistinctAssignmentCount(questionDomains) < residualDomains.length) return false;
 
     for (const level of [2, 3, 4]) {
       const requiredAtLevel = Math.max(0, plannedDifficultyQuotas[level] - usedDifficultyCounts[level]);
