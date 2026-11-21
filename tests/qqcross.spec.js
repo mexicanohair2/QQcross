@@ -482,6 +482,7 @@ test("guest profiles can buy and equip avatar frames and open the shop from thei
     localStorage.setItem(key, JSON.stringify(profile));
   });
   await page.reload();
+  await expect(page.locator('[data-tab="Магазин"]')).toBeVisible({ timeout: 15_000 });
   await page.locator('[data-tab="Магазин"]').click();
   const ruby = page.locator('.qq-frame-product:has([data-frame-buy="ruby"])');
   await ruby.locator('[data-frame-buy="ruby"]').click();
