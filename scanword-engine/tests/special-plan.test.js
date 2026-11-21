@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { buildIndexes, prepareDictionary } from '../src/dictionary.js';
-import { chooseSpecialElevenPlan } from '../src/generator.js';
+import { chooseCompatibleImageSelection, chooseSpecialElevenPlan } from '../src/generator.js';
 import { createRng } from '../src/rng.js';
 
 const productionDictionary = JSON.parse(
@@ -40,6 +40,45 @@ test('production special-eleven planner returns unique plans with complete quota
     assert.ok([...plan.allowedPlacementsBySlot.values()].every(value => value instanceof Set));
     assert.ok(plan.preferredImagePlacementsBySlot instanceof Map);
   }
+});
+
+
+test('image placement in a two-letter slot removes that occupied slot from short-answer matching', () => {
+  const coordinates = [{ row: 1, col: 3 }, { row: 1, col: 4 }];
+  const option = {
+    entry: { id: 'hedgehog-picture', answer: 'ЁЖ', difficulty: 2, imageKey: 'hedgehog' },
+    clueCell: { row: 1, col: 2 },
+    direction: 'right',
+    coordinates
+  };
+  const domains = [{
+    slot: { id: 'short-picture', length: 2 },
+    options: [option]
+  }];
+  const shortDomains = [{
+    slotId: 'short-picture',
+    options: [{
+      answerKey: 'ЕЖ',
+      answer: 'ЁЖ',
+      difficulty: 2,
+      coordinates
+    }]
+  }];
+
+  const selected = chooseCompatibleImageSelection(
+    domains,
+    1,
+    { answer: 'ТРЕУГОЛЬНИК', difficulty: 3, imageKey: null },
+    false,
+    100,
+    { 2: 1, 3: 1, 4: 0 },
+    shortDomains
+  );
+
+  assert.ok(selected);
+  assert.equal(selected.length, 1);
+  assert.equal(selected[0].slotId, 'short-picture');
+  assert.equal(selected[0].answer, 'ЁЖ');
 });
 
 test('requested special puzzle fails clearly instead of silently returning an ordinary board when no plan exists', async () => {
