@@ -324,9 +324,10 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         if (state.usedImageClueCells.has(clueKey)) continue;
         if (state.usedImages.size >= options.requiredImageCount) continue;
 
-        // When a caller explicitly enforces a prevalidated image plan, keep
-        // those exact choices fixed. Without such a plan, the live CSP may
-        // explore alternative picture placements and backtrack on crossings.
+        // The special-plan search already found a mutually compatible set of
+        // image placements. Keep those exact choices fixed in production:
+        // an unplanned image can consume a crossing letter and invalidate
+        // the remaining prevalidated image matching.
         if (options.enforcePreferredImagePlacements === true
           && slot.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
           const planned = options.preferredImagePlacementsBySlot?.get(slot.id);
@@ -669,13 +670,12 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     const imageAnswerDomains = [];
     const imageClueCellDomains = [];
 
-    // Reserve the complete picture quota before ordinary word assignment on
-    // every topology. This keeps scarce image domains from being consumed by
-    // unconstrained MRV choices. The live CSP evaluates the picture candidates
-    // against the current crossing letters and can backtrack them if later
-    // word assignments prove incompatible.
+    // Reserve the complete picture quota immediately after the special
+    // eleven-letter spine and its short crossing slots are assigned. Without
+    // this phase, ordinary MRV can consume crossing letters in the only slots
+    // that still admit the five distinct image answers.
     for (const slot of remainingSlots) {
-      let candidates = makePlacementCandidates(slot, state, indexes, {
+      const candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
         requireDifficultyBalance: options.requireDifficultyBalance === true,
@@ -690,18 +690,6 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
         enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random).filter(candidate => Boolean(candidate.entry.imageKey));
-
-      // The special spine may be considered by this image-first phase before
-      // any word is placed. Keep it pinned to the planner's chosen answer so
-      // its letters still match the AC-3-pruned domains for every crossing.
-      if (slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && options.preferredSpecialAnswer) {
-        const preferredKey = canonicalAnswerKey(options.preferredSpecialAnswer, {
-          foldYo: options.foldYo === true
-        });
-        candidates = candidates.filter(candidate =>
-          canonicalAnswerKey(candidate.entry.answer, { foldYo: options.foldYo === true }) === preferredKey
-        );
-      }
 
       if (!candidates.length) continue;
 
@@ -824,19 +812,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     const specialAlreadyAssigned = slots.some(slot =>
       slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && state.assignments.has(slot.id)
     );
-
-    // Reserve the five distinct picture clues before unconstrained word
-    // filling on every topology, not only on the eleven-letter layout.
-    // Ordinary MRV can otherwise choose a non-picture word in a slot that
-    // carries a scarce image domain, consuming crossing letters and forcing
-    // many expensive backtracks before the image quota can be completed.
-    if (state.usedImages.size < requiredImageCount) {
-      return completeSpecialImageSlots(unassigned);
-    }
-
     if (specialAlreadyAssigned) {
-      // Lock the remaining short crossings only after all picture positions
-      // have been secured; a two-letter answer can constrain a unique image.
+      // Lock the picture quota before assigning short crossings: a valid
+      // two-letter choice can otherwise impose letters that remove the last
+      // remaining image domains from the special topology.
+      if (state.usedImages.size < requiredImageCount) {
+        return completeSpecialImageSlots(unassigned);
+      }
       const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
       if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
     }
