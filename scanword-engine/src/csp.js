@@ -907,8 +907,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
           allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
-        allowedPlacementsBySlot: options.allowedPlacementsBySlot,
-        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+          allowedPlacementsBySlot: options.allowedPlacementsBySlot,
+          preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
           enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
         }, random);
 
