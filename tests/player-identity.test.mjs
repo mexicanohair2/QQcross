@@ -63,5 +63,5 @@ test("score-strip theme colors only apply to direct score labels, not nested ava
   const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
   assert.match(css, /\.score-strip > span\{/);
   assert.match(css, /html\[data-qq-theme\] \.score-strip > span\{/);
-  assert.doesNotMatch(css, /html\[data-qq-theme\] \.score-strip span\{/);
+  assert.doesNotMatch(css, /\.score-strip span\{/);
 });
