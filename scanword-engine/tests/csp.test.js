@@ -799,3 +799,86 @@ test('prunes a branch immediately when the dictionary cannot satisfy every diffi
   assert.equal(result.lastDeadEnd.available, 0);
 });
 
+test('reserves five distinct picture answers before filling the remaining special eleven-letter crossings', () => {
+  const specialAnswer = 'ФОТОАППАРАТ';
+  const specialCoordinates = Array.from({ length: 11 }, (_, index) => ({
+    row: index + 1,
+    col: 1
+  }));
+  const special = {
+    id: 'special-eleven:0,1>12,1',
+    length: 11,
+    special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY',
+    endpoints: [
+      { row: 0, col: 1 },
+      { row: 12, col: 1, boundary: true }
+    ],
+    coordinates: specialCoordinates,
+    directionOptions: [{
+      clueCell: { row: 0, col: 1 },
+      terminalCell: { row: 12, col: 1, boundary: true },
+      direction: 'down',
+      coordinates: specialCoordinates
+    }]
+  };
+  const pictureSpecs = [
+    { row: 1, answer: 'ФЕН', imageKey: 'hairdryer' },
+    { row: 2, answer: 'ОСА', imageKey: 'wasp' },
+    { row: 3, answer: 'ТИГР', imageKey: 'tiger' },
+    { row: 4, answer: 'ОБЛАКО', imageKey: 'cloud' },
+    { row: 5, answer: 'АРБУЗ', imageKey: 'watermelon' }
+  ];
+  const pictureSlots = pictureSpecs.map((item, index) => {
+    const length = item.answer.length;
+    return {
+      ...slot(
+        'picture-crossing-' + index,
+        { row: item.row, col: 0 },
+        { row: item.row, col: length + 1 },
+        Array.from({ length }, (_, position) => ({
+          row: item.row,
+          col: position + 1
+        })),
+        'right',
+        'left'
+      ),
+      expectedImageKey: item.imageKey
+    };
+  });
+  const dictionary = [
+    {
+      id: 'special-photo',
+      answer: specialAnswer,
+      clue: 'Устройство для съёмки фотографий.',
+      difficulty: 3
+    },
+    ...pictureSpecs.map(item => ({
+      id: 'picture-' + item.imageKey,
+      answer: item.answer,
+      clue: 'Что изображено на картинке?',
+      imageKey: item.imageKey,
+      difficulty: 2
+    }))
+  ];
+
+  const result = solveSlotsCsp([special, ...pictureSlots], dictionary, {
+    seed: 90210,
+    requiredImageCount: 5,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right', 'down'],
+    preferredSpecialAnswer: specialAnswer,
+    maxNodes: 5000,
+    maxTimeMs: 1500
+  });
+
+  assert.equal(result.ok, true, result.message + ': ' + JSON.stringify(result.lastDeadEnd));
+  assert.equal(result.words.filter(word => word.imageKey).length, 5);
+  assert.equal(new Set(result.words.filter(word => word.imageKey).map(word => word.imageKey)).size, 5);
+  assert.equal(new Set(result.words.filter(word => word.imageKey).map(word => word.entryId)).size, 5);
+  assert.deepEqual(
+    result.words.filter(word => word.imageKey).map(word => word.clue.row),
+    pictureSpecs.map(item => item.row)
+  );
+});
+
