@@ -16,10 +16,33 @@ const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
   'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
 ].map(answer => canonicalAnswerKey(answer)));
 
-function canAssignDistinctShortAnswers(domains) {
-  const ordered = domains
-    .map(domain => [...domain].sort())
-    .sort((a, b) => a.length - b.length);
+function canAssignDistinctShortAnswers(domains, options = {}) {
+  const excludedAnswers = options.excludedAnswers ?? new Set();
+  const letterUses = options.letterUses ?? null;
+  const foldYo = options.foldYo === true;
+  const ordered = domains.map(domain => {
+    const answers = [];
+    for (const candidate of domain) {
+      const answerKey = typeof candidate === 'string' ? candidate : candidate.answerKey;
+      if (!answerKey || excludedAnswers.has(answerKey)) continue;
+      if (letterUses && typeof candidate !== 'string') {
+        let compatible = true;
+        for (let index = 0; index < candidate.coordinates.length; index++) {
+          const point = candidate.coordinates[index];
+          const key = point.row + ',' + point.col;
+          const letter = foldYo && candidate.answer[index] === 'Ё' ? 'Е' : candidate.answer[index];
+          const existing = letterUses.get(key);
+          if (existing !== undefined && existing !== letter) {
+            compatible = false;
+            break;
+          }
+        }
+        if (!compatible) continue;
+      }
+      answers.push(answerKey);
+    }
+    return [...new Set(answers)].sort();
+  }).sort((a, b) => a.length - b.length);
   const used = new Set();
 
   function assign(index) {
@@ -36,7 +59,7 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
-function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, reservedShortAnswers = new Set()) {
+function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = []) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
   const specialClueKey = '0,1';
@@ -72,10 +95,10 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
   const selected = [];
   const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
-  // Picture selection must not consume a short answer that a two-letter
-  // slot needs to complete the topology. Reserve all AC-3-supported short
-  // answers before choosing the five distinct picture answers.
-  const usedAnswers = new Set([specialAnswerKey, ...reservedShortAnswers]);
+  // Track image answers separately from the remaining two-letter matching.
+  // A picture may use a two-letter word only when every short slot still has
+  // a distinct, letter-compatible answer after that picture is placed.
+  const usedAnswers = new Set([specialAnswerKey]);
   const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
   const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
   usedDifficultyCounts[normalizeDifficultyBand(specialEntry.difficulty)]++;
@@ -170,7 +193,12 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
     for (const candidate of chosen.candidates) {
       const added = add(candidate);
-      if (search(rest)) return true;
+      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
+        excludedAnswers: usedAnswers,
+        letterUses,
+        foldYo
+      });
+      if (shortAnswersRemainFeasible && search(rest)) return true;
       undo(candidate, added);
     }
 
@@ -422,10 +450,20 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
-        .map(domain => new Set(domain.options.map(option =>
-          canonicalAnswerKey(option.entry.answer, { foldYo })
-        )));
-      if (!canAssignDistinctShortAnswers(shortDomains)) {
+        .map(domain => domain.options.map(option => ({
+          answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
+          answer: option.entry.answer,
+          coordinates: option.coordinates
+        })));
+      const specialLetters = new Map([...entry.answer].map((letter, index) => [
+        (index + 1) + ',1',
+        foldYo && letter === 'Ё' ? 'Е' : letter
+      ]));
+      if (!canAssignDistinctShortAnswers(shortDomains, {
+        excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
+        letterUses: specialLetters,
+        foldYo
+      })) {
         planDiagnostics.shortAnswerMatchingRejected++;
         continue;
       }
@@ -529,7 +567,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         foldYo,
         requirements.imageSelectionSearchNodes ?? 2500,
         difficultyQuotas,
-        new Set(shortDomains.flatMap(domain => [...domain]))
+        shortDomains
       );
       if (!compatibleImageSelection) {
         planDiagnostics.imageAssignmentRejected++;
