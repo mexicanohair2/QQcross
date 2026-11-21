@@ -36,7 +36,7 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
-function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null) {
+function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, reservedShortAnswers = new Set()) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
   const specialClueKey = '0,1';
@@ -72,7 +72,10 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
   const selected = [];
   const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
-  const usedAnswers = new Set([specialAnswerKey]);
+  // Picture selection must not consume a short answer that a two-letter
+  // slot needs to complete the topology. Reserve all AC-3-supported short
+  // answers before choosing the five distinct picture answers.
+  const usedAnswers = new Set([specialAnswerKey, ...reservedShortAnswers]);
   const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
   const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
   usedDifficultyCounts[normalizeDifficultyBand(specialEntry.difficulty)]++;
@@ -525,7 +528,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         entry,
         foldYo,
         requirements.imageSelectionSearchNodes ?? 2500,
-        difficultyQuotas
+        difficultyQuotas,
+        new Set(shortDomains.flatMap(domain => [...domain]))
       );
       if (!compatibleImageSelection) {
         planDiagnostics.imageAssignmentRejected++;
