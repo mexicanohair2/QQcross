@@ -46,5 +46,8 @@ test("reproducible migration matches app RPC names and the avatars bucket", asyn
   assert.match(sql, /values\('avatars','avatars',true/);
   assert.match(sql, /active_frame/);
   assert.match(sql, /owned_frames/);
+  assert.match(sql, /profiles_avatar_url_qqcross_check/);
+  assert.match(sql, /profiles_owned_frames_qqcross_check/);
+  assert.match(sql, /profiles_active_title_qqcross_check/);
   assert.doesNotMatch(sql, /qqcross-avatars/);
 });
