@@ -32,6 +32,19 @@ Every question cell must bound at least one candidate answer slot. Every letter 
 
 When connectedness is requested, the validator builds a graph of question cells. Slot endpoints create graph edges, and crossing slots connect their clue endpoints. All question cells must be reachable from one another.
 
+## Full-border feasibility constraint
+
+The combined requirement that every top-edge cell (0,1)..(0,7) and every left-edge cell (1,0)..(11,0) be an active clue cell is not currently compatible with the ordinary slot rules:
+
+1. The required top clue at (0,2) can only create a normal in-board answer by running down column 2 to an interior question cell (r,2).
+2. Row r also has a required left-edge clue at (r,0). Since (r,2) is the next question cell in that row, only (r,1) lies between the two clues: a one-letter answer, which is explicitly forbidden.
+3. If column 2 has no interior question cell, the top clue at (0,2) has no normal slot. Reaching the bottom edge instead would require another 11-letter boundary exception in column 2, while the sole permitted 11-letter answer is fixed at (0,1) down column 1.
+4. The left-edge clue at (r,0) cannot be rescued vertically because all adjacent cells in column 0 are also question cells.
+
+The function analyzeRequiredBorderFeasibility({ requireFullTopRow: true }) now reports this conflict explicitly rather than claiming the full-border pattern is feasible. This preflight does not change the production topology.
+
+The smallest established layout that preserves the no-one-letter rule, the complete left border and the unique special 11-letter path is the previously documented reference layout: top clue anchors at columns 1, 4 and 7, with additional clues distributed inside the grid. Enforcing every top-row cell as a clue requires an explicit change to at least one other rule; the generator must not silently invent one-letter answers, extra 11-letter boundary answers or unlinked clue cells.
+
 ## Special 11-letter boundary rule
 
 The only answer allowed to terminate at the edge without a second in-board question cell is the special answer:
