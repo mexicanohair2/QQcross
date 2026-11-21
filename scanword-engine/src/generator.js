@@ -1042,6 +1042,10 @@ export function generateScanword(inputDictionary, options = {}) {
       .map(item => ({
         attempt: item.attempt,
         reason: item.reason,
+        specialAnswer: item.specialAnswer ?? null,
+        specialSplitRows: item.specialSplitRows ?? null,
+        specialPlanKey: item.specialPlanKey ?? null,
+        specialPatternKey: item.specialPatternKey ?? null,
         nodes: item.nodes ?? null,
         elapsedMs: item.elapsedMs ?? null,
         lastDeadEnd: item.lastDeadEnd ?? null
