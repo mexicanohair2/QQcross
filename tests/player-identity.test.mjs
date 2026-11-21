@@ -51,3 +51,9 @@ test("reproducible migration matches app RPC names and the avatars bucket", asyn
   assert.match(sql, /profiles_active_title_qqcross_check/);
   assert.doesNotMatch(sql, /qqcross-avatars/);
 });
+
+
+test("cloud profile hydration never replaces a saved custom avatar with an empty RPC value", async () => {
+  const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
+  assert.match(app, /state\.profile\.avatar_url=identity\.avatar_url\|\|state\.profile\.avatar_url\|\|""/);
+});

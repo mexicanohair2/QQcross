@@ -153,6 +153,12 @@ test("keeps clue text readable and the letter rack crisp on a phone viewport", a
   expect(layout.board.width).toBeGreaterThanOrEqual(layout.viewport.width * 0.85);
   await expect(page.locator(".letter")).toHaveCount(5);
   expect(Math.abs(layout.board.width / layout.board.height - (2 / 3))).toBeLessThan(0.03);
+  const scanCells = await page.locator(".scanword-board > .scan-grid-cell").evaluateAll(nodes => nodes.map(node => {
+    const rect = node.getBoundingClientRect();
+    return { width: rect.width, height: rect.height };
+  }));
+  expect(scanCells).toHaveLength(96);
+  expect(scanCells.every(cell => Math.abs(cell.width - cell.height) <= 1.5)).toBeTruthy();
   expect(layout.tools.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
   const letterGeometry = await page.locator(".letter").evaluateAll(nodes => nodes.map(node => {
     const rect = node.getBoundingClientRect();
@@ -852,4 +858,56 @@ test("QuickDraw neural recognizer loads and runs an inference in the browser", a
   expect(result.outputLength).toBe(345);
   expect(result.finiteOutput).toBeTruthy();
   expect(result.predictionsAreValid).toBeTruthy();
+});
+
+
+test("Wordle keyboard remains anchored near the bottom of a phone screen", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator("#playWordle").click();
+  const screen = page.locator(".wordle-screen");
+  const keyboard = page.locator(".wordle-keyboard");
+  await expect(keyboard).toBeVisible();
+  const layout = await page.evaluate(() => {
+    const screen = document.querySelector(".wordle-screen").getBoundingClientRect();
+    const keyboard = document.querySelector(".wordle-keyboard").getBoundingClientRect();
+    return { screenBottom: screen.bottom, keyboardBottom: keyboard.bottom, keyboardTop: keyboard.top, width: keyboard.width, viewportWidth: document.documentElement.clientWidth };
+  });
+  expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.keyboardBottom).toBeLessThanOrEqual(layout.screenBottom + 1);
+  expect(layout.screenBottom - layout.keyboardBottom).toBeLessThan(220);
+});
+
+test("scanword player avatars stay compact inside the score strip", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await startGuestGame(page);
+  const avatars = page.locator(".qq-score-strip .qq-player-avatar");
+  await expect(avatars).not.toHaveCount(0);
+  const dimensions = await avatars.evaluateAll(nodes => nodes.map(node => {
+    const rect = node.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, declared: getComputedStyle(node).width };
+  }));
+  expect(dimensions.every(item => item.width <= 48 && item.height <= 48 && item.width >= 30 && item.height >= 30)).toBeTruthy();
+});
+
+test("Cody crossword long clues keep their complete text inside each clue row", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.locator('[data-extra-game="cody"]').click();
+  await page.locator('[data-group="0"]').click();
+  await page.locator('[data-level="0"]').click();
+  const clues = page.locator(".qq-cody-row-clue-text");
+  await expect(clues).not.toHaveCount(0);
+  const layout = await clues.evaluateAll(nodes => nodes.map(node => {
+    const text = node.getBoundingClientRect();
+    const row = node.closest(".qq-cody-row-clue").getBoundingClientRect();
+    const style = getComputedStyle(node);
+    return { length: node.textContent.length, font: parseFloat(style.fontSize), clamp: style.webkitLineClamp, bottom: text.bottom, rowBottom: row.bottom, overflowWrap: style.overflowWrap };
+  }));
+  expect(layout.every(item => item.font >= 6 && item.clamp === "4" && item.bottom <= item.rowBottom + 1 && item.overflowWrap === "anywhere")).toBeTruthy();
+  expect(await page.locator(".qq-cody-row-clue[title]").count()).toBe(layout.length);
 });

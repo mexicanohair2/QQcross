@@ -1111,7 +1111,7 @@ async function loadCloudProfile(userId,generation=null){
   await window.QQProgression?.setCloud?.(supabaseClient,userId);
   const {data:identity,error:identityError}=await supabaseClient.rpc("get_qqcross_player_profile",{target_user_id:userId});
   if(identityError)throw identityError;
-  state.profile.avatar_url=identity.avatar_url||"";
+  state.profile.avatar_url=identity.avatar_url||state.profile.avatar_url||"";
   state.profile.active_frame=identity.active_frame||"standard";
   state.profile.owned_frames=Array.isArray(identity.owned_frames)?identity.owned_frames:["standard"];
   const progressionTitle=window.QQProgression?.get?.().activeTitle||identity.active_title||"Новичок";
