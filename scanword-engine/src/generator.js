@@ -203,7 +203,11 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
     usedDifficultyCounts[difficultyBand] = Math.max(0, usedDifficultyCounts[difficultyBand] - 1);
     usedClues.delete(candidate.clueKey);
     usedDirections.delete(candidate.directionKey);
-    if (candidate.entry.logic === true) usedLogicClueCells.delete(candidate.clueKey);
+    if (candidate.entry.logic === true
+      && !(specialEntry.logic === true && candidate.clueKey === specialClueKey)
+      && !selected.some(item => item.entry.logic === true && item.clueKey === candidate.clueKey)) {
+      usedLogicClueCells.delete(candidate.clueKey);
+    }
     for (const key of added) letterUses.delete(key);
   };
 
