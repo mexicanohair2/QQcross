@@ -715,8 +715,15 @@ async function loadMatchInbox(){
   if(mr.error)throw mr.error;
   if(pr.error)throw pr.error;
 
+  const hostNames=[...new Set([...(ir.data||[]),...(mr.data||[])].map(x=>x.host_username).filter(Boolean))];
+  const hostProfileByName=new Map();
+  if(hostNames.length){
+    const {data:hosts,error:hostError}=await supabaseClient.from("profiles").select("id,username,avatar,avatar_url,active_frame,active_title,wins,games,points").in("username",hostNames);
+    if(!hostError)(hosts||[]).forEach(person=>hostProfileByName.set(person.username,person));
+  }
+  const hostIdentity=username=>playerIdentityMarkup(hostProfileByName.get(username)||{username},{size:"sm",clickable:!!hostProfileByName.get(username)?.id});
   const classicInvites=ir.data?.length?ir.data.map(x=>
-    '<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
+    '<div class="card">'+hostIdentity(x.host_username)+'<p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
   ).join(""):"";
 
   await loadPlayerProfiles((pr.data||[]).map(x=>x.sender_id));
@@ -735,7 +742,7 @@ async function loadMatchInbox(){
     invites.innerHTML=combined||'<p class="small muted">Новых приглашений нет.</p>';
   }
 
-  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card"><b>Партия от '+esc(x.host_username)+'</b><p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
+  if(matches)matches.innerHTML=mr.data?.length?mr.data.map(x=>'<div class="card">'+hostIdentity(x.host_username)+'<p class="small muted">'+(x.status==="waiting"?"Ожидает запуска":x.status==="finished"?"Завершена":"Идёт партия")+'</p><div class="grid2"><button class="btn primary open-online-match" data-id="'+x.match_id+'">Открыть</button><button class="btn delete-online-match" data-id="'+x.match_id+'">Удалить бой</button></div></div>').join(""):'<p class="small muted">Пока нет онлайн-партий.</p>';
 
   document.querySelectorAll(".match-accept").forEach(b=>b.onclick=async()=>{
     b.disabled=true;
