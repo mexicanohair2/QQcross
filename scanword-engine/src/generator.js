@@ -222,7 +222,17 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
   };
 
   function search(remainingDomains) {
-    if (selected.length >= required) return true;
+    if (selected.length >= required) {
+      return canAssignDistinctShortAnswers(shortDomains, {
+        excludedAnswers: usedAnswers,
+        letterUses,
+        usedDirections,
+        assignedSlotIds: new Set(selected.map(item => item.slotId)),
+        difficultyCounts: usedDifficultyCounts,
+        difficultyQuotas: plannedDifficultyQuotas,
+        foldYo
+      });
+    }
     if (nodes++ >= maxNodes || selected.length + remainingDomains.length < required) return false;
 
     const viableDomains = [];
@@ -255,16 +265,7 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
     for (const candidate of chosen.candidates) {
       const added = add(candidate);
-      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
-        excludedAnswers: usedAnswers,
-        letterUses,
-        usedDirections,
-        assignedSlotIds: new Set(selected.map(item => item.slotId)),
-        difficultyCounts: usedDifficultyCounts,
-        difficultyQuotas: plannedDifficultyQuotas,
-        foldYo
-      });
-      if (shortAnswersRemainFeasible && search(rest)) return true;
+      if (search(rest)) return true;
       undo(candidate, added);
     }
 
