@@ -1,7 +1,7 @@
 name: Playwright browser tests
 
 concurrency:
-  group: qqcross-${{ github.workflow }}-${{ github.ref }}
+  group: qqcross-${{ github.workflow }}-${{ github.ref }}-scanword-hitfix-v2
   cancel-in-progress: true
 
 on:
