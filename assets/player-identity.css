@@ -120,3 +120,12 @@
  color:#ecd2df;font-variant-numeric:tabular-nums;
 }
 @media(prefers-reduced-motion:reduce){.nav button .ni,.qq-settings-gear{transition:none!important}}
+
+/* Compact cosmetics summary on the profile page. */
+.qq-profile-cosmetics{display:flex;align-items:center;gap:11px;margin-top:10px;padding:11px 13px}
+.qq-profile-cosmetics__preview{display:grid;place-items:center;flex:0 0 58px;min-height:58px;border-radius:16px;background:rgba(255,255,255,.025)}
+.qq-profile-cosmetics__copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+.qq-profile-cosmetics__copy>b{font-size:.86rem}
+.qq-profile-cosmetics__copy>span{font-size:.7rem;line-height:1.25}
+.qq-profile-cosmetics>#qqProfileShop{flex:0 0 auto;min-height:38px;padding:8px 11px;font-size:.76rem}
+@media(max-width:390px){.qq-profile-cosmetics{gap:7px;padding:9px}.qq-profile-cosmetics__preview{flex-basis:48px;min-height:48px}.qq-profile-cosmetics>#qqProfileShop{padding:7px 8px;font-size:.7rem}}

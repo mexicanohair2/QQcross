@@ -475,10 +475,11 @@ function shop(){
  const frames=window.QQIdentity?.frames||[];
  const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
  const frameCards=frames.map(frame=>{
-  const isOwned=owned.includes(frame.id),equipped=state.profile.active_frame===frame.id;
+  const isOwned=owned.includes(frame.id),equipped=(state.profile.active_frame||"standard")===frame.id;
+  const canAfford=Number(state.profile.coins||0)>=frame.price;
   const action=isOwned
     ?'<button class="btn '+(equipped?'':'primary')+'" data-frame-equip="'+esc(frame.id)+'" '+(equipped?'disabled':'')+'>'+(equipped?'Надета':'Надеть')+'</button>'
-    :'<button class="btn primary" data-frame-buy="'+esc(frame.id)+'">Купить · '+frame.price+' 🪙</button>';
+    :'<button class="btn primary" data-frame-buy="'+esc(frame.id)+'" '+(canAfford?'':'disabled title="Недостаточно монет"')+'>Купить · '+frame.price+' 🪙</button>';
   return '<article class="qq-frame-product '+(equipped?'is-equipped':'')+'">'+
    (window.QQIdentity?.framePreview?window.QQIdentity.framePreview(state.profile,frame.id,"lg"):'')+
    '<b class="qq-frame-product__name">'+esc(frame.name)+'</b>'+
@@ -569,10 +570,13 @@ function profile(){
  const titleList=catalog.map(t=>'<span class="qq-title-chip '+(t.unlocked?"is-unlocked":"is-locked")+(t.secret?" is-secret":"")+'" title="'+(t.secret&&!t.unlocked?"Секрет: нажми 15 раз на соломенную шляпу":t.unlocked?"Титул открыт":"Откроется после "+t.target+" завершённых сканвордов")+'"><b>'+esc(t.name)+'</b>'+(t.unlocked?'<small>Открыт</small>':t.secret?'<small>'+t.progress+' / '+t.target+' нажатий</small>':'<small>'+t.progress+' / '+t.target+' сканвордов</small>')+'</span>').join("");
  const achievementList=achievements.map(a=>'<div class="qq-achievement '+(a.unlocked?"unlocked":"")+'"><div><b>'+esc(a.name)+'</b><p class="small muted">'+esc(a.desc)+'</p></div><span>'+(a.unlocked?"✓":Math.min(a.value,a.target)+" / "+a.target)+'</span></div>').join("");
  const identity={...state.profile,active_title:p.activeTitle||state.profile.active_title||"Новичок"};
+ const frameCatalog=window.QQIdentity?.frames||[],ownedFrames=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+ const activeFrame=frameCatalog.find(frame=>frame.id===(state.profile.active_frame||"standard"))||frameCatalog[0];
+ const cosmeticsBody='<section class="card qq-profile-cosmetics"><div class="qq-profile-cosmetics__preview">'+(activeFrame&&window.QQIdentity?.framePreview?window.QQIdentity.framePreview(identity,activeFrame.id,"lg"):"")+'</div><div class="qq-profile-cosmetics__copy"><b>Оформление профиля</b><span class="small muted">Рамка: '+esc(activeFrame?.name||"Классика")+'</span><span class="small muted">В коллекции: '+ownedFrames.length+' / '+frameCatalog.length+'</span></div><button class="btn primary" id="qqProfileShop" type="button">Магазин</button></section>';
  const statsBody='<section class="card" id="qqProgressionStats"><h3>Статистика</h3><div class="grid2"><div><b>'+(p.stats.scanwords||0)+'</b><div class="muted small">Сканворды</div></div><div><b>'+(p.stats.wordleWins||0)+'</b><div class="muted small">Победы Wordle</div></div><div><b>'+(p.stats.searchLevels||0)+'</b><div class="muted small">Поиск слов</div></div><div><b>'+(p.stats.codyLevels||0)+'</b><div class="muted small">Кроссворды</div></div><div><b>'+(p.stats.wordsFound||0)+'</b><div class="muted small">Новые слова</div></div><div><b>'+(p.stats.hintsUsed||0)+'</b><div class="muted small">Подсказки</div></div></div><p id="qqDailyStreak">Текущая серия: <b>'+(p.daily.currentStreak||0)+'</b> · рекорд: <b>'+(p.daily.bestStreak||0)+'</b></p><div class="muted small">Матчи: '+matches+' · победы: '+wins+' · поражения: '+losses+' · процент побед: '+winRate+'% · очки: '+state.profile.points+' · монеты: '+state.profile.coins+'</div></section>';
  const titlesBody='<section class="card" id="qqTitleInventory"><h3>Коллекция титулов · '+unlockedCount+' / 100</h3><label class="small muted" for="qqActiveTitle">Активный титул</label><select class="input" id="qqActiveTitle">'+titleOptions+'</select><div class="qq-title-list">'+titleList+'</div><p class="small muted">Секретный титул скрыт до открытия: 15 нажатий на соломенную шляпу в любой вкладке.</p></section>';
  const achievementsBody='<section class="card qq-profile-achievements" id="qqAchievements"><h3>Достижения · '+achievements.filter(a=>a.unlocked).length+' / '+achievements.length+'</h3>'+achievementList+'</section>';
- return '<h2>Профиль</h2><div class="card qq-profile-avatar-card">'+playerIdentityMarkup(identity,{size:"xl",clickable:false})+'<div class="qq-profile-upload"><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Изменить аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">'+(state.profile.id&&!String(state.profile.id).startsWith("local-")?"Изображение WebP сохраняется в облачном профиле и видно в играх на других устройствах.":"В гостевом режиме аватарка сохраняется только на этом устройстве.")+'</small></div></div>'+
+ return '<h2>Профиль</h2><div class="card qq-profile-avatar-card">'+playerIdentityMarkup(identity,{size:"xl",clickable:false})+'<div class="qq-profile-upload"><label class="btn qq-avatar-upload-label" for="qqAvatarInput">Изменить аватарку</label><input id="qqAvatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden><small class="muted small">'+(state.profile.id&&!String(state.profile.id).startsWith("local-")?"Изображение WebP сохраняется в облачном профиле и видно в играх на других устройствах.":"В гостевом режиме аватарка сохраняется только на этом устройстве.")+'</small></div></div>'+cosmeticsBody+
   collapsiblePanel("profile-stats","Статистика",statsBody,true)+
   collapsiblePanel("profile-titles","Коллекция титулов",titlesBody,false)+
   collapsiblePanel("profile-achievements","Достижения",achievementsBody,false)+
@@ -602,8 +606,17 @@ function settings(){
 }
 
 function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm");if(aiForm)aiForm.onsubmit=e=>{e.preventDefault();askQQCrossAI($("#qqAiAskInput")?.value||"")};const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=async()=>{window.QQProgression?.setActiveTitle(activeTitle.value);if(state.profile?.id&&supabaseClient&&!String(state.profile.id).startsWith("local-")){const {error}=await supabaseClient.from("profiles").update({active_title:activeTitle.value}).eq("id",state.profile.id);if(error)toast("Титул выбран локально, но не синхронизирован");else state.profile.active_title=activeTitle.value}playerProfileCache.set(String(state.profile.id),{...state.profile});playerProfileCacheAt.set(String(state.profile.id),Date.now());render()};document.querySelectorAll("[data-frame-buy]").forEach(button=>button.onclick=async()=>{
- const id=button.dataset.frameBuy;
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Чтобы покупать рамки, войди в облачный аккаунт.");return}
+ const id=button.dataset.frameBuy,frame=(window.QQIdentity?.frames||[]).find(item=>item.id===id);
+ if(!frame)return;
+ const userId=String(state.profile?.id||""),isCloud=!!supabaseClient&&!!userId&&!userId.startsWith("local-");
+ if(!isCloud){
+  const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+  if(owned.includes(id)){toast("Рамка уже есть в коллекции");return}
+  if(Number(state.profile.coins||0)<frame.price){toast("Не хватает монет");return}
+  state.profile.coins=Number(state.profile.coins||0)-frame.price;
+  state.profile.owned_frames=[...owned,id];state.profile.active_frame=id;
+  save();render();toast("Рамка куплена и надета");return;
+ }
  button.disabled=true;button.textContent="Покупаем…";
  try{
   const {data,error}=await supabaseClient.rpc("purchase_qqcross_frame",{target_frame_id:id});
@@ -614,8 +627,12 @@ function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm")
  }catch(error){toast(error.message||"Не удалось купить рамку");button.disabled=false;button.textContent="Повторить"}
 });
 document.querySelectorAll("[data-frame-equip]").forEach(button=>button.onclick=async()=>{
- const id=button.dataset.frameEquip;
- if(!supabaseClient||!state.profile?.id||String(state.profile.id).startsWith("local-")){toast("Рамки синхронизируются после входа в аккаунт.");return}
+ const id=button.dataset.frameEquip,userId=String(state.profile?.id||""),isCloud=!!supabaseClient&&!!userId&&!userId.startsWith("local-");
+ const owned=Array.isArray(state.profile.owned_frames)?state.profile.owned_frames:["standard"];
+ if(!owned.includes(id)){toast("Эта рамка ещё не куплена");return}
+ if(!isCloud){
+  state.profile.active_frame=id;save();render();toast("Рамка применена");return;
+ }
  button.disabled=true;button.textContent="Применяем…";
  try{
   const {data,error}=await supabaseClient.rpc("equip_qqcross_frame",{target_frame_id:id});
@@ -640,7 +657,7 @@ document.querySelectorAll("[data-frame-equip]").forEach(button=>button.onclick=a
   }else{
     state.profile.coins-=cost;state.profile.items[item]+=qty;save();render();toast("Куплено: "+qty+" шт.");
   }
-});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Тема изменена")});document.querySelectorAll("[data-settings-toggle]").forEach(button=>button.onclick=()=>{const key=button.dataset.settingsToggle,body=document.getElementById("qq-settings-body-"+key),section=button.closest("[data-settings-section]");if(!body||!section)return;const next=button.getAttribute("aria-expanded")!=="true";button.setAttribute("aria-expanded",String(next));button.setAttribute("aria-label",next?"Свернуть раздел":"Развернуть раздел");body.setAttribute("aria-hidden",String(!next));if(next)body.removeAttribute("inert");else body.setAttribute("inert","");section.classList.toggle("is-collapsed",!next);try{localStorage.setItem("qqcross_settings_section_"+key,next?"expanded":"collapsed")}catch{}});const music=$("#qqMusicToggle"),effects=$("#qqEffectsToggle");if(music)music.onchange=()=>window.QQAudio?.setMusic(music.checked);if(effects)effects.onchange=()=>window.QQAudio?.setEffects(effects.checked);const avatarInput=$("#qqAvatarInput");if(avatarInput)avatarInput.onchange=()=>saveAvatarFile(avatarInput.files?.[0]);document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render();toast("Атмосфера изменена")})}
+});const lo=$("#logout");if(lo)lo.onclick=async()=>{if(confirm("Выйти из аккаунта на этом устройстве?")){if(supabaseClient)await supabaseClient.auth.signOut();if(supabaseClient&&socialChannel){await supabaseClient.removeChannel(socialChannel);socialChannel=null}if(supabaseClient&&onlineChannel){await supabaseClient.removeChannel(onlineChannel);onlineChannel=null;onlineChannelId=null}localStorage.removeItem(STORE_KEY);state.profile=null;render()}};document.querySelectorAll("[data-theme-choice]").forEach(b=>b.onclick=()=>{applyTheme(b.dataset.themeChoice);render();toast("Тема изменена")});document.querySelectorAll("[data-settings-toggle]").forEach(button=>button.onclick=()=>{const key=button.dataset.settingsToggle,body=document.getElementById("qq-settings-body-"+key),section=button.closest("[data-settings-section]");if(!body||!section)return;const next=button.getAttribute("aria-expanded")!=="true";button.setAttribute("aria-expanded",String(next));button.setAttribute("aria-label",next?"Свернуть раздел":"Развернуть раздел");body.setAttribute("aria-hidden",String(!next));if(next)body.removeAttribute("inert");else body.setAttribute("inert","");section.classList.toggle("is-collapsed",!next);try{localStorage.setItem("qqcross_settings_section_"+key,next?"expanded":"collapsed")}catch{}});const music=$("#qqMusicToggle"),effects=$("#qqEffectsToggle");if(music)music.onchange=()=>window.QQAudio?.setMusic(music.checked);if(effects)effects.onchange=()=>window.QQAudio?.setEffects(effects.checked);const avatarInput=$("#qqAvatarInput");if(avatarInput)avatarInput.onchange=()=>saveAvatarFile(avatarInput.files?.[0]);const profileShop=$("#qqProfileShop");if(profileShop)profileShop.onclick=()=>{state.tab="Магазин";render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render();toast("Атмосфера изменена")})}
 function renderLobby(root){
  if(state.pendingMatchId){
   root.innerHTML='<div class="screen"><div class="top"><button class="btn" id="back">← Назад</button><button class="btn danger" id="deletePendingMatch">Удалить бой</button></div><h2>Ожидание игроков</h2><div id="partyStatus" class="card">Загружаем…</div><div class="grid2"><button class="btn" id="refreshParty">Обновить</button><button class="btn primary" id="startOnlineMatch">Начать партию</button></div></div>';
@@ -1161,7 +1178,19 @@ async function initAuth(){
       await loadCloudProfile(data.session.user.id,generation);
       if(generation===authGeneration)authNotice="";
     }else if(generation===authGeneration){
-      state.profile=null;
+      // Restore a guest profile saved on this device. Cloud sessions always take priority.
+      let localProfile=null;
+      try{localProfile=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
+      if(localProfile&&typeof localProfile==="object"&&String(localProfile.id||"").startsWith("local-")&&typeof localProfile.username==="string"){
+        const items=defaultItems();
+        if(localProfile.items&&typeof localProfile.items==="object"){
+          Object.keys(items).forEach(key=>{const value=localProfile.items[key];if(Number.isInteger(value)&&value>=0)items[key]=value});
+        }
+        state.profile={...localProfile,avatar:Number.isInteger(localProfile.avatar)?localProfile.avatar:0,coins:Number.isFinite(Number(localProfile.coins))?Math.max(0,Number(localProfile.coins)):0,wins:Number(localProfile.wins)||0,games:Number(localProfile.games)||0,points:Number(localProfile.points)||0,active_frame:localProfile.active_frame||"standard",owned_frames:Array.isArray(localProfile.owned_frames)?localProfile.owned_frames:["standard"],items,friends:Array.isArray(localProfile.friends)?localProfile.friends:[]};
+        save();
+      }else{
+        state.profile=null;
+      }
     }
   })();
   authTask.catch(()=>{});

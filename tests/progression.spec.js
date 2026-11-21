@@ -23,8 +23,8 @@ test("daily challenges expose one stable scanword and a seeded 4–8 letter Word
   await page.locator("#wordleBack").click();
   await expect(page.locator(".qq-daily-screen")).toBeVisible();
   await page.reload();
-  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15000 });
-  await page.locator("#guestPlay").click();
+  // Guest sessions are now restored from this device's saved profile.
+  await expect(page.locator('[data-tab="Профиль"]')).toBeVisible({ timeout: 15000 });
   await expect(page.locator("[data-qq-daily-open]")).toHaveAttribute("data-daily-date", dayBefore);
 });
 
