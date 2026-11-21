@@ -19,6 +19,7 @@ function validImage(value){
  return "";
 }
 function frameId(value){return frameIds.has(value)?value:"standard";}
+function isProfileId(value){return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value||""));}
 function avatarMarkup(player={},options={}){
  const size=["xs","sm","md","lg","xl"].includes(options.size)?options.size:"md";
  const frame=frameId(options.frame||player.active_frame||player.frame);
@@ -36,7 +37,7 @@ function cardMarkup(player={},options={}){
  const body=avatarMarkup(player,{size:options.size||"md",frame:options.frame,image:options.image})+
   '<span class="qq-player-identity__copy"><b class="qq-player-name">'+esc(name)+'</b><small class="qq-player-title">'+esc(title)+'</small>'+score+note+'</span>';
  const cls="qq-player-identity"+(options.compact?" qq-player-identity--compact":"")+(options.className?" "+esc(options.className):"");
- if(options.clickable&&player.id)return '<button type="button" class="'+cls+' qq-player-identity--clickable" data-player-profile="'+esc(player.id)+'" aria-label="Открыть профиль игрока '+esc(name)+'">'+body+'</button>';
+ if(options.clickable&&isProfileId(player.id))return '<button type="button" class="'+cls+' qq-player-identity--clickable" data-player-profile="'+esc(player.id)+'" aria-label="Открыть профиль игрока '+esc(name)+'">'+body+'</button>';
  return '<span class="'+cls+'">'+body+'</span>';
 }
 async function openRemoteProfile(client,userId){
@@ -73,5 +74,5 @@ function bindProfileClicks(client){
 function framePreview(player={},id="standard",size="lg"){
  return avatarMarkup(player,{frame:id,size});
 }
-window.QQIdentity=Object.freeze({frames:FRAME_CATALOG,frameIds:[...frameIds],frameId,avatarMarkup,cardMarkup,framePreview,bindProfileClicks,escapeHtml:esc});
+window.QQIdentity=Object.freeze({frames:FRAME_CATALOG,frameIds:[...frameIds],frameId,isProfileId,avatarMarkup,cardMarkup,framePreview,bindProfileClicks,escapeHtml:esc});
 })();
