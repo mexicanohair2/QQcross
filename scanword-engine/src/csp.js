@@ -784,11 +784,14 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && state.assignments.has(slot.id)
     );
     if (specialAlreadyAssigned) {
-      const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
-      if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
+      // Lock the picture quota before assigning short crossings: a valid
+      // two-letter choice can otherwise impose letters that remove the last
+      // remaining image domains from the special topology.
       if (state.usedImages.size < requiredImageCount) {
         return completeSpecialImageSlots(unassigned);
       }
+      const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
+      if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
     }
 
     let chosenSlot = null;
