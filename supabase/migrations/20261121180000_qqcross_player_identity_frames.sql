@@ -181,7 +181,7 @@ alter table public.profiles add constraint profiles_active_title_qqcross_check
   check (char_length(active_title)>=1 and char_length(active_title)<=64);
 alter table public.profiles drop constraint if exists profiles_avatar_url_qqcross_check;
 alter table public.profiles add constraint profiles_avatar_url_qqcross_check
-  check (avatar_url is null or avatar_url ~ '^https://lzpkronttfzbubbfggsb\\.supabase\\.co/storage/v1/object/public/avatars/[A-Za-z0-9_/-]+\\.webp
+  check (avatar_url is null or avatar_url ~ '^https://lzpkronttfzbubbfggsb\.supabase\.co/storage/v1/object/public/avatars/[A-Za-z0-9_/-]+\.webp
 
 create or replace function private.equip_qqcross_frame(target_frame_id text)
 returns jsonb language plpgsql security definer set search_path=''
