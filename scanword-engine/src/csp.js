@@ -847,20 +847,22 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return false;
       }
 
-      for (const level of [2, 3, 4]) {
-        const remainingDifficultyQuota = Math.max(0, difficultyQuotas[level] - state.difficultyCounts[level]);
-        const availableDifficultyAnswers = maximumDistinctAssignmentCount(difficultyDomains[level]);
-        if (availableDifficultyAnswers < remainingDifficultyQuota) {
-          recordDeadEnd({
-            reason: 'DIFFICULTY_CAPACITY_UNREACHABLE',
-            level,
-            required: remainingDifficultyQuota,
-            available: availableDifficultyAnswers,
-            difficultyCounts: { ...state.difficultyCounts },
-            difficultyQuotas: { ...difficultyQuotas },
-            openSlots: unassigned.length
-          });
-          return false;
+      if (options.requireDifficultyBalance === true) {
+        for (const level of [2, 3, 4]) {
+          const remainingDifficultyQuota = Math.max(0, difficultyQuotas[level] - state.difficultyCounts[level]);
+          const availableDifficultyAnswers = maximumDistinctAssignmentCount(difficultyDomains[level]);
+          if (availableDifficultyAnswers < remainingDifficultyQuota) {
+            recordDeadEnd({
+              reason: 'DIFFICULTY_CAPACITY_UNREACHABLE',
+              level,
+              required: remainingDifficultyQuota,
+              available: availableDifficultyAnswers,
+              difficultyCounts: { ...state.difficultyCounts },
+              difficultyQuotas: { ...difficultyQuotas },
+              openSlots: unassigned.length
+            });
+            return false;
+          }
         }
       }
 
