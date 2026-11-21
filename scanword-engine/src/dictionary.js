@@ -92,7 +92,15 @@ export function inferDifficulty(raw, question, imageKey = null, answer = '') {
   const wordCount = text.split(/\s+/u).filter(Boolean).length;
   const isFlagPrompt = !/[А-Яа-яЁё]/u.test(text) && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(text);
 
-  if (imageKey || isFlagPrompt) return 2;
+  // An image/flag is a clue format, not an automatic difficulty rating.
+  // The short, familiar pictured entries remain easy; longer objects/countries
+  // provide medium and challenging options so five picture clues can coexist
+  // with an exact 20/60/20 board quota.
+  if (imageKey || isFlagPrompt) {
+    if (answerLength <= 6) return 2;
+    if (answerLength >= 10 && isFlagPrompt) return 4;
+    return 3;
+  }
 
   const challengingConcept = /архипелаг|изотоп|фотосинтез|цитоплазм|молекул|орбит|периодическ.{0,20}систем|гипотез|диаспор|барельеф|метафор|кислотност|электролиз|митохондр|хлорофилл/iu.test(lower);
   if (challengingConcept || text.length > 85 || wordCount >= 12) return 4;
