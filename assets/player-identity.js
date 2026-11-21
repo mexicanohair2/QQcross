@@ -73,5 +73,5 @@ function bindProfileClicks(client){
 function framePreview(player={},id="standard",size="lg"){
  return avatarMarkup(player,{frame:id,size});
 }
-window.QQIdentity=Object.freeze({frames:FRAME_CATALOG,frameIds:[...frameIds],frameId,avatarMarkup,cardMarkup,framePreview,escapeHtml:esc});
+window.QQIdentity=Object.freeze({frames:FRAME_CATALOG,frameIds:[...frameIds],frameId,avatarMarkup,cardMarkup,framePreview,bindProfileClicks,escapeHtml:esc});
 })();
