@@ -75,7 +75,8 @@ test('requested special puzzle fails clearly instead of silently returning an or
     minimumLogicClueCells: 3,
     maxTopologyAttempts: 1,
     maxNodes: 500,
-    maxCspTimeMs: 25
+    maxCspTimeMs: 25,
+    capturePlanDiagnostics: true
   });
 
   assert.equal(result.ok, false);
