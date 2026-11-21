@@ -129,3 +129,12 @@ if (prepared.entries.length < 1500) {
 if (!prepared.entries.some(item => item.answer.length === 11)) {
   throw new Error('Production dictionary has no usable 11-letter answer.');
 }
+if (oneLetterAnswers > 0 || overlengthAnswers > 0 || emptyAnswers > 0 || emptyClues > 0 || invalidCharacters > 0) {
+  throw new Error('Production dictionary contains invalid answer lengths, characters or empty clues.');
+}
+if (shortClues > 0) {
+  throw new Error('Production dictionary still contains short non-flag, non-image, non-logic clues: ' + shortClues);
+}
+if (suspiciousDuplicateQuestionGroups.length > 0) {
+  throw new Error('Production dictionary contains duplicate clue text for different answers: ' + suspiciousDuplicateQuestionGroups.length);
+}
