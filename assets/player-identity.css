@@ -53,3 +53,39 @@
 .qq-player-modal-muted{margin-top:12px;color:var(--qq-muted,#bdaab7);font-size:.78rem}
 @media(max-width:420px){.qq-shop-frames{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.qq-frame-product{padding:11px 8px}.qq-player-avatar--lg{--qq-avatar-size:62px}.qq-daily-profile{padding:10px}.qq-player-identity{gap:8px}}
 @media(prefers-reduced-motion:reduce){.qq-player-identity--clickable,.qq-frame-product,.qq-player-avatar__ornament{transition:none!important;animation:none!important}}
+
+/* Integrated compact game and account layouts. */
+.qq-profile-avatar-card{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:16px}
+.qq-profile-upload{display:flex;flex:1 1 190px;min-width:0;flex-direction:column;align-items:flex-start;gap:7px}
+.qq-profile-upload .muted{max-width:33rem;line-height:1.45}
+.qq-profile-achievements .qq-achievement{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(200,150,180,.09)}
+.qq-profile-achievements .qq-achievement:last-child{border-bottom:0}
+.qq-settings-heading{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.qq-settings-heading h3{margin:0}
+.qq-settings-toggle{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border:1px solid rgba(194,137,168,.2);border-radius:13px;background:rgba(98,37,69,.18);color:#e8c7d9}
+.qq-settings-toggle svg{transition:transform 320ms ease}
+.qq-settings-section.is-collapsed .qq-settings-toggle svg{transform:rotate(-90deg)}
+.qq-settings-content{overflow:hidden;transition:max-height 360ms ease,opacity 280ms ease}
+.qq-settings-section.is-collapsed .qq-settings-content{max-height:0;opacity:0;pointer-events:none}
+.qq-settings-section:not(.is-collapsed) .qq-settings-content{max-height:10000px;opacity:1}
+.qq-party-player{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.qq-party-player>small{color:var(--qq-muted,#bdaab7);white-space:nowrap;font-size:.7rem}
+.qq-extra-player-band,.qq-wordle-profile{margin:0 0 12px}
+.qq-extra-player-band .qq-player-identity,.qq-wordle-profile .qq-player-identity{flex:1}
+.qq-shop-icon{display:grid;place-items:center;width:42px;height:42px;border:1px solid rgba(204,145,179,.25);border-radius:14px;background:linear-gradient(145deg,rgba(119,52,91,.32),rgba(45,25,52,.52));color:#e4bfd2}
+.qq-shop-icon .qq-game-svg{width:23px;height:23px}
+.qq-daily-task-icon{display:grid;place-items:center;min-width:40px;height:40px;border:1px solid rgba(204,145,179,.22);border-radius:13px;background:rgba(107,42,77,.2);color:#e8c5d8}
+.qq-daily-task-icon .qq-game-svg{width:23px;height:23px}
+.qq-game-launch{transition:transform 380ms cubic-bezier(.2,.7,.25,1),border-color 380ms ease,box-shadow 380ms ease}
+.qq-game-launch:active{transform:scale(.975)}
+@media(max-width:420px){
+ .qq-player-avatar--xl{--qq-avatar-size:76px}
+ .qq-player-identity--compact .qq-player-title{max-width:125px}
+ .qq-score-strip{grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr))}
+ .qq-profile-avatar-card{gap:11px;padding:12px}
+ .qq-profile-upload{flex-basis:150px}
+ .qq-party-player>small{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .qq-settings-toggle svg,.qq-settings-content,.qq-game-launch{transition:none!important}
+}
