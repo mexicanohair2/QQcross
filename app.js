@@ -1178,7 +1178,19 @@ async function initAuth(){
       await loadCloudProfile(data.session.user.id,generation);
       if(generation===authGeneration)authNotice="";
     }else if(generation===authGeneration){
-      state.profile=null;
+      // Restore a guest profile saved on this device. Cloud sessions always take priority.
+      let localProfile=null;
+      try{localProfile=JSON.parse(localStorage.getItem(STORE_KEY)||"null")}catch{}
+      if(localProfile&&typeof localProfile==="object"&&String(localProfile.id||"").startsWith("local-")&&typeof localProfile.username==="string"){
+        const items=defaultItems();
+        if(localProfile.items&&typeof localProfile.items==="object"){
+          Object.keys(items).forEach(key=>{const value=localProfile.items[key];if(Number.isInteger(value)&&value>=0)items[key]=value});
+        }
+        state.profile={...localProfile,avatar:Number.isInteger(localProfile.avatar)?localProfile.avatar:0,coins:Number.isFinite(Number(localProfile.coins))?Math.max(0,Number(localProfile.coins)):0,wins:Number(localProfile.wins)||0,games:Number(localProfile.games)||0,points:Number(localProfile.points)||0,active_frame:localProfile.active_frame||"standard",owned_frames:Array.isArray(localProfile.owned_frames)?localProfile.owned_frames:["standard"],items,friends:Array.isArray(localProfile.friends)?localProfile.friends:[]};
+        save();
+      }else{
+        state.profile=null;
+      }
     }
   })();
   authTask.catch(()=>{});
