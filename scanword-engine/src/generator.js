@@ -104,235 +104,6 @@ export function canAssignDistinctShortAnswers(domains, options = {}) {
 
   return assign(0);
 }
-function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = [], minimumLogicClueCells = 3) {
-  const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
-  const specialHasImage = Boolean(specialEntry.imageKey);
-  const specialClueKey = '0,1';
-  const specialLetters = new Map([...specialEntry.answer].map((letter, index) => [
-    (index + 1) + ',1',
-    foldYo && letter === 'Ё' ? 'Е' : letter
-  ]));
-  const required = Math.max(0, requiredImageCount - (specialHasImage ? 1 : 0));
-  if (required === 0) return [];
-
-  const domainsWithImages = domains.map(domain => {
-    const seen = new Set();
-    const options = [];
-    for (const option of domain.options) {
-      const entry = option.entry;
-      if (!entry.imageKey || entry.imageKey === specialEntry.imageKey) continue;
-      const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
-      const clueKey = option.clueCell.row + ',' + option.clueCell.col;
-      const directionKey = clueKey + '|' + option.direction;
-      const identity = answerKey + '|' + directionKey + '|' + entry.imageKey;
-      if (seen.has(identity)) continue;
-      seen.add(identity);
-      options.push({
-        ...option,
-        slotId: domain.slot.id,
-        answerKey,
-        clueKey,
-        directionKey
-      });
-    }
-    return { slotId: domain.slot.id, options };
-  }).filter(domain => domain.options.length);
-
-  const selected = [];
-  const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
-  // Track image answers separately from the remaining two-letter matching.
-  // A picture may use a two-letter word only when every short slot still has
-  // a distinct, letter-compatible answer after that picture is placed.
-  const usedAnswers = new Set([specialAnswerKey]);
-  const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
-  const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
-  usedDifficultyCounts[normalizeDifficultyBand(specialEntry.difficulty)]++;
-  const usedClues = new Set(specialHasImage ? [specialClueKey] : []);
-  const usedDirections = new Set([specialClueKey + '|down']);
-  const usedLogicClueCells = new Set(specialEntry.logic === true ? [specialClueKey] : []);
-  const letterUses = new Map(specialLetters);
-  let nodes = 0;
-
-  const canAdd = candidate => {
-    if (usedAssets.has(candidate.entry.imageKey)
-      || usedAnswers.has(candidate.answerKey)
-      || usedClues.has(candidate.clueKey)
-      || usedDirections.has(candidate.directionKey)) return false;
-    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
-    if (usedDifficultyCounts[difficultyBand] >= plannedDifficultyQuotas[difficultyBand]) return false;
-    for (let index = 0; index < candidate.coordinates.length; index++) {
-      const point = candidate.coordinates[index];
-      const key = point.row + ',' + point.col;
-      const letter = foldYo && candidate.entry.answer[index] === 'Ё'
-        ? 'Е'
-        : candidate.entry.answer[index];
-      const existing = letterUses.get(key);
-      if (existing !== undefined && existing !== letter) return false;
-    }
-    return true;
-  };
-
-  const add = candidate => {
-    usedAssets.add(candidate.entry.imageKey);
-    usedAnswers.add(candidate.answerKey);
-    usedDifficultyCounts[normalizeDifficultyBand(candidate.entry.difficulty)]++;
-    usedClues.add(candidate.clueKey);
-    usedDirections.add(candidate.directionKey);
-    if (candidate.entry.logic === true) usedLogicClueCells.add(candidate.clueKey);
-    const added = [];
-    for (let index = 0; index < candidate.coordinates.length; index++) {
-      const point = candidate.coordinates[index];
-      const key = point.row + ',' + point.col;
-      if (!letterUses.has(key)) {
-        const letter = foldYo && candidate.entry.answer[index] === 'Ё'
-          ? 'Е'
-          : candidate.entry.answer[index];
-        letterUses.set(key, letter);
-        added.push(key);
-      }
-    }
-    selected.push(candidate);
-    return added;
-  };
-
-  const undo = (candidate, added) => {
-    selected.pop();
-    usedAssets.delete(candidate.entry.imageKey);
-    usedAnswers.delete(candidate.answerKey);
-    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
-    usedDifficultyCounts[difficultyBand] = Math.max(0, usedDifficultyCounts[difficultyBand] - 1);
-    usedClues.delete(candidate.clueKey);
-    usedDirections.delete(candidate.directionKey);
-    if (candidate.entry.logic === true
-      && !(specialEntry.logic === true && candidate.clueKey === specialClueKey)
-      && !selected.some(item => item.entry.logic === true && item.clueKey === candidate.clueKey)) {
-      usedLogicClueCells.delete(candidate.clueKey);
-    }
-    for (const key of added) letterUses.delete(key);
-  };
-
-  function remainingWordDomainsHaveSupport() {
-    const selectedSlotIds = new Set(selected.map(candidate => candidate.slotId));
-    const residualDomains = domains
-      .filter(domain => !selectedSlotIds.has(domain.slot.id))
-      .map(domain => {
-        const options = domain.options.filter(option => {
-          const answerKey = canonicalAnswerKey(option.entry.answer, { foldYo });
-          const clueKey = option.clueCell.row + ',' + option.clueCell.col;
-          if (usedAnswers.has(answerKey)) return false;
-          // Once the picture quota is reserved, every remaining slot must
-          // retain a non-picture candidate; CSP cannot add a sixth image.
-          if (option.entry.imageKey) return false;
-          if (usedDirections.has(clueKey + '|' + option.direction)) return false;
-          const band = normalizeDifficultyBand(option.entry.difficulty);
-          if (usedDifficultyCounts[band] >= plannedDifficultyQuotas[band]) return false;
-          for (let index = 0; index < option.coordinates.length; index++) {
-            const point = option.coordinates[index];
-            const key = point.row + ',' + point.col;
-            const letter = foldYo && option.entry.answer[index] === 'Ё' ? 'Е' : option.entry.answer[index];
-            const existing = letterUses.get(key);
-            if (existing !== undefined && existing !== letter) return false;
-          }
-          return true;
-        });
-        return { slot: domain.slot, options };
-      });
-
-    if (residualDomains.some(domain => domain.options.length === 0)) return false;
-    if (residualDomains.length === 0) return true;
-
-    // The chosen picture placements must leave every other word domain alive,
-    // not merely preserve a matching for the two-letter crossings.
-    if (!enforceCrossingArcConsistency(residualDomains, foldYo)) return false;
-
-    const answerDomains = residualDomains.map(domain => [
-      ...new Set(domain.options.map(option => canonicalAnswerKey(option.entry.answer, { foldYo })))
-    ]);
-    if (maximumDistinctAssignmentCount(answerDomains) < residualDomains.length) return false;
-
-    for (const level of [2, 3, 4]) {
-      const requiredAtLevel = Math.max(0, plannedDifficultyQuotas[level] - usedDifficultyCounts[level]);
-      if (!requiredAtLevel) continue;
-      const levelDomains = residualDomains.map(domain => [
-        ...new Set(domain.options
-          .filter(option => normalizeDifficultyBand(option.entry.difficulty) === level)
-          .map(option => canonicalAnswerKey(option.entry.answer, { foldYo })))
-      ]);
-      if (maximumDistinctAssignmentCount(levelDomains) < requiredAtLevel) return false;
-    }
-
-    const requiredLogic = Math.max(0, minimumLogicClueCells - usedLogicClueCells.size);
-    if (requiredLogic) {
-      const logicDomains = residualDomains.map(domain => [
-        ...new Set(domain.options
-          .filter(option => option.entry.logic === true
-            && !usedLogicClueCells.has(option.clueCell.row + ',' + option.clueCell.col))
-          .map(option => option.clueCell.row + ',' + option.clueCell.col))
-      ]);
-      if (maximumDistinctAssignmentCount(logicDomains) < requiredLogic) return false;
-    }
-
-    return true;
-  }
-
-  function search(remainingDomains) {
-    if (selected.length >= required) return remainingWordDomainsHaveSupport();
-    if (nodes++ >= maxNodes || selected.length + remainingDomains.length < required) return false;
-
-    const viableDomains = [];
-    for (const domain of remainingDomains) {
-      const candidates = domain.options.filter(canAdd);
-      if (candidates.length) viableDomains.push({ ...domain, candidates });
-    }
-    const needed = required - selected.length;
-    if (viableDomains.length < needed) return false;
-
-    const assetDomains = viableDomains.map(domain =>
-      [...new Set(domain.candidates.map(candidate => candidate.entry.imageKey))]
-    );
-    const answerDomains = viableDomains.map(domain =>
-      [...new Set(domain.candidates.map(candidate => candidate.answerKey))]
-    );
-    const clueDomains = viableDomains.map(domain =>
-      [...new Set(domain.candidates.map(candidate => candidate.clueKey))]
-    );
-    if (maximumDistinctAssignmentCount(assetDomains) < needed
-      || maximumDistinctAssignmentCount(answerDomains) < needed
-      || maximumDistinctAssignmentCount(clueDomains) < needed) return false;
-
-    viableDomains.sort((a, b) =>
-      a.candidates.length - b.candidates.length
-      || a.slotId.localeCompare(b.slotId)
-    );
-    const chosen = viableDomains[0];
-    const rest = remainingDomains.filter(domain => domain.slotId !== chosen.slotId);
-
-    for (const candidate of chosen.candidates) {
-      const added = add(candidate);
-      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
-        excludedAnswers: usedAnswers,
-        letterUses,
-        difficultyCounts: usedDifficultyCounts,
-        difficultyQuotas: plannedDifficultyQuotas,
-        foldYo
-      });
-      if (shortAnswersRemainFeasible && search(rest)) return true;
-      undo(candidate, added);
-    }
-
-    return search(rest);
-  }
-
-  return search(domainsWithImages) ? selected.map(candidate => ({
-    slotId: candidate.slotId,
-    entryId: candidate.entry.id,
-    answer: candidate.entry.answer,
-    imageKey: candidate.entry.imageKey,
-    clueCell: { ...candidate.clueCell },
-    direction: candidate.direction
-  })) : null;
-}
-
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
   // Intersections are physical cells, not positional indices. A left/up
   // orientation reverses answer order while the canonical slot coordinates
@@ -496,7 +267,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   let arcConsistencyElapsedMs = 0;
   let shortMatchingElapsedMs = 0;
   let contentCapacityElapsedMs = 0;
-  let imageSelectionElapsedMs = 0;
   const plans = [];
   const uniqueAnswers = new Set();
   const planDiagnostics = {
@@ -507,6 +277,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     shortAnswerMatchingRejected: 0,
     contentRequirementsRejected: 0,
     imageAssignmentRejected: 0,
+    imageSelectionDeferredToCsp: true,
     viablePlans: 0,
     distinctSpecialAnswers: 0,
     distinctTopologyPatterns: topologies.length
@@ -723,22 +494,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
-      const imageSelectionStarted = now();
-      const compatibleImageSelection = chooseCompatibleImageSelection(
-        domains,
-        requiredImageCount,
-        entry,
-        foldYo,
-        requirements.imageSelectionSearchNodes ?? 2500,
-        difficultyQuotas,
-        shortDomains,
-        requirements.minimumLogicClueCells ?? 3
-      );
-      imageSelectionElapsedMs += now() - imageSelectionStarted;
-      if (!compatibleImageSelection) {
-        planDiagnostics.imageAssignmentRejected++;
-        continue;
-      }
+      // The domain/capacity checks above establish that five distinct
+      // picture assets and clue cells are available for this special layout.
+      // Do not enumerate concrete picture combinations here: doing so repeats
+      // expensive crossing-consistency checks before the real CSP has assigned
+      // any words. The CSP reserves the picture quota using live crossing
+      // letters, backtracks incompatible image placements, and then fills the
+      // remaining entries against the same state.
+      const preferredImagePlacementsBySlot = new Map();
 
       plans.push({
         answer: entry.answer,
@@ -760,14 +523,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
             option.entry.id + '|' + option.direction + '|' + option.clueCell.row + ',' + option.clueCell.col
           ))
         ])),
-        preferredImagePlacementsBySlot: new Map(compatibleImageSelection.map(item => [
-          item.slotId,
-          {
-            entryId: item.entryId,
-            clueKey: item.clueCell.row + ',' + item.clueCell.col,
-            direction: item.direction
-          }
-        ])),
+        preferredImagePlacementsBySlot,
         // Prefer grade-seven medium/easy long answers when geometry is
         // otherwise comparable; do not let a specialist 11-letter word win
         // solely because its crossing domains happen to be broader.
@@ -800,7 +556,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     arcConsistencyMs: Math.round(arcConsistencyElapsedMs),
     shortMatchingMs: Math.round(shortMatchingElapsedMs),
     contentCapacityMs: Math.round(contentCapacityElapsedMs),
-    imageSelectionMs: Math.round(imageSelectionElapsedMs),
+    imageSelectionMs: 0,
     planningMs: Math.round(now() - planningStarted),
     totalMs: Math.round(now() - plannerStarted)
   };
@@ -1074,7 +830,7 @@ export function generateScanword(inputDictionary, options = {}) {
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
       allowedPlacementKeysBySlot: specialPlan?.allowedPlacementKeysBySlot,
       preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
-      enforcePreferredImagePlacements: useSpecialTopology,
+      enforcePreferredImagePlacements: useSpecialTopology && Boolean(specialPlan?.preferredImagePlacementsBySlot?.size),
       captureTrace: options.captureTrace === true
     });
 
