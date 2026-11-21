@@ -645,6 +645,14 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
         ])),
+        // Preserve AC-3-approved orientations as well as entry IDs. Otherwise
+        // the CSP can reopen a reversed placement that AC-3 already removed.
+        allowedPlacementKeysBySlot: new Map(domains.map(domain => [
+          domain.slot.id,
+          new Set(domain.options.map(option =>
+            option.entry.id + '|' + option.direction + '|' + option.clueCell.row + ',' + option.clueCell.col
+          ))
+        ])),
         preferredImagePlacementsBySlot: new Map(compatibleImageSelection.map(item => [
           item.slotId,
           {
@@ -703,6 +711,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     patternKey: plan.patternKey,
     specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
+    allowedPlacementKeysBySlot: plan.allowedPlacementKeysBySlot,
     preferredImagePlacementsBySlot: plan.preferredImagePlacementsBySlot,
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
@@ -935,6 +944,7 @@ export function generateScanword(inputDictionary, options = {}) {
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      allowedPlacementKeysBySlot: specialPlan?.allowedPlacementKeysBySlot,
       preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
       enforcePreferredImagePlacements: useSpecialTopology,
       captureTrace: options.captureTrace === true
