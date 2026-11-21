@@ -591,6 +591,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     patternKey: plan.patternKey,
     specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
+    preferredImagePlacementsBySlot: plan.preferredImagePlacementsBySlot,
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
   }));
@@ -801,6 +802,7 @@ export function generateScanword(inputDictionary, options = {}) {
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
       captureTrace: options.captureTrace === true
     });
 
