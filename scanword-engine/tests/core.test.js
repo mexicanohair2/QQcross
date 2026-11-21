@@ -4,12 +4,69 @@ import { CONFIG } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
-import { generateScanword, enforceCrossingArcConsistency } from '../src/generator.js';
+import { generateScanword, enforceCrossingArcConsistency, shouldRequestSpecialElevenLetter, canAssignDistinctShortAnswers } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
 import { assembleScanword } from '../src/assembler.js';
 import { analyzeRequiredBorderFeasibility } from '../src/topology.js';
+
+test('special short-word planning respects crossing letters and exact difficulty quotas', () => {
+  const first = {
+    answerKey: 'АС',
+    answer: 'АС',
+    difficulty: 2,
+    coordinates: [{ row: 2, col: 2 }, { row: 2, col: 3 }]
+  };
+  const compatibleSecond = {
+    answerKey: 'УС',
+    answer: 'УС',
+    difficulty: 3,
+    coordinates: [{ row: 3, col: 2 }, { row: 2, col: 3 }]
+  };
+  const conflictingSecond = {
+    answerKey: 'УМ',
+    answer: 'УМ',
+    difficulty: 3,
+    coordinates: [{ row: 3, col: 2 }, { row: 2, col: 3 }]
+  };
+  const letters = new Map();
+
+  assert.equal(canAssignDistinctShortAnswers([[first], [compatibleSecond]], {
+    letterUses: letters,
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), true);
+  assert.equal(letters.size, 0, 'Feasibility checks must not mutate the caller letter map.');
+
+  assert.equal(canAssignDistinctShortAnswers([[first], [conflictingSecond]], {
+    letterUses: letters,
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), false, 'Crossing short answers must agree on their shared letter.');
+
+  assert.equal(canAssignDistinctShortAnswers([[first]], {
+    difficultyCounts: { 2: 1, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), false, 'The special answer and image placements must leave room in the exact easy quota.');
+});
+
+test('special eleven-letter answer is scheduled no more than once per five puzzles', () => {
+  const selected = Array.from({ length: 30 }, (_, index) => index + 1)
+    .filter(sequenceIndex => shouldRequestSpecialElevenLetter(sequenceIndex));
+  assert.deepEqual(selected, [5, 10, 15, 20, 25, 30]);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.19, 0.2), true);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.2, 0.2), false);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.8, 0), false);
+});
+
+test('production generator refuses the impossible full top-row and full left-column request', () => {
+  const result = generateScanword([], { requireFullTopRow: true, seed: 77 });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.equal(result.feasibility.conflicts[0].topClue.row, 0);
+  assert.equal(result.feasibility.conflicts[0].topClue.col, 2);
+});
 
 test('AC-3 preserves a candidate when a reversed crossing arc has matching letters', () => {
   const domains = [
