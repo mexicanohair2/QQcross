@@ -464,6 +464,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const topologyStarted = now();
   const topologySignatures = new Set();
   const topologies = [];
+  const fallbackTopologies = [];
   for (const rows of rowPatterns) {
     const seed = rows.reduce((value, row) => Math.imul(value ^ row, 16777619), 2166136261) >>> 0;
     const result = generateTopology({
@@ -478,7 +479,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     const signature = result.topology.pattern.join('/');
     if (topologySignatures.has(signature)) continue;
     topologySignatures.add(signature);
-    topologies.push({
+    fallbackTopologies.push({
       rows,
       patternKey: 'split-' + rows.join('-'),
       // Reuse this exact mask during the production CSP pass. A new seed must
@@ -514,6 +515,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       result: lowShortTopology
     });
   }
+
+  // Try the empirically compatible low-short layouts first. Conventional
+  // split layouts remain as a fallback only when the low-short pool cannot
+  // produce enough distinct special-answer plans.
+  topologies.push(...fallbackTopologies);
 
   const topologyBuildElapsedMs = now() - topologyStarted;
   const planningStarted = now();
