@@ -344,6 +344,7 @@ function renderChoosing(){
   const choices=state.room.private?.choices||[];
   appRoot.innerHTML=
     '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>QQ DRAW</span></div><button class="btn ghost" id="leaveRoom">Выйти</button></header>'+
+    '<div class="qq-score-strip">'+renderPlayers(state.room.players||[])+'</div>'+
     '<section class="card stack"><h2>'+(artist?"Выбери слово для рисунка":"Художник выбирает слово")+'</h2><p class="small muted">'+(artist?"Слово увидишь только ты. Можно обновить варианты сколько угодно раз.":"Остальные участники не увидят слово, пока раунд не закончится.")+'</p>'+
     (artist?'<div class="choice-grid">'+choices.map((word,i)=>'<button class="btn choice wordChoice" data-word="'+esc(word)+'">'+esc(word)+'</button>').join("")+'</div><button class="btn full" id="refreshChoices">Другие слова</button>':'<div class="notice">Ожидаем подтверждения слова художником…</div>')+
     '<div class="game-meta"><span>Раунд '+esc(state.room.round_no)+'</span><span>'+esc(state.room.players?.length||0)+' игроков</span></div></section></section>';
@@ -773,7 +774,7 @@ function renderSoloGame(){
   const guesses=solo.guesses||[];
   const finished=solo.status==="finished";
   appRoot.innerHTML=
-    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div><button class="btn ghost" id="soloExit">В меню</button></header>'+
+    '<section class="screen"><header class="topbar"><div class="brand"><span class="logo">QQ</span><span>ОДИНОЧНАЯ ИГРА</span></div>'+(window.QQIdentity?.cardMarkup&&state.profile?window.QQIdentity.cardMarkup(state.profile,{size:"sm",compact:true}):"")+'<button class="btn ghost" id="soloExit">В меню</button></header>'+
     '<section class="card stack"><div class="game-meta"><span>'+(botArtist?"Бот рисует":"Ты рисуешь")+'</span><span>'+guesses.length+' догадок</span></div>'+
       '<div class="canvas-wrap"><canvas id="drawCanvas" aria-label="Одиночный холст"></canvas><span class="canvas-label">'+(botArtist?"Рисунок бота":"Твой рисунок")+'</span></div>'+
       (botArtist&&!finished?'<form id="guessForm" class="guess-form"><input class="field" id="guessInput" maxlength="30" autocomplete="off" placeholder="Что нарисовано?" required><button class="btn primary" type="submit">Угадать</button></form>':"")+
