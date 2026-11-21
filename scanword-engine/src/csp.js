@@ -322,7 +322,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         // image placements. Keep those exact choices fixed in production:
         // an unplanned image can consume a crossing letter and invalidate
         // the remaining prevalidated image matching.
-        if (options.enforcePreferredImagePlacements === true) {
+        if (options.enforcePreferredImagePlacements === true
+          && slot.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
           const planned = options.preferredImagePlacementsBySlot?.get(slot.id);
           if (!planned
             || planned.entryId !== entry.id
