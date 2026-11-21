@@ -224,6 +224,9 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
           const candidates = findCandidates(indexes, slot.length, constraints);
           for (const candidate of candidates) {
+            // The fixed eleven-letter answer is already reserved for the
+            // special slot and cannot be counted again in another capacity.
+            if (canonicalAnswerKey(candidate.answer, { foldYo }) === answerKey) continue;
             if (slot.length === 2
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
@@ -274,7 +277,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
-      const imageKeys = new Set();
+      const specialClueKey = '0,1';
+      const specialHasImage = Boolean(entry.imageKey);
+      const specialHasLogic = entry.logic === true;
+      const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
+      const imageKeys = new Set(specialHasImage ? [entry.imageKey] : []);
       const imageDomains = [];
       const imageClueCellDomains = [];
       const logicClueCellDomains = [];
@@ -294,12 +301,17 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidateDifficultyIds = { 2: new Set(), 3: new Set(), 4: new Set() };
         for (const option of domain.options) {
           const clueKey = option.clueCell.row + ',' + option.clueCell.col;
-          if (option.entry.imageKey) {
+          if (option.entry.imageKey && option.entry.imageKey !== entry.imageKey) {
             imageKeys.add(option.entry.imageKey);
             candidateImageKeys.add(option.entry.imageKey);
-            candidateImageClueCells.add(clueKey);
+            if (!(specialHasImage && clueKey === specialClueKey)) {
+              candidateImageClueCells.add(clueKey);
+            }
           }
-          if (option.entry.logic === true) candidateLogicClueCells.add(clueKey);
+          if (option.entry.logic === true
+            && !(specialHasLogic && clueKey === specialClueKey)) {
+            candidateLogicClueCells.add(clueKey);
+          }
           candidateDifficultyIds[normalizeDifficultyBand(option.entry.difficulty)].add(canonicalAnswerKey(option.entry.answer, { foldYo }));
         }
         if (candidateImageKeys.size) imageDomains.push([...candidateImageKeys]);
@@ -313,18 +325,18 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       const imageAssignmentCapacity = maximumDistinctAssignmentCount(imageDomains);
       const imageClueCellCapacity = maximumDistinctAssignmentCount(imageClueCellDomains);
       const logicClueCellCapacity = maximumDistinctAssignmentCount(logicClueCellDomains);
-      const difficultyQuotas = getDifficultyQuotaCounts(domains.length, requirements.difficultyDistribution);
+      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
       const difficultyCapacities = {
-        2: maximumDistinctAssignmentCount(difficultyDomains[2]),
-        3: maximumDistinctAssignmentCount(difficultyDomains[3]),
-        4: maximumDistinctAssignmentCount(difficultyDomains[4])
+        2: maximumDistinctAssignmentCount(difficultyDomains[2]) + (specialDifficultyBand === 2 ? 1 : 0),
+        3: maximumDistinctAssignmentCount(difficultyDomains[3]) + (specialDifficultyBand === 3 ? 1 : 0),
+        4: maximumDistinctAssignmentCount(difficultyDomains[4]) + (specialDifficultyBand === 4 ? 1 : 0)
       };
       const difficultyCapacityValid = [2, 3, 4].every(level =>
         difficultyCapacities[level] >= difficultyQuotas[level]
       );
-      const imageCapacityValid = imageAssignmentCapacity >= requiredImageCount
-        && imageClueCellCapacity >= requiredImageCount;
-      const logicCapacityValid = logicClueCellCapacity >= minimumLogicClueCells;
+      const imageCapacityValid = imageAssignmentCapacity + (specialHasImage ? 1 : 0) >= requiredImageCount
+        && imageClueCellCapacity + (specialHasImage ? 1 : 0) >= requiredImageCount;
+      const logicCapacityValid = logicClueCellCapacity + (specialHasLogic ? 1 : 0) >= minimumLogicClueCells;
 
       if (!imageCapacityValid || !logicCapacityValid || !difficultyCapacityValid) {
         planDiagnostics.contentRequirementsRejected++;
@@ -373,10 +385,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         // otherwise comparable; do not let a specialist 11-letter word win
         // solely because its crossing domains happen to be broader.
         score: minimumDomain * 100000 + totalDomain * 100
-          + imageAssignmentCapacity * 10000 + imageClueCellCapacity * 1000
-          + logicClueCellCapacity * 100
-          + (normalizeDifficultyBand(entry.difficulty) === 3 ? 50000
-            : normalizeDifficultyBand(entry.difficulty) === 2 ? 25000 : 0),
+          + (imageAssignmentCapacity + (specialHasImage ? 1 : 0)) * 10000
+          + (imageClueCellCapacity + (specialHasImage ? 1 : 0)) * 1000
+          + (logicClueCellCapacity + (specialHasLogic ? 1 : 0)) * 100
+          + (specialDifficultyBand === 3 ? 50000
+            : specialDifficultyBand === 2 ? 25000 : 0),
         tie: random()
       });
     }
