@@ -669,10 +669,12 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
     }
   }
 
-  planDiagnostics.viablePlans = plans.length;
   planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
-  if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
-  if (!plans.length) return requirements.returnAllPlans === true ? [] : null;
+  if (!plans.length) {
+    planDiagnostics.viablePlans = 0;
+    if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
+    return requirements.returnAllPlans === true ? [] : null;
+  }
 
   // Keep the strongest topology for each answer first, then interleave the
   // next-best topologies. This prevents the first bounded CSP retries from
@@ -709,8 +711,16 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
   }));
-  if (requirements.returnAllPlans === true) return rankedPlans;
-  return rankedPlans[0] ?? null;
+  const seenPlanKeys = new Set();
+  const uniqueRankedPlans = rankedPlans.filter(plan => {
+    if (seenPlanKeys.has(plan.planKey)) return false;
+    seenPlanKeys.add(plan.planKey);
+    return true;
+  });
+  planDiagnostics.viablePlans = uniqueRankedPlans.length;
+  if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
+  if (requirements.returnAllPlans === true) return uniqueRankedPlans;
+  return uniqueRankedPlans[0] ?? null;
 }
 
 function countFailure(target, reason) {
