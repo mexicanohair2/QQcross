@@ -56,3 +56,16 @@
 .boot-progress{background:rgba(201,151,179,.12)!important}
 .boot-progress span{background:linear-gradient(90deg,#71304f,#c88cab,#e6ccdc)!important}
 @media(max-width:380px){.boot-mark{width:96px!important;height:96px!important}.boot-mark span:last-child{font-size:48px!important}}
+
+/* Party-game screens use the same calm interaction timing as the main modes. */
+.screen .btn,.screen .card,.screen .player,.screen .room-friend-row,.screen .guess-row,
+.screen .guess-cell,.screen .word-cell,.screen .letter-key,.screen .room-tile{
+ transition-duration:380ms!important;
+ transition-timing-function:cubic-bezier(.2,.7,.25,1)!important;
+}
+.screen .btn:active,.screen .room-friend-row:active{transform:scale(.98)}
+.screen .guess-row,.screen .room-friend-row{transition-property:transform,border-color,background,box-shadow,opacity!important}
+@media(prefers-reduced-motion:reduce){
+ .screen .btn,.screen .card,.screen .player,.screen .room-friend-row,.screen .guess-row,
+ .screen .guess-cell,.screen .word-cell,.screen .letter-key,.screen .room-tile{transition:none!important}
+}
