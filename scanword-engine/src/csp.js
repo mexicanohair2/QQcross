@@ -812,13 +812,19 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     const specialAlreadyAssigned = slots.some(slot =>
       slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && state.assignments.has(slot.id)
     );
+
+    // Reserve the five distinct picture clues before unconstrained word
+    // filling on every topology, not only on the eleven-letter layout.
+    // Ordinary MRV can otherwise choose a non-picture word in a slot that
+    // carries a scarce image domain, consuming crossing letters and forcing
+    // many expensive backtracks before the image quota can be completed.
+    if (state.usedImages.size < requiredImageCount) {
+      return completeSpecialImageSlots(unassigned);
+    }
+
     if (specialAlreadyAssigned) {
-      // Lock the picture quota before assigning short crossings: a valid
-      // two-letter choice can otherwise impose letters that remove the last
-      // remaining image domains from the special topology.
-      if (state.usedImages.size < requiredImageCount) {
-        return completeSpecialImageSlots(unassigned);
-      }
+      // Lock the remaining short crossings only after all picture positions
+      // have been secured; a two-letter answer can constrain a unique image.
       const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
       if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
     }
