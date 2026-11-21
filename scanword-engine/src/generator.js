@@ -803,6 +803,7 @@ export function generateScanword(inputDictionary, options = {}) {
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
       preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
+      enforcePreferredImagePlacements: useSpecialTopology,
       captureTrace: options.captureTrace === true
     });
 
