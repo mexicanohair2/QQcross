@@ -209,7 +209,7 @@ export function prepareDictionary(input, options = {}) {
     variants.push(entry);
 
     const isFlagPrompt = !/[А-Яа-яЁё]/u.test(entry.question)
-      && /[\\p{Extended_Pictographic}\\p{Regional_Indicator}]/u.test(entry.question);
+      && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(entry.question);
     if (entry.question.length < 15 && !entry.imageKey && !entry.logic && !isFlagPrompt) {
       warnings.push({
         code: 'SHORT_QUESTION_REVIEW',
