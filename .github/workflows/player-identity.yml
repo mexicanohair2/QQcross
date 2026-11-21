@@ -1,0 +1,28 @@
+name: Player identity tests
+on:
+  push:
+    paths:
+      - 'assets/player-identity.js'
+      - 'assets/avatar-frames/**'
+      - 'supabase/migrations/*player_identity_frames.sql'
+      - 'tests/player-identity.test.mjs'
+      - 'package.json'
+      - '.github/workflows/player-identity.yml'
+  pull_request:
+    paths:
+      - 'assets/player-identity.js'
+      - 'assets/avatar-frames/**'
+      - 'supabase/migrations/*player_identity_frames.sql'
+      - 'tests/player-identity.test.mjs'
+      - 'package.json'
+      - '.github/workflows/player-identity.yml'
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify identity assets and migration contract
+        run: npm run test:identity
