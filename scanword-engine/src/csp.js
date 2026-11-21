@@ -678,7 +678,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
-        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+        enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random).filter(candidate => Boolean(candidate.entry.imageKey));
 
       if (!candidates.length) continue;
