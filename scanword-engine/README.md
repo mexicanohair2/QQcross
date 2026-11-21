@@ -10,8 +10,16 @@ The scanword engine is the only production path for creating scanword boards in 
 - (0,1) is the required top-left anchor.
 - Other top-row cells may be question cells or letters, but every letter must belong to a complete horizontal answer slot between question cells.
 - Question cells may start an answer, terminate one, or do both. Terminal-only question cells remain associated with their incoming answer and are validated independently.
-- Horizontal answers run right; vertical answers run down. Reverse directions are disabled in the production generator.
-- The optional 11-letter special answer begins at (0,1), proceeds down column 1, and ends at the lower boundary. It is requested at about 25% frequency, not on every board.
+- Answer placement supports all four directions: right, left, down and up. A slot is still accepted only when the complete path is in bounds and independently validated.
+- The optional 11-letter special answer is unique: it begins at (0,1), proceeds down column 1, and uses (1,1)..(11,1). With the production sequence index it is requested no more than once in five puzzles (20%); without a sequence index the seeded fallback chance is 20%. A failed special attempt may fall back to a normal valid board.
+
+## Difficulty policy
+
+Every completed scanword is assigned an exact board-level distribution of 20% easy, 60% medium and 20% challenging clues. Largest-remainder apportionment is deterministic for board sizes that do not divide evenly. Difficulty is normalized to three bands and enforced by the CSP with reversible counters; the independent validator checks the final distribution. This is a content-selection constraint, not a claim that every individual clue has been manually reviewed by a linguist.
+
+## Border feasibility
+
+The existing validated layout supports the complete left clue edge and selected top anchors. A fully-question top row combined with a fully-question left column is rejected by the explicit topology preflight: with minimum answer length two and only the single special 11-letter path at (0,1), a top clue at (0,2) cannot be connected to an ordinary in-board slot without forcing a one-letter gap against the mandatory left clue in that row. Do not override this diagnostic with filler, a second boundary exception or orphan clues. See `docs/QQCROSS_SCANWORD_TOPOLOGY_MODEL.md` for the coordinate proof.
 
 ## Pipeline
 
@@ -30,7 +38,7 @@ The engine has seed-based randomness and explicit limits for topology attempts, 
 
 ## Production dictionary status
 
-The repository dictionary currently has 2,287 source records, 46 picture-key records, 83 answer records of exactly 11 letters, and 709 records tagged as logic before runtime normalization. Runtime counts are reported by prepareDictionary() and the CI scanword verification. This is not a 25,000- or 50,000-word scanword dictionary.
+The current production audit reports 2,289 source records, 2,211 valid clue variants, 2,027 unique playable answers, 78 rejected records, 46 picture-key records, 83 raw 11-letter records and 709 raw logic-tagged records. The latest wording pass improved 92 short clues; 174 short prompts remain, including flag/image labels that are intentionally compact. The audit reports zero suspicious duplicate-question groups across different answers. Runtime counts are reported by prepareDictionary() and CI. This is not a 25,000- or 50,000-word scanword dictionary.
 
 ## Verification
 
