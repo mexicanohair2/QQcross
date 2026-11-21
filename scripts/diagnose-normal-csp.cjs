@@ -58,6 +58,8 @@ async function main() {
     } : null
   };
   console.log("NORMAL_CSP_DIAGNOSTIC=" + JSON.stringify(report));
+  fs.mkdirSync("artifacts", { recursive: true });
+  fs.writeFileSync("artifacts/normal-csp-diagnostic.json", JSON.stringify(report, null, 2));
 }
 
 main().catch(error => {
