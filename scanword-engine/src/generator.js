@@ -153,7 +153,7 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
         directionKey
       });
     }
-    return { slotId: domain.slot.id, options };
+    return { slotId: domain.slot.id, slotLength: domain.slot.length, options };
   }).filter(domain => domain.options.length);
 
   stats.imageDomainCount = domainsWithImages.length;
@@ -265,7 +265,8 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
     }
 
     viableDomains.sort((a, b) =>
-      a.candidates.length - b.candidates.length
+      Number(a.slotLength === 2) - Number(b.slotLength === 2)
+      || a.candidates.length - b.candidates.length
       || a.slotId.localeCompare(b.slotId)
     );
     const chosen = viableDomains[0];
