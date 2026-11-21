@@ -755,6 +755,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       let chosenContentPriority = -1;
       const imageDomains = [];
       const logicClueDomains = [];
+      const difficultyDomains = { 2: [], 3: [], 4: [] };
       for (const slot of selectionOrder) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
@@ -784,6 +785,17 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
             && !state.usedLogicClues.has(pointKey(candidate.clueCell)))
           .map(candidate => pointKey(candidate.clueCell)));
         if (logicClueKeys.size) logicClueDomains.push([...logicClueKeys]);
+
+        const candidateDifficultyAnswers = { 2: new Set(), 3: new Set(), 4: new Set() };
+        for (const candidate of candidates) {
+          const band = normalizeDifficultyBand(candidate.entry.difficulty);
+          candidateDifficultyAnswers[band].add(canonicalAnswerKey(candidate.entry.answer));
+        }
+        for (const level of [2, 3, 4]) {
+          if (candidateDifficultyAnswers[level].size) {
+            difficultyDomains[level].push([...candidateDifficultyAnswers[level]]);
+          }
+        }
 
         // Select slots that can still satisfy mandatory content quotas before
         // unconstrained slots. Candidate ranking already puts eligible image
@@ -833,6 +845,23 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           openSlots: unassigned.length
         });
         return false;
+      }
+
+      for (const level of [2, 3, 4]) {
+        const remainingDifficultyQuota = Math.max(0, difficultyQuotas[level] - state.difficultyCounts[level]);
+        const availableDifficultyAnswers = maximumDistinctAssignmentCount(difficultyDomains[level]);
+        if (availableDifficultyAnswers < remainingDifficultyQuota) {
+          recordDeadEnd({
+            reason: 'DIFFICULTY_CAPACITY_UNREACHABLE',
+            level,
+            required: remainingDifficultyQuota,
+            available: availableDifficultyAnswers,
+            difficultyCounts: { ...state.difficultyCounts },
+            difficultyQuotas: { ...difficultyQuotas },
+            openSlots: unassigned.length
+          });
+          return false;
+        }
       }
 
       recordSearchChoice(chosenSlot, chosenCandidates);
