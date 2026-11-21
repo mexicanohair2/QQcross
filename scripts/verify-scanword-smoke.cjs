@@ -25,7 +25,7 @@ async function main() {
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
+    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 5, captureTrace: index === 5 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
@@ -38,7 +38,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true
     });
     const words = result.scanword.words;
     const images = words.filter(word => word.imageKey);
@@ -67,11 +68,13 @@ async function main() {
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
       logicCells: validation.metrics.logicClueCells,
+      difficultyCounts: validation.metrics.difficultyCounts,
+      difficultyQuotas: validation.metrics.difficultyQuotas,
       specialRequested: result.stats.specialElevenRequested,
       specialGenerated: special,
       musicNoteAnswers: words.filter(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)).map(word => word.answer),
       validationErrors: validation.errors.slice(0, 5),
-      ...(index === 4 ? { specialPlanDiagnostics: result.stats.specialElevenPlanDiagnostics ?? null, specialFailureDiagnostics: result.stats.specialElevenFailureDiagnostics ?? null } : {})
+      ...(index === 5 ? { specialPlanDiagnostics: result.stats.specialElevenPlanDiagnostics ?? null, specialFailureDiagnostics: result.stats.specialElevenFailureDiagnostics ?? null } : {})
     });
   }
 
@@ -100,8 +103,8 @@ async function main() {
   fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
-  assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
-  assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
+  assert.equal(specialRequested, 4, "Exactly runs 5, 10, 15 and 20 must request the eleven-letter answer.");
+  assert.equal(specialGenerated, 4, "Every fifth puzzle must contain the eleven-letter answer.");
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
   assert.equal(report.specialMissed, 0, "Requested eleven-letter puzzles must not silently fall back.");
   assert.ok(report.maxTwoLetterAnswers <= 6, "Production puzzles must contain at most six two-letter answers.");

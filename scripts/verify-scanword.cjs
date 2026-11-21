@@ -72,7 +72,8 @@ async function main() {
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true
     });
     assert.equal(validation.valid, true, "Independent validator rejected seed " + seed + ": " + JSON.stringify(validation.errors.slice(0, 8)));
     assert.equal(scanword.width, 8);
@@ -85,7 +86,7 @@ async function main() {
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
-    assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
+    assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 5 === 0, "every fifth puzzle must contain the eleven-letter answer: run=" + run);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
@@ -149,7 +150,7 @@ async function main() {
   if (failures.length) {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
-  assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
+  assert.equal(specialElevenCount, 20, "Exactly every fifth of 100 puzzles must contain the eleven-letter answer.");
   for (const direction of ['right', 'down', 'left', 'up']) {
     assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
   }

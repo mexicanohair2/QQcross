@@ -32,9 +32,12 @@ async function main() {
           && word.answer.length === 11
         )
       : [];
-    const selectedPlanKeys = (result.stats?.specialElevenPlanDiagnostics ?? [])
-      .map(item => item.selectedPlanKey)
+    const selectedPlanKeys = (result.stats?.specialElevenFailureDiagnostics ?? result.attempts ?? [])
+      .map(item => item.specialPlanKey)
       .filter(Boolean);
+    const plannerDiagnostics = result.specialElevenPlanDiagnostics
+      ?? result.stats?.specialElevenPlanDiagnostics
+      ?? null;
     assert.equal(
       new Set(selectedPlanKeys).size,
       selectedPlanKeys.length,
@@ -47,7 +50,9 @@ async function main() {
       generatedSpecial: special.length === 1,
       elapsedMs: result.stats?.elapsedMs ?? result.elapsedMs,
       nodes: result.stats?.nodes ?? result.nodes,
-      planDiagnostics: result.stats?.specialElevenPlanDiagnostics ?? null,
+      planDiagnostics: plannerDiagnostics,
+      planCount: result.specialElevenPlanCount ?? null,
+      plannedSpecialAttempts: result.specialElevenAttemptCount ?? null,
       attempts: result.stats?.specialElevenFailureDiagnostics ?? result.attempts,
       failure: result.ok ? null : {
         reason: result.reason,
@@ -68,7 +73,8 @@ async function main() {
         minimumLogicClueCells: 3,
         requireLeftBorderClues: true,
         requireTopAnchor: true,
-        requireConnected: true
+        requireConnected: true,
+        requireDifficultyBalance: true
       });
       if (independent.valid) {
         successful = { seed, result, independent, special: special[0] };

@@ -1,7 +1,7 @@
 import { CONFIG } from './config.js';
 import { createEmptyGrid } from './grid.js';
 import { createRng } from './rng.js';
-import { deriveWordSlots, validateTopology } from './topology.js';
+import { analyzeRequiredBorderFeasibility, deriveWordSlots, validateTopology } from './topology.js';
 
 /*
  * Production layout: clue starts run across the top and left borders, with
@@ -186,21 +186,25 @@ function countCenterQuestions(matrix) {
  * only when the independent geometry validator still proves complete letter
  * coverage, connected clue structure, valid answer lengths and active clues.
  */
-function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8) {
+function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget = 96, maxTwoLetterSlots = 8, allowSpecialMutations = true) {
   const matrix = cloneRows(baseRows);
   let candidate = inspectCandidate(matrix, includeSpecialEleven, maxTwoLetterSlots);
   if (!candidate) return { candidate: null, accepted: 0, tried: 0 };
 
-  // The special 11-letter layout keeps its crossing rows intact. Ordinary
-  // layouts receive a bounded number of seeded mutations.
-  const targetMutations = includeSpecialEleven ? 0 : 5 + Math.floor(random() * 5);
+  // On special boards, the 11-letter column and its first crossing cells
+  // are immutable: mutations are restricted to columns 4..6. The same
+  // independent topology validator decides whether each mutation is safe.
+  const targetMutations = includeSpecialEleven
+    ? (allowSpecialMutations ? 3 + Math.floor(random() * 3) : 0)
+    : 5 + Math.floor(random() * 5);
   const touched = new Set();
   let accepted = 0;
   let tried = 0;
 
   for (let attempt = 0; attempt < budget && accepted < targetMutations; attempt++) {
     const row = 1 + Math.floor(random() * (CONFIG.HEIGHT - 1));
-    // Columns 1 and 2 stay letters. Special boards also keep column 3 clear.
+    // Keep the special path in column 1, its row-crossing letters in
+    // columns 1..3, and mutate only the remaining interior region.
     const minMutationColumn = includeSpecialEleven ? 4 : 3;
     const mutationColumnCount = CONFIG.WIDTH - 1 - minMutationColumn;
     const col = minMutationColumn + Math.floor(random() * mutationColumnCount);
@@ -234,6 +238,19 @@ function mutateValidatedScaffold(baseRows, includeSpecialEleven, random, budget 
  * no answer letters are stored in this stage.
  */
 export function generateTopology(options = {}) {
+  if (options.requireFullTopRow === true) {
+    const feasibility = analyzeRequiredBorderFeasibility({ requireFullTopRow: true });
+    return {
+      ok: false,
+      reason: feasibility.reason,
+      attempts: 0,
+      rejectedAttempts: 0,
+      diagnostics: [feasibility.reason],
+      feasibility,
+      message: feasibility.message
+    };
+  }
+
   const seed = options.seed ?? 1;
   const random = createRng(seed);
   const includeSpecialEleven = options.includeSpecialEleven === true;
@@ -266,7 +283,8 @@ export function generateTopology(options = {}) {
       includeSpecialEleven,
       random,
       mutationBudget,
-      maxTwoLetterSlots
+      maxTwoLetterSlots,
+      includeSpecialEleven && (!Array.isArray(options.specialPattern) || options.mutateSpecialPattern === true)
     );
     if (!mutated.candidate) {
       history.push('TOPOLOGY_REJECTED');

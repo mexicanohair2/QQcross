@@ -50,6 +50,54 @@ test('seeded topology generation produces broad geometric variety while preservi
   );
 });
 
+test('rejects the impossible full top-row plus full left-column request before topology search', () => {
+  const result = generateTopology({
+    seed: 42,
+    includeSpecialEleven: false,
+    requireFullTopRow: true
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.equal(result.attempts, 0);
+  assert.equal(result.feasibility.conflicts[0].availableLettersBetweenClues, 1);
+});
+
+test('special 11-letter layouts vary while protecting the fixed answer path', () => {
+  const patterns = new Set();
+  const specialPattern = getTopologyScaffolds()[3];
+
+  for (let index = 0; index < 12; index++) {
+    const result = generateTopology({
+      seed: 9127 + index * 65537,
+      includeSpecialEleven: true,
+      specialPattern,
+      mutateSpecialPattern: true,
+      mutationBudget: 48,
+      maxTwoLetterSlots: 4,
+      maxAttempts: 1
+    });
+
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.topology.validation.valid, true);
+    assert.equal(result.topology.pattern[0][0], '.');
+    assert.equal(result.topology.pattern[0][1], '#');
+    for (let row = 1; row < 12; row++) {
+      assert.equal(result.topology.pattern[row][0], '#');
+      assert.equal(result.topology.pattern[row][1], '.');
+      assert.equal(result.topology.pattern[row][2], '.');
+      assert.equal(result.topology.pattern[row][3], '.');
+    }
+    assert.equal(
+      result.topology.slots.filter(slot => slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY').length,
+      1
+    );
+    patterns.add(result.topology.pattern.join('/'));
+  }
+
+  assert.ok(patterns.size >= 4, 'special layouts should vary through validator-approved mutations; got ' + patterns.size);
+});
+
 test('topology generation is deterministic for a fixed seed', () => {
   const options = { seed: 90317, includeSpecialEleven: true, maxAttempts: 192 };
   const first = generateTopology(options);

@@ -186,6 +186,13 @@ test('the 8x12 preflight permits the dynamically generated top border', () => {
   const unsupported = analyzeRequiredBorderFeasibility({ width: 9, height: 12 });
   assert.equal(unsupported.feasible, null);
   assert.equal(unsupported.reason, 'UNSUPPORTED_DIMENSIONS');
+
+  const fullBorderConflict = analyzeRequiredBorderFeasibility({ requireFullTopRow: true });
+  assert.equal(fullBorderConflict.feasible, false);
+  assert.equal(fullBorderConflict.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.deepEqual(fullBorderConflict.conflicts[0].topClue, { row: 0, col: 2 });
+  assert.equal(fullBorderConflict.conflicts[0].availableLettersBetweenClues, 1);
+  assert.equal(fullBorderConflict.conflicts[0].minimumNormalAnswerLength, 2);
 });
 
 test('generates varied, connected topologies rather than one fixed board layout', () => {
