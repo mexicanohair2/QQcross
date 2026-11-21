@@ -218,6 +218,43 @@ test('validates the unique eleven-letter bottom-edge boundary slot', () => {
   assert.equal(result.words[0].coordinates.length, 11);
 });
 
+test('keeps an image-backed special eleven-letter answer eligible under strict image planning', () => {
+  const coordinates = Array.from({ length: 11 }, (_, index) => ({ row: index + 1, col: 1 }));
+  const specialSlot = {
+    id: 'special-image-eleven',
+    special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY',
+    length: 11,
+    endpoints: [
+      { row: 0, col: 1 },
+      { row: 12, col: 1, boundary: true }
+    ],
+    coordinates,
+    directionOptions: [{
+      clueCell: { row: 0, col: 1 },
+      terminalCell: { row: 12, col: 1, boundary: true },
+      direction: 'down',
+      coordinates
+    }]
+  };
+  const result = solveSlotsCsp([specialSlot], [
+    { id: 'camera', answer: 'ФОТОАППАРАТ', question: 'Что изображено на картинке?', imageKey: 'camera' }
+  ], {
+    seed: 12,
+    requiredImageCount: 1,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    enforcePreferredImagePlacements: true,
+    preferredImagePlacementsBySlot: new Map(),
+    allowedDirections: ['down'],
+    maxNodes: 100,
+    maxTimeMs: 1000
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].answer, 'ФОТОАППАРАТ');
+  assert.equal(result.words[0].imageKey, 'camera');
+});
+
 test('rejects a slot whose direction does not match its coordinates', () => {
   const a = { row: 1, col: 1 };
   const b = { row: 1, col: 5 };
