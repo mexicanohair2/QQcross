@@ -20,6 +20,27 @@ export function analyzeRequiredBorderFeasibility(options = {}) {
       message: 'Генератор QQCross поддерживает только поле 8×12.'
     };
   }
+  if (options.requireFullTopRow === true) {
+    return {
+      feasible: false,
+      reason: 'FULL_TOP_AND_LEFT_BORDER_CONFLICT',
+      width,
+      height,
+      requiredTopCells: Array.from({ length: width - 1 }, (_, index) => ({ row: 0, col: index + 1 })),
+      requiredLeftBorderRows: Array.from({ length: height - 1 }, (_, index) => index + 1),
+      conflicts: [{
+        code: 'TOP_COLUMN_TWO_BREAKS_LEFT_BORDER_ENTRY',
+        topClue: { row: 0, col: 2 },
+        requiredTermination: 'An interior question cell in column 2 is needed to bound a normal downward answer.',
+        blockingLeftClue: { row: 'same as the column-2 terminal', col: 0 },
+        availableLettersBetweenClues: 1,
+        minimumNormalAnswerLength: MIN_ANSWER_LENGTH,
+        reason: 'A question at (r,2) leaves only cell (r,1) between it and the mandatory left-border clue at (r,0). That would force a one-letter answer. Without an interior question in column 2, the top clue at (0,2) can only run to the bottom boundary as another 11-letter exception, which is not permitted.'
+      }],
+      message: 'Полная верхняя и левая границы одновременно несовместимы с минимальной длиной ответа 2 и единственным исключением для 11 букв в колонке 1.'
+    };
+  }
+
   return {
     feasible: true,
     reason: 'DYNAMIC_TOP_BORDER_SUPPORTED',
