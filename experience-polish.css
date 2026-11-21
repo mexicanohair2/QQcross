@@ -69,3 +69,29 @@
  .screen .btn,.screen .card,.screen .player,.screen .room-friend-row,.screen .guess-row,
  .screen .guess-cell,.screen .word-cell,.screen .letter-key,.screen .room-tile{transition:none!important}
 }
+
+
+/* Keep the 8×12 scanword inside the space left after the player strip and rack. */
+.game-screen .score-strip{
+  position:relative!important;
+  z-index:1!important;
+}
+.game-screen .board-wrap.scanword-wrap{
+  position:relative!important;
+  z-index:2!important;
+  flex:1 1 0!important;
+  min-height:0!important;
+  overflow:hidden!important;
+}
+.game-screen .scanword-board{
+  width:auto!important;
+  height:100%!important;
+  max-width:100%!important;
+  max-height:100%!important;
+  aspect-ratio:2 / 3!important;
+}
+
+/* Informational toasts must never capture touch or mouse input. */
+.toast{
+  pointer-events:none!important;
+}
