@@ -265,8 +265,7 @@ export function chooseCompatibleImageSelection(domains, requiredImageCount, spec
     }
 
     viableDomains.sort((a, b) =>
-      Number(a.slotLength === 2) - Number(b.slotLength === 2)
-      || a.candidates.length - b.candidates.length
+      a.candidates.length - b.candidates.length
       || a.slotId.localeCompare(b.slotId)
     );
     const chosen = viableDomains[0];
@@ -436,7 +435,7 @@ export function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes
       mutateSpecialPattern: true,
       mutationBudget: 48,
       maxAttempts: 1,
-      maxTwoLetterSlots: 2
+      maxTwoLetterSlots: 3
     });
     if (!lowShortTopology.ok) continue;
     const signature = lowShortTopology.topology.pattern.join('/');
