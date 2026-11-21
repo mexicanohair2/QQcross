@@ -722,6 +722,42 @@ test('CSP places answers in all four directions when each orientation is allowed
   }
 });
 
+test('CSP keeps only orientations retained by the special-plan AC-3 domain', () => {
+  const horizontal = slot(
+    'planned-horizontal',
+    { row: 1, col: 0 },
+    { row: 1, col: 4 },
+    [{ row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }],
+    'right',
+    'left'
+  );
+  const result = solveSlotsCsp([horizontal], [
+    entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')
+  ], {
+    seed: 19,
+    requiredImageCount: 0,
+    minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
+    allowedDirections: ['right', 'left', 'down', 'up'],
+    allowedEntryIdsBySlot: new Map([['planned-horizontal', new Set(['cat'])]]),
+    allowedPlacementKeysBySlot: new Map([[
+      'planned-horizontal',
+      new Set(['cat|left|1,4'])
+    ]]),
+    maxNodes: 100,
+    maxTimeMs: 500
+  });
+
+  assert.equal(result.ok, true, result.message);
+  assert.equal(result.words[0].direction, 'left');
+  assert.deepEqual(result.words[0].clue, { row: 1, col: 4 });
+  assert.deepEqual(result.words[0].coordinates, [
+    { row: 1, col: 3 },
+    { row: 1, col: 2 },
+    { row: 1, col: 1 }
+  ]);
+});
+
 test('CSP preserves the fixed downward lower-right terminal slot', () => {
   const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 4, col: 7 },
     Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
