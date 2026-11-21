@@ -837,7 +837,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
         allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
-        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+        enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random);
       if (candidates.length === 0) {
         recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id, slotLength: specialElevenSlot.length });
@@ -896,7 +897,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
           allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
-        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+          enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
         }, random);
 
         if (candidates.length === 0) {
