@@ -36,7 +36,7 @@ function canAssignDistinctShortAnswers(domains) {
   return assign(0);
 }
 
-function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500) {
+function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null) {
   const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
   const specialHasImage = Boolean(specialEntry.imageKey);
   const specialClueKey = '0,1';
@@ -72,6 +72,9 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
   const selected = [];
   const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
   const usedAnswers = new Set([specialAnswerKey]);
+  const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
+  const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
+  usedDifficultyCounts[normalizeDifficultyBand(specialEntry.difficulty)]++;
   const usedClues = new Set(specialHasImage ? [specialClueKey] : []);
   const usedDirections = new Set([specialClueKey + '|down']);
   const letterUses = new Map(specialLetters);
@@ -82,6 +85,8 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
       || usedAnswers.has(candidate.answerKey)
       || usedClues.has(candidate.clueKey)
       || usedDirections.has(candidate.directionKey)) return false;
+    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
+    if (usedDifficultyCounts[difficultyBand] >= plannedDifficultyQuotas[difficultyBand]) return false;
     for (let index = 0; index < candidate.coordinates.length; index++) {
       const point = candidate.coordinates[index];
       const key = point.row + ',' + point.col;
@@ -97,6 +102,7 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
   const add = candidate => {
     usedAssets.add(candidate.entry.imageKey);
     usedAnswers.add(candidate.answerKey);
+    usedDifficultyCounts[normalizeDifficultyBand(candidate.entry.difficulty)]++;
     usedClues.add(candidate.clueKey);
     usedDirections.add(candidate.directionKey);
     const added = [];
@@ -119,6 +125,8 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
     selected.pop();
     usedAssets.delete(candidate.entry.imageKey);
     usedAnswers.delete(candidate.answerKey);
+    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
+    usedDifficultyCounts[difficultyBand] = Math.max(0, usedDifficultyCounts[difficultyBand] - 1);
     usedClues.delete(candidate.clueKey);
     usedDirections.delete(candidate.directionKey);
     for (const key of added) letterUses.delete(key);
@@ -515,7 +523,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         requiredImageCount,
         entry,
         foldYo,
-        requirements.imageSelectionSearchNodes ?? 2500
+        requirements.imageSelectionSearchNodes ?? 2500,
+        difficultyQuotas
       );
       if (!compatibleImageSelection) {
         planDiagnostics.imageAssignmentRejected++;
