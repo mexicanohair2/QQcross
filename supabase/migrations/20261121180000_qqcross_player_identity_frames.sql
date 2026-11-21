@@ -10,12 +10,40 @@ alter table public.profiles alter column active_frame set default 'standard';
 alter table public.profiles alter column owned_frames set default array['standard']::text[];
 alter table public.profiles alter column active_title set default 'Новичок';
 
+
 update public.profiles set active_frame='standard'
 where active_frame is null or active_frame not in ('standard','ruby','amethyst','royal','astral');
 update public.profiles set active_title='Новичок'
 where active_title is null or char_length(active_title)<1 or char_length(active_title)>64;
 update public.profiles set avatar_url=null
-where avatar_url is not null and avatar_url !~ '^https://lzpkronttfzbubbfggsb\\.supabase\\.co/storage/v1/object/public/avatars/[A-Za-z0-9_/-]+\\.webp
+where avatar_url is not null and avatar_url !~ '^https://lzpkronttfzbubbfggsb\.supabase\.co/storage/v1/object/public/avatars/[A-Za-z0-9_/-]+\.webp$';
+update public.profiles
+set owned_frames=array(
+  select frame from unnest(coalesce(owned_frames,array[]::text[])) with ordinality as owned(frame,ord)
+  where frame in ('standard','ruby','amethyst','royal','astral')
+  order by ord
+)
+where owned_frames is null
+   or cardinality(owned_frames)=0
+   or not ('standard'=any(owned_frames))
+   or exists(select 1 from unnest(owned_frames) as owned(frame) where frame not in ('standard','ruby','amethyst','royal','astral'));
+update public.profiles set owned_frames=array_prepend('standard',owned_frames)
+where not ('standard'=any(owned_frames));
+
+alter table public.profiles drop constraint if exists profiles_active_frame_check;
+alter table public.profiles drop constraint if exists profiles_active_frame_qqcross_check;
+alter table public.profiles add constraint profiles_active_frame_qqcross_check
+  check (active_frame in ('standard','ruby','amethyst','royal','astral'));
+alter table public.profiles drop constraint if exists profiles_active_title_qqcross_check;
+alter table public.profiles add constraint profiles_active_title_qqcross_check
+  check (char_length(active_title)>=1 and char_length(active_title)<=64);
+alter table public.profiles drop constraint if exists profiles_avatar_url_qqcross_check;
+alter table public.profiles add constraint profiles_avatar_url_qqcross_check
+  check (avatar_url is null or avatar_url ~ '^https://lzpkronttfzbubbfggsb\.supabase\.co/storage/v1/object/public/avatars/[A-Za-z0-9_/-]+\.webp$');
+alter table public.profiles drop constraint if exists profiles_owned_frames_qqcross_check;
+alter table public.profiles add constraint profiles_owned_frames_qqcross_check
+  check (owned_frames @> array['standard']::text[]
+    and owned_frames <@ array['standard','ruby','amethyst','royal','astral']::text[]);
 
 create or replace function private.equip_qqcross_frame(target_frame_id text)
 returns jsonb language plpgsql security definer set search_path=''
