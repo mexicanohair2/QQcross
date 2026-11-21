@@ -157,9 +157,9 @@ function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntr
 
   const selected = [];
   const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
-  // Track image answers separately from the remaining two-letter matching.
-  // A picture may use a two-letter word only when every short slot still has
-  // a distinct, letter-compatible answer after that picture is placed.
+  // Image slots are reserved before ordinary two-letter answers are matched.
+  // Any short slot with only a picture-backed answer must itself be selected
+  // as one of the required image placements; it cannot masquerade as text fill.
   const usedAnswers = new Set([specialAnswerKey]);
   const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
   const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
@@ -435,7 +435,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     topologiesConsidered: topologies.length,
     missingSlotDomains: 0,
     arcConsistencyRejected: 0,
-    shortAnswerMatchingRejected: 0,
     contentRequirementsRejected: 0,
     imageAssignmentRejected: 0,
     viablePlans: 0,
