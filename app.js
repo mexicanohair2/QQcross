@@ -715,10 +715,12 @@ async function loadMatchInbox(){
     '<div class="card"><b>'+esc(x.host_username)+'</b><p class="small muted">Приглашение в сканворд · '+x.player_limit+' игрока</p><div class="grid2"><button class="btn primary match-accept" data-id="'+x.match_id+'">Принять</button><button class="btn match-reject" data-id="'+x.match_id+'">Отклонить</button></div></div>'
   ).join(""):"";
 
+  await loadPlayerProfiles((pr.data||[]).map(x=>x.sender_id));
   const partyInvites=pr.data?.length?pr.data.map(x=>{
     const gameName=x.game==="team_word"?"Team Word":"QQ Draw";
+    const sender=playerProfileCache.get(String(x.sender_id))||{id:x.sender_id,username:x.sender_username,avatar:x.sender_avatar};
     return '<div class="card qq-party-invite-card" data-invite-id="'+esc(x.invite_id)+'">'+
-      '<b>'+esc(x.sender_username)+'</b>'+
+      playerIdentityMarkup(sender,{size:"sm",clickable:true})+
       '<p class="small muted">Приглашает в '+gameName+' · '+x.player_limit+' мест</p>'+
       '<div class="grid2"><button class="btn primary party-invite-accept" data-id="'+esc(x.invite_id)+'">Принять</button><button class="btn party-invite-decline" data-id="'+esc(x.invite_id)+'">Отклонить</button></div>'+
       '</div>';
@@ -755,13 +757,13 @@ async function loadMatchInbox(){
         p_invite_id:b.dataset.id,p_accept:true
       });
       if(error)throw error;
-      if(!data?.accepted||!data.code)throw new Error("Не удалось принять приглашение.");
+      if(!data?.accepted||!data.room_id)throw new Error("Не удалось принять приглашение.");
       const isTeamWord=data.game==="team_word";
       const gameUrl=isTeamWord?"./games/team-word/index.html":"./games/qq-draw/index.html";
       const title=isTeamWord?"Открыть Team Word":"Открыть QQ Draw";
       const card=b.closest(".qq-party-invite-card");
-      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Комната '+esc(data.code)+'</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room='+encodeURIComponent(data.code)+'" target="_blank" rel="noopener">'+title+'</a>';
-      toast("Ты присоединился к комнате. Открой игру по кнопке.");
+      if(card)card.innerHTML='<b>Приглашение принято</b><p class="small muted">Ты уже в лобби. Код комнаты не нужен.</p><a class="btn primary full qq-party-open-link" href="'+gameUrl+'?room_id='+encodeURIComponent(data.room_id)+'">'+title+'</a>';
+      toast("Ты присоединился к лобби QQCross.");
     }catch(e){
       b.disabled=false;b.textContent="Принять";
       toast(e.message||"Не удалось принять приглашение");
