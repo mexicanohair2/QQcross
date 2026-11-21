@@ -138,7 +138,7 @@ html[data-qq-theme="black"]{
 html[data-qq-theme] body,html[data-qq-theme] .screen,html[data-qq-theme] .game-screen{background:var(--qq-theme-page)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .card,html[data-qq-theme] .notice,html[data-qq-theme] .hero{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .nav,html[data-qq-theme] .score-strip,html[data-qq-theme] .letter-area,html[data-qq-theme] .items,html[data-qq-theme] .coins,html[data-qq-theme] .pill,html[data-qq-theme] .timer{background:var(--qq-theme-panel)!important;border-color:var(--qq-theme-border)!important;color:var(--qq-theme-text)!important}
-html[data-qq-theme] .score-strip span{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important}
+html[data-qq-theme] .score-strip > span{background:var(--qq-theme-card)!important;color:var(--qq-theme-text)!important}
 html[data-qq-theme] .score-strip .active-player{background:var(--qq-theme-panel-strong)!important;outline:1px solid var(--qq-theme-accent)!important}
 html[data-qq-theme] .board-wrap{background:var(--qq-theme-card)!important;border-color:var(--qq-theme-border)!important}
 html[data-qq-theme] .cell{background:var(--qq-theme-cell)!important;border-color:var(--qq-theme-border)!important}
