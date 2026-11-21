@@ -640,7 +640,6 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         (index + 1) + ',1',
         foldYo && letter === 'Ё' ? 'Е' : letter
       ]));
-      }));
       const shortMatchingValid = canAssignDistinctShortAnswers(shortDomains, {
         excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
         letterUses: specialLetters,
