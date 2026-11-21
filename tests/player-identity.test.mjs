@@ -41,7 +41,7 @@ test("all frame ornaments exist and contain SVG", async () => {
 });
 
 test("reproducible migration matches app RPC names and the avatars bucket", async () => {
-  const sql = await readFile(new URL("../supabase/migrations/20261121180000_qqcross_player_identity_frames.sql", import.meta.url), "utf8");
+  const sql = await readFile(new URL("../supabase/migrations/20261121071947_qqcross_player_identity_frames.sql", import.meta.url), "utf8");
   for (const name of ["get_qqcross_player_profile", "purchase_qqcross_frame", "equip_qqcross_frame"]) assert.ok(sql.includes(name));
   assert.match(sql, /values\('avatars','avatars',true/);
   assert.match(sql, /active_frame/);
