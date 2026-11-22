@@ -186,31 +186,44 @@ function hasUnassignedOutgoingOption(questionKeys, unassignedSlots, directionUse
  * image assets and unique clue-cell quotas so a late CSP dead end is pruned
  * before consuming every remaining slot.
  */
-export function maximumDistinctAssignmentCount(domains) {
+function getMaximumDistinctAssignment(domains) {
   const normalized = domains
-    .map(domain => [...new Set(domain ?? [])].filter(value => value !== null && value !== undefined && value !== '').sort())
-    .filter(domain => domain.length > 0)
-    .sort((a, b) => a.length - b.length);
+    .map((domain, slotIndex) => ({
+      slotIndex,
+      values: [...new Set(domain ?? [])]
+        .filter(value => value !== null && value !== undefined && value !== '')
+        .sort()
+    }))
+    .filter(domain => domain.values.length > 0)
+    .sort((a, b) => a.values.length - b.values.length);
   const ownerByValue = new Map();
 
-  function augment(slotIndex, visited) {
-    for (const value of normalized[slotIndex]) {
+  function augment(slot, visited) {
+    for (const value of slot.values) {
       if (visited.has(value)) continue;
       visited.add(value);
       const owner = ownerByValue.get(value);
       if (owner === undefined || augment(owner, visited)) {
-        ownerByValue.set(value, slotIndex);
+        ownerByValue.set(value, slot);
         return true;
       }
     }
     return false;
   }
 
-  let assigned = 0;
-  for (let slotIndex = 0; slotIndex < normalized.length; slotIndex++) {
-    if (augment(slotIndex, new Set())) assigned++;
-  }
-  return assigned;
+  for (const slot of normalized) augment(slot, new Set());
+
+  return {
+    count: ownerByValue.size,
+    assignments: [...ownerByValue].map(([resource, slot]) => ({
+      slotIndex: slot.slotIndex,
+      resource
+    }))
+  };
+}
+
+export function maximumDistinctAssignmentCount(domains) {
+  return getMaximumDistinctAssignment(domains).count;
 }
 
 function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, requiredImageCount, minimumLogicClueCells) {
@@ -901,6 +914,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const selectionOrder = shuffle(unassigned, random);
       let chosenContentPriority = -1;
       const imageDomains = [];
+      const imageDomainRecords = [];
       const imageDomainDiagnostics = [];
       const logicClueDomains = [];
       const difficultyDomains = { 2: [], 3: [], 4: [] };
@@ -928,7 +942,14 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
 
         const imageCandidates = candidates.filter(candidate => Boolean(candidate.entry.imageKey));
         const imageKeys = new Set(imageCandidates.map(candidate => candidate.entry.imageKey));
-        if (imageKeys.size) imageDomains.push([...imageKeys]);
+        imageDomains.push([...imageKeys]);
+        imageDomainRecords.push({
+          slot,
+          candidates,
+          imageCandidates,
+          imageKeys: [...imageKeys],
+          slotDegree: degrees[slots.findIndex(item => item.id === slot.id)] ?? 0
+        });
         if (options.captureTrace) {
           imageDomainDiagnostics.push({
             slotId: slot.id,
@@ -992,7 +1013,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       }
 
       const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
-      const availableImageAssignments = maximumDistinctAssignmentCount(imageDomains);
+      const imageAssignment = getMaximumDistinctAssignment(imageDomains);
+      const availableImageAssignments = imageAssignment.count;
       if (availableImageAssignments < remainingImageQuota) {
         recordDeadEnd({
           reason: 'IMAGE_CAPACITY_UNREACHABLE',
@@ -1002,6 +1024,38 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           ...(options.captureTrace ? { imageDomainDiagnostics } : {})
         });
         return false;
+      }
+
+      // Reserve one slot/key pair from a maximum matching before ordinary
+      // word placements consume its crossing letters. Choose the tightest
+      // matched image domain first, then use normal MRV/degree to break ties.
+      // Candidates for the matched key are tried first; the remaining
+      // candidates stay as backtracking fallbacks if that picture conflicts.
+      if (remainingImageQuota > 0 && imageAssignment.assignments.length > 0) {
+        const matched = imageAssignment.assignments
+          .map(assignment => ({
+            ...assignment,
+            record: imageDomainRecords[assignment.slotIndex]
+          }))
+          .filter(item => item.record?.imageCandidates?.length)
+          .sort((a, b) =>
+            a.record.imageCandidates.length - b.record.imageCandidates.length
+            || a.record.candidates.length - b.record.candidates.length
+            || b.record.slotDegree - a.record.slotDegree
+          );
+        const selected = matched[0];
+        if (selected) {
+          const preferred = selected.record.imageCandidates.filter(
+            candidate => candidate.entry.imageKey === selected.resource
+          );
+          const preferredSet = new Set(preferred);
+          chosenSlot = selected.record.slot;
+          chosenCandidates = [
+            ...preferred,
+            ...selected.record.candidates.filter(candidate => !preferredSet.has(candidate))
+          ];
+          chosenDegree = selected.record.slotDegree;
+        }
       }
 
       const remainingLogicQuota = Math.max(0, minimumLogicClueCells - state.usedLogicClues.size);
