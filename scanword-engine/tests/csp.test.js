@@ -53,6 +53,7 @@ test('solves a right/down-only acyclic clue topology and assigns every non-termi
     seed: 42,
     requiredImageCount: 0,
     minimumLogicClueCells: 0,
+    requireEveryClueStarts: false,
     maxNodes: 1000,
     maxTimeMs: 1000
   });
