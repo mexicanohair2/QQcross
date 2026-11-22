@@ -453,6 +453,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   }
 
   const indexes = options.indexes ?? buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
+  // The mandatory picture quota is solved against a much smaller dedicated
+  // dictionary index. Do not scan every text-only clue for every open slot
+  // while the solver is still reserving image assets.
+  const imageIndexes = buildIndexes(
+    prepared.variants.filter(entry => Boolean(entry.imageKey)),
+    { foldYo: options.foldYo === true }
+  );
   const slots = inputSlots.map(slot => ({
     ...slot,
     coordinates: slot.coordinates.map(point => ({ ...point })),
@@ -912,13 +919,151 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return false;
       }
     } else {
+      const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
+
+      if (remainingImageQuota > 0) {
+        // Picture reservation phase: search only image-backed dictionary
+        // variants. The full text dictionary is intentionally not scanned
+        // until five distinct image keys have been placed.
+        const imageDomains = [];
+        const imageDomainRecords = [];
+        const imageDomainDiagnostics = [];
+
+        for (const slot of shuffle(unassigned, random)) {
+          const imageCandidates = makePlacementCandidates(slot, state, imageIndexes, {
+            requiredImageCount,
+            minimumLogicClueCells,
+            requireDifficultyBalance: options.requireDifficultyBalance === true,
+            difficultyCounts: state.difficultyCounts,
+            difficultyQuotas,
+            history: options.history,
+            allowedDirections,
+            repeatWordPenalty: options.repeatWordPenalty,
+            repeatQuestionPenalty: options.repeatQuestionPenalty,
+            allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+            allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+            preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+            enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
+          }, random);
+
+          const imageKeys = [...new Set(imageCandidates.map(candidate => candidate.entry.imageKey))];
+          imageDomains.push(imageKeys);
+          imageDomainRecords.push({
+            slot,
+            imageCandidates,
+            imageKeys,
+            slotDegree: degrees[slots.findIndex(item => item.id === slot.id)] ?? 0
+          });
+
+          if (options.captureTrace) {
+            imageDomainDiagnostics.push({
+              slotId: slot.id,
+              length: slot.length,
+              imageCandidatePlacements: imageCandidates.length,
+              imageKeys,
+              firstImageCandidates: imageCandidates.slice(0, 8).map(candidate => ({
+                answer: candidate.entry.answer,
+                imageKey: candidate.entry.imageKey,
+                clueCell: { ...candidate.clueCell },
+                direction: candidate.direction
+              }))
+            });
+          }
+        }
+
+        const imageAssignment = getMaximumDistinctAssignment(imageDomains);
+        if (imageAssignment.count < remainingImageQuota) {
+          recordDeadEnd({
+            reason: 'IMAGE_CAPACITY_UNREACHABLE',
+            required: remainingImageQuota,
+            available: imageAssignment.count,
+            openSlots: unassigned.length,
+            ...(options.captureTrace ? { imageDomainDiagnostics } : {})
+          });
+          return false;
+        }
+
+        const reservations = [];
+        for (const record of imageDomainRecords) {
+          for (const imageKey of record.imageKeys) {
+            const residualDomains = imageDomains
+              .filter((domain, index) => imageDomainRecords[index].slot.id !== record.slot.id)
+              .map(domain => domain.filter(value => value !== imageKey));
+            const availableAfterReservation = maximumDistinctAssignmentCount(residualDomains);
+            if (availableAfterReservation < remainingImageQuota - 1) continue;
+
+            const candidates = record.imageCandidates.filter(
+              candidate => candidate.entry.imageKey === imageKey
+            );
+            if (!candidates.length) continue;
+            reservations.push({
+              slot: record.slot,
+              imageKey,
+              candidates,
+              imagePlacementCount: candidates.length,
+              slotDegree: record.slotDegree,
+              availableAfterReservation
+            });
+          }
+        }
+
+        reservations.sort((a, b) =>
+          a.imagePlacementCount - b.imagePlacementCount
+          || b.slotDegree - a.slotDegree
+          || String(a.imageKey).localeCompare(String(b.imageKey))
+        );
+
+        if (!reservations.length) {
+          recordDeadEnd({
+            reason: 'NO_SAFE_IMAGE_RESERVATION',
+            required: remainingImageQuota,
+            available: imageAssignment.count,
+            openSlots: unassigned.length
+          });
+          return false;
+        }
+
+        // Every complete solution has at least one safe image reservation.
+        // Branch across those reservations, but defer ordinary dictionary
+        // domains until the picture quota is complete.
+        for (const reservation of reservations) {
+          recordSearchChoice(reservation.slot, reservation.candidates, {
+            imageReservation: {
+              imageKey: reservation.imageKey,
+              remainingQuota: remainingImageQuota,
+              availableAfterReservation: reservation.availableAfterReservation
+            }
+          });
+
+          for (const candidate of reservation.candidates) {
+            if (options.signal?.aborted) {
+              cancelled = true;
+              return false;
+            }
+            addPlacement(candidate);
+            if (search()) return true;
+            undoPlacement(candidate);
+            if (cancelled || budgetExceeded) return false;
+          }
+        }
+
+        recordDeadEnd({
+          reason: 'SAFE_IMAGE_RESERVATIONS_EXHAUSTED',
+          required: remainingImageQuota,
+          reservationCount: reservations.length,
+          openSlots: unassigned.length
+        });
+        return false;
+      }
+
+      // Once the image quota is met, switch to the full dictionary and
+      // ordinary MRV. This avoids repeatedly scanning thousands of text-only
+      // variants during the image-only reservation phase.
       const selectionOrder = shuffle(unassigned, random);
       let chosenContentPriority = -1;
-      const imageDomains = [];
-      const imageDomainRecords = [];
-      const imageDomainDiagnostics = [];
       const logicClueDomains = [];
       const difficultyDomains = { 2: [], 3: [], 4: [] };
+
       for (const slot of selectionOrder) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
@@ -931,40 +1076,14 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
           allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
-        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
-        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+          allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+          preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
           enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
         }, random);
 
-        if (candidates.length === 0) {
+        if (!candidates.length) {
           recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id, slotLength: slot.length });
           return false;
-        }
-
-        const imageCandidates = candidates.filter(candidate => Boolean(candidate.entry.imageKey));
-        const imageKeys = new Set(imageCandidates.map(candidate => candidate.entry.imageKey));
-        imageDomains.push([...imageKeys]);
-        imageDomainRecords.push({
-          slot,
-          candidates,
-          imageCandidates,
-          imageKeys: [...imageKeys],
-          slotDegree: degrees[slots.findIndex(item => item.id === slot.id)] ?? 0
-        });
-        if (options.captureTrace) {
-          imageDomainDiagnostics.push({
-            slotId: slot.id,
-            length: slot.length,
-            candidateCount: candidates.length,
-            imageCandidatePlacements: imageCandidates.length,
-            imageKeys: [...imageKeys],
-            firstImageCandidates: imageCandidates.slice(0, 8).map(candidate => ({
-              answer: candidate.entry.answer,
-              imageKey: candidate.entry.imageKey,
-              clueCell: { ...candidate.clueCell },
-              direction: candidate.direction
-            }))
-          });
         }
 
         const logicClueKeys = new Set(candidates
@@ -979,52 +1098,26 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           candidateDifficultyAnswers[band].add(canonicalAnswerKey(candidate.entry.answer));
         }
         for (const level of [2, 3, 4]) {
-          if (candidateDifficultyAnswers[level].size) {
-            difficultyDomains[level].push([...candidateDifficultyAnswers[level]]);
-          }
+          if (candidateDifficultyAnswers[level].size) difficultyDomains[level].push([...candidateDifficultyAnswers[level]]);
         }
 
-        // Keep MRV as the primary rule: a slot with fewer legal placements
-        // must be resolved before a wide image/logic domain, otherwise one
-        // "content-priority" slot can delay forced crossings and explode the
-        // branching factor. Quota reachability is checked independently below,
-        // and candidates inside the chosen domain still rank images and new
-        // logic clues first.
-        const imagePriority = state.usedImages.size < requiredImageCount
-          && candidates.some(candidate => Boolean(candidate.entry.imageKey)) ? 2 : 0;
         const logicPriority = state.usedLogicClues.size < minimumLogicClueCells
           && candidates.some(candidate => candidate.entry.logic === true
             && !state.usedLogicClues.has(pointKey(candidate.clueCell))) ? 1 : 0;
-        const contentPriority = imagePriority + logicPriority;
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
           || candidates.length < chosenCandidates.length
+          || (candidates.length === chosenCandidates.length && logicPriority > chosenContentPriority)
           || (candidates.length === chosenCandidates.length
-            && contentPriority > chosenContentPriority)
-          || (candidates.length === chosenCandidates.length
-            && contentPriority === chosenContentPriority
+            && logicPriority === chosenContentPriority
             && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
           chosenCandidates = candidates;
           chosenDegree = slotDegree;
-          chosenContentPriority = contentPriority;
+          chosenContentPriority = logicPriority;
         }
-      }
-
-      const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
-      const imageAssignment = getMaximumDistinctAssignment(imageDomains);
-      const availableImageAssignments = imageAssignment.count;
-      if (availableImageAssignments < remainingImageQuota) {
-        recordDeadEnd({
-          reason: 'IMAGE_CAPACITY_UNREACHABLE',
-          required: remainingImageQuota,
-          available: availableImageAssignments,
-          openSlots: unassigned.length,
-          ...(options.captureTrace ? { imageDomainDiagnostics } : {})
-        });
-        return false;
       }
 
       const remainingLogicQuota = Math.max(0, minimumLogicClueCells - state.usedLogicClues.size);
@@ -1056,84 +1149,6 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
             return false;
           }
         }
-      }
-
-      if (remainingImageQuota > 0) {
-        const reservations = [];
-        for (let slotIndex = 0; slotIndex < imageDomainRecords.length; slotIndex++) {
-          const record = imageDomainRecords[slotIndex];
-          for (const imageKey of record.imageKeys) {
-            const residualDomains = imageDomains
-              .filter((domain, index) => index !== slotIndex)
-              .map(domain => domain.filter(value => value !== imageKey));
-            const availableAfterReservation = maximumDistinctAssignmentCount(residualDomains);
-            if (availableAfterReservation < remainingImageQuota - 1) continue;
-
-            const candidatesForKey = record.imageCandidates.filter(
-              candidate => candidate.entry.imageKey === imageKey
-            );
-            if (!candidatesForKey.length) continue;
-            reservations.push({
-              slot: record.slot,
-              imageKey,
-              candidates: candidatesForKey,
-              domainSize: record.candidates.length,
-              imagePlacementCount: candidatesForKey.length,
-              availableAfterReservation,
-              slotDegree: record.slotDegree
-            });
-          }
-        }
-
-        reservations.sort((a, b) =>
-          a.imagePlacementCount - b.imagePlacementCount
-          || a.domainSize - b.domainSize
-          || b.slotDegree - a.slotDegree
-          || String(a.imageKey).localeCompare(String(b.imageKey))
-        );
-
-        if (reservations.length === 0) {
-          recordDeadEnd({
-            reason: 'NO_SAFE_IMAGE_RESERVATION',
-            required: remainingImageQuota,
-            available: availableImageAssignments,
-            openSlots: unassigned.length
-          });
-          return false;
-        }
-
-        // Every complete solution must place at least one of these safe
-        // slot/key pairs next. Enumerating all of them is complete: after
-        // reserving a pair, a maximum matching still exists for the rest of
-        // the image quota. No ordinary word may consume the selected slot
-        // until its image-backed candidates have been attempted.
-        for (const reservation of reservations) {
-          recordSearchChoice(reservation.slot, reservation.candidates, {
-            imageReservation: {
-              imageKey: reservation.imageKey,
-              remainingQuota: remainingImageQuota,
-              availableAfterReservation: reservation.availableAfterReservation
-            }
-          });
-          for (const candidate of reservation.candidates) {
-            if (options.signal?.aborted) {
-              cancelled = true;
-              return false;
-            }
-            addPlacement(candidate);
-            if (search()) return true;
-            undoPlacement(candidate);
-            if (cancelled || budgetExceeded) return false;
-          }
-        }
-
-        recordDeadEnd({
-          reason: 'SAFE_IMAGE_RESERVATIONS_EXHAUSTED',
-          required: remainingImageQuota,
-          reservationCount: reservations.length,
-          openSlots: unassigned.length
-        });
-        return false;
       }
 
       recordSearchChoice(chosenSlot, chosenCandidates);
