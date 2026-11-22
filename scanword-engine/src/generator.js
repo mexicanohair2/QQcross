@@ -192,7 +192,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
           if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
-          if (!['right', 'down'].includes(orientation.direction)) continue;
+          // All four orientations are valid; the topology validator and CSP
+          // independently enforce each slot's coordinates and boundary rules.
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -500,7 +501,6 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
