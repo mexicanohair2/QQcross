@@ -20,6 +20,7 @@
   };
 
   const byId = (id) => document.getElementById(id);
+  let connectSequence = 0;
 
   function escapeText(value) {
     return String(value ?? "");
@@ -202,13 +203,26 @@
   }
 
   async function connect(context) {
+    const sequence = ++connectSequence;
+    const nextUserId = String(context.userId || "");
+    if (state.userId !== nextUserId) {
+      state.messages = [];
+      state.imageDataUrl = "";
+      state.imageName = "";
+      state.busy = false;
+      renderMessages();
+      renderAttachment();
+    }
     state.supabase = context.supabase;
-    state.userId = String(context.userId || "");
+    state.userId = nextUserId;
     state.ready = false;
     state.quota = null;
     state.token = "";
+    renderQuota();
 
     if (!state.supabase || !state.userId || state.userId.startsWith("local-")) {
+      state.messages = [];
+      renderMessages();
       setStatus("Нужен аккаунт", "warning");
       setError("Quantum-AI доступна только после входа в QQCross по подтверждённой электронной почте.");
       renderQuota();
@@ -219,18 +233,25 @@
     let session;
     try {
       const result = await state.supabase.auth.getSession();
+      if (sequence !== connectSequence) return;
       if (result.error) throw result.error;
       session = result.data?.session;
     } catch {
+      if (sequence !== connectSequence) return;
+      state.messages = [];
+      renderMessages();
       setStatus("Нет авторизации", "warning");
       setError("Не удалось проверить вход в QQCross. Войди в аккаунт и попробуй снова.");
       setComposerEnabled(false);
       return;
     }
 
+    if (sequence !== connectSequence) return;
     const user = session?.user;
     if (!session?.access_token || !user?.id || user.id !== state.userId ||
         user.is_anonymous === true || !(user.email_confirmed_at || user.confirmed_at)) {
+      state.messages = [];
+      renderMessages();
       setStatus("Подтверди почту", "warning");
       setError("Для Quantum-AI нужен подтверждённый аккаунт QQCross. Гостевой вход не подходит.");
       setComposerEnabled(false);
@@ -244,14 +265,17 @@
 
     try {
       const health = await fetch(API + "/health", { cache: "no-store" });
+      if (sequence !== connectSequence) return;
       if (!health.ok) throw new Error("Worker unavailable");
       await refreshQuota();
+      if (sequence !== connectSequence) return;
       state.ready = true;
       setStatus("В сети", "ready");
       setError("");
       renderMessages();
       setComposerEnabled(true);
     } catch {
+      if (sequence !== connectSequence) return;
       state.ready = false;
       setStatus("Сервер не запущен", "warning");
       setError("Интерфейс уже подключён, но сервер Quantum-AI ещё не опубликован. Пока ответы не генерируются.");
@@ -315,6 +339,7 @@
     const text = prompt?.value.trim() || "";
     if ((!text && !state.imageDataUrl) || !state.ready || state.busy) return;
 
+    const requestUserId = state.userId;
     state.busy = true;
     setError("");
     const userMessage = {
@@ -337,6 +362,7 @@
           ...(imageDataUrl ? { imageDataUrl } : {})
         })
       });
+      if (requestUserId !== state.userId) return;
       state.messages.push({
         role: "assistant",
         content: String(data.reply || "Ответ не получен."),
@@ -351,6 +377,7 @@
       state.imageName = "";
       renderAttachment();
     } catch (error) {
+      if (requestUserId !== state.userId) return;
       state.messages.pop();
       renderMessages();
       if (prompt) prompt.value = text;
