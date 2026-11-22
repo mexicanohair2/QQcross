@@ -88,6 +88,7 @@ async function main() {
     assert.equal(scanword.metadata.specialElevenLetterQuestion, run % 4 === 0, "every fourth puzzle must contain the eleven-letter answer: run=" + run);
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
+      assert.ok(['right', 'down'].includes(word.direction), 'invalid answer direction ' + word.direction + ' on seed ' + seed);
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
     }
     const imageWords = scanword.words.filter(word => word.imageKey);
