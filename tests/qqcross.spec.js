@@ -861,23 +861,53 @@ test("QuickDraw neural recognizer loads and runs an inference in the browser", a
 });
 
 
-test("Wordle keyboard remains anchored near the bottom of a phone screen", async ({ page }) => {
+test("Wordle keyboard stays at the bottom without page scrolling on every mobile word length", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
   await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
   await page.locator("#guestPlay").click();
   await page.locator("#playWordle").click();
-  const screen = page.locator(".wordle-screen");
   const keyboard = page.locator(".wordle-keyboard");
   await expect(keyboard).toBeVisible();
-  const layout = await page.evaluate(() => {
-    const screen = document.querySelector(".wordle-screen").getBoundingClientRect();
-    const keyboard = document.querySelector(".wordle-keyboard").getBoundingClientRect();
-    return { screenBottom: screen.bottom, keyboardBottom: keyboard.bottom, keyboardTop: keyboard.top, width: keyboard.width, viewportWidth: document.documentElement.clientWidth };
-  });
-  expect(layout.width).toBeLessThanOrEqual(layout.viewportWidth + 1);
-  expect(layout.keyboardBottom).toBeLessThanOrEqual(layout.screenBottom + 1);
-  expect(layout.screenBottom - layout.keyboardBottom).toBeLessThan(220);
+  for (const viewport of [{ width: 390, height: 844 }, { width: 360, height: 740 }]) {
+    await page.setViewportSize(viewport);
+    for (const length of [4, 5, 6, 7, 8]) {
+      await page.locator('[data-length="' + length + '"]').click();
+      await expect(page.locator(".wordle-tile")).toHaveCount(6 * length);
+      await expect.poll(() => page.evaluate(() => {
+        const screen = document.querySelector(".wordle-screen").getBoundingClientRect();
+        const keyboard = document.querySelector(".wordle-keyboard").getBoundingClientRect();
+        return screen.bottom - keyboard.bottom;
+      })).toBeLessThanOrEqual(12);
+      const layout = await page.evaluate(() => {
+        const screen = document.querySelector(".wordle-screen").getBoundingClientRect();
+        const keyboard = document.querySelector(".wordle-keyboard").getBoundingClientRect();
+        const board = document.querySelector(".wordle-board").getBoundingClientRect();
+        return {
+          keyboardGap: screen.bottom - keyboard.bottom,
+          keyboardWidth: keyboard.width,
+          boardRight: board.right,
+          boardBottom: board.bottom,
+          keyboardTop: keyboard.top,
+          scrollHeight: document.documentElement.scrollHeight,
+          scrollWidth: document.documentElement.scrollWidth,
+          viewportHeight: window.innerHeight,
+          viewportWidth: document.documentElement.clientWidth,
+          helpDisplay: getComputedStyle(document.querySelector(".wordle-help")).display,
+          footerDisplay: getComputedStyle(document.querySelector(".wordle-footer")).display
+        };
+      });
+      expect(layout.keyboardGap).toBeGreaterThanOrEqual(-1);
+      expect(layout.keyboardGap).toBeLessThanOrEqual(12);
+      expect(layout.boardBottom).toBeLessThanOrEqual(layout.keyboardTop + 1);
+      expect(layout.keyboardWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(layout.boardRight).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(layout.scrollHeight).toBeLessThanOrEqual(layout.viewportHeight + 1);
+      expect(layout.scrollWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+      expect(layout.helpDisplay).toBe("none");
+      expect(layout.footerDisplay).toBe("none");
+    }
+  }
 });
 
 test("scanword player avatars stay compact inside the score strip", async ({ page }) => {

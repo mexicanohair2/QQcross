@@ -24,7 +24,33 @@ function mount(root,onExit,options={}){
  function show(text){message.textContent=text;message.classList.add("visible");clearTimeout(messageTimer);messageTimer=setTimeout(()=>message.classList.remove("visible"),2200)}
  function clearTimers(){timers.forEach(clearTimeout);timers=[];clearTimeout(messageTimer)}
  function createBoard(){board.innerHTML="";tiles=[];board.style.setProperty("--wordle-cols",String(length));for(let r=0;r<MAX_ROWS;r++){const line=document.createElement("div");line.className="wordle-row";line.dataset.row=String(r);line.style.setProperty("--wordle-cols",String(length));for(let c=0;c<length;c++){const tile=document.createElement("div");tile.className="wordle-tile";tile.setAttribute("aria-label","Пустая клетка");const letter=document.createElement("span");tile.appendChild(letter);line.appendChild(tile);tiles.push(tile)}board.appendChild(line)}}
- function createKeyboard(){keyboard.innerHTML="";keyMap.clear();KEY_ROWS.forEach((letters,index)=>{const line=document.createElement("div");line.className="wordle-key-row";if(index===2){const back=document.createElement("button");back.type="button";back.className="wordle-key wordle-key-wide";back.textContent="⌫";back.dataset.key="BACKSPACE";back.setAttribute("aria-label","Удалить букву");line.appendChild(back)}letters.forEach(letter=>{const key=document.createElement("button");key.type="button";key.className="wordle-key";key.textContent=letter;key.dataset.key=letter;key.disabled=false;keyMap.set(normalize(letter),key);line.appendChild(key)});if(index===2){const enter=document.createElement("button");enter.type="button";enter.className="wordle-key wordle-key-wide";enter.textContent="ВВОД";enter.dataset.key="ENTER";line.appendChild(enter)}keyboard.appendChild(line)})}
+ function fitMobileBoard(){
+ const screen=root.querySelector(".wordle-screen");
+ if(!screen||!board||!keyboard)return;
+ if(window.innerWidth>700){board.style.removeProperty("width");board.style.removeProperty("max-height");return}
+ const screenStyle=getComputedStyle(screen);
+ const px=value=>Number.parseFloat(value)||0;
+ const padTop=px(screenStyle.paddingTop),padBottom=px(screenStyle.paddingBottom);
+ const padLeft=px(screenStyle.paddingLeft),padRight=px(screenStyle.paddingRight);
+ const fixedHeight=[...screen.children].filter(node=>node!==board&&getComputedStyle(node).display!=="none").reduce((sum,node)=>{
+  const style=getComputedStyle(node),rect=node.getBoundingClientRect();
+  return sum+rect.height+px(style.marginTop)+px(style.marginBottom);
+ },0);
+ const screenGap=px(screenStyle.rowGap||screenStyle.gap);
+ const gapCount=Math.max(0,screen.children.length-1);
+ const available=Math.max(0,screen.clientHeight-padTop-padBottom-fixedHeight-screenGap*gapCount-14);
+ const boardStyle=getComputedStyle(board);
+ const colGap=px(boardStyle.columnGap||boardStyle.gap)||4;
+ const rowGap=px(boardStyle.rowGap||boardStyle.gap)||4;
+ const columns=length;
+ const maxWidth=Math.max(0,screen.clientWidth-padLeft-padRight-8);
+ const tileByWidth=(maxWidth-(columns-1)*colGap)/columns;
+ const tileByHeight=(available-(MAX_ROWS-1)*rowGap)/MAX_ROWS;
+ const tileSize=Math.max(18,Math.min(68,tileByWidth,tileByHeight));
+ board.style.width=Math.max(0,Math.floor(tileSize*columns+(columns-1)*colGap))+"px";
+ board.style.maxHeight="none";
+}
+function createKeyboard(){keyboard.innerHTML="";keyMap.clear();KEY_ROWS.forEach((letters,index)=>{const line=document.createElement("div");line.className="wordle-key-row";if(index===2){const back=document.createElement("button");back.type="button";back.className="wordle-key wordle-key-wide";back.textContent="⌫";back.dataset.key="BACKSPACE";back.setAttribute("aria-label","Удалить букву");line.appendChild(back)}letters.forEach(letter=>{const key=document.createElement("button");key.type="button";key.className="wordle-key";key.textContent=letter;key.dataset.key=letter;key.disabled=false;keyMap.set(normalize(letter),key);line.appendChild(key)});if(index===2){const enter=document.createElement("button");enter.type="button";enter.className="wordle-key wordle-key-wide";enter.textContent="ВВОД";enter.dataset.key="ENTER";line.appendChild(enter)}keyboard.appendChild(line)})}
  function resetKeyboard(){keyMap.forEach(key=>{key.classList.remove("correct","present","absent");key.removeAttribute("aria-label")})}
  function currentGuess(){return tiles.slice(row*length,row*length+length).map(tile=>tile.textContent).join("")}
  function insert(letter){if(gameOver||revealing||loading||col>=length||row>=MAX_ROWS)return;const value=normalize(letter);if(!/^[А-Я]$/.test(value))return;const tile=tiles[row*length+col];tile.firstChild.textContent=value;tile.classList.add("filled","pop");timeout(()=>tile.classList.remove("pop"),150);col++;window.QQAudio?.play("letter")}
@@ -51,6 +77,7 @@ function mount(root,onExit,options={}){
   subtitle.textContent="Угадай слово из "+length+" букв за шесть попыток";
   root.querySelector(".wordle-screen").dataset.dailyLength=String(length);
   lengths.querySelectorAll("[data-length]").forEach(b=>{const active=+b.dataset.length===length;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});
+ fitMobileBoard();
  }
  function onKey(event){if(!alive||root.querySelector(".wordle-screen")===null)return;if(event.ctrlKey||event.metaKey||event.altKey)return;const active=document.activeElement;if(active&&/INPUT|TEXTAREA|SELECT/.test(active.tagName))return;const key=event.key.toUpperCase();if(key==="ENTER"){event.preventDefault();event.stopImmediatePropagation();submit()}else if(key==="BACKSPACE"){event.preventDefault();event.stopImmediatePropagation();remove()}else if(/^[А-ЯЁ]$/.test(key)){event.preventDefault();event.stopImmediatePropagation();insert(key)}}
  function handleKeyboard(event){const key=event.target.closest("[data-key]");if(!key)return;const value=key.dataset.key;if(value==="ENTER")submit();else if(value==="BACKSPACE")remove();else insert(value)}
@@ -58,9 +85,9 @@ function mount(root,onExit,options={}){
  const hat=root.querySelector("[data-qq-straw-hat-trigger]");if(hat)hat.addEventListener("click",()=>{const n=window.QQProgression?.tapHat?.()||0;if(n===15)show("Секретный титул Mugiwara открыт!");else if(n%5===0)show("Соломенная шляпа: "+n+" / 15")});
  root.querySelector("#wordleNew").addEventListener("click",()=>newGame(length));root.querySelector("#wordleAgain").addEventListener("click",()=>newGame(length));
  lengths.addEventListener("click",e=>{const b=e.target.closest("[data-length]");if(b)newGame(+b.dataset.length)});
- keyboard.addEventListener("click",handleKeyboard);document.addEventListener("keydown",onKey,true);
- function cleanup(){alive=false;clearTimers();document.removeEventListener("keydown",onKey,true);keyboard.removeEventListener("click",handleKeyboard)}
- createBoard();createKeyboard();
+ keyboard.addEventListener("click",handleKeyboard);document.addEventListener("keydown",onKey,true);window.addEventListener("resize",fitMobileBoard,{passive:true});window.visualViewport?.addEventListener("resize",fitMobileBoard,{passive:true});
+ function cleanup(){alive=false;clearTimers();document.removeEventListener("keydown",onKey,true);keyboard.removeEventListener("click",handleKeyboard);window.removeEventListener("resize",fitMobileBoard);window.visualViewport?.removeEventListener("resize",fitMobileBoard)}
+ createBoard();createKeyboard();fitMobileBoard();
  Promise.all([
   fetch("./data/wordle-words.json").then(r=>{if(!r.ok)throw new Error("Wordle dictionary unavailable");return r.json()}),
   fetch("./data/russian-words-100000.json").then(r=>{if(!r.ok)throw new Error("100k lexicon unavailable");return r.json()}).catch(()=>fetch("./data/russian-words-50000.json").then(r=>{if(!r.ok)throw new Error("Russian lexicon unavailable");return r.json()}))
