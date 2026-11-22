@@ -1,0 +1,40 @@
+.qq-quantum-ai{display:flex;flex-direction:column;gap:10px;min-height:calc(100dvh - 225px);max-height:calc(100dvh - 205px);padding-bottom:4px}
+.qq-quantum-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.qq-quantum-head h2{margin:0 0 3px;font-size:22px}
+.qq-quantum-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.35}
+.qq-quantum-status{flex:none;border:1px solid var(--line);border-radius:999px;padding:6px 9px;font-size:11px;color:var(--muted);background:var(--panel)}
+.qq-quantum-status[data-state="ready"]{color:var(--good);border-color:color-mix(in srgb,var(--good) 35%,var(--line))}
+.qq-quantum-status[data-state="warning"]{color:#d7ae75}
+.qq-quantum-quota{padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:var(--panel);font-size:12px;color:var(--muted)}
+.qq-quantum-quota-copy{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.qq-quantum-quota-copy b{color:var(--text);font-variant-numeric:tabular-nums}
+.qq-quantum-quota-copy span{font-size:11px;text-align:right}
+.qq-quantum-quota-track{display:block;height:4px;margin-top:8px;border-radius:999px;background:var(--panel2);overflow:hidden}
+.qq-quantum-quota-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7e5da8,#b27ca7)}
+.qq-quantum-messages{flex:1;min-height:190px;overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;gap:10px;padding:4px 2px 10px}
+.qq-quantum-welcome{margin:auto;max-width:290px;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;color:var(--muted);font-size:13px;line-height:1.45}
+.qq-quantum-welcome b{font-size:16px;color:var(--text)}
+.qq-quantum-mark{width:48px;height:48px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#7d4768,#37203b);border:1px solid #956080;color:#fff;font-size:25px;font-weight:800}
+.qq-quantum-message{max-width:92%;padding:10px 12px;border:1px solid var(--line);border-radius:15px;background:var(--panel);overflow-wrap:anywhere}
+.qq-quantum-message.is-user{align-self:flex-end;background:color-mix(in srgb,var(--panel2) 75%,#74465f 25%);border-color:color-mix(in srgb,var(--line) 65%,#9b607d 35%)}
+.qq-quantum-message.is-assistant{align-self:flex-start}
+.qq-quantum-message-label{display:block;margin-bottom:4px;font-size:10px;font-weight:750;letter-spacing:.04em;color:var(--muted)}
+.qq-quantum-message p{margin:0;white-space:pre-wrap;line-height:1.5;font-size:14px}
+.qq-quantum-image-note{display:block;margin-top:6px;color:var(--muted);font-size:11px}
+.qq-quantum-sources{display:flex;flex-direction:column;gap:4px;margin-top:9px;padding-top:8px;border-top:1px solid var(--line)}
+.qq-quantum-sources a{font-size:11px;color:#c6a3db;overflow-wrap:anywhere}
+.qq-quantum-error{padding:9px 11px;border:1px solid #80534b;border-radius:11px;background:#3a201d;color:#f1c4b9;font-size:12px;line-height:1.4}
+.qq-quantum-composer{padding:9px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 6px 18px #0002}
+.qq-quantum-composer textarea{display:block;width:100%;min-height:52px;max-height:120px;resize:vertical;border:0;outline:0;background:transparent;color:var(--text);font:inherit;font-size:14px;padding:6px}
+.qq-quantum-composer textarea::placeholder{color:var(--muted)}
+.qq-quantum-composer-actions{display:flex;align-items:center;gap:8px;padding-top:6px;border-top:1px solid var(--line)}
+.qq-quantum-photo{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);font-size:12px;cursor:pointer}
+.qq-quantum-hint{flex:1;min-width:0;color:var(--muted);font-size:10px;line-height:1.3}
+.qq-quantum-composer-actions .btn{padding:9px 12px;font-size:12px}
+.qq-quantum-composer button:disabled,.qq-quantum-composer textarea:disabled,.qq-quantum-composer input:disabled{opacity:.45;cursor:not-allowed}
+.qq-quantum-attachment{display:flex;align-items:center;gap:9px;padding:5px 6px 9px;color:var(--muted);font-size:11px}
+.qq-quantum-attachment img{width:48px;height:48px;object-fit:cover;border-radius:9px;border:1px solid var(--line)}
+.qq-quantum-attachment span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.qq-quantum-remove-image{border:0;background:transparent;color:#d5a5b9;font-size:11px;padding:6px}
+@media(max-height:700px){.qq-quantum-ai{min-height:calc(100dvh - 190px);max-height:calc(100dvh - 175px)}.qq-quantum-messages{min-height:140px}}
+@media(min-width:560px){.qq-quantum-ai{min-height:calc(100dvh - 220px);max-height:calc(100dvh - 205px)}}

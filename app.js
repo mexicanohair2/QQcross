@@ -320,19 +320,20 @@ function tabIcon(name){
   friends:'<path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M20 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
   shop:'<path d="M6 7h12l1 14H5L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/>',
   profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  ai:'<path d="M12 3a8.5 8.5 0 0 0-8.5 8.5c0 1.8.56 3.47 1.52 4.84L4 21l4.86-1.03A8.5 8.5 0 1 0 12 3Z"/><path d="M8 11h8M8 14h5"/>',
   settings:'<circle cx="12" cy="12" r="3.2"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.08-.03a1.7 1.7 0 0 0-1.85.42l-.06.06h-3.4l-.02-.09a1.7 1.7 0 0 0-1.35-1.35l-.09-.02-1.7-2.94.06-.06A1.7 1.7 0 0 0 9.95 14l-.09-.02v-3.4l.09-.02a1.7 1.7 0 0 0 1.35-1.35l.02-.09h3.4l.06.06a1.7 1.7 0 0 0 1.85.42l.08-.03 1.7 2.94-.06.06A1.7 1.7 0 0 0 19.4 15Z"/>'
  };
  return '<svg class="qq-tab-icon" viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(paths[name]||paths.home)+'</svg>';
 }
 function renderShell(root){
  applyProgressRewards();
- const tabs=[["Главная","home"],["Поиск","search"],["История","history"],["Друзья","friends"],["Магазин","shop"],["Профиль","profile"]];
+ const tabs=[["Главная","home"],["ИИ","ai"],["История","history"],["Друзья","friends"],["Магазин","shop"],["Профиль","profile"]];
  root.innerHTML=`<div class="screen"><div class="top"><button class="qq-settings-gear" id="qqSettingsGear" type="button" aria-label="Настройки" title="Настройки">${tabIcon("settings")}</button><div class="user">${playerIdentityMarkup(state.profile,{size:"md",compact:true,clickable:true})}</div><button class="qq-header-hat" type="button" data-qq-straw-hat-trigger aria-label="Сенная шляпа">👒</button><div class="coins">🪙 ${state.profile.coins}</div></div>${content()}</div><nav class="nav" aria-label="Основная навигация">${tabs.map(([t,icon])=>`<button type="button" class="${state.tab===t?"active":""}" data-tab="${t}" aria-current="${state.tab===t?"page":"false"}"><span class="ni">${tabIcon(icon)}</span><span class="nav-label">${t}</span></button>`).join("")}</nav>`;
  root.querySelector("#qqSettingsGear").onclick=()=>{state.tab="Настройки";render()};
  root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});
  wireContent();
 }
-function content(){if(state.tab==="Поиск")return encyclopedia();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
+function content(){if(state.tab==="ИИ")return quantumAI();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
 function collapsiblePanel(id,title,body,initialOpen=false){
  let open=initialOpen;
  try{const saved=localStorage.getItem("qqcross_settings_section_"+id);if(saved==="collapsed")open=false;else if(saved==="expanded")open=true}catch{}
@@ -502,48 +503,10 @@ function shop(){
   '<p class="small muted qq-shop-note">Предметы для всех игр, кроме Wordle. 5 предметов — 100 монет.</p><div class="qq-shop-grid">'+
   products.map(([key,ico,name,desc])=>'<article class="qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">'+ico+'</span><span class="qq-shop-item-copy"><b>'+name+'</b><small>'+desc+'</small></span></div><div class="qq-shop-stock">В наличии: <b>'+(state.profile.items[key]||0)+'</b></div><div class="qq-shop-buy"><button class="btn buy" data-item="'+key+'" data-qty="5">5 · 100 🪙</button><button class="btn primary buy" data-item="'+key+'" data-qty="10">10 · 200 🪙</button></div></article>').join("")+'</div>';
 }
-function encyclopedia(){
- const p=window.QQProgression?.get?.()||{discoveredWords:[]},words=p.discoveredWords||[],history=window.QQEncyclopedia?.history?.()||[];
- return '<h2>Поиск</h2><section class="card qq-ai-search"><h3>Спросить ИИ</h3><p class="muted small">Задай вопрос и получи объяснение. Не отправляй личные данные.</p><form id="qqAiAskForm"><textarea id="qqAiAskInput" class="input" rows="3" maxlength="500" placeholder="Напиши свой вопрос…"></textarea><button class="btn primary full" type="submit">Спросить ИИ</button></form><div id="qqAiAskResult" aria-live="polite"></div></section><section class="card qq-encyclopedia-search"><p class="muted small">Ищи значение слова, исправляй опечатки и открывай связанные понятия.</p><form id="encyclopediaForm"><input id="encyclopediaInput" class="input" type="search" placeholder="Например, тунец" autocomplete="off"><button class="btn primary" type="submit">Найти</button></form><div id="encyclopediaResult" aria-live="polite"></div></section><section class="card"><h3>Мои изученные слова · '+words.length+'</h3><div class="qq-word-chips">'+(words.length?words.slice(-80).reverse().map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<p class="muted small">Пока нет изученных слов. Открывай слова в Wordle и других режимах двойным нажатием.</p>')+'</div></section><section class="card"><h3>Недавний поиск</h3><div class="qq-word-chips">'+(history.length?history.slice(0,12).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join(""):'<span class="muted small">История появится после первого поиска.</span>')+'</div></section>';
+function quantumAI(){
+ return window.QQQuantumAI?.markup?.()||'<section class="card"><h2>Quantum-AI</h2><p class="muted">Не удалось загрузить интерфейс помощника. Обнови QQCross.</p></section>';
 }
-async function askQQCrossAI(question){
- const out=$("#qqAiAskResult"),form=$("#qqAiAskForm");
- if(!out)return;
- const prompt=String(question||"").trim();
- if(prompt.length<2||prompt.length>500){out.textContent="Введи вопрос длиной от 2 до 500 символов.";return}
- out.textContent="Отправляю вопрос ИИ…";
- const submit=form?.querySelector('button[type="submit"]');if(submit){submit.disabled=true;submit.textContent="Ожидай ответ…"}
- try{
-  if(!supabaseClient)throw new Error("Сервер ИИ пока недоступен.");
-  const {data:{session},error:sessionError}=await supabaseClient.auth.getSession();
-  if(sessionError)throw sessionError;
-  if(!session){const {error}=await supabaseClient.auth.signInAnonymously();if(error)throw error}
-  const {data,error}=await supabaseClient.functions.invoke("qqcross-ai-turn",{body:{mode:"ask",question:prompt}});
-  if(error){let message=error.message||"Не удалось связаться с ИИ.";try{const payload=await error.context?.json();if(payload?.error)message=payload.error}catch{}throw new Error(message)}
-  if(!data||data.error)throw new Error(data?.error||"ИИ не вернул ответ.");
-  out.replaceChildren();
-  const answer=document.createElement("p");answer.className="qq-ai-answer";answer.textContent=data.answer||"Ответ не получен.";out.append(answer);
- }catch(error){
-  out.textContent=error.message||"Не удалось получить ответ. Попробуй позже.";
- }finally{if(submit){submit.disabled=false;submit.textContent="Спросить ИИ"}}
-}
-async function lookupEncyclopediaWord(word){
- const out=$("#encyclopediaResult");if(!out)return;
- out.innerHTML='<p class="muted small">Ищу статью и проверяю написание…</p>';
- try{
-  const result=await window.QQEncyclopedia.search(word);
-  if(!out.isConnected)return;
-  if(result.error){out.innerHTML='<p class="muted">'+esc(result.error)+'</p>';return}
-  let correction=result.correction?'<p class="qq-word-correction">Возможно, ты имел в виду: <button type="button" data-encyclopedia-word="'+esc(result.correction.word)+'">'+esc(result.correction.word)+'</button></p>':'';
-  if(!result.article){out.innerHTML=correction+'<p>Статью не удалось найти. Проверь написание или попробуй похожее слово.</p>';return}
-  const a=result.article;
-  const stress=result.stress?'<p class="qq-word-stress">Ударение по Викисловарю: <b>'+esc(result.stress)+'</b></p>':'';
-  const related=(a.related||[]).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join("");
-  out.innerHTML=correction+'<h3>'+esc(a.title)+'</h3>'+stress+'<p class="qq-encyclopedia-extract">'+esc(a.extract||"В статье нет краткого описания.")+'</p><div class="qq-related"><b>Связанные понятия</b><div class="qq-word-chips">'+(related||'<span class="muted small">Связанные понятия не найдены.</span>')+'</div></div><a class="qq-wiki-link" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">Открыть полную статью в '+esc(a.sourceLabel||"Википедии")+' ↗</a>';
-  out.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));
- }catch(e){if(out.isConnected)out.innerHTML='<p class="muted">Не удалось получить статью. Проверь подключение и попробуй ещё раз.</p>'}
-}
-function openWordInfo(word){state.screen="";state.tab="Поиск";render();setTimeout(()=>{const input=$("#encyclopediaInput");if(input){input.value=word;lookupEncyclopediaWord(word)}},0)}
+function openWordInfo(word){state.screen="";state.tab="ИИ";render();setTimeout(()=>window.QQQuantumAI?.prefill?.("Расскажи о слове «"+String(word||"").trim()+"»."),0)}
 let qqWordInfoBound=false;
 function bindWordInfo(){
  if(qqWordInfoBound)return;
@@ -616,7 +579,7 @@ function settings(){
   ${section("comfort","Удобство","Размер текста и анимации",comfortBody,false)}`;
 }
 
-function wireContent(){rootMatchHistoryBindings();const aiForm=$("#qqAiAskForm");if(aiForm)aiForm.onsubmit=e=>{e.preventDefault();askQQCrossAI($("#qqAiAskInput")?.value||"")};const ef=$("#encyclopediaForm");if(ef)ef.onsubmit=e=>{e.preventDefault();lookupEncyclopediaWord($("#encyclopediaInput")?.value||"")};document.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=async()=>{window.QQProgression?.setActiveTitle(activeTitle.value);if(state.profile?.id&&supabaseClient&&!String(state.profile.id).startsWith("local-")){const {error}=await supabaseClient.from("profiles").update({active_title:activeTitle.value}).eq("id",state.profile.id);if(error)toast("Титул выбран локально, но не синхронизирован");else state.profile.active_title=activeTitle.value}playerProfileCache.set(String(state.profile.id),{...state.profile});playerProfileCacheAt.set(String(state.profile.id),Date.now());render()};document.querySelectorAll("[data-frame-buy]").forEach(button=>button.onclick=async()=>{
+function wireContent(){rootMatchHistoryBindings();window.QQQuantumAI?.bind?.({supabase:supabaseClient,userId:state.profile?.id});document.querySelectorAll("[data-background-choice]").forEach(b=>b.onclick=()=>{applyBackground(b.dataset.backgroundChoice);render()});const abstractToggle=$("#qqAbstractToggle");if(abstractToggle)abstractToggle.onchange=()=>{abstractEnabled=abstractToggle.checked;localStorage.setItem("qqcross_abstract_enabled",String(abstractEnabled));if(!abstractEnabled&&BACKGROUNDS.find(x=>x[0]===activeBackground)?.[2]==="abstract")applyBackground("misty-forest");render()};document.querySelectorAll("[data-ambience-choice]").forEach(b=>b.onclick=()=>{applyAmbience(b.dataset.ambienceChoice);render()});const appearance=$("#qqAppearanceMode");if(appearance)appearance.onchange=()=>{const mode=appearance.value==="light"?"light":"dark";localStorage.setItem("qqcross_appearance_mode_v1",mode);document.documentElement.dataset.qqMode=mode;document.documentElement.style.colorScheme=mode;const meta=document.querySelector('meta[name="theme-color"]');if(meta){const base=getComputedStyle(document.documentElement).getPropertyValue("--qq-base").trim();meta.setAttribute("content",mode==="light"?"#f1f7fb":(base||"#190910"))}};const font=$("#qqFontSize");if(font)font.onchange=()=>{localStorage.setItem("qqcross_font_size",font.value);document.documentElement.dataset.qqFontSize=font.value};const reduce=$("#qqReduceMotion");if(reduce)reduce.onchange=()=>{localStorage.setItem("qqcross_reduce_motion",String(reduce.checked));document.documentElement.dataset.qqReduceMotion=String(reduce.checked)};document.querySelectorAll("[data-qq-daily-open]").forEach(b=>b.onclick=()=>{state.screen="daily";render()});document.querySelectorAll("[data-qq-straw-hat-trigger]").forEach(b=>b.onclick=e=>{e.preventDefault();e.stopPropagation();const n=window.QQProgression?.tapHat?.()||0;if(n===15){applyProgressRewards();toast("Секретный титул Mugiwara открыт!")}else if(n%5===0)toast("Соломенная шляпа: "+n+" / 15")});const activeTitle=$("#qqActiveTitle");if(activeTitle)activeTitle.onchange=async()=>{window.QQProgression?.setActiveTitle(activeTitle.value);if(state.profile?.id&&supabaseClient&&!String(state.profile.id).startsWith("local-")){const {error}=await supabaseClient.from("profiles").update({active_title:activeTitle.value}).eq("id",state.profile.id);if(error)toast("Титул выбран локально, но не синхронизирован");else state.profile.active_title=activeTitle.value}playerProfileCache.set(String(state.profile.id),{...state.profile});playerProfileCacheAt.set(String(state.profile.id),Date.now());render()};document.querySelectorAll("[data-frame-buy]").forEach(button=>button.onclick=async()=>{
  const id=button.dataset.frameBuy,frame=(window.QQIdentity?.frames||[]).find(item=>item.id===id);
  if(!frame)return;
  const userId=String(state.profile?.id||""),isCloud=!!supabaseClient&&!!userId&&!userId.startsWith("local-");
