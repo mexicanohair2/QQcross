@@ -1040,5 +1040,5 @@ test('reserves the tightest matched picture domain before filling ordinary words
   assert.equal(result.ok, true, result.message);
   assert.equal(result.searchTrace[0]?.slotId, 'narrow-picture-domain');
   assert.equal(result.searchTrace[0]?.firstPlacements?.[0]?.imageKey, 'hedgehog');
-  assert.equal(result.stats?.imageCount ?? result.scanword?.stats?.imageCount, 2);
+  assert.equal(result.metrics?.distinctImages, 2);
 });
