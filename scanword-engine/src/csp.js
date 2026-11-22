@@ -939,10 +939,12 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           }
         }
 
-        // Select slots that can still satisfy mandatory content quotas before
-        // unconstrained slots. Candidate ranking already puts eligible image
-        // and new logic clues first within each selected domain; this slot-level
-        // signal prevents MRV from consuming the remaining capacity elsewhere.
+        // Keep MRV as the primary rule: a slot with fewer legal placements
+        // must be resolved before a wide image/logic domain, otherwise one
+        // "content-priority" slot can delay forced crossings and explode the
+        // branching factor. Quota reachability is checked independently below,
+        // and candidates inside the chosen domain still rank images and new
+        // logic clues first.
         const imagePriority = state.usedImages.size < requiredImageCount
           && candidates.some(candidate => Boolean(candidate.entry.imageKey)) ? 2 : 0;
         const logicPriority = state.usedLogicClues.size < minimumLogicClueCells
@@ -952,10 +954,11 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
-          || contentPriority > chosenContentPriority
-          || (contentPriority === chosenContentPriority && candidates.length < chosenCandidates.length)
-          || (contentPriority === chosenContentPriority
-            && candidates.length === chosenCandidates.length
+          || candidates.length < chosenCandidates.length
+          || (candidates.length === chosenCandidates.length
+            && contentPriority > chosenContentPriority)
+          || (candidates.length === chosenCandidates.length
+            && contentPriority === chosenContentPriority
             && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
