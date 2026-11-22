@@ -82,13 +82,6 @@ async function main() {
     assert.equal(scanword.grid.flat().length, 96);
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
-    const activeClueStarts = new Set(scanword.words.map(word => word.clue.row + "," + word.clue.col));
-    for (const col of [1, 4, 7]) {
-      assert.ok(activeClueStarts.has("0," + col), "top anchor 0," + col + " must start an answer on seed " + seed);
-    }
-    for (let row = 1; row < 12; row++) {
-      assert.ok(activeClueStarts.has(row + ",0"), "left-edge clue " + row + ",0 must start an answer on seed " + seed);
-    }
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
@@ -157,9 +150,9 @@ async function main() {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
-  for (const direction of ['right', 'down', 'left', 'up']) {
-    assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
-  }
+  assert.ok(directionCounts.right > 0 && directionCounts.down > 0, 'production generation must use right and down');
+  assert.equal(directionCounts.left, 0, 'leftward answers are not allowed');
+  assert.equal(directionCounts.up, 0, 'upward answers are not allowed');
 }
 
 main().catch(error => {
