@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
@@ -78,7 +78,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const dictionaryById = new Map(prepared.variants.map(entry => [entry.id, entry]));
 
   if (grid[0][0]?.type !== 'corner') {
-    add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным пустым углом.', { row: 0, col: 0 });
+    add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным структурным углом; остальные клетки обязаны иметь роль вопроса или буквы.', { row: 0, col: 0 });
   }
 
   if (options.requireTopAnchor !== false && grid[0][1]?.type !== 'question') {
@@ -196,8 +196,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (!['right', 'left', 'down', 'up'].includes(word.direction)) {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
+    if (!ANSWER_DIRECTIONS.includes(word.direction)) {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
         wordId: word.id, direction: word.direction
       });
       continue;
