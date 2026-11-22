@@ -192,7 +192,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
           if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
-          if (!['right', 'down'].includes(orientation.direction)) continue;
+          // All four orientations are valid; the topology validator and CSP
+          // independently enforce each slot's coordinates and boundary rules.
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -408,13 +409,13 @@ export function generateScanword(inputDictionary, options = {}) {
       })
     : [];
 
-  // Prefer exactly one low-short topology attempt when it has a compatible
-  // dictionary/CSP domain, then retain the best conventional topology as the
-  // bounded fallback. Do not spend both retries on near-identical templates.
+  // Keep the canonical top anchors (0,1), (0,4), and (0,7) on every
+  // production board. The low-short special mask has a different top row, so
+  // it remains a fallback after the conventional anchor-preserving plans.
   const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
   const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
   const specialPlanSequence = firstLowShortPlan
-    ? [firstLowShortPlan, ...conventionalSpecialPlans]
+    ? [...conventionalSpecialPlans, firstLowShortPlan]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
     specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
@@ -499,8 +500,7 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      requireEveryClueStarts: true,
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,

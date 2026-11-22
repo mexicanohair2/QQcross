@@ -82,6 +82,13 @@ async function main() {
     assert.equal(scanword.grid.flat().length, 96);
     assert.ok(scanword.grid.flat().every(cell => ["corner", "question", "letter"].includes(cell.type)));
     assert.equal(scanword.grid[0][0].type, "corner");
+    const activeClueStarts = new Set(scanword.words.map(word => word.clue.row + "," + word.clue.col));
+    for (const col of [1, 4, 7]) {
+      assert.ok(activeClueStarts.has("0," + col), "top anchor 0," + col + " must start an answer on seed " + seed);
+    }
+    for (let row = 1; row < 12; row++) {
+      assert.ok(activeClueStarts.has(row + ",0"), "left-edge clue " + row + ",0 must start an answer on seed " + seed);
+    }
     assert.ok(scanword.words.length >= 18, "too few answers on seed " + seed);
     assert.ok(scanword.words.filter(word => word.length === 2).length <= 5, "too many short answers on seed " + seed);
     assert.ok(!scanword.words.some(word => ['ДО','РЕ','МИ','ФА','ЛЯ','СИ'].includes(word.answer)), "musical note used as a filler on seed " + seed);
