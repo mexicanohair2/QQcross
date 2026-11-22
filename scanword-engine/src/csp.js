@@ -1001,6 +1001,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
               imageKey,
               candidates,
               imagePlacementCount: candidates.length,
+              imageDomainSize: record.imageKeys.length,
               slotDegree: record.slotDegree,
               availableAfterReservation
             });
@@ -1009,6 +1010,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
 
         reservations.sort((a, b) =>
           a.imagePlacementCount - b.imagePlacementCount
+          || a.imageDomainSize - b.imageDomainSize
           || b.slotDegree - a.slotDegree
           || String(a.imageKey).localeCompare(String(b.imageKey))
         );
