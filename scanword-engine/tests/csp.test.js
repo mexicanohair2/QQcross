@@ -998,7 +998,7 @@ test('reserves five distinct picture answers before filling the remaining specia
 
 
 
-test('uses the smallest remaining domain before a wide picture domain', () => {
+test('reserves the tightest matched picture domain before filling ordinary words', () => {
   const wideStart = { row: 1, col: 1 };
   const wideEnd = { row: 1, col: 5 };
   const narrowStart = { row: 4, col: 1 };
@@ -1008,27 +1008,27 @@ test('uses the smallest remaining domain before a wide picture domain', () => {
     slot('wide-picture-domain', wideStart, wideEnd, [
       { row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }
     ], 'right', 'left'),
-    slot('narrow-short-domain', narrowStart, narrowEnd, [
+    slot('narrow-picture-domain', narrowStart, narrowEnd, [
       { row: 4, col: 2 }, { row: 4, col: 3 }
     ], 'right', 'left')
   ];
 
   const dictionary = [
     { id: 'picture-cat', answer: 'КОТ', clue: 'Что изображено на картинке?', imageKey: 'cat' },
+    { id: 'picture-lion', answer: 'ЛЕВ', clue: 'Что изображено на картинке?', imageKey: 'lion' },
+    { id: 'picture-whale', answer: 'КИТ', clue: 'Что изображено на картинке?', imageKey: 'whale' },
+    { id: 'picture-ball', answer: 'МЯЧ', clue: 'Что изображено на картинке?', imageKey: 'ball' },
     entry('dog', 'ПЁС', 'Домашнее животное, которое охраняет дом.'),
     entry('home', 'ДОМ', 'Место, где живут люди.'),
     entry('nose', 'НОС', 'Часть лица для дыхания и обоняния.'),
-    entry('whale', 'КИТ', 'Крупное морское млекопитающее.'),
-    entry('ball', 'МЯЧ', 'Предмет для спортивной игры.'),
     entry('tea', 'ЧАЙ', 'Напиток из заваренных листьев.'),
-    entry('world', 'МИР', 'Отсутствие войны.'),
-    entry('hedgehog', 'ЁЖ', 'Небольшое колючее лесное животное.'),
+    { id: 'hedgehog', answer: 'ЁЖ', clue: 'Что изображено на картинке?', imageKey: 'hedgehog' },
     entry('poison', 'ЯД', 'Опасное для организма вещество.')
   ];
 
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 17,
-    requiredImageCount: 1,
+    requiredImageCount: 2,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     allowedShortAnswers: new Set(['ЁЖ', 'ЯД']),
@@ -1038,6 +1038,7 @@ test('uses the smallest remaining domain before a wide picture domain', () => {
   });
 
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.searchTrace[0]?.slotId, 'narrow-short-domain');
-  assert.equal(result.searchTrace[0]?.candidateCount, 4);
+  assert.equal(result.searchTrace[0]?.slotId, 'narrow-picture-domain');
+  assert.equal(result.searchTrace[0]?.firstPlacements?.[0]?.imageKey, 'hedgehog');
+  assert.equal(result.stats?.imageCount ?? result.scanword?.stats?.imageCount, 2);
 });
