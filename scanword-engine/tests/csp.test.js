@@ -38,7 +38,7 @@ test('solves a right/down-only acyclic clue topology and assigns every non-termi
   const b = { row: 1, col: 5 };
   const c = { row: 5, col: 1 };
   const d = { row: 5, col: 5 };
-  const e = { row: 8, col: 5 };
+  const e = { row: 9, col: 5 };
   const words = [...fourWords, entry('sleep', 'СОН', 'Состояние отдыха организма.')];
 
   const slots = [
