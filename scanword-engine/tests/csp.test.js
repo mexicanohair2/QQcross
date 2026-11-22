@@ -33,20 +33,23 @@ const fourWords = [
   entry('forest', 'ЛЕС', 'Большая территория, покрытая деревьями.')
 ];
 
-test('solves a cyclic four-clue topology and assigns all clue cells an outgoing answer', () => {
+test('solves a right/down-only acyclic clue topology and assigns every non-terminal clue an outgoing answer', () => {
   const a = { row: 1, col: 1 };
   const b = { row: 1, col: 5 };
   const c = { row: 5, col: 1 };
   const d = { row: 5, col: 5 };
+  const e = { row: 8, col: 5 };
+  const words = [...fourWords, entry('sleep', 'СОН', 'Состояние отдыха организма.')];
 
   const slots = [
     slot('ab', a, b, [{ row: 1, col: 2 }, { row: 1, col: 3 }, { row: 1, col: 4 }], 'right', 'left'),
+    slot('ac', a, c, [{ row: 2, col: 1 }, { row: 3, col: 1 }, { row: 4, col: 1 }], 'down', 'up'),
     slot('bd', b, d, [{ row: 2, col: 5 }, { row: 3, col: 5 }, { row: 4, col: 5 }], 'down', 'up'),
-    slot('dc', d, c, [{ row: 5, col: 4 }, { row: 5, col: 3 }, { row: 5, col: 2 }], 'left', 'right'),
-    slot('ca', c, a, [{ row: 4, col: 1 }, { row: 3, col: 1 }, { row: 2, col: 1 }], 'up', 'down')
+    slot('cd', c, d, [{ row: 5, col: 2 }, { row: 5, col: 3 }, { row: 5, col: 4 }], 'right', 'left'),
+    slot('de', d, e, [{ row: 6, col: 5 }, { row: 7, col: 5 }, { row: 8, col: 5 }], 'down', 'up')
   ];
 
-  const result = solveSlotsCsp(slots, fourWords, {
+  const result = solveSlotsCsp(slots, words, {
     seed: 42,
     requiredImageCount: 0,
     minimumLogicClueCells: 0,
@@ -55,8 +58,8 @@ test('solves a cyclic four-clue topology and assigns all clue cells an outgoing 
   });
 
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.words.length, 4);
-  assert.equal(new Set(result.words.map(word => word.answer)).size, 4);
+  assert.equal(result.words.length, 5);
+  assert.equal(new Set(result.words.map(word => word.answer)).size, 5);
   for (const key of ['1,1', '1,5', '5,1', '5,5']) {
     assert.ok(result.clueDirections.get(key)?.size > 0, 'missing outgoing clue at ' + key);
   }
@@ -277,7 +280,7 @@ test('CSP respects an already-aborted cancellation signal', () => {
   assert.equal(result.reason, 'CANCELLED');
 });
 
-test('history penalizes recently used answers and avoids an exact recent structure', () => {
+test('history penalizes recent answers and rejects an exact repeated structure', () => {
   const history = new GenerationHistory(10);
   const slotPlan = [slot('single', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
@@ -322,8 +325,9 @@ test('history penalizes recently used answers and avoids an exact recent structu
     maxNodes: 100,
     maxTimeMs: 1000
   });
-  assert.equal(repeated.ok, true, repeated.message);
-  assert.equal(exactHistory.hasStructure(repeated.words), false);
+  assert.equal(repeated.ok, false, 'an exact recent structure must be rejected');
+  assert.equal(repeated.reason, 'NO_CSP_SOLUTION');
+  assert.equal(repeated.lastDeadEnd?.reason, 'RECENT_STRUCTURE_REPEAT');
 });
 
 test('allows the shared picture prompt only for distinct image keys', () => {
