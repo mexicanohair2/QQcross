@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 
 export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter']);
 export const MIN_ANSWER_LENGTH = 2;
@@ -50,9 +50,7 @@ function hasValidShape(grid) {
 function makeSlot(axis, first, last, coordinates) {
   const horizontal = axis === 'horizontal';
   const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   const endsAtRightEdge = horizontal && last.col === CONFIG.WIDTH - 1;
   const endsAtBottomEdge = last.row === CONFIG.HEIGHT - 1;
@@ -68,20 +66,12 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
@@ -92,7 +82,7 @@ function makeSlot(axis, first, last, coordinates) {
  */
 export function getAnswerCoordinates(clueCell, direction, length) {
   const vector = DIRECTIONS[direction];
-  if (!vector || !Number.isInteger(length) || length < 1) return null;
+  if (!ANSWER_DIRECTIONS.includes(direction) || !vector || !Number.isInteger(length) || length < 1) return null;
 
   const coordinates = [];
   for (let index = 1; index <= length; index++) {
