@@ -503,7 +503,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     }
   }
 
-  function recordSearchChoice(slot, candidates) {
+  function recordSearchChoice(slot, candidates, extra = {}) {
     if (!options.captureTrace || searchTrace.length >= 120) return;
     searchTrace.push({
       depth: state.assignments.size,
@@ -518,7 +518,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         clueCell: { ...candidate.clueCell },
         direction: candidate.direction,
         priority: candidate.priority
-      }))
+      })),
+      ...extra
     });
   }
 
@@ -1026,38 +1027,6 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return false;
       }
 
-      // Reserve one slot/key pair from a maximum matching before ordinary
-      // word placements consume its crossing letters. Choose the tightest
-      // matched image domain first, then use normal MRV/degree to break ties.
-      // Candidates for the matched key are tried first; the remaining
-      // candidates stay as backtracking fallbacks if that picture conflicts.
-      if (remainingImageQuota > 0 && imageAssignment.assignments.length > 0) {
-        const matched = imageAssignment.assignments
-          .map(assignment => ({
-            ...assignment,
-            record: imageDomainRecords[assignment.slotIndex]
-          }))
-          .filter(item => item.record?.imageCandidates?.length)
-          .sort((a, b) =>
-            a.record.imageCandidates.length - b.record.imageCandidates.length
-            || a.record.candidates.length - b.record.candidates.length
-            || b.record.slotDegree - a.record.slotDegree
-          );
-        const selected = matched[0];
-        if (selected) {
-          const preferred = selected.record.imageCandidates.filter(
-            candidate => candidate.entry.imageKey === selected.resource
-          );
-          const preferredSet = new Set(preferred);
-          chosenSlot = selected.record.slot;
-          chosenCandidates = [
-            ...preferred,
-            ...selected.record.candidates.filter(candidate => !preferredSet.has(candidate))
-          ];
-          chosenDegree = selected.record.slotDegree;
-        }
-      }
-
       const remainingLogicQuota = Math.max(0, minimumLogicClueCells - state.usedLogicClues.size);
       const availableLogicClues = maximumDistinctAssignmentCount(logicClueDomains);
       if (availableLogicClues < remainingLogicQuota) {
@@ -1087,6 +1056,84 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
             return false;
           }
         }
+      }
+
+      if (remainingImageQuota > 0) {
+        const reservations = [];
+        for (let slotIndex = 0; slotIndex < imageDomainRecords.length; slotIndex++) {
+          const record = imageDomainRecords[slotIndex];
+          for (const imageKey of record.imageKeys) {
+            const residualDomains = imageDomains
+              .filter((domain, index) => index !== slotIndex)
+              .map(domain => domain.filter(value => value !== imageKey));
+            const availableAfterReservation = maximumDistinctAssignmentCount(residualDomains);
+            if (availableAfterReservation < remainingImageQuota - 1) continue;
+
+            const candidatesForKey = record.imageCandidates.filter(
+              candidate => candidate.entry.imageKey === imageKey
+            );
+            if (!candidatesForKey.length) continue;
+            reservations.push({
+              slot: record.slot,
+              imageKey,
+              candidates: candidatesForKey,
+              domainSize: record.candidates.length,
+              imagePlacementCount: candidatesForKey.length,
+              availableAfterReservation,
+              slotDegree: record.slotDegree
+            });
+          }
+        }
+
+        reservations.sort((a, b) =>
+          a.imagePlacementCount - b.imagePlacementCount
+          || a.domainSize - b.domainSize
+          || b.slotDegree - a.slotDegree
+          || String(a.imageKey).localeCompare(String(b.imageKey))
+        );
+
+        if (reservations.length === 0) {
+          recordDeadEnd({
+            reason: 'NO_SAFE_IMAGE_RESERVATION',
+            required: remainingImageQuota,
+            available: availableImageAssignments,
+            openSlots: unassigned.length
+          });
+          return false;
+        }
+
+        // Every complete solution must place at least one of these safe
+        // slot/key pairs next. Enumerating all of them is complete: after
+        // reserving a pair, a maximum matching still exists for the rest of
+        // the image quota. No ordinary word may consume the selected slot
+        // until its image-backed candidates have been attempted.
+        for (const reservation of reservations) {
+          recordSearchChoice(reservation.slot, reservation.candidates, {
+            imageReservation: {
+              imageKey: reservation.imageKey,
+              remainingQuota: remainingImageQuota,
+              availableAfterReservation: reservation.availableAfterReservation
+            }
+          });
+          for (const candidate of reservation.candidates) {
+            if (options.signal?.aborted) {
+              cancelled = true;
+              return false;
+            }
+            addPlacement(candidate);
+            if (search()) return true;
+            undoPlacement(candidate);
+            if (cancelled || budgetExceeded) return false;
+          }
+        }
+
+        recordDeadEnd({
+          reason: 'SAFE_IMAGE_RESERVATIONS_EXHAUSTED',
+          required: remainingImageQuota,
+          reservationCount: reservations.length,
+          openSlots: unassigned.length
+        });
+        return false;
       }
 
       recordSearchChoice(chosenSlot, chosenCandidates);
