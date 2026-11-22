@@ -327,7 +327,7 @@ test('history penalizes recent answers and rejects an exact repeated structure',
   });
   assert.equal(repeated.ok, false, 'an exact recent structure must be rejected');
   assert.equal(repeated.reason, 'NO_CSP_SOLUTION');
-  assert.equal(repeated.lastDeadEnd?.reason, 'RECENT_STRUCTURE_REPEAT');
+  assert.equal(repeated.deepestDeadEnd?.reason, 'RECENT_STRUCTURE_REPEAT');
 });
 
 test('allows the shared picture prompt only for distinct image keys', () => {
