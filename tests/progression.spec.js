@@ -188,7 +188,7 @@ test("unique level completions cannot be farmed by replaying the same level", as
   expect(result.count).toBe(2);
 });
 
-test("double-tapping a discovered word opens its encyclopedia entry", async ({ page }) => {
+test("double-tapping a discovered word opens Quantum-AI with the word prompt", async ({ page }) => {
   await enterGuest(page);
   await page.evaluate(() => {
     const word = document.createElement("button");
@@ -198,7 +198,7 @@ test("double-tapping a discovered word opens its encyclopedia entry", async ({ p
     document.querySelector("#app").append(word);
     word.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
   });
-  await expect(page.locator("#encyclopediaInput")).toHaveValue("ЁЛКА");
+  await expect(page.locator("#qqQuantumPrompt")).toHaveValue("Расскажи о слове «ЁЛКА».");
 });
 
 test("accessibility preferences and abstract-background opt-out survive reload", async ({ page }) => {
@@ -247,7 +247,7 @@ test("unclaimed achievement rewards stay queued until explicitly acknowledged", 
   expect(result.removed).toBe(true);
 });
 
-test("double-tapping a discovered word works with touch pointer events", async ({ page }) => {
+test("double-tapping a discovered word opens Quantum-AI on touch devices", async ({ page }) => {
   await enterGuest(page);
   await page.evaluate(() => {
     const word = document.createElement("button");
@@ -263,7 +263,7 @@ test("double-tapping a discovered word works with touch pointer events", async (
     tap();
     tap();
   });
-  await expect(page.locator("#encyclopediaInput")).toHaveValue("ТУНЕЦ");
+  await expect(page.locator("#qqQuantumPrompt")).toHaveValue("Расскажи о слове «ТУНЕЦ».");
 });
 
 test("late completion of an older daily challenge cannot rewind the current streak", async ({ page }) => {
