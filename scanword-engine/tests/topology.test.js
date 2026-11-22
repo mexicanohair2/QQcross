@@ -25,7 +25,7 @@ function setQuestion(grid, row, col) {
   };
 }
 
-test('derives horizontal slots and both horizontal orientations', () => {
+test('derives horizontal slots only to the right', () => {
   const grid = makeGrid();
   setQuestion(grid, 2, 0);
   setQuestion(grid, 2, 4);
@@ -35,20 +35,15 @@ test('derives horizontal slots and both horizontal orientations', () => {
 
   assert.ok(slot);
   assert.equal(slot.length, 3);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right', 'left']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['right']);
   assert.deepEqual(slot.directionOptions[0].coordinates, [
     { row: 2, col: 1 },
     { row: 2, col: 2 },
     { row: 2, col: 3 }
   ]);
-  assert.deepEqual(slot.directionOptions[1].coordinates, [
-    { row: 2, col: 3 },
-    { row: 2, col: 2 },
-    { row: 2, col: 1 }
-  ]);
 });
 
-test('derives vertical slots and both vertical orientations', () => {
+test('derives vertical slots only downward', () => {
   const grid = makeGrid();
   setQuestion(grid, 0, 4);
   setQuestion(grid, 5, 4);
@@ -58,7 +53,7 @@ test('derives vertical slots and both vertical orientations', () => {
 
   assert.ok(slot);
   assert.equal(slot.length, 4);
-  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down', 'up']);
+  assert.deepEqual(slot.directionOptions.map(item => item.direction), ['down']);
 });
 
 test('does not turn a one-letter gap into an answer', () => {
@@ -108,20 +103,15 @@ test('validates borders and reports unassigned and orphan cells independently', 
   assert.equal(result.metrics.totalCells, 96);
 });
 
-test('coordinate helper obeys the canonical four-direction table', () => {
+test('coordinate helper permits only right and down answer directions', () => {
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'right', 2), [
     { row: 2, col: 3 }, { row: 2, col: 4 }
-  ]);
-  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), [
-    { row: 2, col: 1 }, { row: 2, col: 0 }
   ]);
   assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'down', 2), [
     { row: 3, col: 2 }, { row: 4, col: 2 }
   ]);
-  assert.deepEqual(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), [
-    { row: 1, col: 2 }, { row: 0, col: 2 }
-  ]);
-  assert.equal(getAnswerCoordinates({ row: 0, col: 0 }, 'up', 1), null);
+  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'left', 2), null);
+  assert.equal(getAnswerCoordinates({ row: 2, col: 2 }, 'up', 2), null);
 });
 
 test('supports dynamic top-row clue omissions while covering all 96 cells', () => {
