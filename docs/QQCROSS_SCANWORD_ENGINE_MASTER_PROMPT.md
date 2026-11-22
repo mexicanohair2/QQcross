@@ -28,7 +28,7 @@ Centralize:
 - HEIGHT = 12
 - TOTAL_CELLS = 96
 
-Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. (0,1)..(0,7) are question cells. (1,0)..(11,0) are question cells. All other cells must be assigned as meaningful question or letter cells. No unassigned cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues.
+Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. (0,1)..(0,7) are question cells. (1,0)..(11,0) are question cells. All other cells must be assigned as meaningful question or letter cells. No unassigned/blank cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues. The reserved (0,0) corner is a structural role, not an unassigned cell.
 
 Cell types:
 - corner: only (0,0), empty and non-interactive;
@@ -37,7 +37,7 @@ Cell types:
 
 Every clue has a stable id, clue text, answer/word id, clue coordinate, direction, answer length and exact answer coordinates. A clue cell may host multiple questions in different directions up to a configured safe limit. Never allow two answers to leave one clue cell in the same direction.
 
-Supported directions: right, left, down, up. Use one canonical direction-vector table for placement, validation, rendering arrows and traversal.
+Supported answer directions: right and down only. Left and up are invalid at topology, CSP, assembly, validation, rendering, hints and traversal. Use one canonical direction table for placement, validation, rendering arrows and traversal.
 
 Question cells are part of the grid, not a separate detached list. Additional question cells must be distributed across the center and vary between boards; do not use a single rigid template.
 
@@ -162,7 +162,7 @@ Test:
 1. exact 8×12 and all 96 cells;
 2. all top/left clues and empty corner;
 3. central clues in multiple quadrants;
-4. all four directions;
+4. right/down-only answer directions; reject left/up at every layer;
 5. multiple questions in one clue cell in distinct directions;
 6. no same-direction conflict;
 7. exact intersections and complete word references;
