@@ -53,7 +53,18 @@ test("reproducible migration matches app RPC names and the avatars bucket", asyn
 });
 
 
-test("cloud profile hydration never replaces a saved custom avatar with an empty RPC value", async () => {
+test("cloud profile hydration preserves a locally saved gallery avatar ahead of a registration avatar", async () => {
   const app = await readFile(new URL("../app.js", import.meta.url), "utf8");
-  assert.match(app, /state\.profile\.avatar_url=identity\.avatar_url\|\|state\.profile\.avatar_url\|\|""/);
+  assert.ok(app.includes('state.profile.avatar_url=getAvatarImage()||identity.avatar_url||state.profile.avatar_url||""'));
+  assert.ok(app.includes('person.avatar_url=getAvatarImage()||person.avatar_url||state.profile.avatar_url||""'));
+  assert.ok(app.includes("localStorage.setItem(avatarStorageKey(),localData)"));
+  assert.ok(app.includes("localStorage.removeItem(avatarStorageKey())"));
+});
+
+
+test("score-strip theme colors only apply to direct score labels, not nested avatar spans", async () => {
+  const css = await readFile(new URL("../styles.css", import.meta.url), "utf8");
+  assert.match(css, /\.score-strip > span\{/);
+  assert.match(css, /html\[data-qq-theme\] \.score-strip > span\{/);
+  assert.doesNotMatch(css, /\.score-strip span\{/);
 });

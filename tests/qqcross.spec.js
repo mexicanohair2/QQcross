@@ -887,9 +887,11 @@ test("scanword player avatars stay compact inside the score strip", async ({ pag
   await expect(avatars).not.toHaveCount(0);
   const dimensions = await avatars.evaluateAll(nodes => nodes.map(node => {
     const rect = node.getBoundingClientRect();
-    return { width: rect.width, height: rect.height, declared: getComputedStyle(node).width };
+    const face = node.querySelector(".qq-player-avatar__face")?.getBoundingClientRect();
+    return { width: rect.width, height: rect.height, faceWidth: face?.width || 0, faceHeight: face?.height || 0 };
   }));
   expect(dimensions.every(item => item.width <= 48 && item.height <= 48 && item.width >= 30 && item.height >= 30)).toBeTruthy();
+  expect(dimensions.every(item => item.faceWidth <= item.width * .82 && item.faceHeight <= item.height * .82)).toBeTruthy();
 });
 
 test("Cody crossword long clues keep their complete text inside each clue row", async ({ page }) => {
@@ -910,4 +912,33 @@ test("Cody crossword long clues keep their complete text inside each clue row", 
   }));
   expect(layout.every(item => item.font >= 6 && item.clamp === "4" && item.bottom <= item.rowBottom + 1 && item.overflowWrap === "anywhere")).toBeTruthy();
   expect(await page.locator(".qq-cody-row-clue[title]").count()).toBe(layout.length);
+});
+
+
+test("a gallery avatar replaces the registration emoji and remains visible in the scanword", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await expect(page.locator("#guestPlay")).toBeVisible({ timeout: 15_000 });
+  await page.locator("#guestPlay").click();
+  await page.evaluate(() => {
+    const key = "qqcross_profile_v2";
+    const profile = JSON.parse(localStorage.getItem(key));
+    profile.avatar = 8;
+    localStorage.setItem(key, JSON.stringify(profile));
+  });
+  await page.reload();
+  await expect(page.locator('[data-tab="Профиль"]')).toBeVisible({ timeout: 15_000 });
+  await page.locator('[data-tab="Профиль"]').click();
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jXioAAAAASUVORK5CYII=", "base64");
+  await page.locator("#qqAvatarInput").setInputFiles({ name: "gallery-avatar.png", mimeType: "image/png", buffer: png });
+  const profileAvatar = page.locator(".qq-profile-avatar-card .qq-player-avatar__face img");
+  await expect(profileAvatar).toBeVisible({ timeout: 10_000 });
+  await expect(profileAvatar).toHaveAttribute("src", /^data:image\/webp;base64,/);
+  await page.locator('[data-tab="Главная"]').click();
+  await page.locator("#play-toggle").click();
+  await page.locator("#practice").click();
+  await expect(page.locator(".game-screen")).toBeVisible({ timeout: 60_000 });
+  const gameAvatar = page.locator(".qq-score-strip .qq-player-avatar__face img").first();
+  await expect(gameAvatar).toBeVisible();
+  await expect(gameAvatar).toHaveAttribute("src", /^data:image\/webp;base64,/);
 });
