@@ -10,25 +10,19 @@ function entry(id, answer, question) {
 function slot(id, first, last, coordinates, forwardDirection, reverseDirection) {
   const forward = coordinates.map(point => ({ ...point }));
   const reverse = [...coordinates].reverse().map(point => ({ ...point }));
+  const forwardAllowed = ['right', 'down'].includes(forwardDirection);
+  const reverseAllowed = ['right', 'down'].includes(reverseDirection);
+  const selected = forwardAllowed
+    ? { clueCell: { ...first }, terminalCell: { ...last }, direction: forwardDirection, coordinates: forward }
+    : reverseAllowed
+      ? { clueCell: { ...last }, terminalCell: { ...first }, direction: reverseDirection, coordinates: reverse }
+      : null;
   return {
     id,
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse
-      }
-    ]
+    directionOptions: selected ? [selected] : []
   };
 }
 
@@ -593,7 +587,7 @@ test('rejects eleven-letter candidates with an impossible mandatory crossing bef
   assert.equal(result.lastDeadEnd.reason, 'SPECIAL_CANDIDATES_UNSUPPORTED_AT_CROSSINGS');
 });
 
-test('CSP places answers in all four directions when each orientation is allowed', () => {
+test('CSP rejects left/up directions even when callers request them', () => {
   const horizontal = slot('horizontal-forward', { row: 1, col: 0 }, { row: 1, col: 4 }, [
     { row: 1, col: 1 }, { row: 1, col: 2 }, { row: 1, col: 3 }
   ], 'right', 'left');
@@ -602,24 +596,16 @@ test('CSP places answers in all four directions when each orientation is allowed
   ], 'down', 'up');
   const dictionary = [entry('cat', 'КОТ', 'Домашнее животное из семейства кошачьих.')];
 
-  for (let seed = 1; seed <= 64; seed++) {
-    const left = solveSlotsCsp([horizontal], dictionary, {
-      seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['left'],
+  for (const [candidate, forbiddenDirection] of [[horizontal, 'left'], [vertical, 'up']]) {
+    const result = solveSlotsCsp([candidate], dictionary, {
+      seed: 11, requiredImageCount: 0, minimumLogicClueCells: 0,
+      requireEveryClueStarts: false, allowedDirections: [forbiddenDirection],
       maxNodes: 100, maxTimeMs: 500
     });
-    const up = solveSlotsCsp([vertical], dictionary, {
-      seed, requiredImageCount: 0, minimumLogicClueCells: 0,
-      requireEveryClueStarts: false, allowedDirections: ['up'],
-      maxNodes: 100, maxTimeMs: 500
-    });
-    assert.equal(left.ok, true, left.message);
-    assert.equal(up.ok, true, up.message);
-    assert.equal(left.words[0].direction, 'left', 'seed=' + seed);
-    assert.equal(up.words[0].direction, 'up', 'seed=' + seed);
+    assert.equal(result.ok, false, result.message);
+    assert.equal(result.reason, 'NO_CSP_SOLUTION');
   }
 });
-
 test('CSP preserves the fixed downward lower-right terminal slot', () => {
   const terminalSlot = slot('v:0,7>11,7', { row: 0, col: 7 }, { row: 4, col: 7 },
     Array.from({ length: 3 }, (_, index) => ({ row: index + 1, col: 7 })),
