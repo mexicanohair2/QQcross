@@ -1,4 +1,4 @@
-import { generateScanword } from './src/generator.js';
+import { generateScanword } from './src/generator.js?v=20261123-four-directions-v2';
 
 self.addEventListener('message', event => {
   const payload = event.data ?? {};
