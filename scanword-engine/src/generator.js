@@ -500,7 +500,7 @@ export function generateScanword(inputDictionary, options = {}) {
       maxTimeMs: useSpecialTopology ? specialMaxCspTimeMs : maxCspTimeMs,
       requiredImageCount,
       minimumLogicClueCells,
-      requireEveryClueStarts: false,
+      requireEveryClueStarts: true,
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
