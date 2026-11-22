@@ -322,7 +322,7 @@ function renderShell(root){
  root.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{state.tab=b.dataset.tab;render()});
  wireContent();
 }
-function content(){if(state.tab==="ИИ")return encyclopedia();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
+function content(){if(state.tab==="ИИ")return quantumAI();if(state.tab==="История")return matchHistory();if(state.tab==="Друзья")return friends();if(state.tab==="Магазин")return shop();if(state.tab==="Профиль")return profile();if(state.tab==="Настройки")return settings();return home()}
 function collapsiblePanel(id,title,body,initialOpen=false){
  let open=initialOpen;
  try{const saved=localStorage.getItem("qqcross_settings_section_"+id);if(saved==="collapsed")open=false;else if(saved==="expanded")open=true}catch{}
@@ -492,25 +492,8 @@ function shop(){
   '<p class="small muted qq-shop-note">Предметы для всех игр, кроме Wordle. 5 предметов — 100 монет.</p><div class="qq-shop-grid">'+
   products.map(([key,ico,name,desc])=>'<article class="qq-shop-item"><div class="qq-shop-item-head"><span class="qq-shop-icon">'+ico+'</span><span class="qq-shop-item-copy"><b>'+name+'</b><small>'+desc+'</small></span></div><div class="qq-shop-stock">В наличии: <b>'+(state.profile.items[key]||0)+'</b></div><div class="qq-shop-buy"><button class="btn buy" data-item="'+key+'" data-qty="5">5 · 100 🪙</button><button class="btn primary buy" data-item="'+key+'" data-qty="10">10 · 200 🪙</button></div></article>').join("")+'</div>';
 }
-function encyclopedia(){
+function quantumAI(){
  return window.QQQuantumAI?.markup?.()||'<section class="card"><h2>Quantum-AI</h2><p class="muted">Не удалось загрузить интерфейс помощника. Обнови QQCross.</p></section>';
-}
-async function askQQCrossAI(question){window.QQQuantumAI?.prefill?.(question)}
-async function lookupEncyclopediaWord(word){
- const out=$("#encyclopediaResult");if(!out)return;
- out.innerHTML='<p class="muted small">Ищу статью и проверяю написание…</p>';
- try{
-  const result=await window.QQEncyclopedia.search(word);
-  if(!out.isConnected)return;
-  if(result.error){out.innerHTML='<p class="muted">'+esc(result.error)+'</p>';return}
-  let correction=result.correction?'<p class="qq-word-correction">Возможно, ты имел в виду: <button type="button" data-encyclopedia-word="'+esc(result.correction.word)+'">'+esc(result.correction.word)+'</button></p>':'';
-  if(!result.article){out.innerHTML=correction+'<p>Статью не удалось найти. Проверь написание или попробуй похожее слово.</p>';return}
-  const a=result.article;
-  const stress=result.stress?'<p class="qq-word-stress">Ударение по Викисловарю: <b>'+esc(result.stress)+'</b></p>':'';
-  const related=(a.related||[]).map(w=>'<button type="button" class="pill" data-encyclopedia-word="'+esc(w)+'">'+esc(w)+'</button>').join("");
-  out.innerHTML=correction+'<h3>'+esc(a.title)+'</h3>'+stress+'<p class="qq-encyclopedia-extract">'+esc(a.extract||"В статье нет краткого описания.")+'</p><div class="qq-related"><b>Связанные понятия</b><div class="qq-word-chips">'+(related||'<span class="muted small">Связанные понятия не найдены.</span>')+'</div></div><a class="qq-wiki-link" href="'+esc(a.url)+'" target="_blank" rel="noopener noreferrer">Открыть полную статью в '+esc(a.sourceLabel||"Википедии")+' ↗</a>';
-  out.querySelectorAll("[data-encyclopedia-word]").forEach(b=>b.onclick=()=>lookupEncyclopediaWord(b.dataset.encyclopediaWord));
- }catch(e){if(out.isConnected)out.innerHTML='<p class="muted">Не удалось получить статью. Проверь подключение и попробуй ещё раз.</p>'}
 }
 function openWordInfo(word){state.screen="";state.tab="ИИ";render();setTimeout(()=>window.QQQuantumAI?.prefill?.("Расскажи о слове «"+String(word||"").trim()+"»."),0)}
 let qqWordInfoBound=false;
