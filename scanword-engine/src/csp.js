@@ -497,7 +497,15 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       slotId: slot.id,
       length: slot.length,
       candidateCount: candidates.length,
-      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer)
+      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer),
+      firstPlacements: candidates.slice(0, 8).map(candidate => ({
+        answer: candidate.entry.answer,
+        imageKey: candidate.entry.imageKey ?? null,
+        logic: candidate.entry.logic === true,
+        clueCell: { ...candidate.clueCell },
+        direction: candidate.direction,
+        priority: candidate.priority
+      }))
     });
   }
 
@@ -893,6 +901,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const selectionOrder = shuffle(unassigned, random);
       let chosenContentPriority = -1;
       const imageDomains = [];
+      const imageDomainDiagnostics = [];
       const logicClueDomains = [];
       const difficultyDomains = { 2: [], 3: [], 4: [] };
       for (const slot of selectionOrder) {
@@ -917,10 +926,24 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           return false;
         }
 
-        const imageKeys = new Set(candidates
-          .filter(candidate => candidate.entry.imageKey)
-          .map(candidate => candidate.entry.imageKey));
+        const imageCandidates = candidates.filter(candidate => Boolean(candidate.entry.imageKey));
+        const imageKeys = new Set(imageCandidates.map(candidate => candidate.entry.imageKey));
         if (imageKeys.size) imageDomains.push([...imageKeys]);
+        if (options.captureTrace) {
+          imageDomainDiagnostics.push({
+            slotId: slot.id,
+            length: slot.length,
+            candidateCount: candidates.length,
+            imageCandidatePlacements: imageCandidates.length,
+            imageKeys: [...imageKeys],
+            firstImageCandidates: imageCandidates.slice(0, 8).map(candidate => ({
+              answer: candidate.entry.answer,
+              imageKey: candidate.entry.imageKey,
+              clueCell: { ...candidate.clueCell },
+              direction: candidate.direction
+            }))
+          });
+        }
 
         const logicClueKeys = new Set(candidates
           .filter(candidate => candidate.entry.logic === true
@@ -975,7 +998,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
           reason: 'IMAGE_CAPACITY_UNREACHABLE',
           required: remainingImageQuota,
           available: availableImageAssignments,
-          openSlots: unassigned.length
+          openSlots: unassigned.length,
+          ...(options.captureTrace ? { imageDomainDiagnostics } : {})
         });
         return false;
       }
