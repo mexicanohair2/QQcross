@@ -514,9 +514,9 @@ test('assembler rejects using the lower-right terminal cell as a clue', () => {
     answer: 'КОТ',
     question: 'Домашнее животное из семейства кошачьих.',
     clue: { row: 11, col: 7 },
-    direction: 'left',
+    direction: 'down',
     coordinates: [
-      { row: 11, col: 6 }, { row: 11, col: 5 }, { row: 11, col: 4 }
+      { row: 12, col: 7 }, { row: 13, col: 7 }, { row: 14, col: 7 }
     ]
   };
   const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });
