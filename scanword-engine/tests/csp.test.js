@@ -1031,7 +1031,7 @@ test('reserves the tightest matched picture domain before filling ordinary words
     requiredImageCount: 2,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
-    allowedShortAnswers: new Set(['ЁЖ', 'ЯД']),
+    allowedShortAnswers: new Set(['ЕЖ', 'ЯД']),
     captureTrace: true,
     maxNodes: 1000,
     maxTimeMs: 1000
