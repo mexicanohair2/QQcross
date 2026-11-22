@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 import { createEmptyGrid, inBounds } from './grid.js';
 import { normalizeAnswer } from './dictionary.js';
 
@@ -58,8 +58,8 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
-    if (!['right', 'left', 'down', 'up'].includes(sourceWord.direction)) {
-      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
+    if (!ANSWER_DIRECTIONS.includes(sourceWord.direction)) {
+      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
         wordId: sourceWord.id, direction: sourceWord.direction
       });
       continue;
