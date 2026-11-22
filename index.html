@@ -35,6 +35,7 @@
 <link rel="stylesheet" href="./party-games.css?v=20261121-party-games-v1">
 <link rel="stylesheet" href="./assets/player-identity.css?v=20261121-profile-cosmetics-v1">
 <link rel="stylesheet" href="./experience-polish.css?v=20261121-scanword-hitfix-v1">
+<link rel="stylesheet" href="./quantum-ai-chat.css?v=20261122-qqcross-ai-v1">
 <script src="./ambience.js?v=20261121-natural-particles-v2" defer></script>
 <title>QQCross</title>
 </head>
@@ -68,6 +69,7 @@
 <script src="./new-games.js?v=20261122-cody-clue-fit-v1"></script>
 <script src="./progression.js?v=20261120-remove-wheel-v3"></script>
 <script src="./encyclopedia.js?v=20261109-grid-8x12-v30"></script>
+<script src="./quantum-ai-chat.js?v=20261122-qqcross-ai-v1"></script>
 <script>
 (function(){
   var urls=[
@@ -77,7 +79,7 @@
   function startApp(){
     if(document.querySelector('script[data-qq-app]'))return;
     var app=document.createElement("script");
-    app.src="./app.js?v=20261122-preserve-custom-avatar-v1";
+    app.src="./app.js?v=20261122-quantum-ai-chat-v1";
     app.dataset.qqApp="true";
     app.onload=function(){};
     app.onerror=function(){window.dispatchEvent(new ErrorEvent("error",{message:"Не удалось загрузить app.js"}))};
