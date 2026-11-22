@@ -72,6 +72,7 @@
   text-overflow:ellipsis!important;
 }
 .game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow{
+  display:grid!important;
   bottom:1px!important;
   right:2px!important;
   font-size:8px!important;
@@ -233,6 +234,14 @@
   white-space:nowrap!important;
   -webkit-line-clamp:1!important;
 }
+
+/* All four answer directions are active in the production generator. */
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-left,
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-up{
+  display:grid!important;
+}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-left{right:auto!important;left:2px!important;bottom:1px!important;top:auto!important}
+.game-screen .scanword-board>.scan-cell.scan-clue .scan-arrow.scan-arrow-up{left:auto!important;right:2px!important;top:1px!important;bottom:auto!important}
 
 /* Correctness indicators are visible independently of color. */
 .game-screen .scanword-board>.scan-cell.cell{position:relative!important}
