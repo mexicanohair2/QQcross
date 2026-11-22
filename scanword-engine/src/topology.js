@@ -98,8 +98,8 @@ export function getAnswerCoordinates(clueCell, direction, length) {
  * Derives geometric candidate slots from a role grid.
  *
  * A normal answer slot is a run of at least two letter cells between two
- * consecutive question cells on one row or column. Both endpoint orientations
- * are retained, allowing the CSP stage to choose right/left/down/up.
+ * consecutive question cells on one row or column. The clue is always the
+ * first endpoint, so horizontal answers run right and vertical answers down.
  *
  * One-letter gaps are intentionally not promoted to answers.
  */
