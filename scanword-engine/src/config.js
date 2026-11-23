@@ -9,6 +9,8 @@ export const CONFIG = Object.freeze({
   MAX_WORD_LENGTH: 11,
   HISTORY_LIMIT: 100
 });
+export const ANSWER_DIRECTIONS = Object.freeze(['right', 'down']);
+
 export const DIRECTIONS = Object.freeze({
   right: Object.freeze({ dr: 0, dc: 1 }),
   left: Object.freeze({ dr: 0, dc: -1 }),
