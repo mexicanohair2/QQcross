@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 
 export const CELL_ROLES = Object.freeze(['corner', 'question', 'letter']);
 export const MIN_ANSWER_LENGTH = 2;
@@ -50,9 +50,7 @@ function hasValidShape(grid) {
 function makeSlot(axis, first, last, coordinates) {
   const horizontal = axis === 'horizontal';
   const forwardDirection = horizontal ? 'right' : 'down';
-  const reverseDirection = horizontal ? 'left' : 'up';
   const forward = coordinates.map(item => ({ ...item }));
-  const reverse = [...coordinates].reverse().map(item => ({ ...item }));
 
   const endsAtRightEdge = horizontal && last.col === CONFIG.WIDTH - 1;
   const endsAtBottomEdge = last.row === CONFIG.HEIGHT - 1;
@@ -68,20 +66,12 @@ function makeSlot(axis, first, last, coordinates) {
     length: coordinates.length,
     endpoints: [{ ...first }, { ...last }],
     coordinates: forward,
-    directionOptions: [
-      {
-        clueCell: { ...first },
-        terminalCell: { ...last },
-        direction: forwardDirection,
-        coordinates: forward.map(item => ({ ...item }))
-      },
-      {
-        clueCell: { ...last },
-        terminalCell: { ...first },
-        direction: reverseDirection,
-        coordinates: reverse.map(item => ({ ...item }))
-      }
-    ],
+    directionOptions: [{
+      clueCell: { ...first },
+      terminalCell: { ...last },
+      direction: forwardDirection,
+      coordinates: forward.map(item => ({ ...item }))
+    }],
     special: null
   };
 }
@@ -92,7 +82,7 @@ function makeSlot(axis, first, last, coordinates) {
  */
 export function getAnswerCoordinates(clueCell, direction, length) {
   const vector = DIRECTIONS[direction];
-  if (!vector || !Number.isInteger(length) || length < 1) return null;
+  if (!ANSWER_DIRECTIONS.includes(direction) || !vector || !Number.isInteger(length) || length < 1) return null;
 
   const coordinates = [];
   for (let index = 1; index <= length; index++) {
@@ -108,8 +98,8 @@ export function getAnswerCoordinates(clueCell, direction, length) {
  * Derives geometric candidate slots from a role grid.
  *
  * A normal answer slot is a run of at least two letter cells between two
- * consecutive question cells on one row or column. Both endpoint orientations
- * are retained, allowing the CSP stage to choose right/left/down/up.
+ * consecutive question cells on one row or column. The clue is always the
+ * first endpoint, so horizontal answers run right and vertical answers down.
  *
  * One-letter gaps are intentionally not promoted to answers.
  */
@@ -228,37 +218,6 @@ export function deriveWordSlots(grid, options = {}) {
         }],
         special: 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
       });
-    }
-  }
-
-  // Opt-in exception for the two forced horizontal answers from the left edge.
-  // It is disabled by default and is accepted only for rows 1 and 2.
-  if (options.allowLeftBorderRightBoundary === true) {
-    for (const row of [1, 2]) {
-      const clue = grid[row][0];
-      const coordinates = Array.from({ length: CONFIG.WIDTH - 1 }, (_, index) => point(row, index + 1));
-      const uninterrupted = clue.type === 'question'
-        && coordinates.every(item => grid[item.row][item.col].type === 'letter');
-
-      if (uninterrupted) {
-        slots.push({
-          id: 'special-left-right:' + row + ',0>right-boundary',
-          axis: 'horizontal',
-          length: CONFIG.WIDTH - 1,
-          endpoints: [
-            point(row, 0),
-            { row, col: CONFIG.WIDTH, boundary: true }
-          ],
-          coordinates,
-          directionOptions: [{
-            clueCell: point(row, 0),
-            terminalCell: { row, col: CONFIG.WIDTH, boundary: true },
-            direction: 'right',
-            coordinates: coordinates.map(item => ({ ...item }))
-          }],
-          special: 'LEFT_BORDER_RIGHT_BOUNDARY'
-        });
-      }
     }
   }
 
