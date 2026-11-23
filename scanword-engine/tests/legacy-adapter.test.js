@@ -10,19 +10,17 @@ function makeScanword() {
   const words = [
     { id: 'right', answer: 'АБ', direction: 'right', coordinates: [{ row: 2, col: 1 }, { row: 2, col: 2 }], clue: { row: 2, col: 0 }, question: 'Вправо' },
     { id: 'down', answer: 'ВГ', direction: 'down', coordinates: [{ row: 1, col: 4 }, { row: 2, col: 4 }], clue: { row: 0, col: 4 }, question: 'Вниз' },
-    { id: 'left', answer: 'ДЕ', direction: 'left', coordinates: [{ row: 4, col: 5 }, { row: 4, col: 4 }], clue: { row: 4, col: 6 }, question: 'Влево' },
-    { id: 'up', answer: 'ЖЗ', direction: 'up', coordinates: [{ row: 6, col: 4 }, { row: 5, col: 4 }], clue: { row: 7, col: 4 }, question: 'Вверх' }
   ];
   for (const word of words) grid[word.clue.row][word.clue.col].type = 'question';
   return { width: 8, height: 12, grid, words, metadata: { seed: 7 } };
 }
 
-test('preserves the native 8-column by 12-row grid and all answer directions', () => {
+test('preserves the native 8-column by 12-row grid and only right/down answer directions', () => {
   const puzzle = toLegacyPuzzle(makeScanword(), { sequence: 1 });
   assert.equal(puzzle.w, 8);
   assert.equal(puzzle.h, 12);
   assert.deepEqual(puzzle.reservedKeys, new Set(['0,0']));
-  assert.equal(puzzle.clueKeys.size, 4);
+  assert.equal(puzzle.clueKeys.size, 2);
   assert.ok(puzzle.clueKeys.has('2,0'));
   assert.ok(puzzle.used.has('2,1'));
   const byId = Object.fromEntries(puzzle.words.map(word => [word.id, word]));
@@ -32,12 +30,7 @@ test('preserves the native 8-column by 12-row grid and all answer directions', (
   assert.equal(byId.down.dir, 'down');
   assert.deepEqual(byId.down.clueCell, [0, 4]);
   assert.deepEqual(byId.down.cells, [[1, 4], [2, 4]]);
-  assert.equal(byId.left.dir, 'left');
-  assert.deepEqual(byId.left.clueCell, [4, 6]);
-  assert.deepEqual(byId.left.cells, [[4, 5], [4, 4]]);
-  assert.equal(byId.up.dir, 'up');
-  assert.deepEqual(byId.up.clueCell, [7, 4]);
-  assert.deepEqual(byId.up.cells, [[6, 4], [5, 4]]);
+  assert.deepEqual(puzzle.words.map(word => word.dir).sort(), ['down', 'right']);
 });
 
 
@@ -50,8 +43,8 @@ test('rejects answer coordinates that extend beyond the 8x12 grid', () => {
 
 test('rejects a question whose answer direction points outside the grid', () => {
   const scanword = makeScanword();
-  const left = scanword.words.find(word => word.id === 'left');
-  left.direction = 'right';
+  const down = scanword.words.find(word => word.id === 'down');
+  down.direction = 'right';
   assert.throws(() => toLegacyPuzzle(scanword), /выходит за границы|неверно направлен/u);
 });
 
@@ -71,19 +64,34 @@ test('keeps only the designated top-right and bottom-left edge anchors as playab
 
 test('rejects false playable clue starts on the right and bottom borders', () => {
   const rightEdge = makeScanword();
-  const leftward = rightEdge.words.find(word => word.id === 'left');
-  rightEdge.grid[4][6].type = 'letter';
   rightEdge.grid[4][7].type = 'question';
-  leftward.clue = { row: 4, col: 7 };
-  leftward.coordinates = [{ row: 4, col: 6 }, { row: 4, col: 5 }];
+  rightEdge.words.push({ id: 'right-edge', answer: 'АБ', direction: 'right', coordinates: [{ row: 4, col: 6 }, { row: 4, col: 5 }], clue: { row: 4, col: 7 }, question: 'Ошибочный правый вопрос' });
   assert.throws(() => toLegacyPuzzle(rightEdge), /правом или нижнем краю/u);
 
   const bottomEdge = makeScanword();
   bottomEdge.grid[11][3].type = 'question';
   bottomEdge.words.push({
-    id: 'bottom-edge', answer: 'НО', direction: 'up',
-    coordinates: [{ row: 10, col: 3 }, { row: 9, col: 3 }],
+    id: 'bottom-edge', answer: 'НО', direction: 'right',
+    coordinates: [{ row: 11, col: 4 }, { row: 11, col: 5 }],
     clue: { row: 11, col: 3 }, question: 'Ошибочный нижний вопрос'
   });
   assert.throws(() => toLegacyPuzzle(bottomEdge), /правом или нижнем краю/u);
+});
+
+test('rejects leftward and upward answers at the production adapter boundary', () => {
+  for (const direction of ['left', 'up']) {
+    const scanword = makeScanword();
+    scanword.grid[4][3].type = 'question';
+    scanword.words.push({
+      id: 'forbidden-' + direction,
+      answer: 'КОТ',
+      direction,
+      coordinates: direction === 'left'
+        ? [{ row: 4, col: 2 }, { row: 4, col: 1 }, { row: 4, col: 0 }]
+        : [{ row: 3, col: 3 }, { row: 2, col: 3 }, { row: 1, col: 3 }],
+      clue: { row: 4, col: 3 },
+      question: 'Запрещённое направление'
+    });
+    assert.throws(() => toLegacyPuzzle(scanword), /запрещённое направление/u);
+  }
 });
