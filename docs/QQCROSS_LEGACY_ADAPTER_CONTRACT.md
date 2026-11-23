@@ -34,8 +34,8 @@ The renderer and scoring code consume these fields:
 | isEmoji | Whether the clue contains an emoji/flag |
 | logic | Whether this is a logic clue |
 | imageKey | Optional key for assets/scanword/{key}.svg |
-| dir | right, left, down, or up |
-| dirIndex | right=0, down=1, left=2, up=3 |
+| dir | right or down only |
+| dirIndex | right=0, down=1 |
 | cells | Answer-order array of [row, col] coordinates |
 | clueCell | [row, col] coordinate of the start question |
 | special | Optional special boundary mechanic |
@@ -50,6 +50,8 @@ The renderer and scoring code consume these fields:
 - Letter cells are rendered from expected; question cells from clue starts and computed terminals; (0,0) is the only reserved blank. Any remaining cell becomes a visible filler and is rejected by the new validator.
 
 ## Adapter safety rules
+
+Only `right` and `down` are valid production answer directions. The adapter rejects `left`, `up`, and unknown values even if a caller bypasses the generator. The renderer and hint path receive only the two canonical directions.
 
 1. Generate and independently validate using the real dictionary before adaptation.
 2. Refuse adaptation unless all 96 cells have valid roles.
