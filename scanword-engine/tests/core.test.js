@@ -312,7 +312,7 @@ test('independent validator rejects question references on a letter cell', () =>
 });
 
 
-test('assembler and independent validator recognize only the two exact left-border boundary exceptions', () => {
+test('assembler and independent validator reject non-eleven-letter boundary exceptions', () => {
   const dictionary = [{
     id: 'emerald',
     answer: 'ИЗУМРУД',
@@ -336,23 +336,17 @@ test('assembler and independent validator recognize only the two exact left-bord
     }]
   }, { allowLeftBorderRightBoundary: true });
 
-  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
-  assert.equal(assembled.scanword.grid[1][0].type, 'question');
-  assert.equal(assembled.scanword.grid[1][7].letter, 'Д');
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(error => error.type === 'UNKNOWN_SPECIAL_RULE'));
 
   const validation = validateScanword(assembled.scanword, dictionary, {
     requireBorderClues: false,
     requireConnected: false,
-    allowLeftBorderRightBoundary: true,
     requiredImageCount: 0,
     minimumLogicClueCells: 0
   });
-  const boundaryErrors = validation.errors.filter(error => [
-    'ORDINARY_WORD_ENDS_AT_BOUNDARY',
-    'UNKNOWN_SPECIAL_RULE',
-    'INVALID_SPECIAL_BOUNDARY_WORD'
-  ].includes(error.type));
-  assert.deepEqual(boundaryErrors, []);
+  assert.ok(validation.errors.some(error => error.type === 'UNKNOWN_SPECIAL_RULE'));
+  assert.ok(validation.errors.some(error => error.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
 });
 
 
