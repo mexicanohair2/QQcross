@@ -166,25 +166,6 @@ export function assembleScanword(assignments, options = {}) {
           wordId: sourceWord.id, terminal
         });
       }
-    } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
-      const exactCoordinates = sourceWord.coordinates.every((point, index) =>
-        point.row === clue.row && point.col === index + 1
-      );
-      const enabled = options.allowLeftBorderRightBoundary === true;
-      if (
-        !enabled
-        || answer.length !== CONFIG.WIDTH - 1
-        || ![1, 2].includes(clue.row)
-        || clue.col !== 0
-        || sourceWord.direction !== 'right'
-        || !exactCoordinates
-        || terminal.row !== clue.row
-        || terminal.col !== CONFIG.WIDTH
-      ) {
-        fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Исключение левой границы разрешено только для строк 1 и 2, вправо на всю ширину поля.', {
-          wordId: sourceWord.id, terminal, enabled
-        });
-      }
     } else {
       if (sourceWord.special != null) {
         fail('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
