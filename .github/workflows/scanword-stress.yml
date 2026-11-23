@@ -9,6 +9,10 @@ on:
       - "scripts/stress-scanword.cjs"
       - ".github/workflows/scanword-stress.yml"
 
+concurrency:
+  group: qqcross-scanword-stress-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
