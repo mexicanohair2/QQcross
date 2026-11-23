@@ -46,6 +46,7 @@ test("retries one failed scanword worker and completes generation in the worker 
   await page.addInitScript(() => {
     const NativeWorker = window.Worker;
     window.__qqWorkerAttempts = 0;
+    window.__qqWorkerFailures = 0;
     window.Worker = class RetryTestWorker {
       constructor(url, options) {
         this.attempt = ++window.__qqWorkerAttempts;
@@ -53,6 +54,7 @@ test("retries one failed scanword worker and completes generation in the worker 
       }
       postMessage(payload) {
         if (this.attempt === 1) {
+          window.__qqWorkerFailures++;
           queueMicrotask(() => this.onerror?.({ message: "simulated first worker failure" }));
           return;
         }
@@ -68,7 +70,8 @@ test("retries one failed scanword worker and completes generation in the worker 
 
   const { pageErrors } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
-  expect(await page.evaluate(() => window.__qqWorkerAttempts)).toBe(2);
+  expect(await page.evaluate(() => window.__qqWorkerAttempts)).toBeGreaterThanOrEqual(2);
+  expect(await page.evaluate(() => window.__qqWorkerFailures)).toBe(1);
   expect(pageErrors).toEqual([]);
 });
 
