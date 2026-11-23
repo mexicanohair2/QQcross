@@ -131,6 +131,7 @@ async function main() {
       };
       if (failures.length) break;
     }
+    if (failures.length) break;
   }
 
   const sorted = [...timings].sort((a, b) => a - b);
