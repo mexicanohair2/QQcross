@@ -10,7 +10,7 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
-  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0, other: 0 };
   const generationOptions = {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
@@ -89,6 +89,7 @@ async function main() {
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+      else directionCounts.other++;
     }
     const imageWords = scanword.words.filter(word => word.imageKey);
     assert.equal(imageWords.length, 5);
@@ -150,9 +151,11 @@ async function main() {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
-  for (const direction of ['right', 'down', 'left', 'up']) {
-    assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
-  }
+  assert.ok(directionCounts.right > 0, 'production generation must use rightward answers');
+  assert.ok(directionCounts.down > 0, 'production generation must use downward answers');
+  assert.equal(directionCounts.left, 0, 'leftward answers are forbidden');
+  assert.equal(directionCounts.up, 0, 'upward answers are forbidden');
+  assert.equal(directionCounts.other, 0, 'unknown answer directions are forbidden');
 }
 
 main().catch(error => {
