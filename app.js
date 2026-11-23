@@ -1298,7 +1298,7 @@ function buildScanwordInWorker(entries, overrides={}){
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261123-right-down-contract-v1");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
