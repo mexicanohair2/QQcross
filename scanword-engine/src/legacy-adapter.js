@@ -1,4 +1,4 @@
-const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1, left: 2, up: 3 });
+const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1 });
 
 function compactClue(value) {
   const text = String(value ?? '').trim().replace(/\s+/gu, ' ');
@@ -47,7 +47,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
 
   const words = scanword.words.map(word => {
     if (!Object.prototype.hasOwnProperty.call(DIRECTION_INDEX, word.direction)) {
-      throw new Error('У ответа ' + word.id + ' неизвестное направление.');
+      throw new Error('У ответа ' + word.id + ' запрещённое направление: разрешены только вправо и вниз.');
     }
     if (!Array.isArray(word.coordinates) || word.coordinates.length !== word.answer.length) {
       throw new Error('Координаты ответа ' + word.id + ' не совпадают с его длиной.');
@@ -68,7 +68,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
       throw new Error('Вопрос ответа ' + word.id + ' ошибочно расположен на правом или нижнем краю сетки.');
     }
     const delta = {
-      right: [0, 1], down: [1, 0], left: [0, -1], up: [-1, 0]
+      right: [0, 1], down: [1, 0]
     }[word.direction];
     word.coordinates.forEach((point, index) => {
       const row = clueRow + delta[0] * (index + 1);
