@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
 
@@ -53,33 +53,6 @@ function validateSlotGeometry(slot) {
     );
   }
 
-  if (slot.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
-    if (
-      slot.length !== CONFIG.WIDTH - 1
-      || slot.directionOptions.length !== 1
-      || ![1, 2].includes(slot.endpoints[0]?.row)
-      || pointKey(slot.endpoints[0]) !== slot.endpoints[0].row + ',0'
-      || slot.endpoints[1]?.row !== slot.endpoints[0].row
-      || slot.endpoints[1]?.col !== CONFIG.WIDTH
-      || slot.endpoints[1]?.boundary !== true
-    ) return false;
-    const option = slot.directionOptions[0];
-    if (
-      pointKey(option.clueCell) !== slot.endpoints[0].row + ',0'
-      || option.direction !== 'right'
-      || !option.terminalCell?.boundary
-      || option.terminalCell.row !== slot.endpoints[0].row
-      || option.terminalCell.col !== CONFIG.WIDTH
-      || option.coordinates.length !== CONFIG.WIDTH - 1
-    ) return false;
-    return option.coordinates.every((coordinate, index) =>
-      coordinate.row === slot.endpoints[0].row
-      && coordinate.col === index + 1
-      && slot.coordinates[index]?.row === coordinate.row
-      && slot.coordinates[index]?.col === coordinate.col
-    );
-  }
-
   if (
     slot.endpoints.some(endpoint =>
       endpoint.boundary
@@ -88,7 +61,7 @@ function validateSlotGeometry(slot) {
       || endpoint.row < 0 || endpoint.row >= CONFIG.HEIGHT
       || endpoint.col < 0 || endpoint.col >= CONFIG.WIDTH
     )
-    || slot.directionOptions.length !== 2
+    || slot.directionOptions.length !== 1
   ) return false;
 
   const [start, end] = slot.endpoints;
@@ -111,15 +84,12 @@ function validateSlotGeometry(slot) {
     ) return false;
   }
 
-  const expectedDirections = horizontal ? new Set(['right', 'left']) : new Set(['down', 'up']);
-  if (
-    slot.directionOptions.length !== expectedDirections.size
-    || slot.directionOptions.some(option => !expectedDirections.has(option.direction))
-  ) return false;
+  const expectedDirection = horizontal ? 'right' : 'down';
+  if (slot.directionOptions[0]?.direction !== expectedDirection) return false;
 
   for (const option of slot.directionOptions ?? []) {
     const vector = DIRECTIONS[option.direction];
-    if (!vector || !option.clueCell || !option.terminalCell) return false;
+    if (!ANSWER_DIRECTIONS.includes(option.direction) || !vector || !option.clueCell || !option.terminalCell) return false;
 
     const clueKey = pointKey(option.clueCell);
     const terminalKey = pointKey(option.terminalCell);
@@ -249,7 +219,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
   ]).map(canonicalAnswerKey));
   for (const orientation of slot.directionOptions ?? []) {
-    // Production may restrict directions; generic CSP tests can retain all valid orientations.
+    // The production contract is enforced here, not only by the generator caller.
     if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
@@ -327,9 +297,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const requiredImageCount = options.requiredImageCount ?? 5;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const requireEveryClueStarts = options.requireEveryClueStarts !== false;
-  const allowedDirections = Array.isArray(options.allowedDirections)
-    ? new Set(options.allowedDirections)
-    : null;
+  const allowedDirections = new Set(ANSWER_DIRECTIONS.filter(direction =>
+    !Array.isArray(options.allowedDirections) || options.allowedDirections.includes(direction)
+  ));
 
   if (!Array.isArray(inputSlots) || inputSlots.length === 0) {
     return {
