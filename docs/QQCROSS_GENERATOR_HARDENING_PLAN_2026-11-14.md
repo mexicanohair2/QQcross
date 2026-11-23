@@ -1,5 +1,7 @@
 # QQCross generator hardening plan — 2026-11-14
 
+> Historical snapshot. The plan predates the current right/down-only implementation and must not override the current source, `SCANWORD_REFERENCE.md`, or `docs/QQCROSS_SCANWORD_ENGINE_MASTER_PROMPT.md`.
+
 ## Goal
 
 Continue the existing draft PR #30 on `work/qqcross-release-hardening-20261114`. Do not merge or deploy until the generator, browser tests, and mobile layout checks pass. Keep the current Supabase schema and user data untouched.
@@ -18,7 +20,7 @@ Continue the existing draft PR #30 on `work/qqcross-release-hardening-20261114`.
 2. Do not accept a partial grid or trust generator metadata. The validator must independently reconstruct all word slots, crossing letters, cell roles, clue links, and dictionary membership.
 3. Preserve the sole 11-letter special case at clue (0,1), down column 1, rows 1–11. It remains optional and statistically near one in four.
 4. **Top-border feasibility:** a completely question-filled top row (cells (0,1)..(0,7)) conflicts with a fully question-filled left border, minimum two-letter answers, no dead clues, right/down-only answers, and only one optional eleven-letter boundary exception. In an ordinary board without the special answer, (0,1) cannot start right because (0,2) is also a clue. If it starts down, that vertical answer needs a later clue in column 1; but any such clue in rows 1..11 is adjacent to the mandatory left-border clue in column 0, leaving that left-border clue with no valid horizontal answer. The special eleven-letter path solves column 1 only on the optional subset of boards, not on the remaining boards. Do not hide this contradiction with one-letter filler or dead clues. Keep (0,1) as the top anchor and place additional top-row clues only where they create real answer slots, while preserving the complete left border. This is a deliberate, documented deviation from the literal all-seven-top-cells rule until the design constraints are changed together.
-5. Current engine exposes four orientations for each geometric slot. Any change to direction policy must be tested together with topology, CSP, renderer, hints, and validator; never silently discard a valid orientation and cause generation failures.
+5. Current production contract: horizontal slots start at the left question and run right; vertical slots start at the upper question and run down. Left/up are invalid in topology, CSP, assembler, independent validator, legacy adapter, rendering and hint traversal. Historical four-orientation wording is obsolete.
 6. Do not change accounts, Supabase schema, profiles, inventory, friends, multiplayer state, Wordle, or the other game modes as a side effect of generator work.
 
 ## Implementation sequence
