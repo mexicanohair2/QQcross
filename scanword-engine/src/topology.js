@@ -221,37 +221,6 @@ export function deriveWordSlots(grid, options = {}) {
     }
   }
 
-  // Opt-in exception for the two forced horizontal answers from the left edge.
-  // It is disabled by default and is accepted only for rows 1 and 2.
-  if (options.allowLeftBorderRightBoundary === true) {
-    for (const row of [1, 2]) {
-      const clue = grid[row][0];
-      const coordinates = Array.from({ length: CONFIG.WIDTH - 1 }, (_, index) => point(row, index + 1));
-      const uninterrupted = clue.type === 'question'
-        && coordinates.every(item => grid[item.row][item.col].type === 'letter');
-
-      if (uninterrupted) {
-        slots.push({
-          id: 'special-left-right:' + row + ',0>right-boundary',
-          axis: 'horizontal',
-          length: CONFIG.WIDTH - 1,
-          endpoints: [
-            point(row, 0),
-            { row, col: CONFIG.WIDTH, boundary: true }
-          ],
-          coordinates,
-          directionOptions: [{
-            clueCell: point(row, 0),
-            terminalCell: { row, col: CONFIG.WIDTH, boundary: true },
-            direction: 'right',
-            coordinates: coordinates.map(item => ({ ...item }))
-          }],
-          special: 'LEFT_BORDER_RIGHT_BOUNDARY'
-        });
-      }
-    }
-  }
-
   return { slots, errors, warnings };
 }
 
