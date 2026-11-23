@@ -42,6 +42,36 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
+test("retries one failed scanword worker and completes generation in the worker thread", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.__qqWorkerAttempts = 0;
+    window.Worker = class RetryTestWorker {
+      constructor(url, options) {
+        this.attempt = ++window.__qqWorkerAttempts;
+        this.inner = this.attempt === 1 ? null : new NativeWorker(url, options);
+      }
+      postMessage(payload) {
+        if (this.attempt === 1) {
+          queueMicrotask(() => this.onerror?.({ message: "simulated first worker failure" }));
+          return;
+        }
+        this.inner.onmessage = event => this.onmessage?.(event);
+        this.inner.onerror = event => this.onerror?.(event);
+        this.inner.postMessage(payload);
+      }
+      terminate() {
+        this.inner?.terminate();
+      }
+    };
+  });
+
+  const { pageErrors } = await startGuestGame(page);
+  await expect(page.locator(".scanword-board")).toBeVisible();
+  expect(await page.evaluate(() => window.__qqWorkerAttempts)).toBe(2);
+  expect(pageErrors).toEqual([]);
+});
+
 test("loads a fully occupied 8-column by 12-row portrait scanword with five distinct picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
@@ -582,7 +612,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0) counts.top++;
