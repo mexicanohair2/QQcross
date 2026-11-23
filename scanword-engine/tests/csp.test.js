@@ -360,9 +360,9 @@ test('allows the shared picture prompt only for distinct image keys', () => {
 });
 
 
-test('CSP accepts only the explicit 7-letter left-border edge slot', () => {
+test('CSP rejects every non-eleven-letter boundary slot', () => {
   const coordinates = Array.from({ length: 7 }, (_, index) => ({ row: 1, col: index + 1 }));
-  const allowed = {
+  const forbidden = {
     id: 'left-edge-row-1',
     special: 'LEFT_BORDER_RIGHT_BOUNDARY',
     length: 7,
@@ -378,7 +378,7 @@ test('CSP accepts only the explicit 7-letter left-border edge slot', () => {
       coordinates
     }]
   };
-  const result = solveSlotsCsp([allowed], [
+  const result = solveSlotsCsp([forbidden], [
     entry('emerald', 'ИЗУМРУД', 'Зелёный драгоценный камень.')
   ], {
     seed: 17,
@@ -388,34 +388,8 @@ test('CSP accepts only the explicit 7-letter left-border edge slot', () => {
     maxTimeMs: 1000
   });
 
-  assert.equal(result.ok, true, result.message);
-  assert.equal(result.words[0].answer, 'ИЗУМРУД');
-  assert.equal(result.words[0].special, 'LEFT_BORDER_RIGHT_BOUNDARY');
-
-  const invalid = {
-    ...allowed,
-    id: 'left-edge-row-3',
-    endpoints: [
-      { row: 3, col: 0 },
-      { row: 3, col: 8, boundary: true }
-    ],
-    coordinates: coordinates.map(point => ({ ...point, row: 3 })),
-    directionOptions: [{
-      clueCell: { row: 3, col: 0 },
-      terminalCell: { row: 3, col: 8, boundary: true },
-      direction: 'right',
-      coordinates: coordinates.map(point => ({ ...point, row: 3 }))
-    }]
-  };
-  const rejected = solveSlotsCsp([invalid], [
-    entry('emerald', 'ИЗУМРУД', 'Зелёный драгоценный камень.')
-  ], {
-    seed: 17,
-    requiredImageCount: 0,
-    minimumLogicClueCells: 0
-  });
-  assert.equal(rejected.ok, false);
-  assert.equal(rejected.reason, 'INVALID_SLOT');
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'INVALID_SLOT');
 });
 
 
