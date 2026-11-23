@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 import { createEmptyGrid, inBounds } from './grid.js';
 import { normalizeAnswer } from './dictionary.js';
 
@@ -58,8 +58,8 @@ export function assembleScanword(assignments, options = {}) {
       });
       continue;
     }
-    if (!['right', 'left', 'down', 'up'].includes(sourceWord.direction)) {
-      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
+    if (!ANSWER_DIRECTIONS.includes(sourceWord.direction)) {
+      fail('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
         wordId: sourceWord.id, direction: sourceWord.direction
       });
       continue;
@@ -164,25 +164,6 @@ export function assembleScanword(assignments, options = {}) {
       ) {
         fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Неверная геометрия специального ответа из 11 букв.', {
           wordId: sourceWord.id, terminal
-        });
-      }
-    } else if (sourceWord.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
-      const exactCoordinates = sourceWord.coordinates.every((point, index) =>
-        point.row === clue.row && point.col === index + 1
-      );
-      const enabled = options.allowLeftBorderRightBoundary === true;
-      if (
-        !enabled
-        || answer.length !== CONFIG.WIDTH - 1
-        || ![1, 2].includes(clue.row)
-        || clue.col !== 0
-        || sourceWord.direction !== 'right'
-        || !exactCoordinates
-        || terminal.row !== clue.row
-        || terminal.col !== CONFIG.WIDTH
-      ) {
-        fail('INVALID_SPECIAL_BOUNDARY_WORD', 'Исключение левой границы разрешено только для строк 1 и 2, вправо на всю ширину поля.', {
-          wordId: sourceWord.id, terminal, enabled
         });
       }
     } else {
