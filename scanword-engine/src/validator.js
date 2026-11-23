@@ -1,4 +1,4 @@
-import { CONFIG, DIRECTIONS } from './config.js';
+import { ANSWER_DIRECTIONS, CONFIG, DIRECTIONS } from './config.js';
 import { canonicalAnswerKey, normalizeAnswer, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { assertGridDimensions, inBounds } from './grid.js';
 
@@ -78,7 +78,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const dictionaryById = new Map(prepared.variants.map(entry => [entry.id, entry]));
 
   if (grid[0][0]?.type !== 'corner') {
-    add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным пустым углом.', { row: 0, col: 0 });
+    add('CORNER_NOT_EMPTY', 'Клетка (0,0) должна быть единственным структурным углом; остальные клетки обязаны иметь роль вопроса или буквы.', { row: 0, col: 0 });
   }
 
   if (options.requireTopAnchor !== false && grid[0][1]?.type !== 'question') {
@@ -138,7 +138,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const terminalQuestionKeys = new Set();
   const registeredNormalSlots = new Set();
   let specialCount = 0;
-  const leftBoundaryRows = new Set();
 
   for (const word of words) {
     if (!word || typeof word !== 'object' || !word.id) {
@@ -196,8 +195,8 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       });
       continue;
     }
-    if (!['right', 'left', 'down', 'up'].includes(word.direction)) {
-      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти вправо, влево, вниз или вверх.', {
+    if (!ANSWER_DIRECTIONS.includes(word.direction)) {
+      add('DISALLOWED_ANSWER_DIRECTION', 'Ответы QQCross могут идти только вправо или вниз.', {
         wordId: word.id, direction: word.direction
       });
       continue;
@@ -314,30 +313,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           wordId: word.id, answer, clue, direction: word.direction, terminal
         });
       }
-    } else if (word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') {
-      const exactCoordinates = word.coordinates.every((coordinate, index) =>
-        coordinate.row === clue.row && coordinate.col === index + 1
-      );
-      const validException = options.allowLeftBorderRightBoundary === true
-        && answer.length === CONFIG.WIDTH - 1
-        && [1, 2].includes(clue.row)
-        && clue.col === 0
-        && word.direction === 'right'
-        && exactCoordinates
-        && terminal.row === clue.row
-        && terminal.col === CONFIG.WIDTH;
-      if (!validException) {
-        add('INVALID_LEFT_BORDER_BOUNDARY_WORD', 'Исключение правой границы разрешено только по явному параметру для ответов из 7 букв от (1,0) или (2,0) вправо.', {
-          wordId: word.id, answer, clue, direction: word.direction, terminal,
-          enabled: options.allowLeftBorderRightBoundary === true
-        });
-      } else if (leftBoundaryRows.has(clue.row)) {
-        add('DUPLICATE_LEFT_BORDER_BOUNDARY_ROW', 'В одной строке нельзя использовать два ответа левого граничного исключения.', {
-          wordId: word.id, row: clue.row
-        });
-      } else {
-        leftBoundaryRows.add(clue.row);
-      }
     } else {
       if (word.special != null) {
         add('UNKNOWN_SPECIAL_RULE', 'Указан неизвестный тип специального ответа.', {
@@ -397,19 +372,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
       count: specialCount
     });
   }
-  if (leftBoundaryRows.size > 2) {
-    add('TOO_MANY_LEFT_BORDER_BOUNDARY_WORDS', 'Допускается не более двух ответов левого граничного исключения.', {
-      rows: [...leftBoundaryRows]
-    });
-  }
-  if (options.allowLeftBorderRightBoundary === true
-    && options.requireBorderClues !== false
-    && (leftBoundaryRows.size !== 2 || !leftBoundaryRows.has(1) || !leftBoundaryRows.has(2))) {
-    add('INCOMPLETE_LEFT_BORDER_BOUNDARY_EXCEPTIONS', 'При включённом исключении должны быть закрыты оба обязательных вопроса левого края: строки 1 и 2.', {
-      rows: [...leftBoundaryRows].sort((a, b) => a - b)
-    });
-  }
-
   const questionById = new Map();
   const questionIdsByCell = new Map();
   const normalizedQuestionOwners = new Map();
@@ -514,7 +476,6 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
           || typeof word.answer !== 'string'
           || !word.clue
           || word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-          || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY'
         ) return false;
         if (!samePoint(word.clue, first) && !samePoint(word.clue, last)) return false;
         const vector = DIRECTIONS[word.direction];
@@ -546,7 +507,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
 
   for (const word of words) {
     if (word.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-      || word.special === 'LEFT_BORDER_RIGHT_BOUNDARY') continue;
+      ) continue;
     const vector = DIRECTIONS[word.direction];
     if (!vector || !word.clue) continue;
     const terminal = {
@@ -640,7 +601,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     for (const word of words) {
       const endpoints = [word.clue];
       if (word.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY'
-        && word.special !== 'LEFT_BORDER_RIGHT_BOUNDARY') {
+      ) {
         const vector = DIRECTIONS[word.direction];
         if (vector) {
           endpoints.push({
