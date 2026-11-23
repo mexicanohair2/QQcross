@@ -1313,7 +1313,8 @@ function buildScanwordInWorker(entries, overrides={}){
     return puzzle;
   };
   if(typeof Worker!=="function")return runOnMainThread();
-  return new Promise((resolve,reject)=>{
+  const deadline=Date.now()+16000;
+  const runWorkerAttempt=attempt=>new Promise((resolve,reject)=>{
     let worker=null,timer=null,settled=false;
     const cleanup=()=>{
       if(timer)clearTimeout(timer);
@@ -1325,11 +1326,22 @@ function buildScanwordInWorker(entries, overrides={}){
       cleanup();
       callback(value);
     };
+    const retry=()=>{
+      if(settled)return;
+      settled=true;
+      cleanup();
+      runWorkerAttempt(attempt+1).then(resolve,reject);
+    };
     try{
       worker=new Worker(new URL("./scanword-engine/worker.js",document.baseURI),{type:"module"});
       worker.onmessage=async event=>{
         const data=event.data||{};
         if(!data.ok||!data.scanword){
+          const retryable=!["INSUFFICIENT_DICTIONARY","EMPTY_DICTIONARY","INVALID_OPTIONS"].includes(data.reason);
+          if(attempt===0&&retryable&&Date.now()<deadline){
+            retry();
+            return;
+          }
           const details=data.reason?" ("+data.reason+")":"";
           finish(reject,new Error((data.error||"Новый генератор не смог собрать сканворд")+details));
           return;
@@ -1345,16 +1357,31 @@ function buildScanwordInWorker(entries, overrides={}){
       };
       worker.onerror=event=>{
         const message=event?.message||"Модульный worker нового генератора завершился с ошибкой";
+        if(attempt===0&&Date.now()<deadline){
+          retry();
+          return;
+        }
         finish(reject,new Error(message));
       };
+      const remainingMs=Math.max(0,deadline-Date.now());
+      if(remainingMs===0){
+        finish(reject,new Error("Новый генератор превысил общий лимит времени."));
+        return;
+      }
       timer=setTimeout(()=>{
         finish(reject,new Error("Новый генератор превысил лимит времени. Попробуй подготовить сканворд ещё раз."));
-      },16000);
-      worker.postMessage({entries,options:generationOptions});
+      },remainingMs);
+      const attemptSeed=(seed+Math.imul(attempt,0x9e3779b9))>>>0;
+      worker.postMessage({entries,options:{...generationOptions,seed:attemptSeed}});
     }catch(error){
+      if(attempt===0&&Date.now()<deadline){
+        retry();
+        return;
+      }
       finish(reject,error);
     }
   });
+  return runWorkerAttempt(0);
 }
 function prepareNextScanword(){
   if(preparedScanword)return Promise.resolve(preparedScanword);
