@@ -36,6 +36,7 @@ The repository dictionary currently has 2,287 source records, 46 picture-key rec
 
 - npm --prefix scanword-engine test runs isolated engine tests.
 - npm run test:scanword checks the production source dictionary and performs 100 seeded end-to-end generator runs with repeatability checks.
+- `node scripts/stress-scanword.cjs 1000` or `node scripts/stress-scanword.cjs 10000` runs sequential production batches with independent validation, right/down-only direction counts, deterministic replay, mobile timing limits, and 100/1,000/10,000 checkpoints.
 - Playwright checks the actual GitHub Pages app, 8×12 geometry, all 96 cells, picture/logic quotas, clue interaction and mobile viewport constraints.
 - A puzzle is accepted into the game only after the independent validator reports success.
 
