@@ -28,7 +28,7 @@ Centralize:
 - HEIGHT = 12
 - TOTAL_CELLS = 96
 
-Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the empty corner. (0,1)..(0,7) are question cells. (1,0)..(11,0) are question cells. All other cells must be assigned as meaningful question or letter cells. No unassigned/blank cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues. The reserved (0,0) corner is a structural role, not an unassigned cell.
+Rows are 0..11, columns are 0..7. grid.length must be 12 and every row must have 8 cells. (0,0) is the reserved structural corner. (1,0)..(11,0) are question cells. (0,1) is the required top anchor; other top-row cells become questions only when they bound real right/down answer slots. Do not force dead top-row clues. This is the documented feasibility constraint for right/down-only answers with minimum two-letter words and the single optional eleven-letter boundary exception. All other cells must be assigned as meaningful question or letter cells. No unassigned/blank cells, random letters, filler, dark blocks used to fake 100% fill, orphan letters, or unlinked clues. The reserved (0,0) corner is a structural role, not an unassigned cell.
 
 Cell types:
 - corner: only (0,0), empty and non-interactive;
