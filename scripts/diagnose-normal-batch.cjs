@@ -21,6 +21,7 @@ async function main() {
   let specialElevenCount = 0;
   let specialElevenRequestedCount = 0;
   const specialElevenMisses = [];
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0, other: 0 };
   for (let index = 1; index <= 100; index++) {
     const seed = 180000 + index * 7919;
     const started = performance.now();
@@ -43,6 +44,10 @@ async function main() {
       requireConnected: true
     });
     const words = result.scanword.words;
+    for (const word of words) {
+      if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+      else directionCounts.other++;
+    }
     const imageWords = words.filter(word => word.imageKey);
     const distinctImageClueCells = new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size;
     if (distinctImageClueCells !== 5) {
@@ -92,6 +97,7 @@ async function main() {
     specialElevenCount,
     specialElevenMissedCount: specialElevenMisses.length,
     specialElevenMisses,
+    directionCounts,
     expectedSpecialElevenRange: [25, 25],
     medianMs: times[Math.floor(times.length/2)],
     p95Ms: times[Math.min(times.length-1,Math.floor(times.length*.95))],
@@ -104,6 +110,9 @@ async function main() {
   fs.mkdirSync("artifacts", { recursive: true });
   fs.writeFileSync("artifacts/scanword-100-report.json", JSON.stringify(report, null, 2));
   if (successful.length !== runs.length) throw new Error("Scanword generation did not reach 100/100: " + (runs.length - successful.length) + " failures.");
+  if (directionCounts.right === 0 || directionCounts.down === 0 || directionCounts.left !== 0 || directionCounts.up !== 0 || directionCounts.other !== 0) {
+    throw new Error("Production directions must be right/down only: " + JSON.stringify(directionCounts));
+  }
   if (successful.some(run => run.musicNoteAnswers.length > 0)) {
     throw new Error('A scanword still uses a musical note as a two-letter filler answer.');
   }
