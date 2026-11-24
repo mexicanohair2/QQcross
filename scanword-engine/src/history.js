@@ -22,8 +22,8 @@ function structureKey(words) {
 }
 
 function questionSimilarity(left, right) {
-  const a = new Set(normalizeQuestion(left).split(/\\s+/u).filter(Boolean));
-  const b = new Set(normalizeQuestion(right).split(/\\s+/u).filter(Boolean));
+  const a = new Set(normalizeQuestion(left).split(/\s+/u).filter(Boolean));
+  const b = new Set(normalizeQuestion(right).split(/\s+/u).filter(Boolean));
   if (!a.size || !b.size) return 0;
   let intersection = 0;
   for (const token of a) if (b.has(token)) intersection++;
