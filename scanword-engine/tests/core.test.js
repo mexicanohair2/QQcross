@@ -63,6 +63,14 @@ test('validator rejects incomplete grids and reports errors', () => {
   assert.ok(result.errors.some(e => e.type === 'IMAGE_COUNT_MISMATCH'));
   assert.ok(result.errors.some(e => e.type === 'INSUFFICIENT_LOGIC_CLUES'));
 });
+
+test('validator rejects invalid explicit picture-count targets', () => {
+  const fake = {width:8,height:12,grid:createEmptyGrid(),words:[],questions:[]};
+  for (const requiredImageCount of [-1, 1.5, 5, '2']) {
+    const result = validateScanword(fake, [], { requiredImageCount });
+    assert.ok(result.errors.some(error => error.type === 'INVALID_IMAGE_COUNT_REQUIREMENT'), String(requiredImageCount));
+  }
+});
 test('seeded random generator is reproducible', () => {
   const a = createRng(123), b = createRng(123);
   assert.deepEqual([a(),a(),a()], [b(),b(),b()]);
