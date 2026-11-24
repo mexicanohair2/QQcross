@@ -112,7 +112,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
-  const requiredImageCount = requirements.requiredImageCount ?? 5;
+  const requiredImageCount = requirements.requiredImageCount ?? 0;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
   const rowPatterns = [];
 
@@ -363,7 +363,11 @@ export function generateScanword(inputDictionary, options = {}) {
     maxCspTimeMs,
     Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
   );
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requestedImageCount = options.requiredImageCount;
+  if (requestedImageCount !== undefined && (!Number.isInteger(requestedImageCount) || requestedImageCount < 0 || requestedImageCount > 4)) {
+    return fail('INVALID_OPTIONS', seed, started, attempts, rejectedReasons, { requiredImageCount: requestedImageCount, maximumImageCount: 4 });
+  }
+  let requiredImageCount = requestedImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
@@ -373,6 +377,11 @@ export function generateScanword(inputDictionary, options = {}) {
   }
 
   const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
+  // Pictures are optional. Select a seeded target from 0..4, bounded by the
+  // number of distinct picture answers actually available in this dictionary.
+  if (requestedImageCount === undefined) {
+    requiredImageCount = Math.floor(random() * (Math.min(4, prepared.stats.withImages) + 1));
+  }
   if (prepared.stats.withImages < requiredImageCount || prepared.stats.logicEntries < minimumLogicClueCells) {
     return fail('INSUFFICIENT_DICTIONARY', seed, started, attempts, rejectedReasons, {
       dictionaryStats: prepared.stats,
@@ -403,6 +412,7 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialPlanPool = wantsEleven
     ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
+        requiredImageCount,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
