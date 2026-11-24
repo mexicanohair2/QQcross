@@ -81,6 +81,7 @@ export function categorizeDictionaryEntry(raw = {}) {
   const imageCategory = IMAGE_CATEGORIES.get(String(raw.imageKey ?? raw.image?.key ?? '').trim().toLowerCase());
   if (imageCategory) return imageCategory;
   const text = String(raw.question ?? raw.clue ?? '').normalize('NFC').toLocaleLowerCase('ru-RU');
+  if (/[\\u{1F1E6}-\\u{1F1FF}]{2}/u.test(text)) return 'geography';
   for (const [category, pattern] of RULES) {
     if (pattern.test(text)) return category;
   }
