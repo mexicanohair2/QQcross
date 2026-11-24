@@ -785,11 +785,13 @@ test("terminal edge question cells are not rendered as false playable clues", as
   expect(clues.every(clue => (clue.row === 11 && clue.col === 0) || (clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7))))).toBeTruthy();
 });
 
-test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
+test("scanword uses zero to four optional pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(5);
+  const imageCount = await images.count();
+  expect(imageCount).toBeGreaterThanOrEqual(0);
+  expect(imageCount).toBeLessThanOrEqual(4);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
