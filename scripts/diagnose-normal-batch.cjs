@@ -14,7 +14,7 @@ async function main() {
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
     maxTwoLetterSlots: 5,
-    requiredImageCount: 5,
+    requiredImageCount: 4,
     minimumLogicClueCells: 3,
   };
   const runs = [];
@@ -37,7 +37,7 @@ async function main() {
       continue;
     }
     const validation = validateScanword(result.scanword, dictionary, {
-      requiredImageCount: 5,
+      requiredImageCount: 4,
       minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
