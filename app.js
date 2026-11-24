@@ -1277,7 +1277,7 @@ function buildScanwordInWorker(entries, overrides={}){
     repeatQuestionPenalty:2400
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261124-images-0-4-contract-v2");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261124-kryss-quality-v3");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
