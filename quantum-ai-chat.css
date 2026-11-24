@@ -38,3 +38,5 @@
 .qq-quantum-remove-image{border:0;background:transparent;color:#d5a5b9;font-size:11px;padding:6px}
 @media(max-height:700px){.qq-quantum-ai{min-height:calc(100dvh - 190px);max-height:calc(100dvh - 175px)}.qq-quantum-messages{min-height:140px}}
 @media(min-width:560px){.qq-quantum-ai{min-height:calc(100dvh - 220px);max-height:calc(100dvh - 205px)}}
+
+.qq-quantum-quota-note{margin:-5px 2px 0;color:var(--muted);font-size:10px;line-height:1.35}

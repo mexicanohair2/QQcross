@@ -5,6 +5,7 @@
   const STORE_PREFIX = "qqcross.quantum-ai.chat.v1.";
   const MAX_HISTORY = 80;
   const MAX_IMAGE_CHARS = 1_400_000;
+  const REQUEST_TIMEOUT_MS = 90_000;
 
   const state = {
     userId: "",
@@ -37,6 +38,7 @@
           <span class="qq-quantum-status" id="qqQuantumStatus" role="status">Проверяем подключение…</span>
         </header>
         <div class="qq-quantum-quota" id="qqQuantumQuota">Личный баланс: проверяем…</div>
+        <p class="qq-quantum-quota-note">Во время генерации нейроны временно резервируются. При ошибке или тайм-ауте резерв возвращается.</p>
         <div class="qq-quantum-messages" id="qqQuantumMessages" aria-live="polite">
           <div class="qq-quantum-welcome">
             <div class="qq-quantum-mark">Q</div>
@@ -187,13 +189,40 @@
 
   async function apiRequest(path, options = {}) {
     const headers = { ...(options.headers || {}) };
+    if (state.supabase && state.userId) {
+      const sessionResult = await state.supabase.auth.getSession();
+      if (sessionResult.error) throw new Error("Не удалось обновить сессию QQCross. Войди снова.");
+      const session = sessionResult.data?.session;
+      if (!session?.access_token || session.user?.id !== state.userId) {
+        throw new Error("Сессия QQCross завершилась. Войди снова.");
+      }
+      state.token = session.access_token;
+    }
     if (state.token) headers.Authorization = "Bearer " + state.token;
     if (options.body) headers["Content-Type"] = "application/json";
-    const response = await fetch(API + path, { ...options, headers, cache: "no-store" });
-    let data = {};
-    try { data = await response.json(); } catch {}
-    if (!response.ok) throw new Error(data.error || "Quantum-AI временно недоступна.");
-    return data;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    try {
+      const response = await fetch(API + path, {
+        ...options,
+        headers,
+        signal: controller.signal,
+        cache: "no-store"
+      });
+      let data = {};
+      try { data = await response.json(); } catch {}
+      if (!response.ok) throw new Error(data.error || "Quantum-AI временно недоступна.");
+      return data;
+    } catch (error) {
+      if (error?.name === "AbortError") {
+        throw new Error("Сервер не ответил за 90 секунд. Запрос остановлен; проверь баланс перед повторной отправкой.");
+      }
+      if (error instanceof TypeError) throw new Error("Нет соединения с сервером. Проверь интернет и повтори запрос.");
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   async function refreshQuota() {
@@ -353,6 +382,7 @@
     if (prompt) prompt.value = "";
     setComposerEnabled(false);
     const imageDataUrl = state.imageDataUrl;
+    setStatus("Генерируем ответ…", "loading");
 
     try {
       const data = await apiRequest("/api/chat", {
@@ -373,6 +403,7 @@
       saveMessages();
       renderMessages();
       renderQuota();
+      setStatus("В сети", "ready");
       state.imageDataUrl = "";
       state.imageName = "";
       renderAttachment();
@@ -382,9 +413,20 @@
       renderMessages();
       if (prompt) prompt.value = text;
       setError(error?.message || "Не удалось получить ответ. Попробуй ещё раз.");
+
+      // A failed turn must not leave a stale reserved balance visible.
+      let quotaUpdated = false;
+      try {
+        await refreshQuota();
+        quotaUpdated = true;
+      } catch {}
+      if (requestUserId !== state.userId) return;
+      setStatus(quotaUpdated ? "В сети" : "Баланс не обновлён", quotaUpdated ? "ready" : "warning");
     } finally {
-      state.busy = false;
-      setComposerEnabled(state.ready);
+      if (requestUserId === state.userId) {
+        state.busy = false;
+        setComposerEnabled(state.ready);
+      }
     }
   }
 

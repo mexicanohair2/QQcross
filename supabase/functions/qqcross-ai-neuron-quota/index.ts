@@ -79,6 +79,14 @@ Deno.serve(async (req: Request) => {
   });
 
   try {
+    // Recover abandoned holds before every balance read or new reservation.
+    if (action === "balance" || action === "reserve") {
+      const { error: cleanupError } = await admin.rpc("release_stale_qqcross_ai_neuron_reservations", {
+        p_user_id: user.id
+      });
+      if (cleanupError) throw cleanupError;
+    }
+
     if (action === "balance") {
       const { data, error } = await admin.rpc("get_qqcross_ai_neuron_balance", { p_user_id: user.id });
       if (error) throw error;
