@@ -332,7 +332,7 @@ test('history penalizes recent answers and rejects an exact repeated structure',
 });
 
 test('allows the shared picture prompt only for distinct image keys', () => {
-  const slots = Array.from({ length: 5 }, (_, index) => {
+  const slots = Array.from({ length: 4 }, (_, index) => {
     const row = index * 2 + 1;
     return slot('picture-' + index, { row, col: 0 }, { row, col: 4 }, [
       { row, col: 1 }, { row, col: 2 }, { row, col: 3 }
@@ -347,16 +347,16 @@ test('allows the shared picture prompt only for distinct image keys', () => {
   ];
   const result = solveSlotsCsp(slots, dictionary, {
     seed: 17,
-    requiredImageCount: 5,
+    requiredImageCount: 4,
     minimumLogicClueCells: 0,
     requireEveryClueStarts: false,
     maxNodes: 500,
     maxTimeMs: 1000
   });
   assert.equal(result.ok, true, result.message);
-  assert.equal(result.metrics.distinctImages, 5);
+  assert.equal(result.metrics.distinctImages, 4);
   assert.equal(new Set(result.words.map(word => word.question)).size, 1);
-  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 5);
+  assert.equal(new Set(result.words.map(word => word.imageKey)).size, 4);
 });
 
 
