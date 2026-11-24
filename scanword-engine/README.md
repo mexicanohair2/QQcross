@@ -25,6 +25,13 @@ The scanword engine is the only production path for creating scanword boards in 
 8. history.js stores the last 12 successful boards in browser local storage, penalizes recently used answers and clue formulations, and tracks answer-set and layout reuse. Image prompts are distinguished by their actual image asset. History is a diversity preference, not a permanent ban on useful Russian words.
 9. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
+## Generation modes
+
+- **Fast Draft** returns the first independently validated board. It favors startup speed and is the default gameplay mode.
+- **Optimized** evaluates multiple independently valid boards, compares their 0–100 quality scores, and returns the best candidate. It uses a larger bounded topology budget and retains the same worker deadline and validator. The candidate pool is limited (default three) so memory and latency remain bounded.
+
+The mode is selected with `qualityMode: 'fast'` or `qualityMode: 'optimized'`. The game adapter exposes `qualityScore` and the full quality breakdown for diagnostics.
+
 ## Bounded generation
 
 The engine has seed-based randomness and explicit limits for topology attempts, CSP nodes and CSP time. It returns structured failure diagnostics rather than a partial board. The module worker keeps generation off the UI thread. There are no new runtime dependencies and no Supabase schema changes.
