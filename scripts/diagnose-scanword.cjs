@@ -12,7 +12,7 @@ async function main() {
     maxNodes: 240000,
     maxCspTimeMs: 5000,
     topologyMutationAttempts: 96,
-    requiredImageCount: 5,
+    requiredImageCount: 4,
     minimumLogicClueCells: 3
   };
   const started = performance.now();
