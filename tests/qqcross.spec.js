@@ -162,8 +162,16 @@ test("question popup is clear and contains no quick hints; the separate bulb too
   expect(bulbs).toBe(4);
 });
 
+async function startGuestGameWithPicture(page) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await startGuestGame(page);
+    if (await page.locator(".scan-clue-picture").count() > 0) return;
+  }
+  throw new Error("Could not prepare a scanword containing an optional picture clue after eight fresh seeds.");
+}
+
 test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
-  await startGuestGame(page);
+  await startGuestGameWithPicture(page);
   const pictureClue = page.locator(".scan-clue-picture").first();
   await pictureClue.click();
   const pictureChoice = page.locator(".clue-popup-choice").filter({ hasText: /изображено/i }).first();
