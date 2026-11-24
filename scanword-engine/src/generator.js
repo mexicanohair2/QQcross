@@ -1,9 +1,10 @@
 import { CONFIG } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
-import { solveSlotsCsp } from './csp.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyQuotaCounts, normalizeDifficultyBand, prepareDictionary } from './dictionary.js';
+import { ALLOWED_SPECIAL_SHORT_ANSWERS, maximumDistinctAssignmentCount, solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
+import { analyzeRequiredBorderFeasibility } from './topology.js';
 import { scoreScanword } from './scoring.js';
 import { createRng } from './rng.js';
 
@@ -11,72 +12,377 @@ function now() {
   return globalThis.performance?.now ? globalThis.performance.now() : Date.now();
 }
 
-const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set([
-  'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
-].map(answer => canonicalAnswerKey(answer)));
+export function canAssignDistinctShortAnswers(domains, options = {}) {
+  const excludedAnswers = options.excludedAnswers ?? new Set();
+  const foldYo = options.foldYo === true;
+  const initialLetters = options.letterUses instanceof Map ? new Map(options.letterUses) : new Map();
+  const workingLetters = new Map(initialLetters);
+  const difficultyCounts = {
+    2: Number(options.difficultyCounts?.[2] ?? 0),
+    3: Number(options.difficultyCounts?.[3] ?? 0),
+    4: Number(options.difficultyCounts?.[4] ?? 0)
+  };
+  const difficultyQuotas = options.difficultyQuotas ?? null;
 
-function canAssignDistinctShortAnswers(domains) {
-  const ordered = domains
-    .map(domain => [...domain].sort())
-    .sort((a, b) => a.length - b.length);
-  const used = new Set();
+  const ordered = domains.map(domain => {
+    const unique = new Map();
+    for (const candidate of domain) {
+      const answerKey = typeof candidate === 'string'
+        ? canonicalAnswerKey(candidate, { foldYo })
+        : candidate.answerKey ?? canonicalAnswerKey(candidate.answer, { foldYo });
+      if (!answerKey || excludedAnswers.has(answerKey) || !ALLOWED_SPECIAL_SHORT_ANSWERS.has(answerKey)) continue;
+      const difficulty = typeof candidate === 'string'
+        ? 3
+        : normalizeDifficultyBand(candidate.difficulty);
+      if (difficultyQuotas && difficultyCounts[difficulty] >= difficultyQuotas[difficulty]) continue;
 
+      const coordinates = typeof candidate === 'string' ? [] : (candidate.coordinates ?? []);
+      const answer = typeof candidate === 'string' ? candidate : candidate.answer;
+      let compatible = true;
+      for (let index = 0; index < coordinates.length; index++) {
+        const point = coordinates[index];
+        const key = point.row + ',' + point.col;
+        const letter = foldYo && answer[index] === 'Ё' ? 'Е' : answer[index];
+        const existing = workingLetters.get(key);
+        if (existing !== undefined && existing !== letter) {
+          compatible = false;
+          break;
+        }
+      }
+      if (!compatible) continue;
+
+      const placementKey = answerKey + '|' + coordinates.map(point => point.row + ',' + point.col).join(';');
+      if (!unique.has(placementKey)) unique.set(placementKey, {
+        answerKey,
+        answer,
+        difficulty,
+        coordinates
+      });
+    }
+    return [...unique.values()];
+  }).sort((a, b) => a.length - b.length);
+
+  if (ordered.some(domain => domain.length === 0)) return false;
+
+  const usedAnswers = new Set();
   function assign(index) {
     if (index === ordered.length) return true;
-    for (const answer of ordered[index]) {
-      if (used.has(answer)) continue;
-      used.add(answer);
-      if (assign(index + 1)) return true;
-      used.delete(answer);
+
+    for (const candidate of ordered[index]) {
+      if (usedAnswers.has(candidate.answerKey)) continue;
+      const band = candidate.difficulty;
+      if (difficultyQuotas && difficultyCounts[band] >= difficultyQuotas[band]) continue;
+
+      let compatible = true;
+      const addedKeys = [];
+      for (let position = 0; position < candidate.coordinates.length; position++) {
+        const point = candidate.coordinates[position];
+        const key = point.row + ',' + point.col;
+        const letter = foldYo && candidate.answer[position] === 'Ё' ? 'Е' : candidate.answer[position];
+        const existing = workingLetters.get(key);
+        if (existing !== undefined && existing !== letter) {
+          compatible = false;
+          break;
+        }
+        if (existing === undefined) {
+          workingLetters.set(key, letter);
+          addedKeys.push(key);
+        }
+      }
+
+      if (compatible) {
+        usedAnswers.add(candidate.answerKey);
+        difficultyCounts[band]++;
+        if (assign(index + 1)) return true;
+        difficultyCounts[band]--;
+        usedAnswers.delete(candidate.answerKey);
+      }
+      for (const key of addedKeys) workingLetters.delete(key);
     }
     return false;
   }
 
   return assign(0);
 }
+function chooseCompatibleImageSelection(domains, requiredImageCount, specialEntry, foldYo = false, maxNodes = 2500, difficultyQuotas = null, shortDomains = [], minimumLogicClueCells = 3) {
+  const specialAnswerKey = canonicalAnswerKey(specialEntry.answer, { foldYo });
+  const specialHasImage = Boolean(specialEntry.imageKey);
+  const specialClueKey = '0,1';
+  const specialLetters = new Map([...specialEntry.answer].map((letter, index) => [
+    (index + 1) + ',1',
+    foldYo && letter === 'Ё' ? 'Е' : letter
+  ]));
+  const required = Math.max(0, requiredImageCount - (specialHasImage ? 1 : 0));
+  if (required === 0) return [];
+
+  const domainsWithImages = domains.map(domain => {
+    const seen = new Set();
+    const options = [];
+    for (const option of domain.options) {
+      const entry = option.entry;
+      if (!entry.imageKey || entry.imageKey === specialEntry.imageKey) continue;
+      const answerKey = canonicalAnswerKey(entry.answer, { foldYo });
+      const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+      const directionKey = clueKey + '|' + option.direction;
+      const identity = answerKey + '|' + directionKey + '|' + entry.imageKey;
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      options.push({
+        ...option,
+        slotId: domain.slot.id,
+        answerKey,
+        clueKey,
+        directionKey
+      });
+    }
+    return { slotId: domain.slot.id, options };
+  }).filter(domain => domain.options.length);
+
+  const selected = [];
+  const usedAssets = new Set(specialHasImage ? [specialEntry.imageKey] : []);
+  // Track image answers separately from the remaining two-letter matching.
+  // A picture may use a two-letter word only when every short slot still has
+  // a distinct, letter-compatible answer after that picture is placed.
+  const usedAnswers = new Set([specialAnswerKey]);
+  const plannedDifficultyQuotas = difficultyQuotas ?? getDifficultyQuotaCounts(domains.length + 1);
+  const usedDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
+  usedDifficultyCounts[normalizeDifficultyBand(specialEntry.difficulty)]++;
+  const usedClues = new Set(specialHasImage ? [specialClueKey] : []);
+  const usedDirections = new Set([specialClueKey + '|down']);
+  const usedLogicClueCells = new Set(specialEntry.logic === true ? [specialClueKey] : []);
+  const letterUses = new Map(specialLetters);
+  let nodes = 0;
+
+  const canAdd = candidate => {
+    if (usedAssets.has(candidate.entry.imageKey)
+      || usedAnswers.has(candidate.answerKey)
+      || usedClues.has(candidate.clueKey)
+      || usedDirections.has(candidate.directionKey)) return false;
+    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
+    if (usedDifficultyCounts[difficultyBand] >= plannedDifficultyQuotas[difficultyBand]) return false;
+    for (let index = 0; index < candidate.coordinates.length; index++) {
+      const point = candidate.coordinates[index];
+      const key = point.row + ',' + point.col;
+      const letter = foldYo && candidate.entry.answer[index] === 'Ё'
+        ? 'Е'
+        : candidate.entry.answer[index];
+      const existing = letterUses.get(key);
+      if (existing !== undefined && existing !== letter) return false;
+    }
+    return true;
+  };
+
+  const add = candidate => {
+    usedAssets.add(candidate.entry.imageKey);
+    usedAnswers.add(candidate.answerKey);
+    usedDifficultyCounts[normalizeDifficultyBand(candidate.entry.difficulty)]++;
+    usedClues.add(candidate.clueKey);
+    usedDirections.add(candidate.directionKey);
+    if (candidate.entry.logic === true) usedLogicClueCells.add(candidate.clueKey);
+    const added = [];
+    for (let index = 0; index < candidate.coordinates.length; index++) {
+      const point = candidate.coordinates[index];
+      const key = point.row + ',' + point.col;
+      if (!letterUses.has(key)) {
+        const letter = foldYo && candidate.entry.answer[index] === 'Ё'
+          ? 'Е'
+          : candidate.entry.answer[index];
+        letterUses.set(key, letter);
+        added.push(key);
+      }
+    }
+    selected.push(candidate);
+    return added;
+  };
+
+  const undo = (candidate, added) => {
+    selected.pop();
+    usedAssets.delete(candidate.entry.imageKey);
+    usedAnswers.delete(candidate.answerKey);
+    const difficultyBand = normalizeDifficultyBand(candidate.entry.difficulty);
+    usedDifficultyCounts[difficultyBand] = Math.max(0, usedDifficultyCounts[difficultyBand] - 1);
+    usedClues.delete(candidate.clueKey);
+    usedDirections.delete(candidate.directionKey);
+    if (candidate.entry.logic === true
+      && !(specialEntry.logic === true && candidate.clueKey === specialClueKey)
+      && !selected.some(item => item.entry.logic === true && item.clueKey === candidate.clueKey)) {
+      usedLogicClueCells.delete(candidate.clueKey);
+    }
+    for (const key of added) letterUses.delete(key);
+  };
+
+  function remainingWordDomainsHaveSupport() {
+    const selectedSlotIds = new Set(selected.map(candidate => candidate.slotId));
+    const residualDomains = domains
+      .filter(domain => !selectedSlotIds.has(domain.slot.id))
+      .map(domain => {
+        const options = domain.options.filter(option => {
+          const answerKey = canonicalAnswerKey(option.entry.answer, { foldYo });
+          const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+          if (usedAnswers.has(answerKey)) return false;
+          // Once the picture quota is reserved, every remaining slot must
+          // retain a non-picture candidate; CSP cannot add a sixth image.
+          if (option.entry.imageKey) return false;
+          if (usedDirections.has(clueKey + '|' + option.direction)) return false;
+          const band = normalizeDifficultyBand(option.entry.difficulty);
+          if (usedDifficultyCounts[band] >= plannedDifficultyQuotas[band]) return false;
+          for (let index = 0; index < option.coordinates.length; index++) {
+            const point = option.coordinates[index];
+            const key = point.row + ',' + point.col;
+            const letter = foldYo && option.entry.answer[index] === 'Ё' ? 'Е' : option.entry.answer[index];
+            const existing = letterUses.get(key);
+            if (existing !== undefined && existing !== letter) return false;
+          }
+          return true;
+        });
+        return { slot: domain.slot, options };
+      });
+
+    if (residualDomains.some(domain => domain.options.length === 0)) return false;
+    if (residualDomains.length === 0) return true;
+
+    // The chosen picture placements must leave every other word domain alive,
+    // not merely preserve a matching for the two-letter crossings.
+    if (!enforceCrossingArcConsistency(residualDomains, foldYo)) return false;
+
+    const answerDomains = residualDomains.map(domain => [
+      ...new Set(domain.options.map(option => canonicalAnswerKey(option.entry.answer, { foldYo })))
+    ]);
+    if (maximumDistinctAssignmentCount(answerDomains) < residualDomains.length) return false;
+
+    for (const level of [2, 3, 4]) {
+      const requiredAtLevel = Math.max(0, plannedDifficultyQuotas[level] - usedDifficultyCounts[level]);
+      if (!requiredAtLevel) continue;
+      const levelDomains = residualDomains.map(domain => [
+        ...new Set(domain.options
+          .filter(option => normalizeDifficultyBand(option.entry.difficulty) === level)
+          .map(option => canonicalAnswerKey(option.entry.answer, { foldYo })))
+      ]);
+      if (maximumDistinctAssignmentCount(levelDomains) < requiredAtLevel) return false;
+    }
+
+    const requiredLogic = Math.max(0, minimumLogicClueCells - usedLogicClueCells.size);
+    if (requiredLogic) {
+      const logicDomains = residualDomains.map(domain => [
+        ...new Set(domain.options
+          .filter(option => option.entry.logic === true
+            && !usedLogicClueCells.has(option.clueCell.row + ',' + option.clueCell.col))
+          .map(option => option.clueCell.row + ',' + option.clueCell.col))
+      ]);
+      if (maximumDistinctAssignmentCount(logicDomains) < requiredLogic) return false;
+    }
+
+    return true;
+  }
+
+  function search(remainingDomains) {
+    if (selected.length >= required) return remainingWordDomainsHaveSupport();
+    if (nodes++ >= maxNodes || selected.length + remainingDomains.length < required) return false;
+
+    const viableDomains = [];
+    for (const domain of remainingDomains) {
+      const candidates = domain.options.filter(canAdd);
+      if (candidates.length) viableDomains.push({ ...domain, candidates });
+    }
+    const needed = required - selected.length;
+    if (viableDomains.length < needed) return false;
+
+    const assetDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.entry.imageKey))]
+    );
+    const answerDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.answerKey))]
+    );
+    const clueDomains = viableDomains.map(domain =>
+      [...new Set(domain.candidates.map(candidate => candidate.clueKey))]
+    );
+    if (maximumDistinctAssignmentCount(assetDomains) < needed
+      || maximumDistinctAssignmentCount(answerDomains) < needed
+      || maximumDistinctAssignmentCount(clueDomains) < needed) return false;
+
+    viableDomains.sort((a, b) =>
+      a.candidates.length - b.candidates.length
+      || a.slotId.localeCompare(b.slotId)
+    );
+    const chosen = viableDomains[0];
+    const rest = remainingDomains.filter(domain => domain.slotId !== chosen.slotId);
+
+    for (const candidate of chosen.candidates) {
+      const added = add(candidate);
+      const shortAnswersRemainFeasible = canAssignDistinctShortAnswers(shortDomains, {
+        excludedAnswers: usedAnswers,
+        letterUses,
+        difficultyCounts: usedDifficultyCounts,
+        difficultyQuotas: plannedDifficultyQuotas,
+        foldYo
+      });
+      if (shortAnswersRemainFeasible && search(rest)) return true;
+      undo(candidate, added);
+    }
+
+    return search(rest);
+  }
+
+  return search(domainsWithImages) ? selected.map(candidate => ({
+    slotId: candidate.slotId,
+    entryId: candidate.entry.id,
+    answer: candidate.entry.answer,
+    imageKey: candidate.entry.imageKey,
+    clueCell: { ...candidate.clueCell },
+    direction: candidate.direction
+  })) : null;
+}
 
 export function enforceCrossingArcConsistency(domains, foldYo = false, diagnostics = null) {
-  const positions = domains.map(domain => new Map(
-    domain.slot.coordinates.map((point, index) => [point.row + ',' + point.col, index])
-  ));
+  // Intersections are physical cells, not positional indices. A left/up
+  // orientation reverses answer order while the canonical slot coordinates
+  // remain left-to-right/top-to-bottom. AC-3 must compare by coordinate.
+  const cellKeys = domains.map(domain =>
+    new Set(domain.slot.coordinates.map(point => point.row + ',' + point.col))
+  );
   const neighbors = domains.map(() => []);
 
   for (let left = 0; left < domains.length; left++) {
     for (let right = left + 1; right < domains.length; right++) {
-      const shared = [];
-      for (const [key, leftPosition] of positions[left]) {
-        const rightPosition = positions[right].get(key);
-        if (rightPosition !== undefined) shared.push([leftPosition, rightPosition]);
-      }
-      if (!shared.length) continue;
-      neighbors[left].push({ other: right, pairs: shared });
-      neighbors[right].push({
-        other: left,
-        pairs: shared.map(([leftPosition, rightPosition]) => [rightPosition, leftPosition])
-      });
-    }
-  }
-
-  const queue = [];
-  for (let self = 0; self < neighbors.length; self++) {
-    for (const relation of neighbors[self]) {
-      queue.push({ self, other: relation.other, pairs: relation.pairs });
+      const sharedKeys = [...cellKeys[left]].filter(key => cellKeys[right].has(key));
+      if (!sharedKeys.length) continue;
+      neighbors[left].push({ other: right, sharedKeys });
+      neighbors[right].push({ other: left, sharedKeys });
     }
   }
 
   const letterKey = value => foldYo && value === 'Ё' ? 'Е' : value;
-  while (queue.length) {
-    const arc = queue.shift();
+  const signatureFor = (option, domain, sharedKeys) => {
+    const coordinates = Array.isArray(option.coordinates)
+      && option.coordinates.length === option.entry.answer.length
+      ? option.coordinates
+      : domain.slot.coordinates;
+    const lettersByCell = new Map();
+    for (let index = 0; index < coordinates.length; index++) {
+      const point = coordinates[index];
+      lettersByCell.set(point.row + ',' + point.col, letterKey(option.entry.answer[index]));
+    }
+    return sharedKeys.map(key => lettersByCell.get(key) ?? '\u0000').join('');
+  };
+
+  const queue = [];
+  for (let self = 0; self < neighbors.length; self++) {
+    for (const relation of neighbors[self]) {
+      queue.push({ self, other: relation.other, sharedKeys: relation.sharedKeys });
+    }
+  }
+
+  // Cursor-based queue avoids repeated array shifts as AC-3 re-enqueues arcs.
+  for (let cursor = 0; cursor < queue.length; cursor++) {
+    const arc = queue[cursor];
     const ownDomain = domains[arc.self];
     const otherDomain = domains[arc.other];
     const supportedSignatures = new Set(otherDomain.options.map(option =>
-      arc.pairs.map(([, otherPosition]) => letterKey(option.entry.answer[otherPosition])).join('')
+      signatureFor(option, otherDomain, arc.sharedKeys)
     ));
 
     const revised = ownDomain.options.filter(option =>
-      supportedSignatures.has(
-        arc.pairs.map(([ownPosition]) => letterKey(option.entry.answer[ownPosition])).join('')
-      )
+      supportedSignatures.has(signatureFor(option, ownDomain, arc.sharedKeys))
     );
     if (revised.length === ownDomain.options.length) continue;
 
@@ -88,7 +394,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
         diagnostics.failure = {
           slotId: ownDomain.slot.id,
           againstSlotId: otherDomain.slot.id,
-          sharedPositions: arc.pairs.map(([ownPosition, otherPosition]) => ({ ownPosition, otherPosition })),
+          sharedCells: [...arc.sharedKeys],
           survivingSupportSignatures: [...supportedSignatures].slice(0, 12)
         };
       }
@@ -100,8 +406,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
       queue.push({
         self: relation.other,
         other: arc.self,
-        // Reversing arc direction also reverses each shared-cell index pair.
-        pairs: relation.pairs.map(([selfPosition, otherPosition]) => [otherPosition, selfPosition])
+        sharedKeys: relation.sharedKeys
       });
     }
   }
@@ -114,49 +419,84 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
   const requiredImageCount = requirements.requiredImageCount ?? 5;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
-  const rowPatterns = [];
+  // The old split-row loop generated many nominally different plans that
+  // actually reused the same three fixed masks. Sample a compact, reproducible
+  // set of layouts and use a row-derived seed so validated internal mutations
+  // produce genuinely different crossing lengths while preserving columns 1..3.
+  const rowPatterns = [
+    [3, 7, 10], [3, 7, 11], [3, 8, 10], [3, 8, 11],
+    [3, 9, 11], [4, 7, 10], [4, 7, 11], [4, 8, 10],
+    [4, 8, 11], [5, 8, 10], [5, 8, 11], [5, 9, 11]
+  ];
 
-  for (let first = 3; first <= 5; first++) {
-    for (let second = first + 3; second <= 8; second++) {
-      for (let third = second + 3; third <= 11; third++) {
-        rowPatterns.push([first, second, third]);
-      }
-    }
-  }
-
-  const topologies = rowPatterns.map(rows => ({
-    rows,
-    patternKey: 'split-' + rows.join('-'),
-    specialPattern: null,
-    result: generateTopology({
-      seed: 1,
+  const plannerStarted = now();
+  const topologyStarted = now();
+  const topologySignatures = new Set();
+  const topologies = [];
+  const fallbackTopologies = [];
+  for (const rows of rowPatterns) {
+    const seed = rows.reduce((value, row) => Math.imul(value ^ row, 16777619), 2166136261) >>> 0;
+    const result = generateTopology({
+      seed,
       includeSpecialEleven: true,
       specialSplitRows: rows,
+      mutationBudget: 48,
       maxAttempts: 1,
       maxTwoLetterSlots: requirements.maxTwoLetterSlots ?? 5
-    })
-  })).filter(item => item.result.ok);
+    });
+    if (!result.ok) continue;
+    const signature = result.topology.pattern.join('/');
+    if (topologySignatures.has(signature)) continue;
+    topologySignatures.add(signature);
+    fallbackTopologies.push({
+      rows,
+      patternKey: 'split-' + rows.join('-'),
+      // Reuse this exact mask during the production CSP pass. A new seed must
+      // never silently change the slots after their domains were precomputed.
+      specialPattern: result.topology.pattern,
+      result
+    });
+  }
 
   // The independently audited two-short-slot layout is valid only when its
   // eleven-letter boundary answer is present. Keep it as a dedicated CSP
   // candidate instead of trying to use it for ordinary disconnected boards.
   const lowShortPattern = getTopologyScaffolds()[3];
-  const lowShortTopology = generateTopology({
-    seed: 1,
-    includeSpecialEleven: true,
-    specialPattern: lowShortPattern,
-    maxAttempts: 1,
-    maxTwoLetterSlots: 4
-  });
-  if (lowShortTopology.ok) {
+  for (let sample = 0; sample < 8; sample++) {
+    const seed = 9127 + sample * 65537;
+    const lowShortTopology = generateTopology({
+      seed,
+      includeSpecialEleven: true,
+      specialPattern: lowShortPattern,
+      mutateSpecialPattern: true,
+      mutationBudget: 48,
+      maxAttempts: 1,
+      maxTwoLetterSlots: 4
+    });
+    if (!lowShortTopology.ok) continue;
+    const signature = lowShortTopology.topology.pattern.join('/');
+    if (topologySignatures.has(signature)) continue;
+    topologySignatures.add(signature);
     topologies.push({
       rows: [3, 7, 11],
-      patternKey: 'low-short',
-      specialPattern: lowShortPattern,
+      patternKey: 'low-short-' + sample,
+      specialPattern: lowShortTopology.topology.pattern,
       result: lowShortTopology
     });
   }
 
+  // Try the empirically compatible low-short layouts first. Conventional
+  // split layouts remain as a fallback only when the low-short pool cannot
+  // produce enough distinct special-answer plans.
+  topologies.push(...fallbackTopologies);
+
+  const topologyBuildElapsedMs = now() - topologyStarted;
+  const planningStarted = now();
+  let candidateDomainElapsedMs = 0;
+  let arcConsistencyElapsedMs = 0;
+  let shortMatchingElapsedMs = 0;
+  let contentCapacityElapsedMs = 0;
+  let imageSelectionElapsedMs = 0;
   const plans = [];
   const uniqueAnswers = new Set();
   const planDiagnostics = {
@@ -166,7 +506,10 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
     arcConsistencyRejected: 0,
     shortAnswerMatchingRejected: 0,
     contentRequirementsRejected: 0,
-    viablePlans: 0
+    imageAssignmentRejected: 0,
+    viablePlans: 0,
+    distinctSpecialAnswers: 0,
+    distinctTopologyPatterns: topologies.length
   };
 
   for (const entry of entries) {
@@ -181,8 +524,16 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
       (index + 1) + ',1',
       letter
     ]));
+    let viablePlansForAnswer = 0;
+    const maximumPlansPerAnswer = Math.max(1, Number(requirements.maximumPlansPerSpecialAnswer ?? 2));
 
     for (const topology of topologies) {
+      if (viablePlansForAnswer >= maximumPlansPerAnswer) break;
+      // The conventional split masks are a fallback only when this answer
+      // has no compatible low-short layout. Avoid searching them again for
+      // answers that already have a valid low-short plan.
+      if (topology.patternKey.startsWith('split-') && viablePlansForAnswer > 0) break;
+      const candidateDomainStarted = now();
       const domains = [];
       let valid = true;
 
@@ -192,7 +543,7 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         const candidatesById = new Map();
         for (const orientation of slot.directionOptions) {
           if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
-          if (!['right', 'down'].includes(orientation.direction)) continue;
+          if (!['right', 'left', 'down', 'up'].includes(orientation.direction)) continue;
           const constraints = [];
           orientation.coordinates.forEach((point, position) => {
             const imposed = imposedLetters.get(point.row + ',' + point.col);
@@ -201,12 +552,17 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
 
           const candidates = findCandidates(indexes, slot.length, constraints);
           for (const candidate of candidates) {
+            // The fixed eleven-letter answer is already reserved for the
+            // special slot and cannot be counted again in another capacity.
+            if (canonicalAnswerKey(candidate.answer, { foldYo }) === answerKey) continue;
             if (slot.length === 2
               && !ALLOWED_SPECIAL_SHORT_ANSWERS.has(canonicalAnswerKey(candidate.answer, { foldYo }))) {
               continue;
             }
             candidatesById.set(candidate.id + '|' + orientation.direction, {
               entry: candidate,
+              clueCell: { ...orientation.clueCell },
+              direction: orientation.direction,
               coordinates: orientation.coordinates
             });
           }
@@ -220,6 +576,8 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         domains.push({ slot, options: candidates });
       }
 
+      candidateDomainElapsedMs += now() - candidateDomainStarted;
+
       // Independent word domains can all look valid while their crossing
       // letters are mutually impossible. Enforce arc consistency across the
       // complete slot graph before ranking a special 11-letter plan.
@@ -227,8 +585,11 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         planDiagnostics.missingSlotDomains++;
         continue;
       }
+      const arcStarted = now();
       const arcDiagnostics = {};
-      if (!enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics)) {
+      const arcIsConsistent = enforceCrossingArcConsistency(domains, foldYo, arcDiagnostics);
+      arcConsistencyElapsedMs += now() - arcStarted;
+      if (!arcIsConsistent) {
         planDiagnostics.arcConsistencyRejected++;
         if (!planDiagnostics.firstArcFailure) {
           planDiagnostics.firstArcFailure = {
@@ -240,18 +601,45 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         continue;
       }
 
+      const specialClueKey = '0,1';
+      const specialHasImage = Boolean(entry.imageKey);
+      const specialHasLogic = entry.logic === true;
+      const specialDifficultyBand = normalizeDifficultyBand(entry.difficulty);
+      const difficultyQuotas = getDifficultyQuotaCounts(domains.length + 1, requirements.difficultyDistribution);
+      const initialDifficultyCounts = { 2: 0, 3: 0, 4: 0 };
+      initialDifficultyCounts[specialDifficultyBand]++;
+
+      const shortMatchingStarted = now();
       const shortDomains = domains
         .filter(domain => domain.slot.length === 2)
-        .map(domain => new Set(domain.options.map(option =>
-          canonicalAnswerKey(option.entry.answer, { foldYo })
-        )));
-      if (!canAssignDistinctShortAnswers(shortDomains)) {
+        .map(domain => domain.options.map(option => ({
+          answerKey: canonicalAnswerKey(option.entry.answer, { foldYo }),
+          answer: option.entry.answer,
+          difficulty: normalizeDifficultyBand(option.entry.difficulty),
+          coordinates: option.coordinates
+        })));
+      const specialLetters = new Map([...entry.answer].map((letter, index) => [
+        (index + 1) + ',1',
+        foldYo && letter === 'Ё' ? 'Е' : letter
+      ]));
+      const shortMatchingValid = canAssignDistinctShortAnswers(shortDomains, {
+        excludedAnswers: new Set([canonicalAnswerKey(entry.answer, { foldYo })]),
+        letterUses: specialLetters,
+        difficultyCounts: initialDifficultyCounts,
+        difficultyQuotas,
+        foldYo
+      });
+      shortMatchingElapsedMs += now() - shortMatchingStarted;
+      if (!shortMatchingValid) {
         planDiagnostics.shortAnswerMatchingRejected++;
         continue;
       }
-
-      const imageKeys = new Set();
-      let logicSlots = 0;
+      const contentCapacityStarted = now();
+      const imageKeys = new Set(specialHasImage ? [entry.imageKey] : []);
+      const imageDomains = [];
+      const imageClueCellDomains = [];
+      const logicClueCellDomains = [];
+      const difficultyDomains = { 2: [], 3: [], 4: [] };
       let minimumDomain = Infinity;
       let totalDomain = 0;
       for (const domain of domains) {
@@ -260,63 +648,199 @@ function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requi
         )).size;
         minimumDomain = Math.min(minimumDomain, answerCount);
         totalDomain += Math.min(answerCount, 40);
-        if (domain.options.some(option => option.entry.imageKey)) {
-          for (const option of domain.options) {
-            if (option.entry.imageKey) imageKeys.add(option.entry.imageKey);
+
+        const candidateImageKeys = new Set();
+        const candidateImageClueCells = new Set();
+        const candidateLogicClueCells = new Set();
+        const candidateDifficultyIds = { 2: new Set(), 3: new Set(), 4: new Set() };
+        for (const option of domain.options) {
+          const clueKey = option.clueCell.row + ',' + option.clueCell.col;
+          if (option.entry.imageKey && option.entry.imageKey !== entry.imageKey) {
+            imageKeys.add(option.entry.imageKey);
+            candidateImageKeys.add(option.entry.imageKey);
+            if (!(specialHasImage && clueKey === specialClueKey)) {
+              candidateImageClueCells.add(clueKey);
+            }
           }
+          if (option.entry.logic === true
+            && !(specialHasLogic && clueKey === specialClueKey)) {
+            candidateLogicClueCells.add(clueKey);
+          }
+          candidateDifficultyIds[normalizeDifficultyBand(option.entry.difficulty)].add(canonicalAnswerKey(option.entry.answer, { foldYo }));
         }
-        if (domain.options.some(option => option.entry.logic === true)) logicSlots++;
+        if (candidateImageKeys.size) imageDomains.push([...candidateImageKeys]);
+        if (candidateImageClueCells.size) imageClueCellDomains.push([...candidateImageClueCells]);
+        if (candidateLogicClueCells.size) logicClueCellDomains.push([...candidateLogicClueCells]);
+        for (const level of [2, 3, 4]) {
+          if (candidateDifficultyIds[level].size) difficultyDomains[level].push([...candidateDifficultyIds[level]]);
+        }
       }
 
-      if (imageKeys.size < requiredImageCount || logicSlots < minimumLogicClueCells) {
+      const imageAssignmentCapacity = maximumDistinctAssignmentCount(imageDomains);
+      const imageClueCellCapacity = maximumDistinctAssignmentCount(imageClueCellDomains);
+      const logicClueCellCapacity = maximumDistinctAssignmentCount(logicClueCellDomains);
+      const difficultyCapacities = {
+        2: maximumDistinctAssignmentCount(difficultyDomains[2]) + (specialDifficultyBand === 2 ? 1 : 0),
+        3: maximumDistinctAssignmentCount(difficultyDomains[3]) + (specialDifficultyBand === 3 ? 1 : 0),
+        4: maximumDistinctAssignmentCount(difficultyDomains[4]) + (specialDifficultyBand === 4 ? 1 : 0)
+      };
+      const difficultyCapacityValid = [2, 3, 4].every(level =>
+        difficultyCapacities[level] >= difficultyQuotas[level]
+      );
+      const imageCapacityValid = imageAssignmentCapacity + (specialHasImage ? 1 : 0) >= requiredImageCount
+        && imageClueCellCapacity + (specialHasImage ? 1 : 0) >= requiredImageCount;
+      const logicCapacityValid = logicClueCellCapacity + (specialHasLogic ? 1 : 0) >= minimumLogicClueCells;
+
+      contentCapacityElapsedMs += now() - contentCapacityStarted;
+      if (!imageCapacityValid || !logicCapacityValid || !difficultyCapacityValid) {
         planDiagnostics.contentRequirementsRejected++;
         if (!planDiagnostics.firstContentFailure) {
           planDiagnostics.firstContentFailure = {
             answer: entry.answer,
             rows: topology.rows,
-            availableImageKeys: imageKeys.size,
+            distinctImageKeys: imageKeys.size,
+            imageAssignmentCapacity,
+            imageClueCellCapacity,
             requiredImageCount,
-            logicSlots,
+            logicClueCellCapacity,
             minimumLogicClueCells,
+            difficultyCapacities,
+            difficultyQuotas,
             domains: domains.map(domain => ({
               slotId: domain.slot.id,
               length: domain.slot.length,
               candidateCount: domain.options.length,
               imageKeys: [...new Set(domain.options.map(option => option.entry.imageKey).filter(Boolean))],
-              logicCandidateCount: domain.options.filter(option => option.entry.logic === true).length
+              imageClueCells: [...new Set(domain.options.filter(option => option.entry.imageKey).map(option =>
+                option.clueCell.row + ',' + option.clueCell.col
+              ))],
+              logicClueCells: [...new Set(domain.options.filter(option => option.entry.logic === true).map(option =>
+                option.clueCell.row + ',' + option.clueCell.col
+              ))]
             }))
           };
         }
         continue;
       }
 
+      const imageSelectionStarted = now();
+      const compatibleImageSelection = chooseCompatibleImageSelection(
+        domains,
+        requiredImageCount,
+        entry,
+        foldYo,
+        requirements.imageSelectionSearchNodes ?? 2500,
+        difficultyQuotas,
+        shortDomains,
+        requirements.minimumLogicClueCells ?? 3
+      );
+      imageSelectionElapsedMs += now() - imageSelectionStarted;
+      if (!compatibleImageSelection) {
+        planDiagnostics.imageAssignmentRejected++;
+        continue;
+      }
+
       plans.push({
         answer: entry.answer,
+        answerDifficultyBand: normalizeDifficultyBand(entry.difficulty),
         rows: topology.rows,
         patternKey: topology.patternKey ?? ('split-' + topology.rows.join('-')),
-        specialPattern: topology.specialPattern,
+        specialPattern: topology.specialPattern ?? topology.result.topology.pattern,
         // Preserve the AC-3-pruned dictionary domains so the production CSP
         // does not reopen candidates already proven incompatible at crossings.
         allowedEntryIdsBySlot: new Map(domains.map(domain => [
           domain.slot.id,
           new Set(domain.options.map(option => option.entry.id))
         ])),
-        score: minimumDomain * 100000 + totalDomain * 100 + imageKeys.size * 10 + logicSlots,
+        // Preserve AC-3-approved orientations as well as entry IDs. Otherwise
+        // the CSP can reopen a reversed placement that AC-3 already removed.
+        allowedPlacementKeysBySlot: new Map(domains.map(domain => [
+          domain.slot.id,
+          new Set(domain.options.map(option =>
+            option.entry.id + '|' + option.direction + '|' + option.clueCell.row + ',' + option.clueCell.col
+          ))
+        ])),
+        preferredImagePlacementsBySlot: new Map(compatibleImageSelection.map(item => [
+          item.slotId,
+          {
+            entryId: item.entryId,
+            clueKey: item.clueCell.row + ',' + item.clueCell.col,
+            direction: item.direction
+          }
+        ])),
+        // Prefer grade-seven medium/easy long answers when geometry is
+        // otherwise comparable; do not let a specialist 11-letter word win
+        // solely because its crossing domains happen to be broader.
+        score: minimumDomain * 100000 + totalDomain * 100
+          + (imageAssignmentCapacity + (specialHasImage ? 1 : 0)) * 10000
+          + (imageClueCellCapacity + (specialHasImage ? 1 : 0)) * 1000
+          + (logicClueCellCapacity + (specialHasLogic ? 1 : 0)) * 100
+          + (specialDifficultyBand === 3 ? 50000
+            : specialDifficultyBand === 2 ? 25000 : 0),
         tie: random()
       });
+      viablePlansForAnswer++;
+    }
+    // Two independent answers and a small set of viable topologies are
+    // enough for the bounded production retry window. Enumerating every
+    // eleven-letter word against every mask is much slower than solving CSP.
+    const minimumViablePlans = Math.max(2, Number(requirements.minimumViableSpecialPlans ?? 4));
+    const minimumDistinctAnswers = Math.max(2, Number(requirements.minimumDistinctSpecialAnswers ?? 2));
+    if (plans.length >= minimumViablePlans
+      && new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size >= minimumDistinctAnswers) {
+      planDiagnostics.earlyStopped = true;
+      break;
     }
   }
 
   planDiagnostics.viablePlans = plans.length;
+  planDiagnostics.plannerTimings = {
+    topologyBuildMs: Math.round(topologyBuildElapsedMs),
+    candidateDomainMs: Math.round(candidateDomainElapsedMs),
+    arcConsistencyMs: Math.round(arcConsistencyElapsedMs),
+    shortMatchingMs: Math.round(shortMatchingElapsedMs),
+    contentCapacityMs: Math.round(contentCapacityElapsedMs),
+    imageSelectionMs: Math.round(imageSelectionElapsedMs),
+    planningMs: Math.round(now() - planningStarted),
+    totalMs: Math.round(now() - plannerStarted)
+  };
+  planDiagnostics.distinctSpecialAnswers = new Set(plans.map(plan => canonicalAnswerKey(plan.answer, { foldYo }))).size;
+  planDiagnostics.noCompatiblePlans = plans.length === 0;
   if (requirements.planDiagnostics) Object.assign(requirements.planDiagnostics, planDiagnostics);
   if (!plans.length) return null;
+
+  // Keep the strongest topology for each answer first, then interleave the
+  // next-best topologies. This prevents the first bounded CSP retries from
+  // spending their entire budget on near-identical layouts for one word.
   plans.sort((a, b) => b.score - a.score || a.tie - b.tie);
-  const rankedPlans = plans.map(plan => ({
+  const plansByAnswer = new Map();
+  for (const plan of plans) {
+    const key = canonicalAnswerKey(plan.answer, { foldYo });
+    if (!plansByAnswer.has(key)) plansByAnswer.set(key, []);
+    plansByAnswer.get(key).push(plan);
+  }
+  const answerGroups = [...plansByAnswer.values()];
+  const interleavedPlans = [];
+  for (let round = 0; ; round++) {
+    let added = false;
+    for (const group of answerGroups) {
+      if (group[round]) {
+        interleavedPlans.push(group[round]);
+        added = true;
+      }
+    }
+    if (!added) break;
+  }
+
+  const rankedPlans = interleavedPlans.map(plan => ({
     answer: plan.answer,
+    answerDifficultyBand: plan.answerDifficultyBand,
     rows: plan.rows,
     patternKey: plan.patternKey,
     specialPattern: plan.specialPattern,
     allowedEntryIdsBySlot: plan.allowedEntryIdsBySlot,
+    allowedPlacementKeysBySlot: plan.allowedPlacementKeysBySlot,
+    preferredImagePlacementsBySlot: plan.preferredImagePlacementsBySlot,
     score: plan.score,
     planKey: canonicalAnswerKey(plan.answer, { foldYo }) + '|' + plan.rows.join(',') + '|' + plan.patternKey
   }));
@@ -349,6 +873,12 @@ function fail(reason, seed, started, attempts, rejectedReasons, extra = {}) {
  * entries. An independent validator reconstructs the complete 8x12 board
  * before the result can be returned to QQCross.
  */
+export function shouldRequestSpecialElevenLetter(sequenceIndex, randomValue, chance = CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE) {
+  if (Number.isSafeInteger(sequenceIndex) && sequenceIndex > 0) return sequenceIndex % 5 === 0;
+  const probability = Number.isFinite(Number(chance)) ? Math.max(0, Math.min(1, Number(chance))) : CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE;
+  return Number.isFinite(Number(randomValue)) && Number(randomValue) < probability;
+}
+
 export function generateScanword(inputDictionary, options = {}) {
   const started = now();
   const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
@@ -367,6 +897,11 @@ export function generateScanword(inputDictionary, options = {}) {
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
+
+  if (options.requireFullTopRow === true) {
+    const feasibility = analyzeRequiredBorderFeasibility({ requireFullTopRow: true });
+    return fail(feasibility.reason, seed, started, attempts, rejectedReasons, { feasibility, message: feasibility.message });
+  }
 
   if (!Array.isArray(inputDictionary) || inputDictionary.length === 0) {
     return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
@@ -388,36 +923,43 @@ export function generateScanword(inputDictionary, options = {}) {
   const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
     ? options.sequenceIndex
     : null;
-  // Production supplies a 1-based generation sequence: every fourth new
-  // scanword must contain the eleven-letter boundary answer. Direct callers
-  // without a sequence index keep the seeded-probability fallback.
+  // Production uses a five-puzzle cadence: the special boundary answer
+  // appears no more than once in every five generated scanwords.
+  // Direct callers without a sequence index use the matching 20% fallback.
   const wantsEleven = hasElevenLetterAnswers && (
     sequenceIndex !== null
-      ? sequenceIndex % 4 === 0
-      : random() < (options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE)
+      ? shouldRequestSpecialElevenLetter(sequenceIndex)
+      : shouldRequestSpecialElevenLetter(
+          null,
+          random(),
+          options.specialElevenLetterChance ?? CONFIG.SPECIAL_ELEVEN_LETTER_CHANCE
+        )
   );
   // Build and rank the compatible special plan pool once per puzzle. Re-running
   // the full dictionary/topology arc-consistency pass for every retry was
   // unnecessary work and could consume most of the worker's 16-second limit.
   const specialPlanDiagnostics = {};
   const specialPlanPool = wantsEleven
-    ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
+    ? (chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
-      })
+      }) ?? [])
     : [];
 
   // Prefer exactly one low-short topology attempt when it has a compatible
   // dictionary/CSP domain, then retain the best conventional topology as the
   // bounded fallback. Do not spend both retries on near-identical templates.
-  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey === 'low-short');
-  const conventionalSpecialPlans = specialPlanPool.filter(plan => plan.patternKey !== 'low-short');
+  const firstLowShortPlan = specialPlanPool.find(plan => plan.patternKey.startsWith('low-short'));
+  const conventionalSpecialPlans = specialPlanPool.filter(plan => !plan.patternKey.startsWith('low-short'));
+  const additionalLowShortPlans = specialPlanPool.filter(plan =>
+    plan.patternKey.startsWith('low-short') && plan !== firstLowShortPlan
+  );
   const specialPlanSequence = firstLowShortPlan
-    ? [firstLowShortPlan, ...conventionalSpecialPlans]
+    ? [firstLowShortPlan, ...conventionalSpecialPlans, ...additionalLowShortPlans]
     : specialPlanPool;
   if (options.capturePlanDiagnostics) {
-    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey === 'low-short').length;
+    specialPlanDiagnostics.lowShortViablePlans = specialPlanPool.filter(plan => plan.patternKey.startsWith('low-short')).length;
   }
 
   // In the 100-seed production batch, four retries still left 11/33
@@ -489,6 +1031,27 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
+    const plannedImageDiagnostics = options.capturePlanDiagnostics && specialPlan
+      ? [...(specialPlan.preferredImagePlacementsBySlot ?? new Map()).entries()].map(([slotId, placement]) => {
+          const slot = topology.slots.find(item => item.id === slotId);
+          const orientation = slot?.directionOptions.find(option =>
+            option.direction === placement.direction
+            && option.clueCell.row === Number(placement.clueKey.split(',')[0])
+            && option.clueCell.col === Number(placement.clueKey.split(',')[1])
+          );
+          const allowedIds = specialPlan.allowedEntryIdsBySlot?.get(slotId);
+          return {
+            slotId,
+            entryId: placement.entryId,
+            clueKey: placement.clueKey,
+            direction: placement.direction,
+            slotExists: Boolean(slot),
+            orientationExists: Boolean(orientation),
+            entryAllowed: Boolean(allowedIds?.has(placement.entryId))
+          };
+        })
+      : null;
+
     const cspSeed = (seed ^ Math.imul(attempt + 1, 104729)) >>> 0;
     const solved = solveSlotsCsp(topology.slots, inputDictionary, {
       seed: cspSeed,
@@ -500,13 +1063,18 @@ export function generateScanword(inputDictionary, options = {}) {
       requiredImageCount,
       minimumLogicClueCells,
       requireEveryClueStarts: false,
-      allowedDirections: ['right', 'down'],
+      requireDifficultyBalance: true,
+      difficultyDistribution: options.difficultyDistribution,
+      allowedDirections: ['right', 'left', 'down', 'up'],
       history: options.history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
+      allowedPlacementKeysBySlot: specialPlan?.allowedPlacementKeysBySlot,
+      preferredImagePlacementsBySlot: specialPlan?.preferredImagePlacementsBySlot,
+      enforcePreferredImagePlacements: useSpecialTopology,
       captureTrace: options.captureTrace === true
     });
 
@@ -518,12 +1086,15 @@ export function generateScanword(inputDictionary, options = {}) {
         reason: solved.reason,
         specialAnswer: specialPlan?.answer ?? null,
         specialSplitRows: specialPlan?.rows ?? null,
+        specialPlanKey: specialPlan?.planKey ?? null,
+        specialPatternKey: specialPlan?.patternKey ?? null,
         nodes: solved.nodes,
         deepest: solved.deepest,
         elapsedMs: solved.elapsedMs,
         lastDeadEnd: solved.lastDeadEnd,
         deepestDeadEnd: solved.deepestDeadEnd,
-        ...(options.captureTrace && solved.searchTrace ? { searchTrace: solved.searchTrace } : {})
+        ...(options.captureTrace && solved.searchTrace ? { searchTrace: solved.searchTrace } : {}),
+        ...(plannedImageDiagnostics ? { plannedImageDiagnostics } : {})
       });
       bestDiagnostic = solved;
       continue;
@@ -572,7 +1143,9 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
-      requireConnected: true
+      requireConnected: true,
+      requireDifficultyBalance: true,
+      difficultyDistribution: options.difficultyDistribution
     });
 
     if (!validation.valid) {
@@ -623,6 +1196,8 @@ export function generateScanword(inputDictionary, options = {}) {
         elapsedMs: Math.round(now() - started),
         cspElapsedMs: solved.elapsedMs,
         score,
+        difficultyCounts: solved.difficultyCounts,
+        difficultyQuotas: solved.difficultyQuotas,
         specialElevenLetterQuestion: scanword.metadata.specialElevenLetterQuestion,
         specialElevenRequested: wantsEleven,
         specialElevenMissed: wantsEleven && !scanword.metadata.specialElevenLetterQuestion,
@@ -638,6 +1213,9 @@ export function generateScanword(inputDictionary, options = {}) {
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
     dictionaryStats: prepared.stats,
     lastDiagnostic: bestDiagnostic,
-    requestedSpecialEleven: wantsEleven
+    requestedSpecialEleven: wantsEleven,
+    specialElevenPlanDiagnostics: wantsEleven ? specialPlanDiagnostics : null,
+    specialElevenPlanCount: specialPlanPool.length,
+    specialElevenAttemptCount: specialAttempts
   });
 }

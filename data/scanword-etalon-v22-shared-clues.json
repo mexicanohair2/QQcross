@@ -1,0 +1,57 @@
+[
+  {
+    "answer": "НОС",
+    "clue": "Орган обоняния и один волосок над верхней губой.",
+    "sharedClueGroup": "v22_face_nose_moustache"
+  },
+  {
+    "answer": "УС",
+    "clue": "Орган обоняния и один волосок над верхней губой.",
+    "sharedClueGroup": "v22_face_nose_moustache"
+  },
+  {
+    "answer": "КОТ",
+    "clue": "Домашний питомец и массив деревьев в природе.",
+    "sharedClueGroup": "v22_cat_forest"
+  },
+  {
+    "answer": "ЛЕС",
+    "clue": "Домашний питомец и массив деревьев в природе.",
+    "sharedClueGroup": "v22_cat_forest"
+  },
+  {
+    "answer": "МОЗГ",
+    "clue": "Орган мышления и способность человека думать.",
+    "sharedClueGroup": "v22_brain_intellect"
+  },
+  {
+    "answer": "УМ",
+    "clue": "Орган мышления и способность человека думать.",
+    "sharedClueGroup": "v22_brain_intellect"
+  },
+  {
+    "answer": "СЛОН",
+    "clue": "Крупный зверь с хоботом и речное животное с клешнями.",
+    "sharedClueGroup": "v22_elephant_crayfish"
+  },
+  {
+    "answer": "РАК",
+    "clue": "Крупный зверь с хоботом и речное животное с клешнями.",
+    "logic": true,
+    "sharedClueGroup": "v22_elephant_crayfish"
+  },
+  {
+    "id": "etalon_v22_table_mind_shared_table",
+    "answer": "СТОЛ",
+    "clue": "Предмет мебели и способность человека мыслить.",
+    "clueShort": "Предмет мебели и способность человека мыслить.",
+    "sharedClueGroup": "v22_table_mind"
+  },
+  {
+    "id": "etalon_v22_table_mind_shared_mind",
+    "answer": "УМ",
+    "clue": "Предмет мебели и способность человека мыслить.",
+    "clueShort": "Предмет мебели и способность человека мыслить.",
+    "sharedClueGroup": "v22_table_mind"
+  }
+]

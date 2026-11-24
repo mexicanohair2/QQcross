@@ -1,6 +1,8 @@
 import { CONFIG, DIRECTIONS } from './config.js';
-import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, normalizeQuestion, prepareDictionary } from './dictionary.js';
+import { buildIndexes, canonicalAnswerKey, findCandidates, getDifficultyFitScore, getDifficultyQuotaCounts, normalizeDifficultyBand, normalizeQuestion, prepareDictionary } from './dictionary.js';
 import { createRng, shuffle } from './rng.js';
+
+export const ALLOWED_SPECIAL_SHORT_ANSWERS = new Set(['ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС', 'АС'].map(canonicalAnswerKey));
 
 function pointKey(point) {
   return point.row + ',' + point.col;
@@ -179,6 +181,51 @@ function hasUnassignedOutgoingOption(questionKeys, unassignedSlots, directionUse
   return true;
 }
 
+/**
+ * Maximum number of slots that can receive distinct resource keys. Used for
+ * image assets and unique clue-cell quotas so a late CSP dead end is pruned
+ * before consuming every remaining slot.
+ */
+function getMaximumDistinctAssignment(domains) {
+  const normalized = domains
+    .map((domain, slotIndex) => ({
+      slotIndex,
+      values: [...new Set(domain ?? [])]
+        .filter(value => value !== null && value !== undefined && value !== '')
+        .sort()
+    }))
+    .filter(domain => domain.values.length > 0)
+    .sort((a, b) => a.values.length - b.values.length);
+  const ownerByValue = new Map();
+
+  function augment(slot, visited) {
+    for (const value of slot.values) {
+      if (visited.has(value)) continue;
+      visited.add(value);
+      const owner = ownerByValue.get(value);
+      if (owner === undefined || augment(owner, visited)) {
+        ownerByValue.set(value, slot);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  for (const slot of normalized) augment(slot, new Set());
+
+  return {
+    count: ownerByValue.size,
+    assignments: [...ownerByValue].map(([resource, slot]) => ({
+      slotIndex: slot.slotIndex,
+      resource
+    }))
+  };
+}
+
+export function maximumDistinctAssignmentCount(domains) {
+  return getMaximumDistinctAssignment(domains).count;
+}
+
 function hasEnoughContentCapacity(unassignedCount, usedImages, usedLogicClues, requiredImageCount, minimumLogicClueCells) {
   if (requiredImageCount - usedImages.size > unassignedCount) return false;
   if (minimumLogicClueCells - usedLogicClues.size > unassignedCount) return false;
@@ -245,11 +292,12 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
   const result = [];
   // Only a curated set of real, familiar Russian two-letter words is allowed.
   // Pronouns and other filler entries are intentionally excluded.
-  const allowedShortAnswers = new Set((options.allowedShortAnswers ?? [
-    'ЁЖ', 'ЯД', 'УМ', 'ЮГ', 'УС'
-  ]).map(canonicalAnswerKey));
+  const allowedShortAnswers = options.allowedShortAnswers instanceof Set
+    ? options.allowedShortAnswers
+    : ALLOWED_SPECIAL_SHORT_ANSWERS;
   for (const orientation of slot.directionOptions ?? []) {
-    // Production may restrict directions; generic CSP tests can retain all valid orientations.
+    // Production uses all four directions; geometrically invalid orientations are
+    // excluded by the slot endpoints and the independent validator.
     if (slot.requiredDirection && orientation.direction !== slot.requiredDirection) continue;
     if (options.allowedDirections instanceof Set && !options.allowedDirections.has(orientation.direction)) continue;
     const clueKey = pointKey(orientation.clueCell);
@@ -260,8 +308,17 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
     const candidates = findCandidates(indexes, slot.length, constraints);
 
     for (const entry of candidates) {
+      const difficultyBand = normalizeDifficultyBand(entry.difficulty);
+      if (options.requireDifficultyBalance === true
+        && (options.difficultyCounts?.[difficultyBand] ?? 0) >= (options.difficultyQuotas?.[difficultyBand] ?? 0)) {
+        continue;
+      }
       const plannedDomain = options.allowedEntryIdsBySlot?.get(slot.id);
       if (plannedDomain && !plannedDomain.has(entry.id)) continue;
+      const plannedPlacements = options.allowedPlacementKeysBySlot?.get(slot.id);
+      if (plannedPlacements && !plannedPlacements.has(
+        entry.id + '|' + orientation.direction + '|' + clueKey
+      )) continue;
       if (slot.length === 2 && !allowedShortAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       if (state.usedAnswers.has(canonicalAnswerKey(entry.answer))) continue;
       const normalizedQuestion = normalizeQuestion(entry.question);
@@ -279,13 +336,33 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         if (state.usedImages.has(entry.imageKey)) continue;
         if (state.usedImageClueCells.has(clueKey)) continue;
         if (state.usedImages.size >= options.requiredImageCount) continue;
+
+        // The special-plan search already found a mutually compatible set of
+        // image placements. Keep those exact choices fixed in production:
+        // an unplanned image can consume a crossing letter and invalidate
+        // the remaining prevalidated image matching.
+        if (options.enforcePreferredImagePlacements === true
+          && slot.special !== 'ELEVEN_LETTER_BOTTOM_BOUNDARY') {
+          const planned = options.preferredImagePlacementsBySlot?.get(slot.id);
+          if (!planned
+            || planned.entryId !== entry.id
+            || planned.clueKey !== clueKey
+            || planned.direction !== orientation.direction) continue;
+        }
       }
 
       const isNewLogicClue = entry.logic && !state.usedLogicClues.has(clueKey);
       const priority =
         (entry.imageKey && state.usedImages.size < options.requiredImageCount ? 1000 : 0)
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
-        + getDifficultyFitScore(entry.difficulty)
+        + getDifficultyFitScore(difficultyBand)
+        + (options.requireDifficultyBalance === true
+          ? Math.max(0, (options.difficultyQuotas?.[difficultyBand] ?? 0) - (options.difficultyCounts?.[difficultyBand] ?? 0)) * 2
+          : 0)
+        + (entry.imageKey && options.preferredImagePlacementsBySlot?.get(slot.id)?.entryId === entry.id
+          && options.preferredImagePlacementsBySlot?.get(slot.id)?.clueKey === clueKey
+          && options.preferredImagePlacementsBySlot?.get(slot.id)?.direction === orientation.direction
+          ? 10000 : 0)
         - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
         - (options.history?.questionUsageCount?.(entry.question) ?? 0) * (options.repeatQuestionPenalty ?? 12);
 
@@ -376,6 +453,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   }
 
   const indexes = options.indexes ?? buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
+  // The mandatory picture quota is solved against a much smaller dedicated
+  // dictionary index. Do not scan every text-only clue for every open slot
+  // while the solver is still reserving image assets.
+  const imageIndexes = buildIndexes(
+    prepared.variants.filter(entry => Boolean(entry.imageKey)),
+    { foldYo: options.foldYo === true }
+  );
   const slots = inputSlots.map(slot => ({
     ...slot,
     coordinates: slot.coordinates.map(point => ({ ...point })),
@@ -390,6 +474,9 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const questionKeys = [...new Set(slots.flatMap(slot =>
     slot.endpoints.filter(point => !point.boundary).map(pointKey)
   ))];
+  const difficultyQuotas = options.requireDifficultyBalance === true
+    ? getDifficultyQuotaCounts(slots.length, options.difficultyDistribution)
+    : { 2: Infinity, 3: Infinity, 4: Infinity };
 
   const state = {
     letters: new Map(),
@@ -400,6 +487,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     usedImages: new Set(),
     usedImageClueCells: new Set(),
     usedLogicClues: new Set(),
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
     assignments: new Map()
   };
 
@@ -422,14 +510,23 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     }
   }
 
-  function recordSearchChoice(slot, candidates) {
+  function recordSearchChoice(slot, candidates, extra = {}) {
     if (!options.captureTrace || searchTrace.length >= 120) return;
     searchTrace.push({
       depth: state.assignments.size,
       slotId: slot.id,
       length: slot.length,
       candidateCount: candidates.length,
-      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer)
+      firstAnswers: candidates.slice(0, 5).map(candidate => candidate.entry.answer),
+      firstPlacements: candidates.slice(0, 8).map(candidate => ({
+        answer: candidate.entry.answer,
+        imageKey: candidate.entry.imageKey ?? null,
+        logic: candidate.entry.logic === true,
+        clueCell: { ...candidate.clueCell },
+        direction: candidate.direction,
+        priority: candidate.priority
+      })),
+      ...extra
     });
   }
 
@@ -458,10 +555,13 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       state.usedImageClueCells.add(clueKey);
     }
     if (entry.logic) state.usedLogicClues.add(clueKey);
+    const difficulty = normalizeDifficultyBand(entry.difficulty);
+    state.difficultyCounts[difficulty]++;
     state.assignments.set(placement.slotId, {
       ...placement,
       addedLetters,
-      clueKey
+      clueKey,
+      difficulty
     });
 
     return addedLetters;
@@ -484,6 +584,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     if (remainingQuestionUses.length) state.usedQuestions.set(normalizedQuestion, remainingQuestionUses);
     else state.usedQuestions.delete(normalizedQuestion);
     state.usedEntryIds.delete(saved.entry.id);
+    state.difficultyCounts[saved.difficulty] = Math.max(0, state.difficultyCounts[saved.difficulty] - 1);
     if (saved.entry.imageKey) {
       state.usedImages.delete(saved.entry.imageKey);
       state.usedImageClueCells.delete(saved.clueKey);
@@ -525,11 +626,17 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const candidates = makePlacementCandidates(slot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
         history: options.history,
         allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
-        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+        enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random);
 
       if (candidates.length === 0) {
@@ -571,6 +678,110 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     return false;
   }
 
+  function completeSpecialImageSlots(remainingSlots) {
+    if (options.signal?.aborted) {
+      cancelled = true;
+      return false;
+    }
+    if (nodes >= maxNodes || Date.now() - started > maxTimeMs) {
+      budgetExceeded = true;
+      return false;
+    }
+    nodes++;
+    deepest = Math.max(deepest, state.assignments.size);
+
+    if (state.usedImages.size >= requiredImageCount) return search();
+
+    let chosenSlot = null;
+    let chosenCandidates = null;
+    let chosenDegree = -1;
+    const imageAssetDomains = [];
+    const imageAnswerDomains = [];
+    const imageClueCellDomains = [];
+
+    // Reserve the complete picture quota immediately after the special
+    // eleven-letter spine and its short crossing slots are assigned. Without
+    // this phase, ordinary MRV can consume crossing letters in the only slots
+    // that still admit the five distinct image answers.
+    for (const slot of remainingSlots) {
+      const candidates = makePlacementCandidates(slot, state, indexes, {
+        requiredImageCount,
+        minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
+        history: options.history,
+        allowedDirections,
+        repeatWordPenalty: options.repeatWordPenalty,
+        repeatQuestionPenalty: options.repeatQuestionPenalty,
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+        enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
+      }, random).filter(candidate => Boolean(candidate.entry.imageKey));
+
+      if (!candidates.length) continue;
+
+      imageAssetDomains.push([...new Set(candidates.map(candidate => candidate.entry.imageKey))]);
+      imageAnswerDomains.push([...new Set(candidates.map(candidate =>
+        canonicalAnswerKey(candidate.entry.answer, { foldYo: options.foldYo === true })
+      ))]);
+      imageClueCellDomains.push([...new Set(candidates.map(candidate => pointKey(candidate.clueCell)))]);
+
+      const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
+      if (
+        chosenCandidates === null
+        || candidates.length < chosenCandidates.length
+        || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+      ) {
+        chosenSlot = slot;
+        chosenCandidates = candidates;
+        chosenDegree = slotDegree;
+      }
+    }
+
+    const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
+    const availableAssets = maximumDistinctAssignmentCount(imageAssetDomains);
+    const availableAnswers = maximumDistinctAssignmentCount(imageAnswerDomains);
+    const availableClueCells = maximumDistinctAssignmentCount(imageClueCellDomains);
+    const available = Math.min(availableAssets, availableAnswers, availableClueCells);
+    if (!chosenSlot || available < remainingImageQuota) {
+      recordDeadEnd({
+        reason: 'SPECIAL_IMAGE_CAPACITY_UNREACHABLE',
+        required: remainingImageQuota,
+        available,
+        availableAssets,
+        availableAnswers,
+        availableClueCells,
+        openSlots: remainingSlots.length
+      });
+      return false;
+    }
+
+    recordSearchChoice(chosenSlot, chosenCandidates);
+    const nextSlots = remainingSlots.filter(slot => slot.id !== chosenSlot.id);
+    for (const candidate of chosenCandidates) {
+      addPlacement(candidate);
+      if (completeSpecialImageSlots(nextSlots)) return true;
+      undoPlacement(candidate);
+      if (cancelled || budgetExceeded) return false;
+    }
+
+    // This slot may have an image candidate but still be unnecessary for a
+    // valid five-image matching. Keep the branch that leaves it for ordinary
+    // word assignment so another slot can supply that picture instead.
+    if (completeSpecialImageSlots(nextSlots)) return true;
+    if (cancelled || budgetExceeded) return false;
+
+    recordDeadEnd({
+      reason: 'SPECIAL_IMAGE_ASSIGNMENT_EXHAUSTED',
+      slotId: chosenSlot.id,
+      candidateCount: chosenCandidates.length,
+      openSlots: remainingSlots.length
+    });
+    return false;
+  }
+
   function search() {
     if (options.signal?.aborted) {
       cancelled = true;
@@ -585,7 +796,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     deepest = Math.max(deepest, state.assignments.size);
 
     if (state.assignments.size === slots.length) {
+      const difficultyValid = options.requireDifficultyBalance !== true
+        || [2, 3, 4].every(level => state.difficultyCounts[level] === difficultyQuotas[level]);
       const contentValid = (!requireEveryClueStarts || questionKeys.every(key => (state.directionUse.get(key)?.size ?? 0) > 0))
+        && difficultyValid
         && state.usedImages.size === requiredImageCount
         && state.usedImageClueCells.size === requiredImageCount
         && state.usedLogicClues.size >= minimumLogicClueCells;
@@ -628,6 +842,12 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       slot.special === 'ELEVEN_LETTER_BOTTOM_BOUNDARY' && state.assignments.has(slot.id)
     );
     if (specialAlreadyAssigned) {
+      // Lock the picture quota before assigning short crossings: a valid
+      // two-letter choice can otherwise impose letters that remove the last
+      // remaining image domains from the special topology.
+      if (state.usedImages.size < requiredImageCount) {
+        return completeSpecialImageSlots(unassigned);
+      }
       const remainingShortSlots = unassigned.filter(slot => slot.length === 2);
       if (remainingShortSlots.length) return completeSpecialShortSlots(remainingShortSlots);
     }
@@ -647,11 +867,17 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       const candidates = makePlacementCandidates(specialElevenSlot, state, indexes, {
         requiredImageCount,
         minimumLogicClueCells,
+        requireDifficultyBalance: options.requireDifficultyBalance === true,
+        difficultyCounts: state.difficultyCounts,
+        difficultyQuotas,
         history: options.history,
         allowedDirections,
         repeatWordPenalty: options.repeatWordPenalty,
         repeatQuestionPenalty: options.repeatQuestionPenalty,
-        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
+        allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+        allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+        preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+        enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
       }, random);
       if (candidates.length === 0) {
         recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: specialElevenSlot.id, slotLength: specialElevenSlot.length });
@@ -693,34 +919,240 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
         return false;
       }
     } else {
+      const remainingImageQuota = Math.max(0, requiredImageCount - state.usedImages.size);
+
+      if (remainingImageQuota > 0) {
+        // Picture reservation phase: search only image-backed dictionary
+        // variants. The full text dictionary is intentionally not scanned
+        // until five distinct image keys have been placed.
+        const imageDomains = [];
+        const imageDomainRecords = [];
+        const imageDomainDiagnostics = [];
+
+        for (const slot of shuffle(unassigned, random)) {
+          const imageCandidates = makePlacementCandidates(slot, state, imageIndexes, {
+            requiredImageCount,
+            minimumLogicClueCells,
+            requireDifficultyBalance: options.requireDifficultyBalance === true,
+            difficultyCounts: state.difficultyCounts,
+            difficultyQuotas,
+            history: options.history,
+            allowedDirections,
+            repeatWordPenalty: options.repeatWordPenalty,
+            repeatQuestionPenalty: options.repeatQuestionPenalty,
+            allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+            allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+            preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+            enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
+          }, random);
+
+          const imageKeys = [...new Set(imageCandidates.map(candidate => candidate.entry.imageKey))];
+          imageDomains.push(imageKeys);
+          imageDomainRecords.push({
+            slot,
+            imageCandidates,
+            imageKeys,
+            slotDegree: degrees[slots.findIndex(item => item.id === slot.id)] ?? 0
+          });
+
+          if (options.captureTrace) {
+            imageDomainDiagnostics.push({
+              slotId: slot.id,
+              length: slot.length,
+              imageCandidatePlacements: imageCandidates.length,
+              imageKeys,
+              firstImageCandidates: imageCandidates.slice(0, 8).map(candidate => ({
+                answer: candidate.entry.answer,
+                imageKey: candidate.entry.imageKey,
+                clueCell: { ...candidate.clueCell },
+                direction: candidate.direction
+              }))
+            });
+          }
+        }
+
+        const imageAssignment = getMaximumDistinctAssignment(imageDomains);
+        if (imageAssignment.count < remainingImageQuota) {
+          recordDeadEnd({
+            reason: 'IMAGE_CAPACITY_UNREACHABLE',
+            required: remainingImageQuota,
+            available: imageAssignment.count,
+            openSlots: unassigned.length,
+            ...(options.captureTrace ? { imageDomainDiagnostics } : {})
+          });
+          return false;
+        }
+
+        const reservations = [];
+        for (const record of imageDomainRecords) {
+          for (const imageKey of record.imageKeys) {
+            const residualDomains = imageDomains
+              .filter((domain, index) => imageDomainRecords[index].slot.id !== record.slot.id)
+              .map(domain => domain.filter(value => value !== imageKey));
+            const availableAfterReservation = maximumDistinctAssignmentCount(residualDomains);
+            if (availableAfterReservation < remainingImageQuota - 1) continue;
+
+            const candidates = record.imageCandidates.filter(
+              candidate => candidate.entry.imageKey === imageKey
+            );
+            if (!candidates.length) continue;
+            reservations.push({
+              slot: record.slot,
+              imageKey,
+              candidates,
+              imagePlacementCount: candidates.length,
+              imageDomainSize: record.imageKeys.length,
+              slotDegree: record.slotDegree,
+              availableAfterReservation
+            });
+          }
+        }
+
+        reservations.sort((a, b) =>
+          a.imagePlacementCount - b.imagePlacementCount
+          || a.imageDomainSize - b.imageDomainSize
+          || b.slotDegree - a.slotDegree
+          || String(a.imageKey).localeCompare(String(b.imageKey))
+        );
+
+        if (!reservations.length) {
+          recordDeadEnd({
+            reason: 'NO_SAFE_IMAGE_RESERVATION',
+            required: remainingImageQuota,
+            available: imageAssignment.count,
+            openSlots: unassigned.length
+          });
+          return false;
+        }
+
+        // Every complete solution has at least one safe image reservation.
+        // Branch across those reservations, but defer ordinary dictionary
+        // domains until the picture quota is complete.
+        for (const reservation of reservations) {
+          recordSearchChoice(reservation.slot, reservation.candidates, {
+            imageReservation: {
+              imageKey: reservation.imageKey,
+              remainingQuota: remainingImageQuota,
+              availableAfterReservation: reservation.availableAfterReservation
+            }
+          });
+
+          for (const candidate of reservation.candidates) {
+            if (options.signal?.aborted) {
+              cancelled = true;
+              return false;
+            }
+            addPlacement(candidate);
+            if (search()) return true;
+            undoPlacement(candidate);
+            if (cancelled || budgetExceeded) return false;
+          }
+        }
+
+        recordDeadEnd({
+          reason: 'SAFE_IMAGE_RESERVATIONS_EXHAUSTED',
+          required: remainingImageQuota,
+          reservationCount: reservations.length,
+          openSlots: unassigned.length
+        });
+        return false;
+      }
+
+      // Once the image quota is met, switch to the full dictionary and
+      // ordinary MRV. This avoids repeatedly scanning thousands of text-only
+      // variants during the image-only reservation phase.
       const selectionOrder = shuffle(unassigned, random);
+      let chosenContentPriority = -1;
+      const logicClueDomains = [];
+      const difficultyDomains = { 2: [], 3: [], 4: [] };
+
       for (const slot of selectionOrder) {
         const candidates = makePlacementCandidates(slot, state, indexes, {
           requiredImageCount,
           minimumLogicClueCells,
+          requireDifficultyBalance: options.requireDifficultyBalance === true,
+          difficultyCounts: state.difficultyCounts,
+          difficultyQuotas,
           history: options.history,
           allowedDirections,
           repeatWordPenalty: options.repeatWordPenalty,
           repeatQuestionPenalty: options.repeatQuestionPenalty,
-          allowedEntryIdsBySlot: options.allowedEntryIdsBySlot
+          allowedEntryIdsBySlot: options.allowedEntryIdsBySlot,
+          allowedPlacementKeysBySlot: options.allowedPlacementKeysBySlot,
+          preferredImagePlacementsBySlot: options.preferredImagePlacementsBySlot,
+          enforcePreferredImagePlacements: options.enforcePreferredImagePlacements === true
         }, random);
 
-        if (candidates.length === 0) {
+        if (!candidates.length) {
           recordDeadEnd({ reason: 'EMPTY_CANDIDATE_DOMAIN', slotId: slot.id, slotLength: slot.length });
           return false;
         }
 
+        const logicClueKeys = new Set(candidates
+          .filter(candidate => candidate.entry.logic === true
+            && !state.usedLogicClues.has(pointKey(candidate.clueCell)))
+          .map(candidate => pointKey(candidate.clueCell)));
+        if (logicClueKeys.size) logicClueDomains.push([...logicClueKeys]);
+
+        const candidateDifficultyAnswers = { 2: new Set(), 3: new Set(), 4: new Set() };
+        for (const candidate of candidates) {
+          const band = normalizeDifficultyBand(candidate.entry.difficulty);
+          candidateDifficultyAnswers[band].add(canonicalAnswerKey(candidate.entry.answer));
+        }
+        for (const level of [2, 3, 4]) {
+          if (candidateDifficultyAnswers[level].size) difficultyDomains[level].push([...candidateDifficultyAnswers[level]]);
+        }
+
+        const logicPriority = state.usedLogicClues.size < minimumLogicClueCells
+          && candidates.some(candidate => candidate.entry.logic === true
+            && !state.usedLogicClues.has(pointKey(candidate.clueCell))) ? 1 : 0;
         const slotDegree = degrees[slots.findIndex(item => item.id === slot.id)] ?? 0;
         if (
           chosenCandidates === null
           || candidates.length < chosenCandidates.length
-          || (candidates.length === chosenCandidates.length && slotDegree > chosenDegree)
+          || (candidates.length === chosenCandidates.length && logicPriority > chosenContentPriority)
+          || (candidates.length === chosenCandidates.length
+            && logicPriority === chosenContentPriority
+            && slotDegree > chosenDegree)
         ) {
           chosenSlot = slot;
           chosenCandidates = candidates;
           chosenDegree = slotDegree;
+          chosenContentPriority = logicPriority;
         }
       }
+
+      const remainingLogicQuota = Math.max(0, minimumLogicClueCells - state.usedLogicClues.size);
+      const availableLogicClues = maximumDistinctAssignmentCount(logicClueDomains);
+      if (availableLogicClues < remainingLogicQuota) {
+        recordDeadEnd({
+          reason: 'LOGIC_CLUE_CAPACITY_UNREACHABLE',
+          required: remainingLogicQuota,
+          available: availableLogicClues,
+          openSlots: unassigned.length
+        });
+        return false;
+      }
+
+      if (options.requireDifficultyBalance === true) {
+        for (const level of [2, 3, 4]) {
+          const remainingDifficultyQuota = Math.max(0, difficultyQuotas[level] - state.difficultyCounts[level]);
+          const availableDifficultyAnswers = maximumDistinctAssignmentCount(difficultyDomains[level]);
+          if (availableDifficultyAnswers < remainingDifficultyQuota) {
+            recordDeadEnd({
+              reason: 'DIFFICULTY_CAPACITY_UNREACHABLE',
+              level,
+              required: remainingDifficultyQuota,
+              available: availableDifficultyAnswers,
+              difficultyCounts: { ...state.difficultyCounts },
+              difficultyQuotas: { ...difficultyQuotas },
+              openSlots: unassigned.length
+            });
+            return false;
+          }
+        }
+      }
+
       recordSearchChoice(chosenSlot, chosenCandidates);
     }
 
@@ -813,6 +1245,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     questions,
     letters: new Map(state.letters),
     clueDirections: new Map([...state.directionUse].map(([key, values]) => [key, new Set(values)])),
+    difficultyCounts: { ...state.difficultyCounts },
+    difficultyQuotas: { ...difficultyQuotas },
     metrics: {
       slots: slots.length,
       assignedWords: words.length,
@@ -829,6 +1263,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     nodes,
     deepest,
     elapsedMs,
+    ...(options.captureTrace ? { searchTrace } : {}),
     dictionaryStats: prepared.stats
   };
 }

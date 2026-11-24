@@ -40,17 +40,75 @@ function questionContainsWholeAnswer(question, answer) {
   return tokens.includes(normalizedAnswer);
 }
 
-export function inferDifficulty(raw, question, imageKey = null) {
+export function normalizeDifficultyBand(value) {
+  if (value === undefined || value === null || value === '') return 3;
+  const numeric = Number(value);
+  const level = Number.isFinite(numeric) ? Math.round(numeric) : 3;
+  // Keep live play within the agreed grade-7 range: easy, medium, challenging.
+  return level <= 2 ? 2 : level >= 4 ? 4 : 3;
+}
+
+export function getDifficultyQuotaCounts(total, distribution = {}) {
+  distribution = distribution ?? {};
+  const count = Math.max(0, Math.floor(Number(total) || 0));
+  const weights = {
+    2: Number.isFinite(Number(distribution.easy)) ? Math.max(0, Number(distribution.easy)) : 0.2,
+    3: Number.isFinite(Number(distribution.medium)) ? Math.max(0, Number(distribution.medium)) : 0.6,
+    4: Number.isFinite(Number(distribution.challenging)) ? Math.max(0, Number(distribution.challenging)) : 0.2
+  };
+  let weightTotal = weights[2] + weights[3] + weights[4];
+  if (weightTotal <= 0) {
+    weights[2] = 0.2;
+    weights[3] = 0.6;
+    weights[4] = 0.2;
+    weightTotal = 1;
+  }
+
+  const quotas = {};
+  const remainders = [];
+  let assigned = 0;
+  for (const level of [2, 3, 4]) {
+    const exact = count * weights[level] / weightTotal;
+    quotas[level] = Math.floor(exact);
+    assigned += quotas[level];
+    remainders.push({ level, fraction: exact - quotas[level] });
+  }
+  // Largest-remainder apportionment; ties prefer medium, then easy, then challenging.
+  const tieOrder = { 3: 0, 2: 1, 4: 2 };
+  remainders.sort((a, b) => b.fraction - a.fraction || tieOrder[a.level] - tieOrder[b.level]);
+  for (let index = 0; index < count - assigned; index++) quotas[remainders[index].level]++;
+  return quotas;
+}
+
+export function inferDifficulty(raw, question, imageKey = null, answer = '') {
   const supplied = raw?.difficulty;
   if (supplied !== undefined && supplied !== null && supplied !== '' && Number.isFinite(Number(supplied))) {
-    return Math.max(1, Math.min(5, Math.round(Number(supplied))));
+    return normalizeDifficultyBand(supplied);
   }
-  if (imageKey) return 2;
-  if (raw?.logic === true) return 3;
-  const wordCount = String(question ?? '').split(/\s+/u).filter(Boolean).length;
-  if (wordCount <= 3) return 2;
-  if (wordCount <= 8) return 3;
-  return 4;
+
+  const text = String(question ?? '').trim();
+  const lower = text.toLocaleLowerCase('ru-RU');
+  const answerLength = normalizeAnswer(answer).length;
+  const wordCount = text.split(/\s+/u).filter(Boolean).length;
+  const isFlagPrompt = !/[А-Яа-яЁё]/u.test(text) && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(text);
+
+  // An image/flag is a clue format, not an automatic difficulty rating.
+  // The short, familiar pictured entries remain easy; longer objects/countries
+  // provide medium and challenging options so five picture clues can coexist
+  // with an exact 20/60/20 board quota.
+  if (imageKey || isFlagPrompt) {
+    if (answerLength <= 6) return 2;
+    if (answerLength >= 10 && isFlagPrompt) return 4;
+    return 3;
+  }
+
+  const challengingConcept = /архипелаг|изотоп|фотосинтез|цитоплазм|молекул|орбит|периодическ.{0,20}систем|гипотез|диаспор|барельеф|метафор|кислотност|электролиз|митохондр|хлорофилл/iu.test(lower);
+  if (challengingConcept || text.length > 85 || wordCount >= 12) return 4;
+  if (raw?.logic === true) return wordCount >= 9 || answerLength >= 9 ? 4 : 3;
+  if (answerLength <= 4 && wordCount <= 5 && text.length <= 42) return 2;
+  if (answerLength <= 6 && wordCount <= 3 && text.length <= 35) return 2;
+  if (answerLength >= 9 && wordCount >= 8) return 4;
+  return 3;
 }
 
 export function getDifficultyFitScore(value) {
@@ -109,7 +167,7 @@ export function validateEntry(raw, index = 0, options = {}) {
     answer,
     question,
     clueShort: clueShort || question,
-    difficulty: inferDifficulty(raw, question, imageKey),
+    difficulty: inferDifficulty(raw, question, imageKey, answer),
     partOfSpeech: String(raw.partOfSpeech ?? ''),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
     logic: raw.logic === true,

@@ -4,12 +4,69 @@ import { CONFIG } from '../src/config.js';
 import { createEmptyGrid, assertGridDimensions } from '../src/grid.js';
 import { normalizeAnswer, normalizeQuestion, prepareDictionary, buildIndexes, findCandidates } from '../src/dictionary.js';
 import { getCoordinates, canPlaceWord, placeWord } from '../src/placement.js';
-import { generateScanword, enforceCrossingArcConsistency } from '../src/generator.js';
+import { generateScanword, enforceCrossingArcConsistency, shouldRequestSpecialElevenLetter, canAssignDistinctShortAnswers } from '../src/generator.js';
 import { validateScanword } from '../src/validator.js';
 import { createRng } from '../src/rng.js';
 import { GenerationHistory } from '../src/history.js';
 import { assembleScanword } from '../src/assembler.js';
 import { analyzeRequiredBorderFeasibility } from '../src/topology.js';
+
+test('special short-word planning respects crossing letters and exact difficulty quotas', () => {
+  const first = {
+    answerKey: 'АС',
+    answer: 'АС',
+    difficulty: 2,
+    coordinates: [{ row: 2, col: 2 }, { row: 2, col: 3 }]
+  };
+  const compatibleSecond = {
+    answerKey: 'УС',
+    answer: 'УС',
+    difficulty: 3,
+    coordinates: [{ row: 3, col: 2 }, { row: 2, col: 3 }]
+  };
+  const conflictingSecond = {
+    answerKey: 'УМ',
+    answer: 'УМ',
+    difficulty: 3,
+    coordinates: [{ row: 3, col: 2 }, { row: 2, col: 3 }]
+  };
+  const letters = new Map();
+
+  assert.equal(canAssignDistinctShortAnswers([[first], [compatibleSecond]], {
+    letterUses: letters,
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), true);
+  assert.equal(letters.size, 0, 'Feasibility checks must not mutate the caller letter map.');
+
+  assert.equal(canAssignDistinctShortAnswers([[first], [conflictingSecond]], {
+    letterUses: letters,
+    difficultyCounts: { 2: 0, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), false, 'Crossing short answers must agree on their shared letter.');
+
+  assert.equal(canAssignDistinctShortAnswers([[first]], {
+    difficultyCounts: { 2: 1, 3: 0, 4: 0 },
+    difficultyQuotas: { 2: 1, 3: 1, 4: 0 }
+  }), false, 'The special answer and image placements must leave room in the exact easy quota.');
+});
+
+test('special eleven-letter answer is scheduled no more than once per five puzzles', () => {
+  const selected = Array.from({ length: 30 }, (_, index) => index + 1)
+    .filter(sequenceIndex => shouldRequestSpecialElevenLetter(sequenceIndex));
+  assert.deepEqual(selected, [5, 10, 15, 20, 25, 30]);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.19, 0.2), true);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.2, 0.2), false);
+  assert.equal(shouldRequestSpecialElevenLetter(null, 0.8, 0), false);
+});
+
+test('production generator refuses the impossible full top-row and full left-column request', () => {
+  const result = generateScanword([], { requireFullTopRow: true, seed: 77 });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'FULL_TOP_AND_LEFT_BORDER_CONFLICT');
+  assert.equal(result.feasibility.conflicts[0].topClue.row, 0);
+  assert.equal(result.feasibility.conflicts[0].topClue.col, 2);
+});
 
 test('AC-3 preserves a candidate when a reversed crossing arc has matching letters', () => {
   const domains = [
@@ -33,6 +90,41 @@ test('AC-3 preserves a candidate when a reversed crossing arc has matching lette
   assert.deepEqual(domains[2].options.map(option => option.entry.answer), ['X']);
 });
 
+test('AC-3 maps reversed leftward and upward answers by physical crossing cell', () => {
+  const horizontal = {
+    slot: {
+      coordinates: [{ row: 4, col: 1 }, { row: 4, col: 2 }]
+    },
+    options: [
+      {
+        entry: { answer: 'CA' },
+        coordinates: [{ row: 4, col: 2 }, { row: 4, col: 1 }],
+        direction: 'left'
+      },
+      {
+        entry: { answer: 'CB' },
+        coordinates: [{ row: 4, col: 2 }, { row: 4, col: 1 }],
+        direction: 'left'
+      }
+    ]
+  };
+  const vertical = {
+    slot: {
+      coordinates: [{ row: 3, col: 1 }, { row: 4, col: 1 }]
+    },
+    options: [{
+      entry: { answer: 'EA' },
+      coordinates: [{ row: 3, col: 1 }, { row: 4, col: 1 }],
+      direction: 'down'
+    }]
+  };
+  const domains = [horizontal, vertical];
+
+  assert.equal(enforceCrossingArcConsistency(domains), true);
+  assert.deepEqual(horizontal.options.map(option => option.entry.answer), ['CA']);
+  assert.deepEqual(vertical.options.map(option => option.entry.answer), ['EA']);
+});
+ 
 test('fixed grid is exactly 8 columns × 12 rows', () => {
   const grid = createEmptyGrid();
   assert.equal(CONFIG.TOTAL_CELLS, 96); assert.equal(grid.length, 12); assert.ok(grid.every(r => r.length === 8)); assert.ok(assertGridDimensions(grid));

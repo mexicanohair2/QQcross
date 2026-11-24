@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildIndexes, findCandidates, getDifficultyFitScore, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { buildIndexes, findCandidates, getDifficultyFitScore, getDifficultyQuotaCounts, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const productionDictionary = JSON.parse(
@@ -17,19 +17,37 @@ test('calibrates missing clue difficulty toward a readable middle-school level',
     { id: 'advanced', answer: 'АРХИПЕЛАГ', clue: 'Как географы называют группу островов, расположенных близко друг к другу?' },
     { id: 'logic', answer: 'ЭХО', clue: 'Что возвращает твои слова, но не начинает разговор первым?', logic: true },
     { id: 'picture', answer: 'ЯБЛОКО', clue: 'Что изображено на картинке?', imageKey: 'apple' },
+    { id: 'pictureMedium', answer: 'ВЕЛОСИПЕД', clue: 'Что изображено на картинке?', imageKey: 'bicycle' },
+    { id: 'flag', answer: 'ЧИЛИ', clue: '🇨🇱' },
+    { id: 'longFlag', answer: 'ЮЖНАЯКОРЕЯ', clue: '🇰🇷' },
+    { id: 'shortMedium', answer: 'УМ', clue: 'Способность человека думать, понимать и рассуждать.' },
     { id: 'expert', answer: 'ИЗОТОП', clue: 'Специалистская формулировка.', difficulty: 5 }
   ]);
   const byId = Object.fromEntries(prepared.entries.map(entry => [entry.id, entry]));
   assert.equal(byId.easy.difficulty, 2);
   assert.equal(byId.middle.difficulty, 3);
   assert.equal(byId.advanced.difficulty, 4);
-  assert.equal(byId.logic.difficulty, 3);
+  assert.equal(byId.logic.difficulty, 4);
   assert.equal(byId.picture.difficulty, 2);
-  assert.equal(byId.expert.difficulty, 5);
+  assert.equal(byId.pictureMedium.difficulty, 3);
+  assert.equal(byId.flag.difficulty, 2);
+  assert.equal(byId.longFlag.difficulty, 4);
+  assert.equal(byId.shortMedium.difficulty, 3);
+  assert.equal(byId.expert.difficulty, 4);
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(2));
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(4));
   assert.ok(getDifficultyFitScore(3) > getDifficultyFitScore(5));
   assert.equal(getDifficultyFitScore(3), 36);
+});
+
+test('apportions exact 20-60-20 difficulty quotas with deterministic rounding', () => {
+  assert.deepEqual(getDifficultyQuotaCounts(20), { 2: 4, 3: 12, 4: 4 });
+  assert.deepEqual(getDifficultyQuotaCounts(25), { 2: 5, 3: 15, 4: 5 });
+  assert.deepEqual(getDifficultyQuotaCounts(23), { 2: 5, 3: 14, 4: 4 });
+  assert.deepEqual(getDifficultyQuotaCounts(1), { 2: 0, 3: 1, 4: 0 });
+  assert.deepEqual(getDifficultyQuotaCounts(10, {
+    easy: 0.3, medium: 0.5, challenging: 0.2
+  }), { 2: 3, 3: 5, 4: 2 });
 });
 
 test('accepts the live QQCross clue field and preserves Ё', () => {
