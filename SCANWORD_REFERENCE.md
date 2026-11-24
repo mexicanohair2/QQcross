@@ -23,7 +23,7 @@
 - The page says it aims to place all submitted words; words it cannot place are reported separately rather than silently inserted as broken entries.
 - Its stated practical range is about 8–30 words. This is a quality/behavior benchmark, not a geometry contract: QQCross remains fixed at 8×12 (96 cells), uses its own Russian dictionary, and must independently validate every generated board.
 - The public description was inspected, but an interactive sample puzzle was not generated in this session. Treat the advertised behavior as the benchmark specification, not as a claim that its internal algorithm or actual output has been exhaustively tested.
-- QQCross must meet the same visible structural expectations while applying stricter game-specific rules: no orphan question/letter cells, no unregistered answer slots, no conflicting crossings, no silent dropped answers, no repeated answers, five distinct picture clue cells, and independent validation before gameplay.
+- QQCross must meet the same visible structural expectations while applying stricter game-specific rules: no orphan question/letter cells, no unregistered answer slots, no conflicting crossings, no silent dropped answers, no repeated answers, zero to four optional picture clue cells, no repeated picture assets, and independent validation before gameplay.
 
 ## Visual reference asset
 
@@ -54,7 +54,7 @@ The saved screenshot is a visual reference for cell proportions, board emphasis,
 - Never change the agreed **8×12** dimensions.
 - Keep the native 8-column × 12-row portrait play surface large and centered in the available phone game area; it must not shrink to a small tile or force horizontal scrolling. Preserve row/column coordinates and answer directions unchanged from the validated model.
 - Preserve the visual clue-cell language, small direction indicators and compact composition from the screenshot. The live playable board uses the same 8-column × 12-row portrait orientation as its validated source topology.
-- QQCross production answers run only right and down. Leftward and upward answers are disabled in the generator and are not shown as playable directions. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's visible arrows are a visual reference, not a restriction on production directions.
+- QQCross production answers run only right and down. Leftward and upward answers are rejected by topology, CSP, assembler and independent validator, and are never shown as playable directions. Each placement must pass topology, CSP, assembler, independent validator, renderer and hint-path checks. The screenshot's arrow styling is only a visual reference; the engine contract defines the permitted directions.
 - Keep clue contents generated from QQCross data; do not copy the reference game's questions or answers.
 
 ## Verification note

@@ -1,3 +1,5 @@
+import { categorizeDictionaryEntry, getDictionaryCategoryStats } from './categories.js';
+
 const ANSWER_RE = /^[А-ЯЁ]+$/u;
 
 export function normalizeAnswer(value, { foldYo = false } = {}) {
@@ -53,6 +55,41 @@ export function inferDifficulty(raw, question, imageKey = null) {
   return 4;
 }
 
+export const FAMILIARITY_TIERS = Object.freeze([
+  { id: 'everyday', label: 'Повседневные', description: 'Слова из обычной жизни, понятные без специальных интересов.' },
+  { id: 'familiar', label: 'Знакомые', description: 'Широко известные слова из школы, культуры, природы и общего кругозора.' },
+  { id: 'extended', label: 'Расширенный кругозор', description: 'Менее частые слова; используются редко и только с ясной подсказкой.' }
+]);
+
+const SPECIALIST_CLUE = /минерал|электрическ(?:ая|ой|ое) величин|химическ|физическ(?:ий термин|ое явлен)|биологическ(?:ий термин|ое понят)|лингвистическ|архитектурн(?:ый термин|ое поняти)|геологическ|ботаническ|зоологическ|медицинск(?:ий термин|ое понят)|математическ(?:ий термин|ое понят)/iu;
+const EXTENDED_CATEGORIES = new Set(['science', 'concepts', 'other']);
+
+export function inferFamiliarity(raw, answer, question, difficulty, category) {
+  const supplied = String(raw?.familiarity ?? '').trim().toLocaleLowerCase('ru-RU');
+  if (['everyday', 'familiar', 'extended'].includes(supplied)) return supplied;
+  const tags = Array.isArray(raw?.tags) ? raw.tags.map(tag => String(tag).toLocaleLowerCase('ru-RU')) : [];
+  if (raw?.specialist === true || tags.some(tag => /редк|специал|термин|узк/u.test(tag))) return 'extended';
+  if (difficulty >= 5 || SPECIALIST_CLUE.test(question)) return 'extended';
+  if (EXTENDED_CATEGORIES.has(category) && (difficulty >= 4 || answer.length >= 9)) return 'extended';
+  if (answer.length >= 10 || difficulty >= 4 || category === 'culture' || category === 'sport' || category === 'geography') return 'familiar';
+  return 'everyday';
+}
+
+export function getFamiliarityFitScore(value) {
+  if (value === 'everyday') return 42;
+  if (value === 'familiar') return 24;
+  return -18;
+}
+
+export function getDictionaryFamiliarityStats(entries = []) {
+  const stats = { everyday: 0, familiar: 0, extended: 0 };
+  for (const entry of entries) {
+    const tier = entry.familiarity ?? 'familiar';
+    if (Object.hasOwn(stats, tier)) stats[tier]++;
+  }
+  return stats;
+}
+
 export function getDifficultyFitScore(value) {
   const level = Math.max(1, Math.min(5, Number(value) || 3));
   // Level 3 is the target: familiar but not trivial for a middle-school player.
@@ -99,6 +136,7 @@ export function validateEntry(raw, index = 0, options = {}) {
   if (!answer || !ANSWER_RE.test(answer)) errors.push('INVALID_ANSWER_CHARACTERS');
   if (answer.length < 2 || answer.length > 11) errors.push('ANSWER_LENGTH_OUT_OF_RANGE');
   if (!question) errors.push('EMPTY_QUESTION');
+  if (/[A-Za-z]/u.test(question)) errors.push('NON_RUSSIAN_CLUE_TEXT');
   // Grammar-only entries (pronouns, prepositions and interjections) make weak filler clues in this scanword format.
   if (/местоимени|предлог|междомет/iu.test(question)) errors.push('FUNCTION_WORD_CLUE');
   if (questionContainsWholeAnswer(question, answer)) errors.push('ANSWER_LEAKS_INTO_QUESTION');
@@ -112,6 +150,8 @@ export function validateEntry(raw, index = 0, options = {}) {
     difficulty: inferDifficulty(raw, question, imageKey),
     partOfSpeech: String(raw.partOfSpeech ?? ''),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
+    category: categorizeDictionaryEntry(raw),
+    familiarity: inferFamiliarity(raw, answer, question, inferDifficulty(raw, question, imageKey), categorizeDictionaryEntry(raw)),
     logic: raw.logic === true,
     type: raw.type === 'image' || imageKey ? 'image' : 'text',
     imageKey,
@@ -228,7 +268,9 @@ export function prepareDictionary(input, options = {}) {
       // of the same answer; the CSP can select either one for a given puzzle.
       withImages: new Set(variants.filter(item => item.imageKey).map(item => canonicalAnswerKey(item.answer))).size,
       logicEntries: new Set(variants.filter(item => item.logic).map(item => canonicalAnswerKey(item.answer))).size,
-      byLength: lengthCounts
+      byLength: lengthCounts,
+      byCategory: getDictionaryCategoryStats(entries),
+      byFamiliarity: getDictionaryFamiliarityStats(entries)
     }
   };
 }
@@ -245,6 +287,7 @@ export function buildIndexes(entries, options = {}) {
   const byLetter = new Map();
   const byId = new Map();
   const byAnswer = new Map();
+  const byCategory = new Map();
 
   for (const entry of entries) {
     const length = entry.answer.length;
@@ -252,6 +295,9 @@ export function buildIndexes(entries, options = {}) {
     byLength.get(length).push(entry);
     byId.set(entry.id, entry);
     byAnswer.set(entry.answer, entry);
+    const category = entry.category ?? 'other';
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category).push(entry);
 
     for (let position = 0; position < length; position++) {
       const key = position + ':' + entry.answer[position];
@@ -265,6 +311,7 @@ export function buildIndexes(entries, options = {}) {
     byLetter,
     byId,
     byAnswer,
+    byCategory,
     foldYo: options.foldYo === true
   };
 }

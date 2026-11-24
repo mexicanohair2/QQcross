@@ -1240,6 +1240,17 @@ function saveScanwordSequenceIndex(index){
   if(Number.isSafeInteger(index)&&index>scanwordSequenceFallback)scanwordSequenceFallback=index;
   try{localStorage.setItem(SCANWORD_SEQUENCE_KEY,String(index))}catch{}
 }
+const SCANWORD_HISTORY_STORAGE_KEY="qqcross.scanword.history.v1";
+function readScanwordHistorySnapshot(){
+  try{
+    const value=JSON.parse(localStorage.getItem(SCANWORD_HISTORY_STORAGE_KEY)||"[]");
+    return Array.isArray(value)?value.slice(-12):[];
+  }catch{return []}
+}
+function saveScanwordHistorySnapshot(value){
+  if(!Array.isArray(value))return;
+  try{localStorage.setItem(SCANWORD_HISTORY_STORAGE_KEY,JSON.stringify(value.slice(-12)))}catch(error){console.warn("QQCross scanword history was not saved:",error)}
+}
 function buildScanwordInWorker(entries, overrides={}){
   const seed=Number.isFinite(Number(overrides.seed))
     ? Number(overrides.seed)>>>0
@@ -1251,17 +1262,25 @@ function buildScanwordInWorker(entries, overrides={}){
   const rememberSequence=()=>{
     if(countSequence&&Number.isSafeInteger(sequenceIndex)&&sequenceIndex>0)saveScanwordSequenceIndex(sequenceIndex);
   };
+  const qualityMode=overrides.qualityMode==="optimized"?"optimized":"fast";
   const generationOptions={
     seed,
+    qualityMode,
+    maxOptimizedCandidates:qualityMode==="optimized"?3:1,
     ...(sequenceIndex===null?{}:{sequenceIndex}),
-    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
-    maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
-    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
+    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:(qualityMode==="optimized"?32:16),
+    maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:(qualityMode==="optimized"?180000:120000),
+    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:(qualityMode==="optimized"?700:1200),
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
-    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
+    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25,
+    historySnapshot:readScanwordHistorySnapshot(),
+    historyLimit:12,
+    historyCooldownBoards:12,
+    repeatWordPenalty:1800,
+    repeatQuestionPenalty:2400
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261120-edge-clue-validation-v3");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261124-kryss-quality-v3");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
@@ -1272,11 +1291,13 @@ function buildScanwordInWorker(entries, overrides={}){
       throw new Error((result.message||"Не удалось создать сканворд")+reason);
     }
     const puzzle=await adapt(result.scanword);
+    saveScanwordHistorySnapshot(result.historySnapshot);
     rememberSequence();
     return puzzle;
   };
   if(typeof Worker!=="function")return runOnMainThread();
-  return new Promise((resolve,reject)=>{
+  const deadline=Date.now()+16000;
+  const runWorkerAttempt=attempt=>new Promise((resolve,reject)=>{
     let worker=null,timer=null,settled=false;
     const cleanup=()=>{
       if(timer)clearTimeout(timer);
@@ -1288,11 +1309,22 @@ function buildScanwordInWorker(entries, overrides={}){
       cleanup();
       callback(value);
     };
+    const retry=()=>{
+      if(settled)return;
+      settled=true;
+      cleanup();
+      runWorkerAttempt(attempt+1).then(resolve,reject);
+    };
     try{
       worker=new Worker(new URL("./scanword-engine/worker.js",document.baseURI),{type:"module"});
       worker.onmessage=async event=>{
         const data=event.data||{};
         if(!data.ok||!data.scanword){
+          const retryable=!["INSUFFICIENT_DICTIONARY","EMPTY_DICTIONARY","INVALID_OPTIONS"].includes(data.reason);
+          if(attempt===0&&retryable&&Date.now()<deadline){
+            retry();
+            return;
+          }
           const details=data.reason?" ("+data.reason+")":"";
           finish(reject,new Error((data.error||"Новый генератор не смог собрать сканворд")+details));
           return;
@@ -1302,22 +1334,38 @@ function buildScanwordInWorker(entries, overrides={}){
         cleanup();
         try{
           const puzzle=await adapt(data.scanword);
+          saveScanwordHistorySnapshot(data.historySnapshot);
           rememberSequence();
           resolve(puzzle);
         }catch(error){reject(error)}
       };
       worker.onerror=event=>{
         const message=event?.message||"Модульный worker нового генератора завершился с ошибкой";
+        if(attempt===0&&Date.now()<deadline){
+          retry();
+          return;
+        }
         finish(reject,new Error(message));
       };
+      const remainingMs=Math.max(0,deadline-Date.now());
+      if(remainingMs===0){
+        finish(reject,new Error("Новый генератор превысил общий лимит времени."));
+        return;
+      }
       timer=setTimeout(()=>{
         finish(reject,new Error("Новый генератор превысил лимит времени. Попробуй подготовить сканворд ещё раз."));
-      },16000);
-      worker.postMessage({entries,options:generationOptions});
+      },remainingMs);
+      const attemptSeed=(seed+Math.imul(attempt,0x9e3779b9))>>>0;
+      worker.postMessage({entries,options:{...generationOptions,seed:attemptSeed}});
     }catch(error){
+      if(attempt===0&&Date.now()<deadline){
+        retry();
+        return;
+      }
       finish(reject,error);
     }
   });
+  return runWorkerAttempt(0);
 }
 function prepareNextScanword(){
   if(preparedScanword)return Promise.resolve(preparedScanword);
@@ -1793,7 +1841,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261107-picture5-v6";
+      const version="20261124-picture0-4-v7";
       const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       const dictionary=await dictionaryResponse.json();
@@ -1811,7 +1859,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261120-native-8x12-v2",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261124-scanword-images-0-4-v23",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;

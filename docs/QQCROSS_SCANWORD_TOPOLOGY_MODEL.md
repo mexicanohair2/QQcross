@@ -1,52 +1,58 @@
-# QQCross scanword topology model — Stage 2
+# QQCross scanword topology model — right/down-only production contract
 
 ## Fixed coordinate contract
 
 - Width: 8 columns; column indices 0 through 7.
 - Height: 12 rows; row indices 0 through 11.
-- Total: 96 cells.
-- Grid access: grid[row][col].
-- The only empty corner is (0,0).
-- Every cell has exactly one role: corner, question or letter.
-- The whole top edge except (0,0) and the whole left edge except (0,0) are question cells.
+- Total: 96 logical cells.
+- Grid access: `grid[row][col]`.
+- `(0,0)` is the single reserved structural corner.
+- Every other cell must have exactly one role: `question` or `letter`.
+- The left border `(1,0)..(11,0)` contains question cells.
+- `(0,1)` is the required top anchor. Other top-row cells are dynamic and may be questions only when they bound a real answer slot.
 
-## Geometric answer slots
+## Allowed answer geometry
 
-A normal candidate answer is a continuous run of at least two letter cells between two consecutive question cells in one row or one column.
+The only production answer directions are:
 
-Each horizontal slot retains two possible orientations:
-- right, starting from its left question cell;
-- left, starting from its right question cell.
+- `right`: the clue is the left endpoint; letters proceed toward increasing columns.
+- `down`: the clue is the upper endpoint; letters proceed toward increasing rows.
 
-Each vertical slot retains two possible orientations:
-- down, starting from its upper question cell;
-- up, starting from its lower question cell.
+`left` and `up` are rejected by topology, coordinate helpers, CSP, assembler, independent validator and legacy adapter. No caller-supplied option may re-enable them.
 
-The topology stage records candidate geometry. The later CSP stage must choose one orientation and one real dictionary entry for every selected answer slot. A geometric slot is not yet a solved word.
+A normal slot is a continuous run of at least two letter cells between consecutive question cells in one row or one column. A horizontal slot is derived only from its left question cell and a vertical slot only from its upper question cell. The topology stage creates exactly one direction option per slot.
 
-A one-letter gap is never promoted to an answer. Its letter still has to belong to a valid crossing answer, or the topology is rejected as containing an orphan.
+A one-letter gap is never promoted to an answer. Its letter must belong to another valid crossing answer or the topology is rejected.
 
 ## Cell coverage and connectedness
 
-Every question cell must bound at least one candidate answer slot. Every letter cell must be contained in at least one candidate slot. A horizontal and vertical slot may cross at a letter cell.
+- All 96 positions have explicit roles, including the structural corner.
+- Exactly one cell has role `corner`: `(0,0)`.
+- Every question cell must be linked to at least one answer.
+- Every letter cell must belong to at least one registered answer.
+- Crossing letters must agree exactly.
+- Every reconstructed answer run must map to a registered clue and dictionary entry.
+- Unregistered runs, orphan letters, dangling clues, duplicate answers and conflicting question links reject the board.
 
-When connectedness is requested, the validator builds a graph of question cells. Slot endpoints create graph edges, and crossing slots connect their clue endpoints. All question cells must be reachable from one another.
+When connectedness is requested, the independent validator reconstructs the clue/answer graph and verifies that the playable structure is connected.
 
 ## Special 11-letter boundary rule
 
-The only answer allowed to terminate at the edge without a second in-board question cell is the special answer:
-- clue: (0,1);
-- direction: down;
-- answer cells: (1,1) through (11,1);
+The only answer allowed to terminate at the board edge without a second in-board question cell is:
+
+- clue: `(0,1)`;
+- direction: `down`;
+- answer cells: `(1,1)` through `(11,1)`;
 - length: exactly 11.
 
 All eleven cells must be letters and the path must be uninterrupted. No other answer receives an edge-terminal exception.
 
-## Implemented files
+## Enforcement modules
 
-- scanword-engine/src/topology.js: coordinate helper, candidate-slot extraction, orientation options, special-boundary recognition and role/coverage validator.
-- scanword-engine/tests/topology.test.js: unit tests for horizontal/vertical slots, four directions, one-letter gaps, the special exception and invalid cell coverage.
-
-## Stage boundary
-
-This is the geometric model, not a production generator. It does not yet select answer words, solve the complete 96-cell topology, guarantee that every slot has a matching dictionary entry, or alter live QQCross gameplay. Those remain later CSP and integration tasks.
+- `scanword-engine/src/config.js`: dimensions and canonical allowed directions.
+- `scanword-engine/src/topology.js`: coordinate helper and one-way slot derivation.
+- `scanword-engine/src/csp.js`: rejects reverse directions even when requested by callers.
+- `scanword-engine/src/assembler.js`: rejects invalid directions and conflicting placements.
+- `scanword-engine/src/validator.js`: independently reconstructs and checks the completed board.
+- `scanword-engine/src/legacy-adapter.js`: final production boundary; accepts only right/down answers.
+- `scanword-engine/tests/topology.test.js`, `csp.test.js`, `core.test.js`, and `legacy-adapter.test.js`: regression coverage.

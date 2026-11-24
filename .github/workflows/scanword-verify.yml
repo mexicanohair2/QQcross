@@ -33,6 +33,8 @@ jobs:
         run: node scripts/verify-scanword-smoke.cjs
       - name: Stress-test 100 consecutive full 8x12 scanwords with a production search budget
         run: node scripts/diagnose-normal-batch.cjs
+      - name: Verify deterministic seeded replay and right/down-only production directions
+        run: node scripts/verify-scanword.cjs
       - name: Preserve seeded scanword validation reports
         if: always()
         uses: actions/upload-artifact@v4

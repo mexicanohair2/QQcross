@@ -1,4 +1,4 @@
-const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1, left: 2, up: 3 });
+const DIRECTION_INDEX = Object.freeze({ right: 0, down: 1 });
 
 function compactClue(value) {
   const text = String(value ?? '').trim().replace(/\s+/gu, ' ');
@@ -47,7 +47,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
 
   const words = scanword.words.map(word => {
     if (!Object.prototype.hasOwnProperty.call(DIRECTION_INDEX, word.direction)) {
-      throw new Error('У ответа ' + word.id + ' неизвестное направление.');
+      throw new Error('У ответа ' + word.id + ' запрещённое направление: разрешены только вправо и вниз.');
     }
     if (!Array.isArray(word.coordinates) || word.coordinates.length !== word.answer.length) {
       throw new Error('Координаты ответа ' + word.id + ' не совпадают с его длиной.');
@@ -68,7 +68,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
       throw new Error('Вопрос ответа ' + word.id + ' ошибочно расположен на правом или нижнем краю сетки.');
     }
     const delta = {
-      right: [0, 1], down: [1, 0], left: [0, -1], up: [-1, 0]
+      right: [0, 1], down: [1, 0]
     }[word.direction];
     word.coordinates.forEach((point, index) => {
       const row = clueRow + delta[0] * (index + 1);
@@ -83,7 +83,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
     return {
       id: String(word.id), answer: String(word.answer), sourceAnswer: String(word.answer),
       clue, clueShort: String(word.clueShort || compactClue(clue)), isEmoji: hasEmoji(clue),
-      logic: word.logic === true, imageKey: word.imageKey ?? null,
+      logic: word.logic === true, imageKey: word.imageKey ?? null, category: word.category ?? 'other', familiarity: word.familiarity ?? 'familiar',
       dir: word.direction, dirIndex: DIRECTION_INDEX[word.direction],
       cells: word.coordinates.map(point => [point.row, point.col]),
       clueCell: [word.clue.row, word.clue.col], special: word.special ?? null
@@ -92,5 +92,5 @@ export function toLegacyPuzzle(scanword, options = {}) {
 
   const id = 'scanword-' + String(scanword.metadata?.seed ?? Date.now())
     + '-' + String(options.sequence ?? Math.floor(Math.random() * 1e6));
-  return { id, title: 'Сканворд', w: 8, h: 12, words, used, clueKeys, reservedKeys, coverage: 1 };
+  return { id, title: 'Сканворд', w: 8, h: 12, words, used, clueKeys, reservedKeys, coverage: 1, qualityScore: scanword.metadata?.score ?? null, quality: scanword.metadata?.quality ?? null };
 }

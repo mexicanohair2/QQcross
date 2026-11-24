@@ -1,10 +1,12 @@
 import { CONFIG } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
+import { filterDictionaryByCategories } from './categories.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
-import { scoreScanword } from './scoring.js';
+import { scoreScanword, getScanwordScoreBreakdown } from './scoring.js';
+import { GenerationHistory } from './history.js';
 import { createRng } from './rng.js';
 
 function now() {
@@ -112,7 +114,7 @@ export function enforceCrossingArcConsistency(domains, foldYo = false, diagnosti
 function chooseSpecialElevenPlan(entries, random, foldYo = false, indexes, requirements = {}) {
   if (!indexes) return null;
   const normalizeInitial = letter => foldYo && letter === 'Ё' ? 'Е' : letter;
-  const requiredImageCount = requirements.requiredImageCount ?? 5;
+  const requiredImageCount = requirements.requiredImageCount ?? 0;
   const minimumLogicClueCells = requirements.minimumLogicClueCells ?? 3;
   const rowPatterns = [];
 
@@ -353,9 +355,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const started = now();
   const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
   const random = createRng(seed);
-  const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
-  const maxNodes = Math.max(500, options.maxNodes ?? 120000);
-  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 450);
+  const qualityMode = options.qualityMode === 'optimized' ? 'optimized' : 'fast';
+  const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? (qualityMode === 'optimized' ? 32 : 16)));
+  const maxNodes = Math.max(500, options.maxNodes ?? (qualityMode === 'optimized' ? 180000 : 120000));
+  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? (qualityMode === 'optimized' ? 700 : 450));
+  const maxOptimizedCandidates = Math.max(2, Math.min(6, options.maxOptimizedCandidates ?? 3));
+  const successfulCandidates = [];
   // Special 11-letter puzzles need a little more CSP time: the full word
   // constrains every left-to-right crossing. Keep ordinary puzzles on the
   // normal interactive budget; cap special retries so the worker stays bounded.
@@ -363,16 +368,29 @@ export function generateScanword(inputDictionary, options = {}) {
     maxCspTimeMs,
     Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
   );
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requestedImageCount = options.requiredImageCount;
+  let requiredImageCount = requestedImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
+
+  if (requestedImageCount !== undefined && (!Number.isInteger(requestedImageCount) || requestedImageCount < 0 || requestedImageCount > 4)) {
+    return fail('INVALID_OPTIONS', seed, started, attempts, rejectedReasons, { requiredImageCount: requestedImageCount, maximumImageCount: 4 });
+  }
 
   if (!Array.isArray(inputDictionary) || inputDictionary.length === 0) {
     return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
   }
 
-  const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
+  const dictionarySource = Array.isArray(options.categories) && options.categories.length
+    ? filterDictionaryByCategories(inputDictionary, options.categories)
+    : inputDictionary;
+  const prepared = prepareDictionary(dictionarySource, { foldYo: options.foldYo === true });
+  // Pictures are optional. Select a seeded target from 0..4, bounded by the
+  // number of distinct picture answers actually available in this dictionary.
+  if (requestedImageCount === undefined) {
+    requiredImageCount = Math.floor(random() * (Math.min(4, prepared.stats.withImages) + 1));
+  }
   if (prepared.stats.withImages < requiredImageCount || prepared.stats.logicEntries < minimumLogicClueCells) {
     return fail('INSUFFICIENT_DICTIONARY', seed, started, attempts, rejectedReasons, {
       dictionaryStats: prepared.stats,
@@ -383,6 +401,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // Dictionary validation and positional indexes are invariant across topology attempts.
   // Build them once, not again inside every CSP retry.
   const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
+  const history = new GenerationHistory(options.historyLimit ?? 12, options.historySnapshot ?? [], options.historyCooldownBoards ?? 12);
 
   const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
   const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
@@ -403,6 +422,7 @@ export function generateScanword(inputDictionary, options = {}) {
   const specialPlanPool = wantsEleven
     ? chooseSpecialElevenPlan(prepared.entries, random, options.foldYo === true, indexes, {
         ...options,
+        requiredImageCount,
         returnAllPlans: true,
         planDiagnostics: options.capturePlanDiagnostics ? specialPlanDiagnostics : null
       })
@@ -501,10 +521,11 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireEveryClueStarts: false,
       allowedDirections: ['right', 'down'],
-      history: options.history,
+      history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
+      newCategoryBonus: options.newCategoryBonus,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
       captureTrace: options.captureTrace === true
@@ -588,9 +609,12 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
-    const score = scoreScanword(scanword, validation);
+    const scoreDetails = getScanwordScoreBreakdown(scanword, validation, { history });
+    const score = scoreDetails.score;
+    scanword.metadata.quality = scoreDetails;
     scanword.metadata.valid = true;
     scanword.metadata.score = score;
+    scanword.metadata.generationMode = qualityMode;
     scanword.metadata.generationTimeMs = Math.round(now() - started);
 
     const specialElevenAttemptDiagnostics = attempts
@@ -603,7 +627,7 @@ export function generateScanword(inputDictionary, options = {}) {
         lastDeadEnd: item.lastDeadEnd ?? null
       }));
     scanword.metadata.specialElevenRequested = wantsEleven;
-    return {
+    const successResult = {
       ok: true,
       scanword,
       validation,
@@ -633,6 +657,29 @@ export function generateScanword(inputDictionary, options = {}) {
         rejectedReasons: { ...rejectedReasons }
       }
     };
+    if (qualityMode === 'fast') {
+      history.add(scanword);
+      successResult.historySnapshot = history.toJSON();
+      return successResult;
+    }
+    successfulCandidates.push(successResult);
+    if (successfulCandidates.length >= maxOptimizedCandidates) break;
+  }
+
+  if (successfulCandidates.length) {
+    successfulCandidates.sort((left, right) =>
+      right.stats.score - left.stats.score
+      || left.stats.elapsedMs - right.stats.elapsedMs
+    );
+    const best = successfulCandidates[0];
+    const elapsedMs = Math.round(now() - started);
+    best.scanword.metadata.qualityCandidateCount = successfulCandidates.length;
+    best.scanword.metadata.generationTimeMs = elapsedMs;
+    best.stats.elapsedMs = elapsedMs;
+    best.stats.candidatesEvaluated = successfulCandidates.length;
+    history.add(best.scanword);
+    best.historySnapshot = history.toJSON();
+    return best;
   }
 
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {

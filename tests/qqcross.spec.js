@@ -42,7 +42,40 @@ async function startGuestGame(page) {
   return { pageErrors, startMs };
 }
 
-test("loads a fully occupied 8-column by 12-row portrait scanword with five distinct picture clues", async ({ page }) => {
+test("retries one failed scanword worker and completes generation in the worker thread", async ({ page }) => {
+  await page.addInitScript(() => {
+    const NativeWorker = window.Worker;
+    window.__qqWorkerAttempts = 0;
+    window.__qqWorkerFailures = 0;
+    window.Worker = class RetryTestWorker {
+      constructor(url, options) {
+        this.attempt = ++window.__qqWorkerAttempts;
+        this.inner = this.attempt === 1 ? null : new NativeWorker(url, options);
+      }
+      postMessage(payload) {
+        if (this.attempt === 1) {
+          window.__qqWorkerFailures++;
+          queueMicrotask(() => this.onerror?.({ message: "simulated first worker failure" }));
+          return;
+        }
+        this.inner.onmessage = event => this.onmessage?.(event);
+        this.inner.onerror = event => this.onerror?.(event);
+        this.inner.postMessage(payload);
+      }
+      terminate() {
+        this.inner?.terminate();
+      }
+    };
+  });
+
+  const { pageErrors } = await startGuestGame(page);
+  await expect(page.locator(".scanword-board")).toBeVisible();
+  expect(await page.evaluate(() => window.__qqWorkerAttempts)).toBeGreaterThanOrEqual(2);
+  expect(await page.evaluate(() => window.__qqWorkerFailures)).toBe(1);
+  expect(pageErrors).toEqual([]);
+});
+
+test("loads a fully occupied 8-column by 12-row portrait scanword with zero to four optional picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -91,14 +124,16 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
   expect(await page.locator(".scan-grid-cell.scan-boundary").evaluateAll(nodes => nodes.every(node => node.getAttribute("aria-hidden") === "true"))).toBeTruthy();
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
+  const pictureCount = await page.locator(".scan-clue-picture").count();
+  expect(pictureCount).toBeGreaterThanOrEqual(0);
+  expect(pictureCount).toBeLessThanOrEqual(4);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(pictureCount);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(5);
+  expect(new Set(pictureSources).size).toBe(pictureCount);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -127,8 +162,16 @@ test("question popup is clear and contains no quick hints; the separate bulb too
   expect(bulbs).toBe(4);
 });
 
+async function startGuestGameWithPicture(page) {
+  for (let attempt = 0; attempt < 8; attempt++) {
+    await startGuestGame(page);
+    if (await page.locator(".scan-clue-picture").count() > 0) return;
+  }
+  throw new Error("Could not prepare a scanword containing an optional picture clue after eight fresh seeds.");
+}
+
 test("opens the question popup from a picture clue cell without a permanent question panel", async ({ page }) => {
-  await startGuestGame(page);
+  await startGuestGameWithPicture(page);
   const pictureClue = page.locator(".scan-clue-picture").first();
   await pictureClue.click();
   const pictureChoice = page.locator(".clue-popup-choice").filter({ hasText: /изображено/i }).first();
@@ -582,7 +625,7 @@ test("portrait scanword preserves top anchors, left-edge clues and central quest
     direction: [...node.classList].find(name => name.startsWith("scan-arrow-")),
     visible: getComputedStyle(node).display !== "none" && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0
   })));
-  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-left","scan-arrow-down","scan-arrow-up"].includes(item.direction) && item.visible)).toBeTruthy();
+  expect(arrowDetails.every(item => ["scan-arrow-right","scan-arrow-down"].includes(item.direction) && item.visible)).toBeTruthy();
   const edgeCounts = await board.locator(".scan-clue").evaluateAll(nodes => nodes.reduce((counts, node) => {
     const [row, col] = node.dataset.clueCell.split(",").map(Number);
     if (row === 0) counts.top++;
@@ -752,11 +795,13 @@ test("terminal edge question cells are not rendered as false playable clues", as
   expect(clues.every(clue => (clue.row === 11 && clue.col === 0) || (clue.row < 11 && (clue.col < 7 || (clue.row === 0 && clue.col === 7))))).toBeTruthy();
 });
 
-test("scanword always includes five pictures and at least three logical questions", async ({ page }) => {
+test("scanword uses zero to four optional pictures and at least three logical questions", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await startGuestGame(page);
   const images = page.locator(".scanword-board .scan-clue-picture .scan-clue-image");
-  await expect(images).toHaveCount(5);
+  const imageCount = await images.count();
+  expect(imageCount).toBeGreaterThanOrEqual(0);
+  expect(imageCount).toBeLessThanOrEqual(4);
   await expect.poll(() => images.evaluateAll(nodes => nodes.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const logicalClues = await page.locator(".scanword-board .scan-clue-logic").count();
   expect(logicalClues).toBeGreaterThanOrEqual(3);
@@ -765,7 +810,7 @@ test("scanword always includes five pictures and at least three logical question
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
   expect(clueLayout.length).toBeGreaterThan(0);
-  expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.every(item => (item.clamp === "3" || item.clamp === "6") && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
 

@@ -57,11 +57,19 @@ test('placement checks bounds and matching intersections', () => {
 });
 test('validator rejects incomplete grids and reports errors', () => {
   const fake = {width:8,height:12,grid:createEmptyGrid(),words:[],questions:[]};
-  const result = validateScanword(fake);
+  const result = validateScanword(fake, [], { requiredImageCount: 1 });
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(e => e.type === 'INCOMPLETE_GRID'));
   assert.ok(result.errors.some(e => e.type === 'IMAGE_COUNT_MISMATCH'));
   assert.ok(result.errors.some(e => e.type === 'INSUFFICIENT_LOGIC_CLUES'));
+});
+
+test('validator rejects invalid explicit picture-count targets', () => {
+  const fake = {width:8,height:12,grid:createEmptyGrid(),words:[],questions:[]};
+  for (const requiredImageCount of [-1, 1.5, 5, '2']) {
+    const result = validateScanword(fake, [], { requiredImageCount });
+    assert.ok(result.errors.some(error => error.type === 'INVALID_IMAGE_COUNT_REQUIREMENT'), String(requiredImageCount));
+  }
 });
 test('seeded random generator is reproducible', () => {
   const a = createRng(123), b = createRng(123);
@@ -312,7 +320,7 @@ test('independent validator rejects question references on a letter cell', () =>
 });
 
 
-test('assembler and independent validator recognize only the two exact left-border boundary exceptions', () => {
+test('assembler and independent validator reject non-eleven-letter boundary exceptions', () => {
   const dictionary = [{
     id: 'emerald',
     answer: 'ИЗУМРУД',
@@ -336,23 +344,17 @@ test('assembler and independent validator recognize only the two exact left-bord
     }]
   }, { allowLeftBorderRightBoundary: true });
 
-  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
-  assert.equal(assembled.scanword.grid[1][0].type, 'question');
-  assert.equal(assembled.scanword.grid[1][7].letter, 'Д');
+  assert.equal(assembled.ok, false);
+  assert.ok(assembled.errors.some(error => error.type === 'UNKNOWN_SPECIAL_RULE'));
 
   const validation = validateScanword(assembled.scanword, dictionary, {
     requireBorderClues: false,
     requireConnected: false,
-    allowLeftBorderRightBoundary: true,
     requiredImageCount: 0,
     minimumLogicClueCells: 0
   });
-  const boundaryErrors = validation.errors.filter(error => [
-    'ORDINARY_WORD_ENDS_AT_BOUNDARY',
-    'UNKNOWN_SPECIAL_RULE',
-    'INVALID_SPECIAL_BOUNDARY_WORD'
-  ].includes(error.type));
-  assert.deepEqual(boundaryErrors, []);
+  assert.ok(validation.errors.some(error => error.type === 'UNKNOWN_SPECIAL_RULE'));
+  assert.ok(validation.errors.some(error => error.type === 'ORDINARY_WORD_ENDS_AT_BOUNDARY'));
 });
 
 
@@ -481,66 +483,32 @@ test('independent validator rejects a two-letter pronoun filler answer', () => {
 });
 
 
-test('assembler and independent validator accept left/up scanword answers', () => {
-  const leftWord = {
-    id: 'left-word', entryId: 'cat', answer: 'КОТ',
-    question: 'Домашнее животное из семейства кошачьих.',
-    clue: { row: 1, col: 4 }, direction: 'left',
-    coordinates: [
-      { row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }
-    ]
-  };
-  const upWord = {
-    id: 'up-word', entryId: 'dog', answer: 'ПЁС',
-    question: 'Домашнее животное, которое лает.',
-    clue: { row: 4, col: 6 }, direction: 'up',
-    coordinates: [
-      { row: 3, col: 6 }, { row: 2, col: 6 }, { row: 1, col: 6 }
-    ]
-  };
-  const words = [leftWord, upWord];
-  const questions = words.map(word => ({
-    id: 'q-' + word.id,
-    wordId: word.id,
-    text: word.question,
-    clue: word.clue,
-    direction: word.direction,
-    length: word.answer.length
-  }));
-  const assembled = assembleScanword({ seed: 1, words, questions });
-  assert.equal(assembled.ok, true, JSON.stringify(assembled.errors));
-  assert.deepEqual(new Set(assembled.scanword.words.map(word => word.direction)), new Set(['left', 'up']));
-
+test('assembler and independent validator reject left/up scanword answers', () => {
+  const rejectedWords = [
+    { id: 'left-word', entryId: 'cat', answer: 'КОТ', question: 'Домашнее животное из семейства кошачьих.', clue: { row: 1, col: 4 }, direction: 'left', coordinates: [{ row: 1, col: 3 }, { row: 1, col: 2 }, { row: 1, col: 1 }] },
+    { id: 'up-word', entryId: 'dog', answer: 'ПЁС', question: 'Домашнее животное, которое лает.', clue: { row: 4, col: 6 }, direction: 'up', coordinates: [{ row: 3, col: 6 }, { row: 2, col: 6 }, { row: 1, col: 6 }] }
+  ];
+  for (const word of rejectedWords) {
+    const assembled = assembleScanword({ seed: 1, words: [word] });
+    assert.equal(assembled.ok, false);
+    assert.ok(assembled.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'));
+  }
   const grid = createEmptyGrid().map(row => row.map(cell => ({ ...cell, questionIds: [], wordIds: [] })));
   grid[0][0].type = 'corner';
-  for (const word of words) {
+  const questions = [];
+  for (const word of rejectedWords) {
     const questionId = 'q-' + word.id;
-    grid[word.clue.row][word.clue.col] = {
-      row: word.clue.row, col: word.clue.col, type: 'question',
-      letter: null, questionIds: [questionId], wordIds: [word.id]
-    };
+    questions.push({ id: questionId, wordId: word.id, text: word.question, clue: word.clue, direction: word.direction, length: word.answer.length });
+    grid[word.clue.row][word.clue.col] = { row: word.clue.row, col: word.clue.col, type: 'question', letter: null, questionIds: [questionId], wordIds: [word.id] };
     word.coordinates.forEach((point, index) => {
-      grid[point.row][point.col] = {
-        ...grid[point.row][point.col], type: 'letter',
-        letter: word.answer[index], questionIds: [], wordIds: [word.id]
-      };
+      grid[point.row][point.col] = { ...grid[point.row][point.col], type: 'letter', letter: word.answer[index], questionIds: [], wordIds: [word.id] };
     });
   }
-  const validation = validateScanword({
-    width: 8, height: 12, grid, words, questions
-  }, [], {
-    requireBorderClues: false,
-    requireConnected: false,
-    requiredImageCount: 0,
-    minimumLogicClueCells: 0
+  const validation = validateScanword({ width: 8, height: 12, grid, words: rejectedWords, questions }, [], {
+    requireBorderClues: false, requireConnected: false, requiredImageCount: 0, minimumLogicClueCells: 0
   });
-  assert.equal(
-    validation.errors.some(error => error.type === 'DISALLOWED_ANSWER_DIRECTION'),
-    false,
-    JSON.stringify(validation.errors)
-  );
+  assert.equal(validation.errors.filter(error => error.type === 'DISALLOWED_ANSWER_DIRECTION').length, 2, JSON.stringify(validation.errors));
 });
-
 test('assembler rejects using the lower-right terminal cell as a clue', () => {
   const word = {
     id: 'bottom-right-reverse',
@@ -548,9 +516,9 @@ test('assembler rejects using the lower-right terminal cell as a clue', () => {
     answer: 'КОТ',
     question: 'Домашнее животное из семейства кошачьих.',
     clue: { row: 11, col: 7 },
-    direction: 'left',
+    direction: 'down',
     coordinates: [
-      { row: 11, col: 6 }, { row: 11, col: 5 }, { row: 11, col: 4 }
+      { row: 10, col: 7 }, { row: 9, col: 7 }, { row: 8, col: 7 }
     ]
   };
   const assembled = assembleScanword({ seed: 1, words: [word], questions: [] });

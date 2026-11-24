@@ -10,7 +10,8 @@ async function main() {
   const failures = [];
   const timings = [];
   let specialElevenCount = 0;
-  const directionCounts = { right: 0, down: 0, left: 0, up: 0 };
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0, other: 0 };
+  const imageCountDistribution = Array(5).fill(0);
   const generationOptions = {
     maxTopologyAttempts: 16,
     maxNodes: 100000,
@@ -18,7 +19,6 @@ async function main() {
     specialTopologyAttempts: 2,
     maxTwoLetterSlots: 5,
     topologyMutationAttempts: 96,
-    requiredImageCount: 5,
     minimumLogicClueCells: 3
   };
 
@@ -43,9 +43,11 @@ async function main() {
 
   for (let run = 1; run <= 100; run++) {
     const seed = 10000 + run * 7919;
+    const requiredImageCount = (run - 1) % 5;
     const started = performance.now();
     const result = generateScanword(dictionary, {
       ...generationOptions,
+      requiredImageCount,
       seed,
       sequenceIndex: run
     });
@@ -68,8 +70,7 @@ async function main() {
 
     const scanword = result.scanword;
     const validation = validateScanword(scanword, dictionary, {
-      requiredImageCount: 5,
-      minimumLogicClueCells: 3,
+        minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
       requireConnected: true
@@ -89,12 +90,14 @@ async function main() {
     assert.equal(new Set(scanword.words.map(word => word.answer)).size, scanword.words.length);
     for (const word of scanword.words) {
       if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+      else directionCounts.other++;
     }
     const imageWords = scanword.words.filter(word => word.imageKey);
-    assert.equal(imageWords.length, 5);
-    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
-    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, 5,
-      'five picture answers must occupy five visible clue cells on seed ' + seed);
+    assert.equal(imageWords.length, requiredImageCount);
+    imageCountDistribution[imageWords.length]++;
+    assert.equal(new Set(imageWords.map(word => word.imageKey)).size, requiredImageCount);
+    assert.equal(new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size, requiredImageCount,
+      'picture answers must occupy distinct visible clue cells on seed ' + seed);
     assert.ok(new Set(scanword.words.filter(word => word.logic).map(word => word.clue.row + "," + word.clue.col)).size >= 3);
     assert.ok(scanword.metadata.valid);
     assert.ok(scanword.metadata.score >= 0 && scanword.metadata.score <= 100);
@@ -104,6 +107,7 @@ async function main() {
     if (run <= 3) {
       const repeated = generateScanword(dictionary, {
         ...generationOptions,
+        requiredImageCount,
         seed,
         sequenceIndex: run
       });
@@ -138,6 +142,7 @@ async function main() {
     failedRuns: failures.length,
     specialElevenRuns: specialElevenCount,
     directionCounts,
+    imageCountDistribution,
     medianMs: sorted.length ? sorted[Math.floor(sorted.length / 2)] : null,
     p95Ms: sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.95))] : null,
     maxMs: sorted.length ? sorted[sorted.length - 1] : null,
@@ -149,10 +154,13 @@ async function main() {
   if (failures.length) {
     throw new Error("Scanword generation did not reach 100/100: " + failures.length + " failures.");
   }
+  assert.deepEqual(imageCountDistribution, Array(5).fill(20), '100 puzzles must cover every allowed picture count evenly');
   assert.equal(specialElevenCount, 25, "Exactly every fourth of 100 puzzles must contain the eleven-letter answer.");
-  for (const direction of ['right', 'down', 'left', 'up']) {
-    assert.ok(directionCounts[direction] > 0, 'production generation must use the ' + direction + ' direction at least once');
-  }
+  assert.ok(directionCounts.right > 0, 'production generation must use rightward answers');
+  assert.ok(directionCounts.down > 0, 'production generation must use downward answers');
+  assert.equal(directionCounts.left, 0, 'leftward answers are forbidden');
+  assert.equal(directionCounts.up, 0, 'upward answers are forbidden');
+  assert.equal(directionCounts.other, 0, 'unknown answer directions are forbidden');
 }
 
 main().catch(error => {

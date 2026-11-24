@@ -61,7 +61,7 @@ async function main() {
       seed,
       maxNodes: 180000,
       maxTimeMs: 1800,
-      requiredImageCount: 5,
+      requiredImageCount: 4,
       minimumLogicClueCells: 3,
       requireEveryClueStarts: false
     });
@@ -71,7 +71,7 @@ async function main() {
       result.assembled = assembled.ok;
       if (assembled.ok) {
         const validation = validateScanword(assembled.scanword, dictionary, {
-          requiredImageCount: 5,
+          requiredImageCount: 4,
           minimumLogicClueCells: 3,
           requireLeftBorderClues: true,
           requireTopAnchor: true,

@@ -14,18 +14,20 @@ async function main() {
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
     maxTwoLetterSlots: 5,
-    requiredImageCount: 5,
     minimumLogicClueCells: 3,
   };
   const runs = [];
   const fingerprints = new Set();
   let specialRequested = 0;
   let specialGenerated = 0;
+  const directionCounts = { right: 0, down: 0, left: 0, up: 0, other: 0 };
+  const imageCountDistribution = Array(5).fill(0);
 
   for (let index = 1; index <= 20; index++) {
     const seed = 510000 + index * 7919;
+    const requiredImageCount = (index - 1) % 5;
     const started = performance.now();
-    const result = generateScanword(dictionary, { ...options, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
+    const result = generateScanword(dictionary, { ...options, requiredImageCount, seed, sequenceIndex: index, capturePlanDiagnostics: index === 4, captureTrace: index === 4 });
     const elapsedMs = Math.round(performance.now() - started);
 
     if (!result.ok) {
@@ -34,14 +36,18 @@ async function main() {
     }
 
     const validation = validateScanword(result.scanword, dictionary, {
-      requiredImageCount: 5,
-      minimumLogicClueCells: 3,
+        minimumLogicClueCells: 3,
       requireLeftBorderClues: true,
       requireTopAnchor: true,
       requireConnected: true
     });
     const words = result.scanword.words;
+    for (const word of words) {
+      if (Object.prototype.hasOwnProperty.call(directionCounts, word.direction)) directionCounts[word.direction]++;
+      else directionCounts.other++;
+    }
     const images = words.filter(word => word.imageKey);
+    imageCountDistribution[images.length]++;
     const shortAnswers = words.filter(word => word.length === 2);
     const special = result.scanword.metadata.specialElevenLetterQuestion === true;
     if (result.stats.specialElevenRequested) specialRequested++;
@@ -66,6 +72,7 @@ async function main() {
       shortAnswers: shortAnswers.map(word => word.answer),
       imageCount: validation.metrics.imageCount,
       distinctImageCells: new Set(images.map(word => word.clue.row + "," + word.clue.col)).size,
+      requiredImageCount,
       logicCells: validation.metrics.logicClueCells,
       specialRequested: result.stats.specialElevenRequested,
       specialGenerated: special,
@@ -84,6 +91,8 @@ async function main() {
     failed: 20 - successful.length,
     specialRequested,
     specialGenerated,
+    directionCounts,
+    imageCountDistribution,
     specialMissed: successful.filter(run => run.specialRequested && !run.specialGenerated).length,
     medianMs: times[Math.floor(times.length / 2)],
     p95Ms: times[Math.min(times.length - 1, Math.floor(times.length * 0.95))],
@@ -99,7 +108,12 @@ async function main() {
   fs.mkdirSync("artifacts", { recursive: true });
   fs.writeFileSync("artifacts/scanword-20-report.json", JSON.stringify(report, null, 2));
 
+  assert.deepEqual(imageCountDistribution, [4, 4, 4, 4, 4], 'the smoke suite must cover every allowed picture count');
   assert.equal(validRuns, true, "The first gate must produce 20/20 independently validated puzzles.");
+  assert.ok(directionCounts.right > 0 && directionCounts.down > 0, "Both permitted answer directions must be exercised.");
+  assert.equal(directionCounts.left, 0, "Leftward answers are forbidden.");
+  assert.equal(directionCounts.up, 0, "Upward answers are forbidden.");
+  assert.equal(directionCounts.other, 0, "Unknown answer directions are forbidden.");
   assert.equal(specialRequested, 5, "Exactly runs 4, 8, 12, 16 and 20 must request the eleven-letter answer.");
   assert.equal(specialGenerated, 5, "Every fourth puzzle must contain the eleven-letter answer.");
   assert.ok(successful.every(run => run.musicNoteAnswers.length === 0), "Musical note names must not be used as short-answer fillers.");
