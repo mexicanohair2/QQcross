@@ -83,7 +83,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
     return {
       id: String(word.id), answer: String(word.answer), sourceAnswer: String(word.answer),
       clue, clueShort: String(word.clueShort || compactClue(clue)), isEmoji: hasEmoji(clue),
-      logic: word.logic === true, imageKey: word.imageKey ?? null, category: word.category ?? 'other',
+      logic: word.logic === true, imageKey: word.imageKey ?? null, category: word.category ?? 'other', familiarity: word.familiarity ?? 'familiar',
       dir: word.direction, dirIndex: DIRECTION_INDEX[word.direction],
       cells: word.coordinates.map(point => [point.row, point.col]),
       clueCell: [word.clue.row, word.clue.col], special: word.special ?? null
