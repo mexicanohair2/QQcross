@@ -40,13 +40,19 @@ function makeError(type, message, extra = {}) {
 export function validateScanword(scanword, dictionary = [], options = {}) {
   const errors = [];
   const warnings = [];
-  const requiredImageCount = Number.isInteger(options.requiredImageCount) ? options.requiredImageCount : null;
+  const hasRequestedImageCount = options.requiredImageCount !== undefined && options.requiredImageCount !== null;
+  const requiredImageCount = hasRequestedImageCount && Number.isInteger(options.requiredImageCount)
+    ? options.requiredImageCount
+    : null;
   const minimumImageCount = options.minimumImageCount ?? 0;
   const maximumImageCount = options.maximumImageCount ?? 4;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
-  if (requiredImageCount !== null && (requiredImageCount < 0 || requiredImageCount > 4)) {
-    add('INVALID_IMAGE_COUNT_REQUIREMENT', 'Допустимо от нуля до четырёх изображений на сканворд.', { requiredImageCount, maximumImageCount: 4 });
+  if (hasRequestedImageCount && (!Number.isInteger(options.requiredImageCount) || requiredImageCount < 0 || requiredImageCount > 4)) {
+    add('INVALID_IMAGE_COUNT_REQUIREMENT', 'Количество изображений должно быть целым числом от нуля до четырёх.', {
+      requiredImageCount: options.requiredImageCount,
+      maximumImageCount: 4
+    });
   }
   if (!Number.isInteger(minimumImageCount) || !Number.isInteger(maximumImageCount) || minimumImageCount < 0 || maximumImageCount > 4 || minimumImageCount > maximumImageCount) {
     add('INVALID_IMAGE_COUNT_RANGE', 'Диапазон изображений должен находиться в пределах от нуля до четырёх.', { minimumImageCount, maximumImageCount });
