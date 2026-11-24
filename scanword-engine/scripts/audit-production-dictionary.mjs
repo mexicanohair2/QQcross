@@ -94,6 +94,8 @@ const report = {
   emptyClues,
   invalidAnswerCharacters: invalidCharacters,
   topDuplicateAnswers: duplicateAnswers.slice(0, 12),
+  familiarityDistribution: prepared.stats.byFamiliarity,
+  categoryDistribution: prepared.stats.byCategory,
   warningCounts: {
     duplicateAnswers: prepared.stats.duplicateAnswerWarnings,
     duplicateQuestions: prepared.stats.duplicateQuestionWarnings,
