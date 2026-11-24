@@ -50,7 +50,7 @@ async function main() {
     }
     const imageWords = words.filter(word => word.imageKey);
     const distinctImageClueCells = new Set(imageWords.map(word => word.clue.row + ',' + word.clue.col)).size;
-    if (distinctImageClueCells !== 5) {
+    if (imageWords.length !== options.requiredImageCount || distinctImageClueCells !== options.requiredImageCount) {
       runs.push({ seed, ok: false, reason: 'IMAGE_CLUE_CELL_COLLISION', elapsedMs, distinctImageClueCells });
       continue;
     }
