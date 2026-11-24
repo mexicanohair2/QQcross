@@ -27,6 +27,127 @@
     return String(value ?? "");
   }
 
+
+  function appendSafeInline(parent, input) {
+    const value = String(input || "");
+    const pattern = /(\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\(https?:\/\/[^\s)]+\))/g;
+    let cursor = 0;
+    let match;
+    while ((match = pattern.exec(value)) !== null) {
+      if (match.index > cursor) parent.append(document.createTextNode(value.slice(cursor, match.index)));
+      const token = match[0];
+      if (token.startsWith("**")) {
+        const node = document.createElement("strong");
+        node.textContent = token.slice(2, -2);
+        parent.append(node);
+      } else if (token.startsWith("*")) {
+        const node = document.createElement("em");
+        node.textContent = token.slice(1, -1);
+        parent.append(node);
+      } else {
+        const parsed = /^\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)$/.exec(token);
+        if (parsed) {
+          let url = "";
+          try {
+            const candidate = new URL(parsed[2]);
+            if (candidate.protocol === "https:" || candidate.protocol === "http:") url = candidate.href;
+          } catch {}
+          if (url) {
+            const link = document.createElement("a");
+            link.href = url;
+            link.target = "_blank";
+            link.rel = "noopener noreferrer";
+            link.textContent = parsed[1];
+            parent.append(link);
+          } else parent.append(document.createTextNode(token));
+        }
+      }
+      cursor = pattern.lastIndex;
+    }
+    if (cursor < value.length) parent.append(document.createTextNode(value.slice(cursor)));
+  }
+
+  function appendMarkdown(parent, input) {
+    const lines = String(input || "").replace(/\r\n?/g, "\n").split("\n");
+    let index = 0;
+    while (index < lines.length) {
+      const line = lines[index];
+      if (!line.trim()) { index += 1; continue; }
+      if (line.trim().startsWith("```")) {
+        index += 1;
+        const codeLines = [];
+        while (index < lines.length && !lines[index].trim().startsWith("```")) {
+          codeLines.push(lines[index]);
+          index += 1;
+        }
+        if (index < lines.length) index += 1;
+        const pre = document.createElement("pre");
+        pre.className = "qq-quantum-code-block";
+        const code = document.createElement("code");
+        code.textContent = codeLines.join("\n");
+        pre.append(code);
+        parent.append(pre);
+        continue;
+      }
+      const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+      if (heading) {
+        const node = document.createElement("h4");
+        node.className = "qq-quantum-markdown-heading";
+        appendSafeInline(node, heading[2]);
+        parent.append(node);
+        index += 1;
+        continue;
+      }
+      if (/^>\s?/.test(line)) {
+        const quote = document.createElement("blockquote");
+        quote.className = "qq-quantum-markdown-quote";
+        const quoteLines = [];
+        while (index < lines.length && /^>\s?/.test(lines[index])) {
+          quoteLines.push(lines[index].replace(/^>\s?/, ""));
+          index += 1;
+        }
+        appendSafeInline(quote, quoteLines.join(" "));
+        parent.append(quote);
+        continue;
+      }
+      const ordered = /^\s*\d+[.)]\s+/.test(line);
+      const unordered = /^\s*[-*+]\s+/.test(line);
+      if (ordered || unordered) {
+        const list = document.createElement(ordered ? "ol" : "ul");
+        list.className = "qq-quantum-markdown-list";
+        const itemPattern = ordered ? /^\s*\d+[.)]\s+(.*)$/ : /^\s*[-*+]\s+(.*)$/;
+        while (index < lines.length && itemPattern.test(lines[index])) {
+          const itemMatch = itemPattern.exec(lines[index]);
+          const item = document.createElement("li");
+          appendSafeInline(item, itemMatch[1]);
+          list.append(item);
+          index += 1;
+        }
+        parent.append(list);
+        continue;
+      }
+      const paragraphLines = [];
+      while (index < lines.length && lines[index].trim() &&
+        !/^(#{1,3})\s+/.test(lines[index]) &&
+        !/^>\s?/.test(lines[index]) &&
+        !/^\s*[-*+]\s+/.test(lines[index]) &&
+        !/^\s*\d+[.)]\s+/.test(lines[index]) &&
+        !lines[index].trim().startsWith("```")) {
+        paragraphLines.push(lines[index].trim());
+        index += 1;
+      }
+      if (paragraphLines.length) {
+        const paragraph = document.createElement("p");
+        paragraph.className = "qq-quantum-markdown-paragraph";
+        for (let i = 0; i < paragraphLines.length; i += 1) {
+          if (i) paragraph.append(document.createElement("br"));
+          appendSafeInline(paragraph, paragraphLines[i]);
+        }
+        parent.append(paragraph);
+      }
+    }
+  }
+
   function markup() {
     return `
       <section class="qq-quantum-ai" aria-label="Quantum-AI">
@@ -130,10 +251,21 @@
       const label = document.createElement("span");
       label.className = "qq-quantum-message-label";
       label.textContent = message.role === "user" ? "Ты" : "Quantum-AI";
-      const body = document.createElement("p");
-      body.textContent = escapeText(message.content);
-      row.append(label, body);
-      if (message.hasImage) {
+      const body = document.createElement("div");
+      body.className = "qq-quantum-message-body";
+      if (message.role === "assistant") appendMarkdown(body, message.content);
+      else body.textContent = escapeText(message.content);
+      row.append(label);
+      if (message.imagePreviewDataUrl) {
+        const preview = document.createElement("img");
+        preview.className = "qq-quantum-message-image";
+        preview.src = message.imagePreviewDataUrl;
+        preview.alt = "Отправленное изображение";
+        preview.loading = "lazy";
+        row.append(preview);
+      }
+      row.append(body);
+      if (message.hasImage && !message.imagePreviewDataUrl) {
         const attachment = document.createElement("small");
         attachment.className = "qq-quantum-image-note";
         attachment.textContent = "Прикреплено изображение";
@@ -181,7 +313,13 @@
 
   function saveMessages() {
     try {
-      localStorage.setItem(storageKey(), JSON.stringify(state.messages.slice(-MAX_HISTORY)));
+      const safeMessages = state.messages.slice(-MAX_HISTORY).map((message) => ({
+        role: message.role,
+        content: message.content,
+        sources: Array.isArray(message.sources) ? message.sources.slice(0, 6) : [],
+        hasImage: message.hasImage === true
+      }));
+      localStorage.setItem(storageKey(), JSON.stringify(safeMessages));
     } catch (error) {
       console.warn("Quantum-AI chat history could not be saved:", error);
     }
@@ -374,7 +512,8 @@
     const userMessage = {
       role: "user",
       content: text || "Проанализируй прикреплённое изображение.",
-      hasImage: !!state.imageDataUrl
+      hasImage: !!state.imageDataUrl,
+      ...(state.imageDataUrl ? { imagePreviewDataUrl: state.imageDataUrl } : {})
     };
     state.messages.push(userMessage);
     state.messages = state.messages.slice(-MAX_HISTORY);
