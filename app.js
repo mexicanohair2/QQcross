@@ -1240,6 +1240,17 @@ function saveScanwordSequenceIndex(index){
   if(Number.isSafeInteger(index)&&index>scanwordSequenceFallback)scanwordSequenceFallback=index;
   try{localStorage.setItem(SCANWORD_SEQUENCE_KEY,String(index))}catch{}
 }
+const SCANWORD_HISTORY_STORAGE_KEY="qqcross.scanword.history.v1";
+function readScanwordHistorySnapshot(){
+  try{
+    const value=JSON.parse(localStorage.getItem(SCANWORD_HISTORY_STORAGE_KEY)||"[]");
+    return Array.isArray(value)?value.slice(-12):[];
+  }catch{return []}
+}
+function saveScanwordHistorySnapshot(value){
+  if(!Array.isArray(value))return;
+  try{localStorage.setItem(SCANWORD_HISTORY_STORAGE_KEY,JSON.stringify(value.slice(-12)))}catch(error){console.warn("QQCross scanword history was not saved:",error)}
+}
 function buildScanwordInWorker(entries, overrides={}){
   const seed=Number.isFinite(Number(overrides.seed))
     ? Number(overrides.seed)>>>0
@@ -1258,7 +1269,12 @@ function buildScanwordInWorker(entries, overrides={}){
     maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
     maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
-    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
+    specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25,
+    historySnapshot:readScanwordHistorySnapshot(),
+    historyLimit:12,
+    historyCooldownBoards:12,
+    repeatWordPenalty:1800,
+    repeatQuestionPenalty:2400
   };
   const adapt=async scanword=>{
     const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261124-images-0-4-contract-v2");
@@ -1272,6 +1288,7 @@ function buildScanwordInWorker(entries, overrides={}){
       throw new Error((result.message||"Не удалось создать сканворд")+reason);
     }
     const puzzle=await adapt(result.scanword);
+    saveScanwordHistorySnapshot(result.historySnapshot);
     rememberSequence();
     return puzzle;
   };
@@ -1314,6 +1331,7 @@ function buildScanwordInWorker(entries, overrides={}){
         cleanup();
         try{
           const puzzle=await adapt(data.scanword);
+          saveScanwordHistorySnapshot(data.historySnapshot);
           rememberSequence();
           resolve(puzzle);
         }catch(error){reject(error)}
