@@ -40,3 +40,16 @@
 @media(min-width:560px){.qq-quantum-ai{min-height:calc(100dvh - 220px);max-height:calc(100dvh - 205px)}}
 
 .qq-quantum-quota-note{margin:-5px 2px 0;color:var(--muted);font-size:10px;line-height:1.35}
+
+.qq-quantum-message-body{min-width:0;overflow-wrap:anywhere}
+.qq-quantum-message-body p{margin:0 0 8px;white-space:pre-wrap;line-height:1.55;font-size:14px}
+.qq-quantum-message-body p:last-child{margin-bottom:0}
+.qq-quantum-markdown-heading{margin:8px 0 6px;font-size:15px;line-height:1.35;font-weight:750;color:var(--text)}
+.qq-quantum-markdown-list{margin:5px 0 9px;padding-left:22px;display:flex;flex-direction:column;gap:4px;line-height:1.5}
+.qq-quantum-markdown-list li{padding-left:2px}
+.qq-quantum-markdown-quote{margin:8px 0;padding:7px 10px;border-left:3px solid #956a83;border-radius:0 8px 8px 0;background:var(--panel2);color:var(--muted);line-height:1.5}
+.qq-quantum-code-block{max-width:100%;overflow:auto;margin:8px 0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#100c12;color:#e8dce4;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;white-space:pre}
+.qq-quantum-code-block code{font:inherit}
+.qq-quantum-message-body a{color:#d5b3c4;text-decoration:underline;text-decoration-color:#a77d91;text-underline-offset:2px}
+.qq-quantum-message-body strong{font-weight:750;color:var(--text)}
+.qq-quantum-message-image{display:block;width:auto;max-width:min(100%,260px);max-height:230px;object-fit:contain;margin:4px 0 8px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
