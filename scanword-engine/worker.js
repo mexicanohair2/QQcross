@@ -22,7 +22,8 @@ self.addEventListener('message', event => {
     self.postMessage({
       ok: true,
       scanword: result.scanword,
-      stats: result.stats
+      stats: result.stats,
+      historySnapshot: result.historySnapshot
     });
   } catch (error) {
     self.postMessage({
