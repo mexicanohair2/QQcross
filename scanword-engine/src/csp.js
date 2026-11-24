@@ -294,7 +294,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
   const prepared = options.preparedDictionary ?? prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
   const maxNodes = options.maxNodes ?? CONFIG.MAX_SEARCH_NODES;
   const maxTimeMs = options.maxTimeMs ?? CONFIG.MAX_GENERATION_MS;
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requiredImageCount = options.requiredImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const requireEveryClueStarts = options.requireEveryClueStarts !== false;
   const allowedDirections = new Set(ANSWER_DIRECTIONS.filter(direction =>
