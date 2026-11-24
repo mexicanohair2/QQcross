@@ -83,7 +83,7 @@ export function toLegacyPuzzle(scanword, options = {}) {
     return {
       id: String(word.id), answer: String(word.answer), sourceAnswer: String(word.answer),
       clue, clueShort: String(word.clueShort || compactClue(clue)), isEmoji: hasEmoji(clue),
-      logic: word.logic === true, imageKey: word.imageKey ?? null,
+      logic: word.logic === true, imageKey: word.imageKey ?? null, category: word.category ?? 'other',
       dir: word.direction, dirIndex: DIRECTION_INDEX[word.direction],
       cells: word.coordinates.map(point => [point.row, point.col]),
       clueCell: [word.clue.row, word.clue.col], special: word.special ?? null
@@ -92,5 +92,5 @@ export function toLegacyPuzzle(scanword, options = {}) {
 
   const id = 'scanword-' + String(scanword.metadata?.seed ?? Date.now())
     + '-' + String(options.sequence ?? Math.floor(Math.random() * 1e6));
-  return { id, title: 'Сканворд', w: 8, h: 12, words, used, clueKeys, reservedKeys, coverage: 1 };
+  return { id, title: 'Сканворд', w: 8, h: 12, words, used, clueKeys, reservedKeys, coverage: 1, qualityScore: scanword.metadata?.score ?? null, quality: scanword.metadata?.quality ?? null };
 }
