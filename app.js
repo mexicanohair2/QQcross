@@ -1262,12 +1262,15 @@ function buildScanwordInWorker(entries, overrides={}){
   const rememberSequence=()=>{
     if(countSequence&&Number.isSafeInteger(sequenceIndex)&&sequenceIndex>0)saveScanwordSequenceIndex(sequenceIndex);
   };
+  const qualityMode=overrides.qualityMode==="optimized"?"optimized":"fast";
   const generationOptions={
     seed,
+    qualityMode,
+    maxOptimizedCandidates:qualityMode==="optimized"?3:1,
     ...(sequenceIndex===null?{}:{sequenceIndex}),
-    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:16,
-    maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:120000,
-    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:1200,
+    maxTopologyAttempts:Number.isInteger(overrides.maxTopologyAttempts)?overrides.maxTopologyAttempts:(qualityMode==="optimized"?32:16),
+    maxNodes:Number.isInteger(overrides.maxNodes)?overrides.maxNodes:(qualityMode==="optimized"?180000:120000),
+    maxCspTimeMs:Number.isFinite(overrides.maxCspTimeMs)?overrides.maxCspTimeMs:(qualityMode==="optimized"?700:1200),
     topologyMutationAttempts:Number.isInteger(overrides.topologyMutationAttempts)?overrides.topologyMutationAttempts:96,
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25,
     historySnapshot:readScanwordHistorySnapshot(),
