@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { buildIndexes, findCandidates, getDifficultyFitScore, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { DICTIONARY_CATEGORIES } from '../src/categories.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const productionDictionary = JSON.parse(
@@ -200,3 +201,27 @@ test('production answer identity treats ЕЖ and ЁЖ as one unique lexical answ
   assert.equal(prepared.entries[0].answer, 'ЁЖ');
 });
 
+
+
+test('assigns every accepted Russian clue to a dictionary category and builds category indexes', () => {
+  const prepared = prepareDictionary([
+    { id: 'animal', answer: 'ЖИРАФ', clue: 'Высокое животное с длинной шеей.' },
+    { id: 'food', answer: 'БАНАН', clue: 'Жёлтый сладкий фрукт.' },
+    { id: 'logic', answer: 'ЭХО', clue: 'Что повторяет твои слова в горах?', logic: true }
+  ]);
+  assert.equal(prepared.entries.length, 3);
+  assert.equal(prepared.entries.find(item => item.answer === 'ЭХО').category, 'logic');
+  assert.ok(prepared.entries.every(item => DICTIONARY_CATEGORIES.some(category => category.id === item.category)));
+  const indexes = buildIndexes(prepared.entries);
+  assert.ok(indexes.byCategory instanceof Map);
+  assert.equal([...indexes.byCategory.values()].reduce((sum, group) => sum + group.length, 0), 3);
+});
+
+test('rejects Latin-language fragments from otherwise Russian clue text', () => {
+  const prepared = prepareDictionary([
+    { answer: 'КВАРЦ', clue: 'Минерал состава SiO2.' },
+    { answer: 'ИМПЛИКАЦИЯ', clue: 'Логическая связь: если верно одно утверждение, то верно и другое.' }
+  ]);
+  assert.deepEqual(prepared.entries.map(item => item.answer), ['ИМПЛИКАЦИЯ']);
+  assert.ok(prepared.errors.some(item => item.codes.includes('NON_RUSSIAN_CLUE_TEXT')));
+});
