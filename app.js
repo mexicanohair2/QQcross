@@ -1261,7 +1261,7 @@ function buildScanwordInWorker(entries, overrides={}){
     specialElevenLetterChance:Number.isFinite(overrides.specialElevenLetterChance)?overrides.specialElevenLetterChance:0.25
   };
   const adapt=async scanword=>{
-    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261123-right-down-contract-v1");
+    const adapter=await import("./scanword-engine/src/legacy-adapter.js?v=20261124-images-0-4-contract-v2");
     return adapter.toLegacyPuzzle(scanword,{sequence:seed});
   };
   const runOnMainThread=async()=>{
@@ -1820,7 +1820,7 @@ function preloadScanwordDictionary(){
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),12000);
     try{
-      const version="20261107-picture5-v6";
+      const version="20261124-picture0-4-v7";
       const dictionaryResponse=await fetch("./data/scanword-dictionary.json?v="+version,{signal:controller.signal,cache:"no-store"});
       if(!dictionaryResponse.ok)throw new Error("Словарь: HTTP "+dictionaryResponse.status);
       const dictionary=await dictionaryResponse.json();
@@ -1838,7 +1838,7 @@ function preloadScanwordDictionary(){
   return dictionaryLoadPromise;
 }
 
-if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261123-scanword-right-down-v21",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
+if("serviceWorker"in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js?v=20261124-scanword-images-0-4-v23",{scope:"./"}).catch(error=>console.warn("QQCross offline mode:",error)));
 applyTheme(activeTheme);
 let authStarted=false;
 window.QQ_SUPABASE_READY=configureSupabase;
