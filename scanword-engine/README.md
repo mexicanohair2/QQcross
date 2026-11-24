@@ -15,13 +15,13 @@ The scanword engine is the only production path for creating scanword boards in 
 
 ## Pipeline
 
-1. dictionary.js normalizes Russian answers and questions, rejects malformed records, Latin clue text and answer leakage, preserves meaningful clue variants, and builds positional-letter indexes. categories.js assigns every accepted entry to a Russian topic category and exposes category filters/statistics.
+1. dictionary.js normalizes Russian answers and questions, rejects malformed records, Latin clue text and answer leakage, preserves meaningful clue variants, builds positional-letter indexes and assigns a vocabulary familiarity tier. categories.js assigns every accepted entry to a Russian topic category and exposes category filters/statistics.
 2. topology-builder.js generates a seeded role mask from multiple validated geometric seeds, applies randomized transforms and cell mutations, and independently rejects masks with uncovered letters, question cells without slots, or disconnected geometry.
 3. topology.js derives every horizontal and vertical slot from consecutive question cells. It checks actual 8×12 geometry rather than forcing a complete top row.
 4. csp.js assigns dictionary entries to all slots using positional indexes, crossing propagation, MRV, degree tie-breaking, bounded backtracking, unique answers/questions, zero to four distinct optional image assets and at least three distinct logic-clue cells.
 5. assembler.js reconstructs the cell grid and word/question links.
 6. validator.js independently reconstructs all answer paths and geometric slots, verifies every one of the 96 cell roles, checks crossing letters, unique answer/question ownership, question/answer links, dictionary metadata, picture metadata, connectedness and the optional 11-letter exception.
-7. scoring.js evaluates a calibrated 0–100 quality score: validity, crossings, right/down coverage, clue readability, answer-length balance, Russian topic diversity, picture variety, logic clues, clue distribution and recent novelty. A score never overrides a validation failure.
+7. scoring.js evaluates a calibrated 0–100 quality score: validity, crossings, right/down coverage, clue readability, answer-length balance, Russian topic diversity, everyday-vocabulary share, picture variety, logic clues, clue distribution and recent novelty. A score never overrides a validation failure.
 8. history.js stores the last 12 successful boards in browser local storage, penalizes recently used answers and clue formulations, and tracks answer-set and layout reuse. Image prompts are distinguished by their actual image asset. History is a diversity preference, not a permanent ban on useful Russian words.
 9. legacy-adapter.js converts only a validated result into the data shape already consumed by QQCross's scanword renderer, rack, hints, saves, solo, friend and ChatGPT match flows.
 
@@ -67,3 +67,16 @@ Categories: animals, plants, food, nature, geography, science and technology, ho
 ## Diversity policy
 
 A successful board is appended to a rolling 12-board history. Reuse of recently seen answers and non-image clue formulations receives a strong CSP penalty. The same generic picture prompt may be reused only when its image asset differs; the image itself is part of that clue's identity. Reuse is not prohibited forever because the curated dictionary is finite. Every board still rejects duplicate answers and duplicate clue formulations internally.
+
+
+## Vocabulary familiarity policy
+
+The target is not a huge dictionary. It is a compact, curated Russian vocabulary understandable to a broad everyday audience. Every entry receives one tier:
+
+- `everyday`: familiar daily-life words; strongly preferred by the generator.
+- `familiar`: broadly known words from school, nature, culture, geography and general knowledge; used regularly.
+- `extended`: uncommon or specialist vocabulary; used sparingly and only with a clear, self-contained clue.
+
+Explicit `familiarity` values in the source dictionary override inference. Otherwise the classifier uses clue wording, difficulty, category, answer length and optional specialist tags. The CSP gives everyday words the strongest preference, familiar words a moderate preference and extended words a penalty. It does not ban useful longer answers or break the 8×12 crossing constraints. The quality score reports the familiarity mix and rewards accessible boards.
+
+The classifier is a prioritization heuristic, not a claim that every person's vocabulary is identical. Uncertain entries should be manually reviewed and explicitly tagged rather than expanded with guessed definitions.
