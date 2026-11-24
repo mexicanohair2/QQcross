@@ -30,6 +30,13 @@ export function getScanwordScoreBreakdown(scanword, validation, options = {}) {
   const lengths = words.map(word => word.answer.length);
   const directions = uniqueCount(words.map(word => word.direction));
   const categories = uniqueCount(words.map(word => word.category ?? word.tags?.[0]));
+  const familiarityCounts = { everyday: 0, familiar: 0, extended: 0 };
+  for (const word of words) {
+    const tier = word.familiarity ?? 'familiar';
+    if (Object.hasOwn(familiarityCounts, tier)) familiarityCounts[tier]++;
+  }
+  const everydayRatio = familiarityCounts.everyday / Math.max(1, words.length);
+  const extendedRatio = familiarityCounts.extended / Math.max(1, words.length);
   const clueWordCounts = words.map(word => String(word.question ?? '').trim().split(/\s+/u).filter(Boolean).length);
   const readableClues = clueWordCounts.filter(count => count >= 3 && count <= 12).length;
   const avgClueWords = clueWordCounts.length
@@ -58,6 +65,7 @@ export function getScanwordScoreBreakdown(scanword, validation, options = {}) {
     clueBalance: clamp(1 - Math.abs(avgClueWords - 6) / 8, 0, 1) * 4,
     answerVariety: clamp(lengthVariety / 6, 0, 1) * 5,
     categoryDiversity: clamp(categories / 6, 0, 1) * 8,
+    familiarVocabulary: clamp(everydayRatio + (familiarityCounts.familiar / Math.max(1, words.length)) * 0.65 - extendedRatio * 0.5, 0, 1) * 8,
     pictureDiversity: imageKeys.size >= 2 ? 3 : imageKeys.size === 1 ? 1.5 : 0,
     logicClues: clamp(logicCount / 3, 0, 1) * 3,
     clueDistribution: clamp(interiorQuestionCount / 8, 0, 1) * 6,
@@ -77,6 +85,7 @@ export function getScanwordScoreBreakdown(scanword, validation, options = {}) {
       crossingRatio: Math.round(crossingRatio * 1000) / 1000,
       directions,
       categoryCount: categories,
+      familiarityCounts,
       imageCount: imageKeys.size,
       logicClueCells: logicCount,
       interiorQuestionCells: interiorQuestionCount,
