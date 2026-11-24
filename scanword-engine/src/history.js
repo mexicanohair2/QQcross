@@ -21,10 +21,21 @@ function structureKey(words) {
   }).sort().join('|');
 }
 
+function questionKey(word) {
+  const question = normalizeQuestion(word.question ?? word.text ?? '');
+  if (!question) return '';
+  // Reusing the same short image prompt for a different illustration is not
+  // considered a duplicate clue; the image asset is part of its identity.
+  return word.imageKey ? question + '::image:' + word.imageKey : question;
+}
+
 export class GenerationHistory {
-  constructor(limit = CONFIG.HISTORY_LIMIT) {
+  constructor(limit = CONFIG.HISTORY_LIMIT, items = [], cooldownBoards = 12) {
     this.limit = Number.isInteger(limit) && limit > 0 ? limit : CONFIG.HISTORY_LIMIT;
-    this.items = [];
+    this.cooldownBoards = Number.isInteger(cooldownBoards) && cooldownBoards > 0 ? cooldownBoards : 12;
+    this.items = Array.isArray(items) ? items.slice(-this.limit).filter(item =>
+      item && Array.isArray(item.entryIds) && Array.isArray(item.questions)
+    ) : [];
   }
 
   add(result) {
@@ -33,7 +44,7 @@ export class GenerationHistory {
       key: combinationKey(words),
       structureKey: structureKey(words),
       answers: words.map(word => word.answer),
-      questions: words.map(word => normalizeQuestion(word.question ?? word.text ?? '')),
+      questions: words.map(questionKey).filter(Boolean),
       entryIds: words.map(word => word.entryId ?? word.id ?? word.answer),
       seed: result?.metadata?.seed ?? result?.seed ?? null
     };
@@ -43,15 +54,40 @@ export class GenerationHistory {
     return item;
   }
 
+  toJSON() {
+    return this.items.slice(-this.limit).map(item => ({
+      key: item.key,
+      structureKey: item.structureKey,
+      answers: [...item.answers],
+      questions: [...item.questions],
+      entryIds: [...item.entryIds],
+      seed: item.seed ?? null
+    }));
+  }
+
   usageCount(entryId) {
     return this.items.reduce((count, item) => count + Number(item.entryIds.includes(entryId)), 0);
   }
 
-  questionUsageCount(question) {
+  recentUsageCount(entryId) {
+    return this.items.slice(-this.cooldownBoards)
+      .reduce((count, item) => count + Number(item.entryIds.includes(entryId)), 0);
+  }
+
+  questionUsageCount(question, imageKey = null) {
     const normalized = normalizeQuestion(question);
     if (!normalized) return 0;
+    const key = imageKey ? normalized + '::image:' + imageKey : normalized;
     return this.items.reduce((count, item) =>
-      count + item.questions.filter(value => value === normalized).length, 0);
+      count + item.questions.filter(value => value === key || (!imageKey && value === normalized)).length, 0);
+  }
+
+  recentQuestionUsageCount(question, imageKey = null) {
+    const normalized = normalizeQuestion(question);
+    if (!normalized) return 0;
+    const key = imageKey ? normalized + '::image:' + imageKey : normalized;
+    return this.items.slice(-this.cooldownBoards).reduce((count, item) =>
+      count + item.questions.filter(value => value === key || (!imageKey && value === normalized)).length, 0);
   }
 
   hasCombination(words) {
