@@ -57,7 +57,7 @@ test('placement checks bounds and matching intersections', () => {
 });
 test('validator rejects incomplete grids and reports errors', () => {
   const fake = {width:8,height:12,grid:createEmptyGrid(),words:[],questions:[]};
-  const result = validateScanword(fake);
+  const result = validateScanword(fake, [], { requiredImageCount: 1 });
   assert.equal(result.valid, false);
   assert.ok(result.errors.some(e => e.type === 'INCOMPLETE_GRID'));
   assert.ok(result.errors.some(e => e.type === 'IMAGE_COUNT_MISMATCH'));
