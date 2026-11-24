@@ -355,9 +355,12 @@ export function generateScanword(inputDictionary, options = {}) {
   const started = now();
   const seed = Number.isFinite(Number(options.seed)) ? Number(options.seed) >>> 0 : Date.now() >>> 0;
   const random = createRng(seed);
-  const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? 16));
-  const maxNodes = Math.max(500, options.maxNodes ?? 120000);
-  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? 450);
+  const qualityMode = options.qualityMode === 'optimized' ? 'optimized' : 'fast';
+  const maxTopologies = Math.max(1, Math.min(64, options.maxTopologyAttempts ?? (qualityMode === 'optimized' ? 32 : 16)));
+  const maxNodes = Math.max(500, options.maxNodes ?? (qualityMode === 'optimized' ? 180000 : 120000));
+  const maxCspTimeMs = Math.max(25, options.maxCspTimeMs ?? (qualityMode === 'optimized' ? 700 : 450));
+  const maxOptimizedCandidates = Math.max(2, Math.min(6, options.maxOptimizedCandidates ?? 3));
+  const successfulCandidates = [];
   // Special 11-letter puzzles need a little more CSP time: the full word
   // constrains every left-to-right crossing. Keep ordinary puzzles on the
   // normal interactive budget; cap special retries so the worker stays bounded.
@@ -611,9 +614,8 @@ export function generateScanword(inputDictionary, options = {}) {
     scanword.metadata.quality = scoreDetails;
     scanword.metadata.valid = true;
     scanword.metadata.score = score;
+    scanword.metadata.generationMode = qualityMode;
     scanword.metadata.generationTimeMs = Math.round(now() - started);
-    history.add(scanword);
-    const historySnapshot = history.toJSON();
 
     const specialElevenAttemptDiagnostics = attempts
       .filter(item => item.attempt <= specialAttempts)
@@ -625,11 +627,10 @@ export function generateScanword(inputDictionary, options = {}) {
         lastDeadEnd: item.lastDeadEnd ?? null
       }));
     scanword.metadata.specialElevenRequested = wantsEleven;
-    return {
+    const successResult = {
       ok: true,
       scanword,
       validation,
-      historySnapshot,
       topology: {
         ...topology.metrics,
         scaffoldIndex: topologyResult.scaffoldIndex,
@@ -656,6 +657,29 @@ export function generateScanword(inputDictionary, options = {}) {
         rejectedReasons: { ...rejectedReasons }
       }
     };
+    if (qualityMode === 'fast') {
+      history.add(scanword);
+      successResult.historySnapshot = history.toJSON();
+      return successResult;
+    }
+    successfulCandidates.push(successResult);
+    if (successfulCandidates.length >= maxOptimizedCandidates) break;
+  }
+
+  if (successfulCandidates.length) {
+    successfulCandidates.sort((left, right) =>
+      right.stats.score - left.stats.score
+      || left.stats.elapsedMs - right.stats.elapsedMs
+    );
+    const best = successfulCandidates[0];
+    const elapsedMs = Math.round(now() - started);
+    best.scanword.metadata.qualityCandidateCount = successfulCandidates.length;
+    best.scanword.metadata.generationTimeMs = elapsedMs;
+    best.stats.elapsedMs = elapsedMs;
+    best.stats.candidatesEvaluated = successfulCandidates.length;
+    history.add(best.scanword);
+    best.historySnapshot = history.toJSON();
+    return best;
   }
 
   return fail('NO_VALID_SCANWORD', seed, started, attempts, rejectedReasons, {
