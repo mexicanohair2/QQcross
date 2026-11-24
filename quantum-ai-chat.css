@@ -53,3 +53,5 @@
 .qq-quantum-message-body a{color:#d5b3c4;text-decoration:underline;text-decoration-color:#a77d91;text-underline-offset:2px}
 .qq-quantum-message-body strong{font-weight:750;color:var(--text)}
 .qq-quantum-message-image{display:block;width:auto;max-width:min(100%,260px);max-height:230px;object-fit:contain;margin:4px 0 8px;border:1px solid var(--line);border-radius:11px;background:var(--panel2)}
+
+.qq-quantum-attachment[hidden]{display:none}
