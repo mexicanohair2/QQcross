@@ -27,10 +27,12 @@ Hard constraints:
 - when enabled, every question endpoint must receive at least one outgoing clue.
 
 Content requirements:
-- default target: five distinct image answers;
-- default target: at least three distinct logic clue cells.
+- picture clues are optional: production boards may contain 0–4 distinct image answers;
+- an explicit `requiredImageCount` requests an exact count from 0 through 4;
+- the default generator selects a seeded target from the available 0–4 range;
+- require at least three distinct logic-clue cells.
 
-These can be overridden in unit fixtures, but the production adapter must preserve the game's required content policy.
+Missing or unavailable picture assets never block generation. A repeated image key or shared picture clue cell is rejected.
 
 ## Search method
 
