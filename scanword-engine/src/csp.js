@@ -763,6 +763,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       type: assignment.entry.type ?? 'text',
       difficulty: assignment.entry.difficulty ?? 1,
       tags: Array.isArray(assignment.entry.tags) ? [...assignment.entry.tags] : [],
+      category: assignment.entry.category ?? 'other',
       special: slot.special ?? null
     };
   });
