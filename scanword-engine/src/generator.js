@@ -1,5 +1,6 @@
 import { CONFIG } from './config.js';
 import { buildIndexes, canonicalAnswerKey, findCandidates, prepareDictionary } from './dictionary.js';
+import { filterDictionaryByCategories } from './categories.js';
 import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
@@ -378,7 +379,10 @@ export function generateScanword(inputDictionary, options = {}) {
     return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
   }
 
-  const prepared = prepareDictionary(inputDictionary, { foldYo: options.foldYo === true });
+  const dictionarySource = Array.isArray(options.categories) && options.categories.length
+    ? filterDictionaryByCategories(inputDictionary, options.categories)
+    : inputDictionary;
+  const prepared = prepareDictionary(dictionarySource, { foldYo: options.foldYo === true });
   // Pictures are optional. Select a seeded target from 0..4, bounded by the
   // number of distinct picture answers actually available in this dictionary.
   if (requestedImageCount === undefined) {
@@ -518,6 +522,7 @@ export function generateScanword(inputDictionary, options = {}) {
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
+      newCategoryBonus: options.newCategoryBonus,
       preferredSpecialAnswer: specialPlan?.answer,
       allowedEntryIdsBySlot: specialPlan?.allowedEntryIdsBySlot,
       captureTrace: options.captureTrace === true
