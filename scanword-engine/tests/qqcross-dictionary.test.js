@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { buildIndexes, findCandidates, getDifficultyFitScore, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
+import { buildIndexes, findCandidates, getDifficultyFitScore, getFamiliarityFitScore, inferFamiliarity, normalizeAnswer, prepareDictionary } from '../src/dictionary.js';
 import { DICTIONARY_CATEGORIES } from '../src/categories.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -224,4 +224,23 @@ test('rejects Latin-language fragments from otherwise Russian clue text', () => 
   ]);
   assert.deepEqual(prepared.entries.map(item => item.answer), ['ИМПЛИКАЦИЯ']);
   assert.ok(prepared.errors.some(item => item.codes.includes('NON_RUSSIAN_CLUE_TEXT')));
+});
+
+
+test('classifies vocabulary into everyday, familiar and extended tiers', () => {
+  assert.equal(inferFamiliarity({}, 'БАНАН', 'Жёлтый сладкий фрукт.', 2, 'food'), 'everyday');
+  assert.equal(inferFamiliarity({}, 'КОМПОЗИТОР', 'Автор музыкальных произведений.', 3, 'culture'), 'familiar');
+  assert.equal(inferFamiliarity({}, 'ИЗОТОП', 'Научный термин из области химии.', 5, 'science'), 'extended');
+  assert.equal(inferFamiliarity({ familiarity: 'everyday' }, 'АРХИПЕЛАГ', 'Группа островов.', 5, 'geography'), 'everyday');
+  assert.ok(getFamiliarityFitScore('everyday') > getFamiliarityFitScore('familiar'));
+  assert.ok(getFamiliarityFitScore('familiar') > getFamiliarityFitScore('extended'));
+});
+
+test('reports vocabulary familiarity distribution in dictionary statistics', () => {
+  const prepared = prepareDictionary([
+    { answer: 'БАНАН', clue: 'Жёлтый сладкий фрукт.' },
+    { answer: 'КОМПОЗИТОР', clue: 'Автор музыкальных произведений.', category: 'culture' },
+    { answer: 'ИЗОТОП', clue: 'Научный термин из области химии.', difficulty: 5, category: 'science' }
+  ]);
+  assert.deepEqual(prepared.stats.byFamiliarity, { everyday: 1, familiar: 1, extended: 1 });
 });
