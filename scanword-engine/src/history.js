@@ -21,6 +21,23 @@ function structureKey(words) {
   }).sort().join('|');
 }
 
+function questionSimilarity(left, right) {
+  const a = new Set(normalizeQuestion(left).split(/\\s+/u).filter(Boolean));
+  const b = new Set(normalizeQuestion(right).split(/\\s+/u).filter(Boolean));
+  if (!a.size || !b.size) return 0;
+  let intersection = 0;
+  for (const token of a) if (b.has(token)) intersection++;
+  return intersection / (a.size + b.size - intersection);
+}
+
+function splitQuestionIdentity(value) {
+  const marker = '::image:';
+  const index = String(value).indexOf(marker);
+  return index < 0
+    ? { question: String(value), imageKey: null }
+    : { question: String(value).slice(0, index), imageKey: String(value).slice(index + marker.length) };
+}
+
 function questionKey(word) {
   const question = normalizeQuestion(word.question ?? word.text ?? '');
   if (!question) return '';
@@ -77,17 +94,23 @@ export class GenerationHistory {
   questionUsageCount(question, imageKey = null) {
     const normalized = normalizeQuestion(question);
     if (!normalized) return 0;
-    const key = imageKey ? normalized + '::image:' + imageKey : normalized;
-    return this.items.reduce((count, item) =>
-      count + item.questions.filter(value => value === key || (!imageKey && value === normalized)).length, 0);
+    return this.items.reduce((count, item) => count + item.questions.filter(value => {
+      const previous = splitQuestionIdentity(value);
+      if (imageKey && previous.imageKey !== imageKey) return false;
+      if (!imageKey && previous.imageKey) return false;
+      return questionSimilarity(normalized, previous.question) >= 0.82;
+    }).length, 0);
   }
 
   recentQuestionUsageCount(question, imageKey = null) {
     const normalized = normalizeQuestion(question);
     if (!normalized) return 0;
-    const key = imageKey ? normalized + '::image:' + imageKey : normalized;
-    return this.items.slice(-this.cooldownBoards).reduce((count, item) =>
-      count + item.questions.filter(value => value === key || (!imageKey && value === normalized)).length, 0);
+    return this.items.slice(-this.cooldownBoards).reduce((count, item) => count + item.questions.filter(value => {
+      const previous = splitQuestionIdentity(value);
+      if (imageKey && previous.imageKey !== imageKey) return false;
+      if (!imageKey && previous.imageKey) return false;
+      return questionSimilarity(normalized, previous.question) >= 0.82;
+    }).length, 0);
   }
 
   hasCombination(words) {
