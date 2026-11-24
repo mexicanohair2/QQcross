@@ -20,13 +20,13 @@ async function main() {
     specialTopologyAttempts: 2,
     topologyMutationAttempts: 96,
     maxTwoLetterSlots: 5,
-    requiredImageCount: 5,
     minimumLogicClueCells: 3
   };
   const timings = [];
   const failures = [];
   const signatures = new Set();
   const directionCounts = { right: 0, down: 0, left: 0, up: 0, other: 0 };
+  const imageCountDistribution = Array(5).fill(0);
   const checkpoints = {};
   let specialElevenCount = 0;
   let totalAnswers = 0;
@@ -47,9 +47,11 @@ async function main() {
 
   for (let run = 1; run <= requestedRuns; run++) {
     const seed = 2000000 + run * 7919;
+    const requiredImageCount = (run - 1) % 5;
     const started = performance.now();
     const result = generateScanword(dictionary, {
       ...options,
+      requiredImageCount,
       seed,
       sequenceIndex: run
     });
@@ -61,8 +63,7 @@ async function main() {
     } else {
       const scanword = result.scanword;
       const validation = validateScanword(scanword, dictionary, {
-        requiredImageCount: 5,
-        minimumLogicClueCells: 3,
+            minimumLogicClueCells: 3,
         requireLeftBorderClues: true,
         requireTopAnchor: true,
         requireConnected: true
@@ -95,9 +96,10 @@ async function main() {
           else directionCounts.other++;
         }
         const imageWords = scanword.words.filter(word => word.imageKey);
-        assert.equal(imageWords.length, 5);
-        assert.equal(new Set(imageWords.map(word => word.imageKey)).size, 5);
-        assert.equal(new Set(imageWords.map(word => word.clue.row + "," + word.clue.col)).size, 5);
+        assert.equal(imageWords.length, requiredImageCount);
+        imageCountDistribution[imageWords.length]++;
+        assert.equal(new Set(imageWords.map(word => word.imageKey)).size, requiredImageCount);
+        assert.equal(new Set(imageWords.map(word => word.clue.row + "," + word.clue.col)).size, requiredImageCount);
         assert.ok(new Set(scanword.words.filter(word => word.logic).map(word => word.clue.row + "," + word.clue.col)).size >= 3);
         assert.ok(scanword.metadata.valid);
         assert.ok(scanword.metadata.score >= 0 && scanword.metadata.score <= 100);
@@ -110,7 +112,7 @@ async function main() {
         signatures.add(signature(scanword));
 
         if (run <= 3) {
-          const repeated = generateScanword(dictionary, { ...options, seed, sequenceIndex: run });
+          const repeated = generateScanword(dictionary, { ...options, requiredImageCount, seed, sequenceIndex: run });
           assert.equal(repeated.ok, true, "same-seed replay failed");
           assert.equal(signature(repeated.scanword), signature(scanword), "same seed produced a different puzzle");
         }
@@ -144,6 +146,7 @@ async function main() {
     specialElevenRuns: specialElevenCount,
     expectedSpecialElevenRuns: requestedRuns / 4,
     directionCounts,
+    imageCountDistribution,
     uniquePuzzleSignatures: signatures.size,
     duplicatePuzzleSignatures: timings.length - failures.length - signatures.size,
     averageAnswers: totalAnswers / Math.max(1, timings.length - failures.length),
