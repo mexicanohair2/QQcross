@@ -257,7 +257,8 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
         + getDifficultyFitScore(entry.difficulty)
         - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
-        - (options.history?.questionUsageCount?.(entry.question, entry.imageKey) ?? 0) * (options.repeatQuestionPenalty ?? 12);
+        - (options.history?.questionUsageCount?.(entry.question, entry.imageKey) ?? 0) * (options.repeatQuestionPenalty ?? 12)
+        + ((state.usedCategories.get(entry.category ?? 'other') ?? 0) === 0 ? (options.newCategoryBonus ?? 45) : 0);
 
       result.push({
         slotId: slot.id,
@@ -370,6 +371,7 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
     usedImages: new Set(),
     usedImageClueCells: new Set(),
     usedLogicClues: new Set(),
+    usedCategories: new Map(),
     assignments: new Map()
   };
 
@@ -428,6 +430,8 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       state.usedImageClueCells.add(clueKey);
     }
     if (entry.logic) state.usedLogicClues.add(clueKey);
+    const category = entry.category ?? 'other';
+    state.usedCategories.set(category, (state.usedCategories.get(category) ?? 0) + 1);
     state.assignments.set(placement.slotId, {
       ...placement,
       addedLetters,
@@ -458,6 +462,10 @@ export function solveSlotsCsp(inputSlots, inputDictionary, options = {}) {
       state.usedImages.delete(saved.entry.imageKey);
       state.usedImageClueCells.delete(saved.clueKey);
     }
+    const category = saved.entry.category ?? 'other';
+    const categoryCount = state.usedCategories.get(category) ?? 0;
+    if (categoryCount <= 1) state.usedCategories.delete(category);
+    else state.usedCategories.set(category, categoryCount - 1);
     if (saved.entry.logic) {
       const stillUsedAtClue = [...state.assignments.values()].some(item =>
         item.slotId !== placement.slotId
