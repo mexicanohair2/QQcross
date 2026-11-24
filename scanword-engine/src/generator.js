@@ -364,13 +364,14 @@ export function generateScanword(inputDictionary, options = {}) {
     Number.isFinite(options.specialMaxCspTimeMs) ? options.specialMaxCspTimeMs : 1500
   );
   const requestedImageCount = options.requiredImageCount;
-  if (requestedImageCount !== undefined && (!Number.isInteger(requestedImageCount) || requestedImageCount < 0 || requestedImageCount > 4)) {
-    return fail('INVALID_OPTIONS', seed, started, attempts, rejectedReasons, { requiredImageCount: requestedImageCount, maximumImageCount: 4 });
-  }
   let requiredImageCount = requestedImageCount ?? 0;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const rejectedReasons = Object.create(null);
   const attempts = [];
+
+  if (requestedImageCount !== undefined && (!Number.isInteger(requestedImageCount) || requestedImageCount < 0 || requestedImageCount > 4)) {
+    return fail('INVALID_OPTIONS', seed, started, attempts, rejectedReasons, { requiredImageCount: requestedImageCount, maximumImageCount: 4 });
+  }
 
   if (!Array.isArray(inputDictionary) || inputDictionary.length === 0) {
     return fail('EMPTY_DICTIONARY', seed, started, attempts, rejectedReasons);
