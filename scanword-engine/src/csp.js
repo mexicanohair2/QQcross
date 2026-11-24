@@ -257,7 +257,7 @@ function makePlacementCandidates(slot, state, indexes, options, random) {
         + (isNewLogicClue && state.usedLogicClues.size < options.minimumLogicClueCells ? 100 : 0)
         + getDifficultyFitScore(entry.difficulty)
         - (options.history?.usageCount?.(entry.id) ?? 0) * (options.repeatWordPenalty ?? 18)
-        - (options.history?.questionUsageCount?.(entry.question) ?? 0) * (options.repeatQuestionPenalty ?? 12);
+        - (options.history?.questionUsageCount?.(entry.question, entry.imageKey) ?? 0) * (options.repeatQuestionPenalty ?? 12);
 
       result.push({
         slotId: slot.id,
