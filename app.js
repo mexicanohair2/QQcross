@@ -997,7 +997,7 @@ function buildScanword(entries){
     }
   });
   const dirs=[{name:"right",dy:0,dx:1,arrow:"→"},{name:"down",dy:1,dx:0,arrow:"↓"}];
-  let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null;
+  let rejectedNoPlan=0,rejectedSeed=0,rejectedRoute=0,lastSeedReject=null,borderPlanCursor=0;
   const rejectedSeedSamples=[],closureRejectSamples=[];
   let bestCoverage=0,bestImageCount=-1,bestLogicCount=-1,bestSplitCount=-1,bestSingleCount=Infinity,bestDangling=Infinity,bestBorderScore=-1,bestTopCount=0,bestLeftCount=0,bestRowSpread=0,bestColumnSpread=0,bestRank=null,best=null,bestOrphanCount=Infinity;
   const buildAttempt=()=>{
@@ -1253,8 +1253,11 @@ function buildScanword(entries){
     }
     if(!borderPlans.length){rejectedNoPlan++;return null;}
     borderPlans.sort((a,b)=>b.score-a.score);
-    const preferredPlans=borderPlans.slice(0,Math.min(24,borderPlans.length));
-    const plan=preferredPlans[Math.floor(Math.random()*preferredPlans.length)];
+    // Exhaust every structurally ranked border plan before repeating one.
+    // Randomly sampling only the first 24 plans repeatedly hid viable lower-ranked
+    // plans and made deterministic seed verification fail at the final left row.
+    const preferredPlans=borderPlans;
+    const plan=preferredPlans[borderPlanCursor++%preferredPlans.length];
     const first=plan.first;
     const firstCells=Array.from({length:11},(_,index)=>[index+1,1]);
     firstCells.forEach((cell,index)=>occupied.set(cell.join(","),first.answer[index]));
