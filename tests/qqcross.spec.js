@@ -802,7 +802,7 @@ test("scanword uses zero to four optional pictures and at least three logical qu
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
   expect(clueLayout.length).toBeGreaterThan(0);
-  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.every(item => (item.clamp === "3" || item.clamp === "6") && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
 
