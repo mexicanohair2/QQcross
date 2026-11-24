@@ -40,9 +40,17 @@ function makeError(type, message, extra = {}) {
 export function validateScanword(scanword, dictionary = [], options = {}) {
   const errors = [];
   const warnings = [];
-  const requiredImageCount = options.requiredImageCount ?? 5;
+  const requiredImageCount = Number.isInteger(options.requiredImageCount) ? options.requiredImageCount : null;
+  const minimumImageCount = options.minimumImageCount ?? 0;
+  const maximumImageCount = options.maximumImageCount ?? 4;
   const minimumLogicClueCells = options.minimumLogicClueCells ?? 3;
   const add = (type, message, extra) => errors.push(makeError(type, message, extra));
+  if (requiredImageCount !== null && (requiredImageCount < 0 || requiredImageCount > 4)) {
+    add('INVALID_IMAGE_COUNT_REQUIREMENT', 'Допустимо от нуля до четырёх изображений на сканворд.', { requiredImageCount, maximumImageCount: 4 });
+  }
+  if (!Number.isInteger(minimumImageCount) || !Number.isInteger(maximumImageCount) || minimumImageCount < 0 || maximumImageCount > 4 || minimumImageCount > maximumImageCount) {
+    add('INVALID_IMAGE_COUNT_RANGE', 'Диапазон изображений должен находиться в пределах от нуля до четырёх.', { minimumImageCount, maximumImageCount });
+  }
 
   if (!scanword || typeof scanword !== 'object') {
     return {
@@ -651,10 +659,18 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
   const imageWords = words.filter(word => word.imageKey);
   const imageKeys = imageWords.map(word => word.imageKey);
   const imageClueCells = imageWords.map(word => pointKey(word.clue));
-  if (imageWords.length !== requiredImageCount) {
-    add('IMAGE_COUNT_MISMATCH', 'Количество картинок не совпадает с обязательным значением.', {
-      expected: requiredImageCount, actual: imageWords.length
-    });
+  const imageCountValid = requiredImageCount !== null
+    ? imageWords.length === requiredImageCount
+    : imageWords.length >= minimumImageCount && imageWords.length <= maximumImageCount;
+  if (!imageCountValid) {
+    add(requiredImageCount !== null ? 'IMAGE_COUNT_MISMATCH' : 'IMAGE_COUNT_OUT_OF_RANGE',
+      requiredImageCount !== null
+        ? 'Количество изображений не совпадает с заданным целевым значением.'
+        : 'На сканворде должно быть от нуля до четырёх изображений.',
+      requiredImageCount !== null
+        ? { expected: requiredImageCount, actual: imageWords.length }
+        : { minimum: minimumImageCount, maximum: maximumImageCount, actual: imageWords.length }
+    );
   }
   if (new Set(imageKeys).size !== imageKeys.length) {
     add('DUPLICATE_IMAGE_KEY', 'Одно изображение использовано более одного раза.', { imageKeys });
