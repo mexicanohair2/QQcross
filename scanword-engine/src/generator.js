@@ -4,7 +4,8 @@ import { solveSlotsCsp } from './csp.js';
 import { assembleScanword } from './assembler.js';
 import { validateScanword } from './validator.js';
 import { generateTopology, getTopologyScaffolds } from './topology-builder.js';
-import { scoreScanword } from './scoring.js';
+import { scoreScanword, getScanwordScoreBreakdown } from './scoring.js';
+import { GenerationHistory } from './history.js';
 import { createRng } from './rng.js';
 
 function now() {
@@ -393,6 +394,7 @@ export function generateScanword(inputDictionary, options = {}) {
   // Dictionary validation and positional indexes are invariant across topology attempts.
   // Build them once, not again inside every CSP retry.
   const indexes = buildIndexes(prepared.variants, { foldYo: options.foldYo === true });
+  const history = new GenerationHistory(options.historyLimit ?? 12, options.historySnapshot ?? [], options.historyCooldownBoards ?? 12);
 
   const hasElevenLetterAnswers = prepared.entries.some(entry => entry.answer.length === 11);
   const sequenceIndex = Number.isSafeInteger(options.sequenceIndex) && options.sequenceIndex > 0
@@ -512,7 +514,7 @@ export function generateScanword(inputDictionary, options = {}) {
       minimumLogicClueCells,
       requireEveryClueStarts: false,
       allowedDirections: ['right', 'down'],
-      history: options.history,
+      history,
       signal: options.signal,
       repeatWordPenalty: options.repeatWordPenalty,
       repeatQuestionPenalty: options.repeatQuestionPenalty,
@@ -599,10 +601,14 @@ export function generateScanword(inputDictionary, options = {}) {
       continue;
     }
 
-    const score = scoreScanword(scanword, validation);
+    const scoreDetails = getScanwordScoreBreakdown(scanword, validation, { history });
+    const score = scoreDetails.score;
+    scanword.metadata.quality = scoreDetails;
     scanword.metadata.valid = true;
     scanword.metadata.score = score;
     scanword.metadata.generationTimeMs = Math.round(now() - started);
+    history.add(scanword);
+    const historySnapshot = history.toJSON();
 
     const specialElevenAttemptDiagnostics = attempts
       .filter(item => item.attempt <= specialAttempts)
@@ -618,6 +624,7 @@ export function generateScanword(inputDictionary, options = {}) {
       ok: true,
       scanword,
       validation,
+      historySnapshot,
       topology: {
         ...topology.metrics,
         scaffoldIndex: topologyResult.scaffoldIndex,
