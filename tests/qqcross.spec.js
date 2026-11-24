@@ -75,7 +75,7 @@ test("retries one failed scanword worker and completes generation in the worker 
   expect(pageErrors).toEqual([]);
 });
 
-test("loads a fully occupied 8-column by 12-row portrait scanword with five distinct picture clues", async ({ page }) => {
+test("loads a fully occupied 8-column by 12-row portrait scanword with zero to four optional picture clues", async ({ page }) => {
   const { pageErrors, startMs } = await startGuestGame(page);
   await expect(page.locator(".scanword-board")).toBeVisible();
   await expect(page.locator(".scan-grid-cell")).toHaveCount(96);
@@ -124,14 +124,16 @@ test("loads a fully occupied 8-column by 12-row portrait scanword with five dist
   await expect(page.locator(".scan-grid-cell.scan-boundary")).not.toHaveCount(0);
   await expect(page.locator(".scan-grid-cell.scan-boundary[data-clue-cell]")).toHaveCount(0);
   expect(await page.locator(".scan-grid-cell.scan-boundary").evaluateAll(nodes => nodes.every(node => node.getAttribute("aria-hidden") === "true"))).toBeTruthy();
-  await expect(page.locator(".scan-clue-picture")).toHaveCount(5);
-  await expect(page.locator(".scan-clue-image")).toHaveCount(5);
+  const pictureCount = await page.locator(".scan-clue-picture").count();
+  expect(pictureCount).toBeGreaterThanOrEqual(0);
+  expect(pictureCount).toBeLessThanOrEqual(4);
+  await expect(page.locator(".scan-clue-image")).toHaveCount(pictureCount);
   await expect(page.locator(".scan-clue-text")).not.toHaveCount(0);
   const clueFontSizes = await page.locator(".scan-clue-text").evaluateAll(nodes => nodes.map(node => parseFloat(getComputedStyle(node).fontSize)));
   expect(clueFontSizes.every(size => size >= 8)).toBeTruthy();
   await expect.poll(() => page.locator(".scan-clue-image").evaluateAll(images => images.every(img => img.complete && img.naturalWidth > 0))).toBe(true);
   const pictureSources = await page.locator(".scan-clue-image").evaluateAll(images => images.map(img => new URL(img.src).pathname.split("/").pop()).sort());
-  expect(new Set(pictureSources).size).toBe(5);
+  expect(new Set(pictureSources).size).toBe(pictureCount);
   expect(pictureSources.every(source => source.endsWith(".svg"))).toBe(true);
   const internalTiming = await page.evaluate(() => window.__qqcrossTiming || null);
   console.log("QQCross game tap-to-board: " + Math.round(startMs) + " ms; generator: " + JSON.stringify(internalTiming));
@@ -800,7 +802,7 @@ test("scanword uses zero to four optional pictures and at least three logical qu
     return { clamp: style.webkitLineClamp, whiteSpace: style.whiteSpace, width: rect.width, height: rect.height, text: node.textContent };
   }));
   expect(clueLayout.length).toBeGreaterThan(0);
-  expect(clueLayout.every(item => item.clamp === "6" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
+  expect(clueLayout.every(item => item.clamp === "3" && item.whiteSpace === "normal" && item.width > 0 && item.height > 0)).toBeTruthy();
   expect(clueLayout.some(item => item.text.length > 8)).toBeTruthy();
 });
 
