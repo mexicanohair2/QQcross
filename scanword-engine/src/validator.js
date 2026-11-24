@@ -676,7 +676,7 @@ export function validateScanword(scanword, dictionary = [], options = {}) {
     add('DUPLICATE_IMAGE_KEY', 'Одно изображение использовано более одного раза.', { imageKeys });
   }
   if (new Set(imageClueCells).size !== imageClueCells.length) {
-    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку: игрок должен видеть пять отдельных изображений.', {
+    add('IMAGE_CLUE_CELL_COLLISION', 'Две картинки не могут занимать одну вопросную клетку: каждое изображение должно занимать отдельную клетку.', {
       imageClueCells
     });
   }
