@@ -1,3 +1,5 @@
+import { categorizeDictionaryEntry, getDictionaryCategoryStats } from './categories.js';
+
 const ANSWER_RE = /^[А-ЯЁ]+$/u;
 
 export function normalizeAnswer(value, { foldYo = false } = {}) {
@@ -99,6 +101,7 @@ export function validateEntry(raw, index = 0, options = {}) {
   if (!answer || !ANSWER_RE.test(answer)) errors.push('INVALID_ANSWER_CHARACTERS');
   if (answer.length < 2 || answer.length > 11) errors.push('ANSWER_LENGTH_OUT_OF_RANGE');
   if (!question) errors.push('EMPTY_QUESTION');
+  if (/[A-Za-z]/u.test(question)) errors.push('NON_RUSSIAN_CLUE_TEXT');
   // Grammar-only entries (pronouns, prepositions and interjections) make weak filler clues in this scanword format.
   if (/местоимени|предлог|междомет/iu.test(question)) errors.push('FUNCTION_WORD_CLUE');
   if (questionContainsWholeAnswer(question, answer)) errors.push('ANSWER_LEAKS_INTO_QUESTION');
@@ -112,6 +115,7 @@ export function validateEntry(raw, index = 0, options = {}) {
     difficulty: inferDifficulty(raw, question, imageKey),
     partOfSpeech: String(raw.partOfSpeech ?? ''),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
+    category: categorizeDictionaryEntry(raw),
     logic: raw.logic === true,
     type: raw.type === 'image' || imageKey ? 'image' : 'text',
     imageKey,
@@ -132,6 +136,7 @@ export function prepareDictionary(input, options = {}) {
   const warnings = [];
   const variants = [];
   const byAnswer = new Map();
+  const byCategory = new Map();
   const questionOwners = new Map();
   const source = Array.isArray(input) ? input : [];
 
@@ -228,7 +233,8 @@ export function prepareDictionary(input, options = {}) {
       // of the same answer; the CSP can select either one for a given puzzle.
       withImages: new Set(variants.filter(item => item.imageKey).map(item => canonicalAnswerKey(item.answer))).size,
       logicEntries: new Set(variants.filter(item => item.logic).map(item => canonicalAnswerKey(item.answer))).size,
-      byLength: lengthCounts
+      byLength: lengthCounts,
+      byCategory: getDictionaryCategoryStats(entries)
     }
   };
 }
@@ -252,6 +258,9 @@ export function buildIndexes(entries, options = {}) {
     byLength.get(length).push(entry);
     byId.set(entry.id, entry);
     byAnswer.set(entry.answer, entry);
+    const category = entry.category ?? 'other';
+    if (!byCategory.has(category)) byCategory.set(category, []);
+    byCategory.get(category).push(entry);
 
     for (let position = 0; position < length; position++) {
       const key = position + ':' + entry.answer[position];
@@ -265,6 +274,7 @@ export function buildIndexes(entries, options = {}) {
     byLetter,
     byId,
     byAnswer,
+    byCategory,
     foldYo: options.foldYo === true
   };
 }
