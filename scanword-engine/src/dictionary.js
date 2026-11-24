@@ -136,7 +136,6 @@ export function prepareDictionary(input, options = {}) {
   const warnings = [];
   const variants = [];
   const byAnswer = new Map();
-  const byCategory = new Map();
   const questionOwners = new Map();
   const source = Array.isArray(input) ? input : [];
 
@@ -251,6 +250,7 @@ export function buildIndexes(entries, options = {}) {
   const byLetter = new Map();
   const byId = new Map();
   const byAnswer = new Map();
+  const byCategory = new Map();
 
   for (const entry of entries) {
     const length = entry.answer.length;
